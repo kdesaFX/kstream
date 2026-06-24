@@ -1,6 +1,8 @@
 import fscreen from "fscreen";
 import Hls, { Level } from "hls.js";
 
+import { ArtemisRetryLoader } from "@/components/player/display/hlsRetryLoader";
+
 import {
   RULE_IDS,
   isExtensionActiveCached,
@@ -230,6 +232,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             },
           },
           renderTextTracksNatively: false,
+          loader: ArtemisRetryLoader as any,
           xhrSetup: (xhr, url) => {
             if (typeof url === "string" && url.includes("erlook")) {
               try { xhr.overrideMimeType("application/octet-stream"); } catch {}
