@@ -2,6 +2,7 @@
 import { PlayerMeta } from "@/stores/player/slices/source";
 
 import { scrapeFebboxCaptions as _scrapeFebboxCaptions } from "./febbox";
+import { scrapeNatsukiCaptions } from "./natsuki";
 import { scrapeOpenSubtitlesCaptions } from "./opensubtitles";
 import { scrapeVdrkCaptions } from "./vdrk";
 import { scrapeWyzieCaptions } from "./wyzie";
@@ -25,10 +26,17 @@ export async function scrapeExternalSubtitles(
 
     // Wyzie aggregates multiple upstream sources so needs a longer timeout
     const wyzieTimeout = 30000;
+    const natsukiTimeout = 30000;
     const timeout = 10000;
 
     // Create promises for each source with individual timeouts
     const wyziePromise = scrapeWyzieCaptions(
+      tmdbId,
+      imdbId ?? "",
+      season,
+      episode,
+    );
+    const natsukiPromise = scrapeNatsukiCaptions(
       tmdbId,
       imdbId ?? "",
       season,
@@ -46,6 +54,11 @@ export async function scrapeExternalSubtitles(
     >((resolve) => {
       setTimeout(() => resolve([]), wyzieTimeout);
     });
+    const natsukiTimeoutPromise = new Promise<
+      import("@/stores/player/slices/source").CaptionListItem[]
+    >((resolve) => {
+      setTimeout(() => resolve([]), natsukiTimeout);
+    });
     const timeoutPromise = new Promise<
       import("@/stores/player/slices/source").CaptionListItem[]
     >((resolve) => {
@@ -56,7 +69,7 @@ export async function scrapeExternalSubtitles(
     const allCaptions: import("@/stores/player/slices/source").CaptionListItem[] =
       [];
     let completedSources = 0;
-    const totalSources = 3;
+    const totalSources = 4;
 
     // Helper function to handle individual source completion
     const handleSourceCompletion = (
@@ -72,6 +85,10 @@ export async function scrapeExternalSubtitles(
 
     // Start all sources concurrently and handle them as they complete
     const promises = [
+      Promise.race([natsukiPromise, natsukiTimeoutPromise]).then((captions) => {
+        handleSourceCompletion("Natsuki", captions);
+        return captions;
+      }),
       Promise.race([wyziePromise, wyzieTimeoutPromise]).then((captions) => {
         handleSourceCompletion("Wyzie", captions);
         return captions;
@@ -106,6 +123,7 @@ export async function scrapeExternalSubtitles(
 
 // Re-export individual functions for direct access if needed
 export { scrapeWyzieCaptions } from "./wyzie";
+export { scrapeNatsukiCaptions } from "./natsuki";
 export { scrapeOpenSubtitlesCaptions } from "./opensubtitles";
 export { scrapeFebboxCaptions } from "./febbox";
 export { scrapeVdrkCaptions } from "./vdrk";

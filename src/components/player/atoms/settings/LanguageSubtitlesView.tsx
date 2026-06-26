@@ -71,7 +71,19 @@ export function LanguageSubtitlesView({
 
   // Filter captions for this specific language
   const languageCaptions = useMemo(
-    () => captions.filter((caption) => caption.language === language),
+    () => {
+      const filtered = captions.filter((caption) => caption.language === language);
+      const priority = (src?: string): number => {
+        if (!src) return 99;
+        if (src.includes("natsuki")) return 0;
+        if (src.includes("wyzie")) return 1;
+        if (src === "opensubs") return 2;
+        if (src === "granite") return 3;
+        if (src === "febbox") return 4;
+        return 99;
+      };
+      return [...filtered].sort((a, b) => priority(a.source) - priority(b.source));
+    },
     [captions, language],
   );
 
