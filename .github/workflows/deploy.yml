@@ -76,7 +76,7 @@ jobs:
           VITE_SIMKL_CLIENT_ID: "ba3e36f42507238bc3466a995763505b0cf4407953f286e09935c51bf3347ebc"
           VITE_SIMKL_CLIENT_SECRET: ${{ secrets.VITE_SIMKL_CLIENT_SECRET }}
           VITE_SIMKL_REDIRECT_URI: "https://zstream.mov/settings"
-
+          VITE_DMCA_EMAIL: "zstream-dmca@proton.me"
       - name: Clean credentials
         if: always()
         run: rm -rf /tmp/private-providers
