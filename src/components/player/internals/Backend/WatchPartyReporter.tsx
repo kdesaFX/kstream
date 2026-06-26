@@ -1,15 +1,15 @@
-import { t } from "i18next";
+/* eslint-disable no-console */
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { getRoomStatuses, sendPlayerStatus } from "@/backend/player/status";
+import { sendPlayerStatus } from "@/backend/player/status";
 import { usePlayerStatusPolling } from "@/components/player/hooks/usePlayerStatusPolling";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
+import { useWatchPartySync } from "@/hooks/useWatchPartySync";
 import { useAuthStore } from "@/stores/auth";
 import { usePlayerStore } from "@/stores/player/store";
 import { useWatchPartyStore } from "@/stores/watchParty";
 
-// Event for content validation status
 const VALIDATION_EVENT = "watchparty:validation";
 export const emitValidationStatus = (success: boolean) => {
   window.dispatchEvent(
@@ -17,301 +17,137 @@ export const emitValidationStatus = (success: boolean) => {
   );
 };
 
-/**
- * Component that sends player status to the backend when watch party is enabled
- */
+const HOST_REPORT_INTERVAL_MS = 1500;
+const GUEST_REPORT_INTERVAL_MS = 3000;
+
 export function WatchPartyReporter() {
-  const { statusHistory, latestStatus } = usePlayerStatusPolling(5); // Keep last 5 status points
+  const { latestStatus } = usePlayerStatusPolling(5);
   const lastReportTime = useRef<number>(0);
-  const lastReportedStateRef = useRef<string>("");
-  const contentValidatedRef = useRef<boolean>(false);
-  const hostEpisodeRef = useRef<{ seasonId?: number; episodeId?: number }>({});
+  const lastReportedFingerprint = useRef<string>("");
+  const followedTargetRef = useRef<string | null>(null);
   const navigate = useNavigate();
 
-  // Auth data
   const account = useAuthStore((s) => s.account);
   const userId = account?.userId || "guest";
   const backendUrl = useBackendUrl();
 
-  // Player metadata
   const meta = usePlayerStore((s) => s.meta);
 
-  // Watch party state
   const {
     enabled: watchPartyEnabled,
     roomCode,
     isHost,
-    disable,
   } = useWatchPartyStore();
 
-  // Reset validation state when watch party is disabled
+  const { hostUser } = useWatchPartySync();
+
   useEffect(() => {
     if (!watchPartyEnabled) {
-      contentValidatedRef.current = false;
-      hostEpisodeRef.current = {};
+      followedTargetRef.current = null;
     }
   }, [watchPartyEnabled]);
 
-  // Validate content matches when joining a room
-  useEffect(() => {
-    const validateContent = async () => {
-      if (
-        !watchPartyEnabled ||
-        !roomCode ||
-        !meta?.tmdbId ||
-        isHost ||
-        contentValidatedRef.current
-      )
-        return;
-
-      try {
-        const roomData = await getRoomStatuses(backendUrl, account, roomCode);
-        const users = Object.values(roomData.users).flat();
-        const hostUser = users.find((user) => user.isHost);
-
-        if (hostUser && hostUser.content.tmdbId) {
-          const hostTmdbId = hostUser.content.tmdbId;
-          const currentTmdbId = parseInt(meta.tmdbId, 10);
-
-          // Check base content ID (movie or show)
-          if (hostTmdbId !== currentTmdbId) {
-            console.error("Content mismatch - disconnecting from watch party", {
-              hostContent: hostTmdbId,
-              currentContent: currentTmdbId,
-            });
-            disable();
-            emitValidationStatus(false);
-            // eslint-disable-next-line no-alert
-            alert(t("watchParty.contentMismatch"));
-            return;
-          }
-
-          // Check season and episode IDs for TV shows
-          if (meta.type === "show" && hostUser.content.type === "TV Show") {
-            const hostSeasonId = hostUser.content.seasonId;
-            const hostEpisodeId = hostUser.content.episodeId;
-            const currentSeasonId = meta.season?.tmdbId
-              ? parseInt(meta.season.tmdbId, 10)
-              : undefined;
-            const currentEpisodeId = meta.episode?.tmdbId
-              ? parseInt(meta.episode.tmdbId, 10)
-              : undefined;
-
-            // Initialize host episode tracking
-            if (hostSeasonId && hostEpisodeId) {
-              hostEpisodeRef.current = {
-                seasonId: hostSeasonId,
-                episodeId: hostEpisodeId,
-              };
-            }
-
-            // Validate episode match (if host has this info)
-            if (
-              (hostSeasonId &&
-                currentSeasonId &&
-                hostSeasonId !== currentSeasonId) ||
-              (hostEpisodeId &&
-                currentEpisodeId &&
-                hostEpisodeId !== currentEpisodeId)
-            ) {
-              console.error(
-                "Episode mismatch - disconnecting from watch party",
-                {
-                  host: { seasonId: hostSeasonId, episodeId: hostEpisodeId },
-                  current: {
-                    seasonId: currentSeasonId,
-                    episodeId: currentEpisodeId,
-                  },
-                },
-              );
-              disable();
-              emitValidationStatus(false);
-              // eslint-disable-next-line no-alert
-              alert(t("watchParty.episodeMismatch"));
-              return;
-            }
-          }
-        }
-
-        contentValidatedRef.current = true;
-        emitValidationStatus(true);
-      } catch (error) {
-        console.error("Failed to validate watch party content:", error);
-        disable();
-        emitValidationStatus(false);
-      }
-    };
-
-    validateContent();
-  }, [
-    watchPartyEnabled,
-    roomCode,
-    meta?.tmdbId,
-    meta?.season?.tmdbId,
-    meta?.episode?.tmdbId,
-    meta?.type,
-    isHost,
-    backendUrl,
-    account,
-    disable,
-  ]);
-
-  // Monitor for episode changes from host and auto-navigate guests
   useEffect(() => {
     if (
       !watchPartyEnabled ||
       !roomCode ||
       isHost ||
-      !meta?.tmdbId ||
-      meta.type !== "show"
-    ) {
+      !hostUser ||
+      !hostUser.content.tmdbId
+    )
+      return;
+
+    const hostTmdbId = hostUser.content.tmdbId;
+    const hostSeasonId = hostUser.content.seasonId;
+    const hostEpisodeId = hostUser.content.episodeId;
+    const isHostTv = hostUser.content.type === "TV Show";
+
+    const currentTmdbId = meta?.tmdbId ? parseInt(meta.tmdbId, 10) : null;
+    const currentSeasonId = meta?.season?.tmdbId
+      ? parseInt(meta.season.tmdbId, 10)
+      : undefined;
+    const currentEpisodeId = meta?.episode?.tmdbId
+      ? parseInt(meta.episode.tmdbId, 10)
+      : undefined;
+
+    const targetKey = isHostTv
+      ? `tv:${hostTmdbId}:${hostSeasonId}:${hostEpisodeId}`
+      : `movie:${hostTmdbId}`;
+
+    const isOnSameContent =
+      currentTmdbId === hostTmdbId &&
+      (!isHostTv ||
+        (currentSeasonId === hostSeasonId &&
+          currentEpisodeId === hostEpisodeId));
+
+    if (isOnSameContent) {
+      followedTargetRef.current = targetKey;
+      emitValidationStatus(true);
       return;
     }
 
-    const checkForEpisodeChange = async () => {
-      try {
-        const roomData = await getRoomStatuses(backendUrl, account, roomCode);
-        const users = Object.values(roomData.users).flat();
-        const hostUser = users.find((user) => user.isHost);
+    if (followedTargetRef.current === targetKey) return;
+    followedTargetRef.current = targetKey;
 
-        if (!hostUser || hostUser.content.type !== "TV Show") return;
+    const targetPath =
+      isHostTv && hostSeasonId && hostEpisodeId
+        ? `/media/tmdb-tv-${hostTmdbId}/${hostSeasonId}/${hostEpisodeId}`
+        : `/media/tmdb-movie-${hostTmdbId}`;
 
-        const hostSeasonId = hostUser.content.seasonId;
-        const hostEpisodeId = hostUser.content.episodeId;
-
-        // Initialize host episode ref on first check
-        if (
-          !hostEpisodeRef.current.seasonId &&
-          !hostEpisodeRef.current.episodeId
-        ) {
-          hostEpisodeRef.current = {
-            seasonId: hostSeasonId,
-            episodeId: hostEpisodeId,
-          };
-          return;
-        }
-
-        // Check if host has changed episodes
-        const hasHostChangedEpisode =
-          hostSeasonId !== hostEpisodeRef.current.seasonId ||
-          hostEpisodeId !== hostEpisodeRef.current.episodeId;
-
-        if (hasHostChangedEpisode && hostSeasonId && hostEpisodeId) {
-          // Update our reference
-          hostEpisodeRef.current = {
-            seasonId: hostSeasonId,
-            episodeId: hostEpisodeId,
-          };
-
-          // Check if we're already on the correct episode
-          const currentSeasonId = meta.season?.tmdbId
-            ? parseInt(meta.season.tmdbId, 10)
-            : undefined;
-          const currentEpisodeId = meta.episode?.tmdbId
-            ? parseInt(meta.episode.tmdbId, 10)
-            : undefined;
-
-          if (
-            currentSeasonId === hostSeasonId &&
-            currentEpisodeId === hostEpisodeId
-          ) {
-            // Already on the correct episode
-            return;
-          }
-
-          // Navigate to the new episode
-          // eslint-disable-next-line no-console
-          console.log("Host changed episode, following to new episode:", {
-            seasonId: hostSeasonId,
-            episodeId: hostEpisodeId,
-          });
-
-          const url = new URL(
-            `/media/tmdb-tv-${meta.tmdbId}/${hostSeasonId}/${hostEpisodeId}`,
-            window.location.origin,
-          );
-          url.searchParams.set("watchparty", roomCode);
-
-          // Reset content validation so it re-validates on the new episode
-          contentValidatedRef.current = false;
-
-          navigate(url.pathname + url.search);
-        }
-      } catch (error) {
-        console.error("Failed to check for episode change:", error);
-      }
-    };
-
-    // Check every 1.5 seconds for episode changes
-    const interval = setInterval(checkForEpisodeChange, 1500);
-
-    // Initial check
-    checkForEpisodeChange();
-
-    return () => clearInterval(interval);
+    const url = new URL(targetPath, window.location.origin);
+    url.searchParams.set("watchparty", roomCode);
+    navigate(url.pathname + url.search);
   }, [
     watchPartyEnabled,
     roomCode,
     isHost,
+    hostUser,
     meta?.tmdbId,
     meta?.season?.tmdbId,
     meta?.episode?.tmdbId,
     meta?.type,
-    backendUrl,
-    account,
     navigate,
   ]);
 
   useEffect(() => {
-    // Skip if watch party is not enabled
     if (
       !watchPartyEnabled ||
       !latestStatus ||
       !latestStatus.hasPlayedOnce ||
       !roomCode ||
-      (!isHost && !contentValidatedRef.current) // Don't send updates until content is validated for non-hosts
+      !meta
     )
       return;
 
     const now = Date.now();
-
-    // Create a state fingerprint to detect meaningful changes
-    // Use more precise time tracking (round to nearest second) to detect smaller changes
-    const stateFingerprint = JSON.stringify({
+    const fingerprint = JSON.stringify({
       isPlaying: latestStatus.isPlaying,
       isPaused: latestStatus.isPaused,
       isLoading: latestStatus.isLoading,
-      time: Math.floor(latestStatus.time), // Track seconds directly
-      // volume: Math.round(latestStatus.volume * 100),
+      time: Math.floor(latestStatus.time),
       playbackRate: latestStatus.playbackRate,
     });
 
-    // Check if state has changed meaningfully OR
-    // it's been at least 2 seconds since last report
-    const hasStateChanged = stateFingerprint !== lastReportedStateRef.current;
-    const timeThresholdMet = now - lastReportTime.current >= 2000; // Update every 2 seconds
+    const changed = fingerprint !== lastReportedFingerprint.current;
+    const minInterval = isHost
+      ? HOST_REPORT_INTERVAL_MS
+      : GUEST_REPORT_INTERVAL_MS;
+    const dueByTime = now - lastReportTime.current >= minInterval;
+    const dueByChange = changed && now - lastReportTime.current >= 250;
 
-    // Always update more frequently if we're the host to ensure guests stay in sync
-    const shouldUpdateForHost = isHost && now - lastReportTime.current >= 500; // Host updates every 500ms
+    if (!dueByChange && !dueByTime) return;
 
-    if (!hasStateChanged && !timeThresholdMet && !shouldUpdateForHost) return;
-
-    // Prepare content information
     let contentTitle = "Unknown content";
     let contentType = "Unknown";
-
-    if (meta) {
-      if (meta.type === "movie") {
-        contentTitle = meta.title;
-        contentType = "Movie";
-      } else if (meta.type === "show" && meta.episode) {
-        contentTitle = `${meta.title} - S${meta.season?.number || 0}E${meta.episode.number || 0}`;
-        contentType = "TV Show";
-      }
+    if (meta.type === "movie") {
+      contentTitle = meta.title;
+      contentType = "Movie";
+    } else if (meta.type === "show" && meta.episode) {
+      contentTitle = `${meta.title} - S${meta.season?.number || 0}E${meta.episode.number || 0}`;
+      contentType = "TV Show";
     }
 
-    // Send player status to backend API
-    const sendStatusToBackend = async () => {
+    const send = async () => {
       try {
         await sendPlayerStatus(backendUrl, account, {
           userId,
@@ -337,34 +173,20 @@ export function WatchPartyReporter() {
             hasPlayedOnce: latestStatus.hasPlayedOnce,
             time: latestStatus.time,
             duration: latestStatus.duration,
-            // volume: latestStatus.volume,
             playbackRate: latestStatus.playbackRate,
             buffered: latestStatus.buffered,
           },
         });
-
-        // Update last report time and fingerprint
         lastReportTime.current = now;
-        lastReportedStateRef.current = stateFingerprint;
-
-        // eslint-disable-next-line no-console
-        console.log("Sent player status update to backend", {
-          time: new Date().toISOString(),
-          isPlaying: latestStatus.isPlaying,
-          currentTime: Math.floor(latestStatus.time),
-          userId,
-          content: contentTitle,
-          roomCode,
-        });
-      } catch (error) {
-        console.error("Failed to send player status to backend", error);
+        lastReportedFingerprint.current = fingerprint;
+      } catch (err) {
+        console.error("watchparty: send status failed", err);
       }
     };
 
-    sendStatusToBackend();
+    send();
   }, [
     latestStatus,
-    statusHistory.length,
     userId,
     account,
     meta,

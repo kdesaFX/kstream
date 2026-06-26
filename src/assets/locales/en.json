@@ -1581,7 +1581,8 @@
   "watchParty": {
     "status": {
       "inSync": "In sync",
-      "outOfSync": "Out of sync"
+      "outOfSync": "Out of sync",
+      "offline": "Offline"
     },
     "alone": "Alone",
     "withCount": "With {{count}} others",
@@ -1599,7 +1600,11 @@
     "hostParty": "Host a Watch Party",
     "joinParty": "Join a Watch Party",
     "viewers": "Viewers ({{count}})",
-    "copyCode": "Click to copy",
+    "copyCode": "Copy code",
+    "copyLink": "Copy link",
+    "copied": "Copied!",
+    "you": "You",
+    "edit": "Edit",
     "join": "Join",
     "cancel": "Cancel",
     "save": "Save",
@@ -1610,7 +1615,7 @@
     "episodeMismatch": "Cannot join watch party: You are watching a different episode than the host.",
     "validating": "Validating watch party...",
     "linkCopied": "Copied!",
-    "backendRequirement": "All users must use the same backend server",
+    "backendRequirement": "Watch parties need backend version 2.0.1+. Update your backend to use this feature.",
     "activeBackend": "Active Backend: {{backend}}"
   }
 }

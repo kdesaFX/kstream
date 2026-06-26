@@ -1,14 +1,13 @@
 /* eslint-disable no-console */
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// import { getRoomStatuses, getUserPlayerStatus } from "@/backend/player/status";
 import { getRoomStatuses } from "@/backend/player/status";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useAuthStore } from "@/stores/auth";
 import { usePlayerStore } from "@/stores/player/store";
 import { useWatchPartyStore } from "@/stores/watchParty";
 
-interface RoomUser {
+export interface RoomUser {
   userId: string;
   isHost: boolean;
   lastUpdate: number;
@@ -29,120 +28,91 @@ interface RoomUser {
   };
 }
 
-interface WatchPartySyncResult {
-  // All users in the room
+export interface WatchPartySyncResult {
   roomUsers: RoomUser[];
-  // The host user (if any)
   hostUser: RoomUser | null;
-  // Whether our player is behind the host
   isBehindHost: boolean;
-  // Whether our player is ahead of the host
   isAheadOfHost: boolean;
-  // Seconds difference from host (positive means ahead, negative means behind)
   timeDifferenceFromHost: number;
-  // Function to sync with host
   syncWithHost: () => void;
-  // Whether we are currently syncing
   isSyncing: boolean;
-  // Manually refresh room data
   refreshRoomData: () => Promise<void>;
-  // Current user count in room
   userCount: number;
+  isOffline: boolean;
 }
 
-/**
- * Hook for syncing with other users in a watch party room
- */
+const POLL_INTERVAL_MS = 2000;
+const BACKOFF_MAX_MS = 15000;
+const STALE_USER_MS = 12000;
+
 export function useWatchPartySync(
   syncThresholdSeconds = 5,
 ): WatchPartySyncResult {
   const [roomUsers, setRoomUsers] = useState<RoomUser[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [userCount, setUserCount] = useState(1);
+  const [isOffline, setIsOffline] = useState(false);
 
-  // Refs for tracking state
-  const syncStateRef = useRef({
-    lastUserCount: 1,
+  const stateRef = useRef({
     previousHostPlaying: null as boolean | null,
     previousHostTime: null as number | null,
-    lastSyncTime: 0,
     syncInProgress: false,
     checkedUrlParams: false,
-    prevRoomUsers: [] as RoomUser[],
+    consecutiveErrors: 0,
   });
 
-  // Get our auth and backend info
   const account = useAuthStore((s) => s.account);
   const backendUrl = useBackendUrl();
 
-  // Get player store functions
   const display = usePlayerStore((s) => s.display);
   const currentTime = usePlayerStore((s) => s.progress.time);
   const isPlaying = usePlayerStore((s) => s.mediaPlaying.isPlaying);
-  // Get watch party state
+
   const { roomCode, isHost, enabled, enableAsGuest } = useWatchPartyStore();
 
-  // Reset URL parameter checking when watch party is disabled
   useEffect(() => {
-    if (!enabled) {
-      syncStateRef.current.checkedUrlParams = false;
-    }
+    if (!enabled) stateRef.current.checkedUrlParams = false;
   }, [enabled]);
 
-  // Check URL parameters for watch party code
   useEffect(() => {
-    if (syncStateRef.current.checkedUrlParams) return;
-
+    if (stateRef.current.checkedUrlParams) return;
     try {
       const params = new URLSearchParams(window.location.search);
-      const watchPartyCode = params.get("watchparty");
-
-      if (watchPartyCode && !enabled && watchPartyCode.length > 0) {
-        enableAsGuest(watchPartyCode);
-      }
-
-      syncStateRef.current.checkedUrlParams = true;
-    } catch (error) {
-      console.error("Failed to check URL parameters for watch party:", error);
+      const code = params.get("watchparty");
+      if (code && !enabled && code.length > 0) enableAsGuest(code);
+      stateRef.current.checkedUrlParams = true;
+    } catch (err) {
+      console.error("watchparty: url param parse", err);
     }
   }, [enabled, enableAsGuest]);
 
-  // Find the host user in the room
-  const hostUser = roomUsers.find((user) => user.isHost) || null;
+  const hostUser = roomUsers.find((u) => u.isHost) ?? null;
 
-  // Calculate predicted host time by accounting for elapsed time since update
   const getPredictedHostTime = useCallback(() => {
     if (!hostUser) return 0;
-
-    const millisecondsSinceUpdate = Date.now() - hostUser.lastUpdate;
-    const secondsSinceUpdate = millisecondsSinceUpdate / 1000;
-
+    const elapsedSeconds = (Date.now() - hostUser.lastUpdate) / 1000;
     return hostUser.player.isPlaying && !hostUser.player.isPaused
-      ? hostUser.player.time + secondsSinceUpdate
+      ? hostUser.player.time + elapsedSeconds
       : hostUser.player.time;
   }, [hostUser]);
 
-  // Calculate time difference from host
   const timeDifferenceFromHost = hostUser
     ? currentTime - getPredictedHostTime()
     : 0;
 
-  // Determine if we're ahead or behind the host
   const isBehindHost =
-    hostUser && !isHost && timeDifferenceFromHost < -syncThresholdSeconds;
+    !!hostUser && !isHost && timeDifferenceFromHost < -syncThresholdSeconds;
   const isAheadOfHost =
-    hostUser && !isHost && timeDifferenceFromHost > syncThresholdSeconds;
+    !!hostUser && !isHost && timeDifferenceFromHost > syncThresholdSeconds;
 
-  // Function to sync with host
   const syncWithHost = useCallback(() => {
-    if (!hostUser || isHost || !display || syncStateRef.current.syncInProgress)
+    if (!hostUser || isHost || !display || stateRef.current.syncInProgress)
       return;
-
-    syncStateRef.current.syncInProgress = true;
+    stateRef.current.syncInProgress = true;
     setIsSyncing(true);
 
-    const predictedHostTime = getPredictedHostTime();
-    display.setTime(predictedHostTime);
+    const target = getPredictedHostTime();
+    display.setTime(target);
 
     setTimeout(() => {
       if (hostUser.player.isPlaying && !hostUser.player.isPaused) {
@@ -150,66 +120,47 @@ export function useWatchPartySync(
       } else {
         display.pause();
       }
-
       setTimeout(() => {
         setIsSyncing(false);
-        syncStateRef.current.syncInProgress = false;
-      }, 500);
-
-      syncStateRef.current.lastSyncTime = Date.now();
+        stateRef.current.syncInProgress = false;
+      }, 400);
     }, 200);
   }, [hostUser, isHost, display, getPredictedHostTime]);
 
-  // Combined effect for syncing time and play/pause state
   useEffect(() => {
-    if (!hostUser || isHost || !display || syncStateRef.current.syncInProgress)
+    if (!hostUser || isHost || !display || stateRef.current.syncInProgress)
       return;
 
-    const state = syncStateRef.current;
+    const state = stateRef.current;
     const hostIsPlaying =
       hostUser.player.isPlaying && !hostUser.player.isPaused;
-    const predictedHostTime = getPredictedHostTime();
-    const difference = currentTime - predictedHostTime;
+    const predicted = getPredictedHostTime();
+    const diff = currentTime - predicted;
 
-    // Handle time sync
-    const activeThreshold = isPlaying ? 2 : 5;
-    const needsTimeSync = Math.abs(difference) > activeThreshold;
-
-    // Handle play state sync
+    const driftThreshold = isPlaying ? 3 : 5;
+    const needsTimeSync = Math.abs(diff) > driftThreshold;
     const needsPlayStateSync =
       state.previousHostPlaying !== null &&
       state.previousHostPlaying !== hostIsPlaying;
-
-    // Handle time jumps
     const needsJumpSync =
       state.previousHostTime !== null &&
       Math.abs(hostUser.player.time - state.previousHostTime) > 5;
 
-    // Sync if needed
     if ((needsTimeSync || needsPlayStateSync || needsJumpSync) && !isSyncing) {
       state.syncInProgress = true;
       setIsSyncing(true);
 
-      // Sync time
-      display.setTime(predictedHostTime);
-
-      // Then sync play state after a short delay
+      display.setTime(predicted);
       setTimeout(() => {
-        if (hostIsPlaying) {
-          display.play();
-        } else {
-          display.pause();
-        }
-
-        // Clear syncing flags
+        if (hostIsPlaying) display.play();
+        else display.pause();
         setTimeout(() => {
           setIsSyncing(false);
           state.syncInProgress = false;
-        }, 500);
+        }, 400);
       }, 200);
     }
 
-    // Update state refs
     state.previousHostPlaying = hostIsPlaying;
     state.previousHostTime = hostUser.player.time;
   }, [
@@ -222,112 +173,92 @@ export function useWatchPartySync(
     isPlaying,
   ]);
 
-  // Function to refresh room data
   const refreshRoomData = useCallback(async () => {
     if (!enabled || !roomCode || !backendUrl) return;
 
     try {
       const response = await getRoomStatuses(backendUrl, account, roomCode);
+      const now = Date.now();
       const users: RoomUser[] = [];
 
-      // Process each user's latest status
-      Object.entries(response.users).forEach(
-        ([userIdFromResponse, statuses]) => {
-          if (statuses.length > 0) {
-            // Get the latest status (sort by timestamp DESC)
-            const latestStatus = [...statuses].sort(
-              (a, b) => b.timestamp - a.timestamp,
-            )[0];
+      Object.entries(response.users).forEach(([userId, statuses]) => {
+        if (statuses.length === 0) return;
+        const latest = [...statuses].sort((a, b) => b.timestamp - a.timestamp)[0];
+        if (now - latest.timestamp > STALE_USER_MS) return;
+        users.push({
+          userId,
+          isHost: latest.isHost,
+          lastUpdate: latest.timestamp,
+          player: { ...latest.player },
+          content: { ...latest.content },
+        });
+      });
 
-            users.push({
-              userId: userIdFromResponse,
-              isHost: latestStatus.isHost,
-              lastUpdate: latestStatus.timestamp,
-              player: {
-                isPlaying: latestStatus.player.isPlaying,
-                isPaused: latestStatus.player.isPaused,
-                time: latestStatus.player.time,
-                duration: latestStatus.player.duration,
-              },
-              content: {
-                title: latestStatus.content.title,
-                type: latestStatus.content.type,
-                tmdbId: latestStatus.content.tmdbId,
-                seasonId: latestStatus.content.seasonId,
-                episodeId: latestStatus.content.episodeId,
-                seasonNumber: latestStatus.content.seasonNumber,
-                episodeNumber: latestStatus.content.episodeNumber,
-              },
-            });
-          }
-        },
-      );
-
-      // Sort users with host first, then by lastUpdate
       users.sort((a, b) => {
         if (a.isHost && !b.isHost) return -1;
         if (!a.isHost && b.isHost) return 1;
         return b.lastUpdate - a.lastUpdate;
       });
 
-      // Update user count if changed
-      const newUserCount = users.length;
-      if (newUserCount !== syncStateRef.current.lastUserCount) {
-        setUserCount(newUserCount);
-        syncStateRef.current.lastUserCount = newUserCount;
-      }
-
-      // Update room users
-      syncStateRef.current.prevRoomUsers = users;
       setRoomUsers(users);
-    } catch (error) {
-      console.error("Failed to refresh room data:", error);
+      setUserCount(Math.max(1, users.length));
+      setIsOffline(false);
+      stateRef.current.consecutiveErrors = 0;
+    } catch (err) {
+      stateRef.current.consecutiveErrors += 1;
+      if (stateRef.current.consecutiveErrors >= 3) setIsOffline(true);
+      console.error("watchparty: refresh failed", err);
     }
   }, [backendUrl, account, roomCode, enabled]);
 
-  // Periodically refresh room data
   useEffect(() => {
-    // Store reference to current syncState for cleanup
-    const syncState = syncStateRef.current;
-
+    const state = stateRef.current;
     if (!enabled || !roomCode) {
       setRoomUsers([]);
       setUserCount(1);
-
-      // Reset all state
-      syncState.lastUserCount = 1;
-      syncState.prevRoomUsers = [];
-      syncState.previousHostPlaying = null;
-      syncState.previousHostTime = null;
+      setIsOffline(false);
+      state.previousHostPlaying = null;
+      state.previousHostTime = null;
+      state.consecutiveErrors = 0;
       return;
     }
 
-    // Initial fetch
-    refreshRoomData();
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-    // Set up interval - refresh every 1 second for faster updates
-    const interval = setInterval(refreshRoomData, 1000);
+    const tick = async () => {
+      await refreshRoomData();
+      if (cancelled) return;
+      const backoff =
+        state.consecutiveErrors > 0
+          ? Math.min(
+              POLL_INTERVAL_MS * 2 ** state.consecutiveErrors,
+              BACKOFF_MAX_MS,
+            )
+          : POLL_INTERVAL_MS;
+      timeoutId = setTimeout(tick, backoff);
+    };
+
+    tick();
 
     return () => {
-      clearInterval(interval);
-      setRoomUsers([]);
-      setUserCount(1);
-
-      // Use captured reference from outer scope
-      syncState.previousHostPlaying = null;
-      syncState.previousHostTime = null;
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      state.previousHostPlaying = null;
+      state.previousHostTime = null;
     };
   }, [enabled, roomCode, refreshRoomData]);
 
   return {
     roomUsers,
     hostUser,
-    isBehindHost: !!isBehindHost,
-    isAheadOfHost: !!isAheadOfHost,
+    isBehindHost,
+    isAheadOfHost,
     timeDifferenceFromHost,
     syncWithHost,
     isSyncing,
     refreshRoomData,
     userCount,
+    isOffline,
   };
 }
