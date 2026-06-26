@@ -96,21 +96,26 @@ export function LegalPage() {
             colorClass="text-green-400"
             description={
               <Paragraph>
-                Since we don&apos;t host any content ourselves, all takedown
-                requests must go directly to the websites that actually host the
-                files.
+                We&apos;re a search index. The actual video files live on
+                third-party hosts that we don&apos;t own and don&apos;t
+                control — we just point at them. If a file disappears
+                upstream, our link breaks the same day. The host is the only
+                party who can take a file down.
                 <br />
                 <br />
-                We respect intellectual property rights and will cooperate with
-                valid legal requests within our technical capabilities.
+                That said, we don&apos;t want to make life harder for rights
+                holders. If you own the rights to a title and send us a
+                notice with enough detail to identify it, we&apos;ll delist
+                it from our search so it can&apos;t be reached from anywhere
+                on the site — and we&apos;ll happily tell you exactly which
+                upstream sources we were pulling it from, so you can chase
+                the files at their actual source.
                 <br />
                 <br />
-                For content removal, please contact the original hosting
-                platform - we cannot remove what we don&apos;t control.
-                <br />
-                <br />
-                If you are a copyright holder and want to report a violation, we
-                are more than happy to point you to where we found the content.
+                Blocking a title here won&apos;t make it disappear from the
+                internet — it only stops users from finding it through us.
+                But that&apos;s the part we control, and we&apos;ll act on it
+                in good faith.
               </Paragraph>
             }
           />
@@ -186,13 +191,21 @@ export function LegalPage() {
             colorClass="text-cyan-400"
             description={
               <Paragraph>
-                For legal matters related to specific content, please contact
-                the hosting websites directly as they have control over their
-                files.
+                For DMCA notices, takedown requests, or anything else
+                legal-related, email the address below.
                 <br />
                 <br />
-                Z-Stream operates within legal boundaries and cooperates with
-                legitimate requests when technically feasible.
+                To help us turn things around quickly, include the title and
+                year, an IMDB or TMDB ID if you have one, and a brief
+                statement that you own the rights (or are authorised to act
+                for the rights holder). Once we&apos;ve confirmed the claim,
+                we&apos;ll delist the title from our search and reply with
+                the upstream hosts we were pointing at — so you can pursue
+                the actual files at their source.
+                <br />
+                <br />
+                We try to acknowledge requests within a couple of days. Good
+                faith on both sides goes a long way.
               </Paragraph>
             }
           >
