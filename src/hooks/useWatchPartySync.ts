@@ -1,9 +1,12 @@
+/* eslint-disable no-console */
 import { useCallback } from "react";
 
-import { useWatchPartySyncStore } from "@/stores/watchParty/sync";
-import type { RoomUser } from "@/stores/watchParty/sync";
 import { usePlayerStore } from "@/stores/player/store";
 import { useWatchPartyStore } from "@/stores/watchParty";
+import {
+  RoomUser,
+  useWatchPartySyncStore,
+} from "@/stores/watchParty/sync";
 
 export type { RoomUser };
 
