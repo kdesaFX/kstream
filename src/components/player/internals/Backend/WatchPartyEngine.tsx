@@ -14,8 +14,8 @@ import {
 const POLL_INTERVAL_MS = 2000;
 const BACKOFF_MAX_MS = 15000;
 const STALE_USER_MS = 12000;
-const DRIFT_THRESHOLD_SECONDS = 3;
-const SYNC_COOLDOWN_MS = 800;
+const DRIFT_THRESHOLD_SECONDS = 5;
+const SYNC_COOLDOWN_MS = 3000;
 const SEEK_SETTLE_MS = 250;
 const PLAY_SETTLE_MS = 350;
 
@@ -42,6 +42,8 @@ export function WatchPartyEngine() {
     syncInProgress: false,
     hasInitialSynced: false,
     lastHostPlaying: null as boolean | null,
+    pendingHostPlaying: null as boolean | null,
+    confirmedHostPlaying: null as boolean | null,
     lastSyncAt: 0,
     lastFollowKey: null as string | null,
     checkedUrlParams: false,
@@ -92,6 +94,7 @@ export function WatchPartyEngine() {
           player: {
             isPlaying: !!latest.player.isPlaying,
             isPaused: !!latest.player.isPaused,
+            isLoading: !!latest.player.isLoading,
             time: Number(latest.player.time) || 0,
             duration: Number(latest.player.duration) || 0,
           },
@@ -217,8 +220,6 @@ export function WatchPartyEngine() {
     const e = engine.current;
 
     if (!enabled || isHost || !hostUser || !display) {
-      e.hasInitialSynced = false;
-      e.lastHostPlaying = null;
       return;
     }
 
@@ -236,8 +237,19 @@ export function WatchPartyEngine() {
         return;
     }
 
+    if (hostUser.player.isLoading) {
+      return;
+    }
+
     const hostIsPlaying =
       hostUser.player.isPlaying && !hostUser.player.isPaused;
+
+    if (e.pendingHostPlaying === hostIsPlaying) {
+      e.confirmedHostPlaying = hostIsPlaying;
+    } else {
+      e.pendingHostPlaying = hostIsPlaying;
+    }
+
     const elapsed = Math.max(
       0,
       (Date.now() - hostUser.lastUpdate) / 1000,
@@ -274,26 +286,33 @@ export function WatchPartyEngine() {
     const needsDrift =
       e.hasInitialSynced && Math.abs(drift) > DRIFT_THRESHOLD_SECONDS;
     const needsPlayState =
-      e.lastHostPlaying !== null && e.lastHostPlaying !== hostIsPlaying;
+      e.confirmedHostPlaying !== null &&
+      e.lastHostPlaying !== null &&
+      e.confirmedHostPlaying !== e.lastHostPlaying;
 
     if (!needsInitial && !needsDrift && !needsPlayState) {
-      e.lastHostPlaying = hostIsPlaying;
       return;
     }
+
+    const targetPlaying = needsInitial
+      ? hostIsPlaying
+      : e.confirmedHostPlaying ?? hostIsPlaying;
 
     e.syncInProgress = true;
     e.lastSyncAt = Date.now();
     useWatchPartySyncStore.getState().setSyncing(true);
 
     try {
-      display.setTime(predicted);
+      if (needsInitial || needsDrift || needsPlayState) {
+        display.setTime(predicted);
+      }
     } catch (err) {
       console.error("watchparty: setTime", err);
     }
 
     setTimeout(() => {
       try {
-        if (hostIsPlaying) display.play();
+        if (targetPlaying) display.play();
         else display.pause();
       } catch (err) {
         console.error("watchparty: play/pause", err);
@@ -302,7 +321,7 @@ export function WatchPartyEngine() {
         useWatchPartySyncStore.getState().setSyncing(false);
         e.syncInProgress = false;
         e.hasInitialSynced = true;
-        e.lastHostPlaying = hostIsPlaying;
+        e.lastHostPlaying = targetPlaying;
       }, PLAY_SETTLE_MS);
     }, SEEK_SETTLE_MS);
   }, [enabled, isHost, hostUser, display, meta]);

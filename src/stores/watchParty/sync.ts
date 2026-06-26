@@ -13,6 +13,7 @@ export interface RoomUserContent {
 export interface RoomUserPlayer {
   isPlaying: boolean;
   isPaused: boolean;
+  isLoading: boolean;
   time: number;
   duration: number;
 }
