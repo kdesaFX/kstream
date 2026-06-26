@@ -17,6 +17,7 @@ import { WatchPartyResetter } from "@/components/player/internals/WatchPartyRese
 import { PlayerHoverState } from "@/stores/player/slices/interface";
 import { usePlayerStore } from "@/stores/player/store";
 
+import { WatchPartyEngine } from "../internals/Backend/WatchPartyEngine";
 import { WatchPartyReporter } from "../internals/Backend/WatchPartyReporter";
 
 export interface PlayerProps {
@@ -100,6 +101,7 @@ export function Container(props: PlayerProps) {
         <KeyboardEvents />
         <GamepadEvents />
         <MediaSession />
+        <WatchPartyEngine />
         <WatchPartyReporter />
         <SkipTracker />
         <WatchPartyResetter />
