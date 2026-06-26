@@ -134,6 +134,7 @@ module.exports = {
       "array-bracket-spacing": "off",
       "object-curly-newline": "off",
       "operator-linebreak": "off",
+    "no-useless-return": "off",
       "implicit-arrow-linebreak": "off",
       "function-paren-newline": "off",
       "no-multiple-empty-lines": "off",
