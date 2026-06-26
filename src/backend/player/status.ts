@@ -55,8 +55,11 @@ export interface RoomStatusesResponse {
   users: Record<string, PlayerStatusEntry[]>;
 }
 
-function buildHeaders(account: AccountWithToken | null) {
-  return account ? { Authorization: `Bearer ${account.token}` } : {};
+function buildHeaders(
+  account: AccountWithToken | null,
+): Record<string, string> {
+  if (!account) return {};
+  return { Authorization: `Bearer ${account.token}` };
 }
 
 export async function sendPlayerStatus(
