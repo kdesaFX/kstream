@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import { useCallback, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { getRoomStatuses } from "@/backend/player/status";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
@@ -15,41 +16,52 @@ const POLL_INTERVAL_MS = 2000;
 const BACKOFF_MAX_MS = 15000;
 const STALE_USER_MS = 12000;
 const DRIFT_THRESHOLD_SECONDS = 3;
-const SYNC_SETTLE_MS = 800;
+const SYNC_COOLDOWN_MS = 800;
+const SEEK_SETTLE_MS = 250;
+const PLAY_SETTLE_MS = 350;
+
+function toStringId(v: unknown): string | undefined {
+  if (v === null || v === undefined) return undefined;
+  return String(v);
+}
 
 export function WatchPartyEngine() {
   const account = useAuthStore((s) => s.account);
   const backendUrl = useBackendUrl();
+  const navigate = useNavigate();
 
   const { roomCode, isHost, enabled, enableAsGuest } = useWatchPartyStore();
 
   const display = usePlayerStore((s) => s.display);
+  const meta = usePlayerStore((s) => s.meta);
+
   const hostUser = useWatchPartySyncStore(
     (s) => s.roomUsers.find((u) => u.isHost) ?? null,
   );
 
-  const engineRef = useRef({
+  const engine = useRef({
     consecutiveErrors: 0,
     syncInProgress: false,
     hasInitialSynced: false,
     lastHostPlaying: null as boolean | null,
     lastSyncAt: 0,
+    lastFollowKey: null as string | null,
     checkedUrlParams: false,
   });
 
   useEffect(() => {
-    if (!enabled) engineRef.current.checkedUrlParams = false;
+    if (!enabled) engine.current.checkedUrlParams = false;
   }, [enabled]);
 
   useEffect(() => {
-    if (engineRef.current.checkedUrlParams) return;
+    if (engine.current.checkedUrlParams) return;
     try {
       const params = new URLSearchParams(window.location.search);
       const code = params.get("watchparty");
       if (code && !enabled && code.length > 0) enableAsGuest(code);
-      engineRef.current.checkedUrlParams = true;
+      engine.current.checkedUrlParams = true;
     } catch (err) {
-      console.error("watchparty: url param parse", err);
+      console.error("watchparty: url parse", err);
     }
   }, [enabled, enableAsGuest]);
 
@@ -61,15 +73,30 @@ export function WatchPartyEngine() {
       const users: RoomUser[] = [];
 
       Object.entries(response.users).forEach(([userId, statuses]) => {
-        if (statuses.length === 0) return;
-        const latest = [...statuses].sort((a, b) => b.timestamp - a.timestamp)[0];
+        if (!statuses || statuses.length === 0) return;
+        const latest = [...statuses].sort(
+          (a, b) => b.timestamp - a.timestamp,
+        )[0];
         if (now - latest.timestamp > STALE_USER_MS) return;
         users.push({
           userId,
-          isHost: latest.isHost,
+          isHost: !!latest.isHost,
           lastUpdate: latest.timestamp,
-          player: { ...latest.player },
-          content: { ...latest.content },
+          content: {
+            title: latest.content.title,
+            type: latest.content.type,
+            tmdbId: toStringId(latest.content.tmdbId),
+            seasonId: toStringId(latest.content.seasonId),
+            episodeId: toStringId(latest.content.episodeId),
+            seasonNumber: latest.content.seasonNumber,
+            episodeNumber: latest.content.episodeNumber,
+          },
+          player: {
+            isPlaying: !!latest.player.isPlaying,
+            isPaused: !!latest.player.isPaused,
+            time: Number(latest.player.time) || 0,
+            duration: Number(latest.player.duration) || 0,
+          },
         });
       });
 
@@ -81,22 +108,23 @@ export function WatchPartyEngine() {
 
       useWatchPartySyncStore.getState().setRoomState(users);
       useWatchPartySyncStore.getState().setOffline(false);
-      engineRef.current.consecutiveErrors = 0;
+      engine.current.consecutiveErrors = 0;
     } catch (err) {
-      engineRef.current.consecutiveErrors += 1;
-      if (engineRef.current.consecutiveErrors >= 3) {
+      engine.current.consecutiveErrors += 1;
+      if (engine.current.consecutiveErrors >= 3) {
         useWatchPartySyncStore.getState().setOffline(true);
       }
-      console.error("watchparty: refresh failed", err);
+      console.error("watchparty: refresh", err);
     }
   }, [backendUrl, account, roomCode, enabled]);
 
   useEffect(() => {
     if (!enabled || !roomCode) {
       useWatchPartySyncStore.getState().reset();
-      const e = engineRef.current;
+      const e = engine.current;
       e.hasInitialSynced = false;
       e.lastHostPlaying = null;
+      e.lastFollowKey = null;
       e.consecutiveErrors = 0;
       return;
     }
@@ -107,7 +135,7 @@ export function WatchPartyEngine() {
     const tick = async () => {
       await refresh();
       if (cancelled) return;
-      const errors = engineRef.current.consecutiveErrors;
+      const errors = engine.current.consecutiveErrors;
       const interval =
         errors > 0
           ? Math.min(POLL_INTERVAL_MS * 2 ** errors, BACKOFF_MAX_MS)
@@ -124,16 +152,65 @@ export function WatchPartyEngine() {
   }, [enabled, roomCode, refresh]);
 
   useEffect(() => {
-    const e = engineRef.current;
+    if (!enabled || isHost || !hostUser || !roomCode) return;
 
-    if (!hostUser || isHost || !display) {
+    const hostType = hostUser.content.type === "show" ? "show" : "movie";
+    const hostKey =
+      hostType === "show"
+        ? `show:${hostUser.content.tmdbId}:${hostUser.content.seasonId}:${hostUser.content.episodeId}`
+        : `movie:${hostUser.content.tmdbId}`;
+
+    if (!hostUser.content.tmdbId) return;
+    if (engine.current.lastFollowKey === hostKey) return;
+
+    const myType = meta?.type === "show" ? "show" : "movie";
+    const myKey =
+      meta && meta.tmdbId
+        ? myType === "show"
+          ? `show:${meta.tmdbId}:${meta.season?.tmdbId}:${meta.episode?.tmdbId}`
+          : `movie:${meta.tmdbId}`
+        : null;
+
+    if (myKey === hostKey) {
+      engine.current.lastFollowKey = hostKey;
+      return;
+    }
+
+    const targetPath =
+      hostType === "show" && hostUser.content.seasonId && hostUser.content.episodeId
+        ? `/media/tmdb-tv-${hostUser.content.tmdbId}/${hostUser.content.seasonId}/${hostUser.content.episodeId}`
+        : `/media/tmdb-movie-${hostUser.content.tmdbId}`;
+
+    engine.current.lastFollowKey = hostKey;
+    engine.current.hasInitialSynced = false;
+
+    const url = new URL(targetPath, window.location.origin);
+    url.searchParams.set("watchparty", roomCode);
+    navigate(url.pathname + url.search);
+  }, [enabled, isHost, hostUser, roomCode, meta, navigate]);
+
+  useEffect(() => {
+    const e = engine.current;
+
+    if (!enabled || isHost || !hostUser || !display) {
       e.hasInitialSynced = false;
       e.lastHostPlaying = null;
       return;
     }
 
     if (e.syncInProgress) return;
-    if (Date.now() - e.lastSyncAt < SYNC_SETTLE_MS) return;
+    if (Date.now() - e.lastSyncAt < SYNC_COOLDOWN_MS) return;
+
+    const myMeta = meta;
+    const myContentTmdb = myMeta?.tmdbId;
+    if (!myContentTmdb || hostUser.content.tmdbId !== myContentTmdb) return;
+    if (hostUser.content.type === "show") {
+      if (
+        hostUser.content.seasonId !== myMeta?.season?.tmdbId ||
+        hostUser.content.episodeId !== myMeta?.episode?.tmdbId
+      )
+        return;
+    }
 
     const hostIsPlaying =
       hostUser.player.isPlaying && !hostUser.player.isPaused;
@@ -141,8 +218,9 @@ export function WatchPartyEngine() {
     const predicted = hostIsPlaying
       ? hostUser.player.time + elapsed
       : hostUser.player.time;
-    const currentMyTime = usePlayerStore.getState().progress.time;
-    const drift = currentMyTime - predicted;
+
+    const myTime = usePlayerStore.getState().progress.time;
+    const drift = myTime - predicted;
 
     const needsInitial = !e.hasInitialSynced;
     const needsDrift =
@@ -150,34 +228,36 @@ export function WatchPartyEngine() {
     const needsPlayState =
       e.lastHostPlaying !== null && e.lastHostPlaying !== hostIsPlaying;
 
-    if (needsInitial || needsDrift || needsPlayState) {
-      e.syncInProgress = true;
-      e.lastSyncAt = Date.now();
-      useWatchPartySyncStore.getState().setSyncing(true);
-
-      try {
-        display.setTime(predicted);
-      } catch (err) {
-        console.error("watchparty: setTime failed", err);
-      }
-
-      setTimeout(() => {
-        try {
-          if (hostIsPlaying) display.play();
-          else display.pause();
-        } catch (err) {
-          console.error("watchparty: play/pause failed", err);
-        }
-        setTimeout(() => {
-          useWatchPartySyncStore.getState().setSyncing(false);
-          e.syncInProgress = false;
-          e.hasInitialSynced = true;
-        }, 350);
-      }, 220);
+    if (!needsInitial && !needsDrift && !needsPlayState) {
+      e.lastHostPlaying = hostIsPlaying;
+      return;
     }
 
-    e.lastHostPlaying = hostIsPlaying;
-  }, [hostUser, isHost, display]);
+    e.syncInProgress = true;
+    e.lastSyncAt = Date.now();
+    useWatchPartySyncStore.getState().setSyncing(true);
+
+    try {
+      display.setTime(predicted);
+    } catch (err) {
+      console.error("watchparty: setTime", err);
+    }
+
+    setTimeout(() => {
+      try {
+        if (hostIsPlaying) display.play();
+        else display.pause();
+      } catch (err) {
+        console.error("watchparty: play/pause", err);
+      }
+      setTimeout(() => {
+        useWatchPartySyncStore.getState().setSyncing(false);
+        e.syncInProgress = false;
+        e.hasInitialSynced = true;
+        e.lastHostPlaying = hostIsPlaying;
+      }, PLAY_SETTLE_MS);
+    }, SEEK_SETTLE_MS);
+  }, [enabled, isHost, hostUser, display, meta]);
 
   return null;
 }

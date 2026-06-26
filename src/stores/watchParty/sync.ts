@@ -1,24 +1,28 @@
 import { create } from "zustand";
 
+export interface RoomUserContent {
+  title: string;
+  type: "movie" | "show" | string;
+  tmdbId?: string;
+  seasonId?: string;
+  episodeId?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+}
+
+export interface RoomUserPlayer {
+  isPlaying: boolean;
+  isPaused: boolean;
+  time: number;
+  duration: number;
+}
+
 export interface RoomUser {
   userId: string;
   isHost: boolean;
   lastUpdate: number;
-  player: {
-    isPlaying: boolean;
-    isPaused: boolean;
-    time: number;
-    duration: number;
-  };
-  content: {
-    title: string;
-    type: string;
-    tmdbId?: number;
-    seasonId?: number;
-    episodeId?: number;
-    seasonNumber?: number;
-    episodeNumber?: number;
-  };
+  content: RoomUserContent;
+  player: RoomUserPlayer;
 }
 
 interface WatchPartySyncStore {
@@ -48,11 +52,6 @@ export const useWatchPartySyncStore = create<WatchPartySyncStore>((set) => ({
     set({ isSyncing: syncing });
   },
   reset() {
-    set({
-      roomUsers: [],
-      userCount: 1,
-      isOffline: false,
-      isSyncing: false,
-    });
+    set({ roomUsers: [], userCount: 1, isOffline: false, isSyncing: false });
   },
 }));

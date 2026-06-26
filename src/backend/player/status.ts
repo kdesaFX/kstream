@@ -1,6 +1,16 @@
 import { AccountWithToken } from "@/stores/auth";
 
-interface PlayerState {
+export interface PlayerStatusContent {
+  title: string;
+  type: "movie" | "show" | string;
+  tmdbId?: string | number;
+  seasonId?: string | number;
+  episodeId?: string | number;
+  seasonNumber?: number;
+  episodeNumber?: number;
+}
+
+export interface PlayerStatusPlayer {
   isPlaying: boolean;
   isPaused: boolean;
   isLoading: boolean;
@@ -12,136 +22,92 @@ interface PlayerState {
   buffered: number;
 }
 
-interface ContentInfo {
-  title: string;
-  type: string;
-  tmdbId?: number;
-  seasonNumber?: number;
-  episodeNumber?: number;
-  seasonId?: number;
-  episodeId?: number;
-}
-
-interface PlayerStatusRequest {
+export interface PlayerStatusRequest {
   userId: string;
   roomCode: string;
   isHost: boolean;
-  content: ContentInfo;
-  player: PlayerState;
+  content: PlayerStatusContent;
+  player: PlayerStatusPlayer;
 }
 
-interface PlayerStatusResponse {
+export interface PlayerStatusEntry {
+  userId: string;
+  roomCode: string;
+  isHost: boolean;
+  content: PlayerStatusContent;
+  player: PlayerStatusPlayer;
+  timestamp: number;
+}
+
+export interface PlayerStatusResponse {
   success: boolean;
   timestamp: number;
 }
 
-interface UserStatusResponse {
+export interface UserStatusResponse {
   userId: string;
   roomCode: string;
-  statuses: Array<{
-    userId: string;
-    roomCode: string;
-    isHost: boolean;
-    content: ContentInfo;
-    player: PlayerState;
-    timestamp: number;
-  }>;
+  statuses: PlayerStatusEntry[];
 }
 
-interface RoomStatusesResponse {
+export interface RoomStatusesResponse {
   roomCode: string;
-  users: Record<
-    string,
-    Array<{
-      userId: string;
-      roomCode: string;
-      isHost: boolean;
-      content: ContentInfo;
-      player: PlayerState;
-      timestamp: number;
-    }>
-  >;
+  users: Record<string, PlayerStatusEntry[]>;
 }
 
-/**
- * Send player status update to the backend
- */
+function buildHeaders(account: AccountWithToken | null) {
+  return account ? { Authorization: `Bearer ${account.token}` } : {};
+}
+
 export async function sendPlayerStatus(
   backendUrl: string | null,
   account: AccountWithToken | null,
   data: PlayerStatusRequest,
 ): Promise<PlayerStatusResponse> {
-  if (!backendUrl) {
-    throw new Error("Backend URL not set");
-  }
+  if (!backendUrl) throw new Error("Backend URL not set");
 
   const response = await fetch(`${backendUrl}/api/player/status`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(account ? { Authorization: `Bearer ${account.token}` } : {}),
+      ...buildHeaders(account),
     },
     body: JSON.stringify(data),
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to send player status: ${response.statusText}`);
+    throw new Error(`sendPlayerStatus ${response.status}`);
   }
-
   return response.json();
 }
 
-/**
- * Get player status for a specific user in a room
- */
 export async function getUserPlayerStatus(
   backendUrl: string | null,
   account: AccountWithToken | null,
   userId: string,
   roomCode: string,
 ): Promise<UserStatusResponse> {
-  if (!backendUrl) {
-    throw new Error("Backend URL not set");
-  }
+  if (!backendUrl) throw new Error("Backend URL not set");
 
   const response = await fetch(
-    `${backendUrl}/api/player/status?userId=${encodeURIComponent(
-      userId,
-    )}&roomCode=${encodeURIComponent(roomCode)}`,
-    {
-      headers: account ? { Authorization: `Bearer ${account.token}` } : {},
-    },
+    `${backendUrl}/api/player/status?userId=${encodeURIComponent(userId)}&roomCode=${encodeURIComponent(roomCode)}`,
+    { headers: buildHeaders(account) },
   );
-
-  if (!response.ok) {
-    throw new Error(`Failed to get user player status: ${response.statusText}`);
-  }
-
+  if (!response.ok) throw new Error(`getUserPlayerStatus ${response.status}`);
   return response.json();
 }
 
-/**
- * Get status for all users in a room
- */
 export async function getRoomStatuses(
   backendUrl: string | null,
   account: AccountWithToken | null,
   roomCode: string,
 ): Promise<RoomStatusesResponse> {
-  if (!backendUrl) {
-    throw new Error("Backend URL not set");
-  }
+  if (!backendUrl) throw new Error("Backend URL not set");
 
   const response = await fetch(
     `${backendUrl}/api/player/status?roomCode=${encodeURIComponent(roomCode)}`,
-    {
-      headers: account ? { Authorization: `Bearer ${account.token}` } : {},
-    },
+    { headers: buildHeaders(account) },
   );
-
-  if (!response.ok) {
-    throw new Error(`Failed to get room statuses: ${response.statusText}`);
-  }
-
+  if (!response.ok) throw new Error(`getRoomStatuses ${response.status}`);
   return response.json();
 }
