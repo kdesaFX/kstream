@@ -72,6 +72,10 @@ jobs:
           VITE_ENABLE_RYBBIT: "true"
           VITE_RYBBIT_SCRIPT_URL: ${{ vars.VITE_RYBBIT_SCRIPT_URL }}
           VITE_RYBBIT_SITE_ID: ${{ vars.VITE_RYBBIT_SITE_ID }}
+          USE_SIMKL: "true"
+          SIMKL_CLIENT_ID: "ba3e36f42507238bc3466a995763505b0cf4407953f286e09935c51bf3347ebc"
+          SIMKL_CLIENT_SECRET: ${{ secrets.SIMKL_SECRET }}
+          SIMKL_REDIRECT_URI: "https://zstream.mov/settings"
 
       - name: Clean credentials
         if: always()
