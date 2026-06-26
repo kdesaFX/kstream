@@ -35,7 +35,9 @@ import {
 import { conf } from "@/setup/config";
 import { useAuthStore } from "@/stores/auth";
 import { usePreferencesStore } from "@/stores/preferences";
+import { useSimklStore } from "@/stores/simkl/store";
 import { useTraktStore } from "@/stores/trakt/store";
+import { simklService } from "@/utils/simkl";
 
 import { RegionSelectorPart } from "./RegionSelectorPart";
 
@@ -738,29 +740,25 @@ export function TIDBEdit({ tidbKey, setTIDBKey }: TIDBKeyProps) {
   }, [tidbKey, preferences.tidbKey, setTIDBKey]);
 
   return (
-    <SettingsCard>
-      <div className="my-3">
-        <p className="text-white font-bold mb-3">TheIntroDB</p>
-        <p className="max-w-[40rem] font-medium mb-6">
-          <Trans i18nKey="settings.connections.tidb.description">
-            <MwLink to="https://theintrodb.org/" />
-          </Trans>
-        </p>
-        <p className="text-white font-bold mb-3">
-          {t("settings.connections.tidb.tokenLabel")}
-        </p>
-        <div className="flex items-center w-full">
-          <AuthInputBox
-            onChange={(newToken) => {
-              setTIDBKey(newToken);
-            }}
-            value={tidbKey ?? ""}
-            placeholder="theintrodb:user..."
-            passwordToggleable
-            className="flex-grow"
-          />
-        </div>
-      </div>
+    <SettingsCard paddingClass="px-5 py-4">
+      <p className="text-white font-bold mb-2">TheIntroDB</p>
+      <p className="font-medium text-sm mb-3 text-type-secondary">
+        <Trans i18nKey="settings.connections.tidb.description">
+          <MwLink to="https://theintrodb.org/" />
+        </Trans>
+      </p>
+      <p className="text-white font-bold mb-2 text-sm">
+        {t("settings.connections.tidb.tokenLabel")}
+      </p>
+      <AuthInputBox
+        onChange={(newToken) => {
+          setTIDBKey(newToken);
+        }}
+        value={tidbKey ?? ""}
+        placeholder="theintrodb:user..."
+        passwordToggleable
+        className="w-full"
+      />
     </SettingsCard>
   );
 }
@@ -769,33 +767,26 @@ export function WyzieEdit() {
   const wyzieKey = usePreferencesStore((s) => s.wyzieKey);
   const setWyzieKey = usePreferencesStore((s) => s.setWyzieKey);
   return (
-    <SettingsCard>
-      <div className="my-3">
-        <p className="text-white font-bold mb-3">Wyzie Subtitles</p>
-        <p className="max-w-[40rem] font-medium mb-3">
-          Bring your own API key for better-synced subtitles aggregated from
-          multiple sources. The key is stored only in your browser.
-        </p>
-        <p className="max-w-[40rem] font-medium mb-6">
-          Get a free key (1,000 requests/day) at{" "}
-          <MwLink url="https://store.wyzie.io/redeem">
-            store.wyzie.io/redeem
-          </MwLink>
-          .
-        </p>
-        <p className="text-white font-bold mb-3">API Key</p>
-        <div className="flex items-center w-full">
-          <AuthInputBox
-            onChange={(newKey) => {
-              setWyzieKey(newKey || null);
-            }}
-            value={wyzieKey ?? ""}
-            placeholder="wyzie-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-            passwordToggleable
-            className="flex-grow"
-          />
-        </div>
-      </div>
+    <SettingsCard paddingClass="px-5 py-4">
+      <p className="text-white font-bold mb-2">Wyzie Subtitles</p>
+      <p className="font-medium text-sm mb-3 text-type-secondary">
+        Optional API key for better-synced subtitles. Stored only in your
+        browser. Get one at{" "}
+        <MwLink url="https://store.wyzie.io/redeem">
+          store.wyzie.io/redeem
+        </MwLink>
+        .
+      </p>
+      <p className="text-white font-bold mb-2 text-sm">API Key</p>
+      <AuthInputBox
+        onChange={(newKey) => {
+          setWyzieKey(newKey || null);
+        }}
+        value={wyzieKey ?? ""}
+        placeholder="wyzie-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        passwordToggleable
+        className="w-full"
+      />
     </SettingsCard>
   );
 }
@@ -822,32 +813,32 @@ export function TraktEdit() {
     return null;
 
   return (
-    <SettingsCard>
-      <div className="flex justify-between items-center gap-4">
-        <div className="my-3">
-          <p className="text-white font-bold mb-3">
-            {t("settings.connections.trakt.title")}
-          </p>
-          <p className="max-w-[30rem] font-medium">
-            {t("settings.connections.trakt.description")}
-            <p className="text-type-secondary text-xs mt-2">
-              {t("settings.connections.trakt.details")}
-            </p>
-          </p>
-          {error && <p className="text-type-danger mt-2">{error}</p>}
-        </div>
-        <div>
+    <SettingsCard paddingClass="px-5 py-4">
+      <div className="flex flex-col h-full">
+        <p className="text-white font-bold mb-2">
+          {t("settings.connections.trakt.title")}
+        </p>
+        <p className="font-medium text-sm text-type-secondary mb-1">
+          {t("settings.connections.trakt.description")}
+        </p>
+        <p className="text-type-secondary text-xs mb-4">
+          {t("settings.connections.trakt.details")}
+        </p>
+        {error && <p className="text-type-danger text-sm mb-2">{error}</p>}
+        <div className="mt-auto">
           {user ? (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
                 {user.images?.avatar?.full && (
                   <img
                     src={user.images.avatar.full}
                     alt={user.username}
-                    className="w-8 h-8 rounded-full"
+                    className="w-7 h-7 rounded-full flex-shrink-0"
                   />
                 )}
-                <span className="font-bold">{user.name || user.username}</span>
+                <span className="font-bold truncate">
+                  {user.name || user.username}
+                </span>
               </div>
               <Button theme="danger" onClick={logout}>
                 {t("settings.connections.trakt.disconnect")}
@@ -862,6 +853,68 @@ export function TraktEdit() {
               {status === "syncing"
                 ? t("settings.connections.trakt.syncing")
                 : t("settings.connections.trakt.connect")}
+            </Button>
+          )}
+        </div>
+      </div>
+    </SettingsCard>
+  );
+}
+
+export function SimklEdit() {
+  const { user, status, logout, error } = useSimklStore();
+  const config = conf();
+
+  const connect = () => {
+    const url = simklService.getAuthUrl();
+    if (url) window.location.href = url;
+  };
+
+  if (
+    !config.SIMKL_CLIENT_ID ||
+    !config.SIMKL_CLIENT_SECRET ||
+    !config.SIMKL_REDIRECT_URI
+  )
+    return null;
+
+  const displayName = user?.user?.name;
+
+  return (
+    <SettingsCard paddingClass="px-5 py-4">
+      <div className="flex flex-col h-full">
+        <p className="text-white font-bold mb-2">Simkl</p>
+        <p className="font-medium text-sm text-type-secondary mb-1">
+          Sync your watchlist and history with Simkl.
+        </p>
+        <p className="text-type-secondary text-xs mb-4">
+          Syncing might take a few minutes. Local changes are prioritized on
+          conflict.
+        </p>
+        {error && <p className="text-type-danger text-sm mb-2">{error}</p>}
+        <div className="mt-auto">
+          {displayName ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                {user?.user?.avatar && (
+                  <img
+                    src={user.user.avatar}
+                    alt={displayName}
+                    className="w-7 h-7 rounded-full flex-shrink-0"
+                  />
+                )}
+                <span className="font-bold truncate">{displayName}</span>
+              </div>
+              <Button theme="danger" onClick={logout}>
+                Disconnect
+              </Button>
+            </div>
+          ) : (
+            <Button
+              theme="purple"
+              onClick={connect}
+              disabled={status === "syncing"}
+            >
+              {status === "syncing" ? "Connecting..." : "Connect Simkl"}
             </Button>
           )}
         </div>
@@ -908,9 +961,12 @@ export function ConnectionsPart(
           setdebridService={props.setdebridService}
           mode="settings"
         />
-        <TIDBEdit tidbKey={props.tidbKey} setTIDBKey={props.setTIDBKey} />
-        <WyzieEdit />
-        <TraktEdit />
+        <div className="grid gap-4 md:grid-cols-2">
+          <TIDBEdit tidbKey={props.tidbKey} setTIDBKey={props.setTIDBKey} />
+          <WyzieEdit />
+          <TraktEdit />
+          <SimklEdit />
+        </div>
       </div>
     </div>
   );

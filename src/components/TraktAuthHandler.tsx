@@ -2,17 +2,20 @@ import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useTraktAuthStore } from "@/stores/trakt/store";
+import { SIMKL_OAUTH_STATE } from "@/utils/simkl";
 import { traktService } from "@/utils/trakt";
 
 export function TraktAuthHandler() {
   const [searchParams, setSearchParams] = useSearchParams();
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
   const processedRef = useRef(false);
   const setStatus = useTraktAuthStore((s) => s.setStatus);
   const setError = useTraktAuthStore((s) => s.setError);
 
   useEffect(() => {
-    if (!code || processedRef.current) return;
+   
+    if (!code || state === SIMKL_OAUTH_STATE || processedRef.current) return;
     processedRef.current = true;
 
     const exchange = async () => {
@@ -36,7 +39,7 @@ export function TraktAuthHandler() {
     };
 
     exchange();
-  }, [code, searchParams, setSearchParams, setStatus, setError]);
+  }, [code, state, searchParams, setSearchParams, setStatus, setError]);
 
   return null;
 }
