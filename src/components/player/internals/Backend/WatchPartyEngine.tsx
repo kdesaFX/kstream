@@ -186,6 +186,25 @@ export function WatchPartyEngine() {
         ? `/media/tmdb-tv-${hostUser.content.tmdbId}/${hostUser.content.seasonId}/${hostUser.content.episodeId}`
         : `/media/tmdb-movie-${hostUser.content.tmdbId}`;
 
+    const currentPath = window.location.pathname;
+    const mediaPrefix = `/media/tmdb-${hostType === "show" ? "tv" : "movie"}-${hostUser.content.tmdbId}`;
+    let currentMatchesTarget = false;
+    if (currentPath.startsWith(mediaPrefix)) {
+      if (hostType === "movie") {
+        currentMatchesTarget = true;
+      } else if (
+        currentPath.includes(`/${hostUser.content.seasonId}/`) &&
+        currentPath.endsWith(`/${hostUser.content.episodeId}`)
+      ) {
+        currentMatchesTarget = true;
+      }
+    }
+
+    if (currentMatchesTarget) {
+      engine.current.lastFollowKey = hostKey;
+      return;
+    }
+
     engine.current.lastFollowKey = hostKey;
     engine.current.hasInitialSynced = false;
 
