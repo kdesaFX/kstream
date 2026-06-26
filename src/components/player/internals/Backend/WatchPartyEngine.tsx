@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 import { useCallback, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { getRoomStatuses } from "@/backend/player/status";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
@@ -28,7 +27,6 @@ function toStringId(v: unknown): string | undefined {
 export function WatchPartyEngine() {
   const account = useAuthStore((s) => s.account);
   const backendUrl = useBackendUrl();
-  const navigate = useNavigate();
 
   const { roomCode, isHost, enabled, enableAsGuest } = useWatchPartyStore();
 
@@ -155,12 +153,19 @@ export function WatchPartyEngine() {
     if (!enabled || isHost || !hostUser || !roomCode) return;
 
     const hostType = hostUser.content.type === "show" ? "show" : "movie";
+
+    if (!hostUser.content.tmdbId) return;
+    if (
+      hostType === "show" &&
+      (!hostUser.content.seasonId || !hostUser.content.episodeId)
+    )
+      return;
+
     const hostKey =
       hostType === "show"
         ? `show:${hostUser.content.tmdbId}:${hostUser.content.seasonId}:${hostUser.content.episodeId}`
         : `movie:${hostUser.content.tmdbId}`;
 
-    if (!hostUser.content.tmdbId) return;
     if (engine.current.lastFollowKey === hostKey) return;
 
     const myType = meta?.type === "show" ? "show" : "movie";
@@ -177,7 +182,7 @@ export function WatchPartyEngine() {
     }
 
     const targetPath =
-      hostType === "show" && hostUser.content.seasonId && hostUser.content.episodeId
+      hostType === "show"
         ? `/media/tmdb-tv-${hostUser.content.tmdbId}/${hostUser.content.seasonId}/${hostUser.content.episodeId}`
         : `/media/tmdb-movie-${hostUser.content.tmdbId}`;
 
@@ -186,8 +191,8 @@ export function WatchPartyEngine() {
 
     const url = new URL(targetPath, window.location.origin);
     url.searchParams.set("watchparty", roomCode);
-    navigate(url.pathname + url.search);
-  }, [enabled, isHost, hostUser, roomCode, meta, navigate]);
+    window.location.assign(url.toString());
+  }, [enabled, isHost, hostUser, roomCode, meta]);
 
   useEffect(() => {
     const e = engine.current;
@@ -214,12 +219,36 @@ export function WatchPartyEngine() {
 
     const hostIsPlaying =
       hostUser.player.isPlaying && !hostUser.player.isPaused;
-    const elapsed = (Date.now() - hostUser.lastUpdate) / 1000;
-    const predicted = hostIsPlaying
+    const elapsed = Math.max(
+      0,
+      (Date.now() - hostUser.lastUpdate) / 1000,
+    );
+    const predictedRaw = hostIsPlaying
       ? hostUser.player.time + elapsed
       : hostUser.player.time;
+    const predicted = Number.isFinite(predictedRaw) ? predictedRaw : 0;
 
     const myTime = usePlayerStore.getState().progress.time;
+    const myDuration = usePlayerStore.getState().progress.duration;
+    const hostDuration = hostUser.player.duration;
+
+    if (
+      hostDuration > 0 &&
+      myDuration > 0 &&
+      Math.abs(hostDuration - myDuration) > 30
+    ) {
+      return;
+    }
+
+    if (
+      hostIsPlaying &&
+      predicted < 0.5 &&
+      hostUser.player.duration > 30 &&
+      myTime > 1
+    ) {
+      return;
+    }
+
     const drift = myTime - predicted;
 
     const needsInitial = !e.hasInitialSynced;
