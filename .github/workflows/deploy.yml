@@ -66,7 +66,7 @@ jobs:
           VITE_SECONDARY_AD_ZONE_ID: "11471918"
           VITE_ENABLE_BOOKMARKS_AD: "false"
           VITE_BOOKMARKS_AD_ZONE_ID: "11478966"
-          VITE_ENABLE_POPUNDER: "true"
+          VITE_ENABLE_POPUNDER: "false"
           VITE_POPUNDER_SCRIPT_URL: "https://ub.fizzledesire.com/rkI2bQVMeQg1IJP/JLeVW"
           VITE_POPUNDER_COOLDOWN_HOURS: "2"
           VITE_ENABLE_RYBBIT: "true"
