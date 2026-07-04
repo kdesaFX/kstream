@@ -31,6 +31,7 @@ import { AppearancePart } from "@/pages/parts/settings/AppearancePart";
 import { CaptionsPart } from "@/pages/parts/settings/CaptionsPart";
 import { ConnectionsPart } from "@/pages/parts/settings/ConnectionsPart";
 import { DeviceListPart } from "@/pages/parts/settings/DeviceListPart";
+import { LetterboxdImportPart } from "@/pages/parts/settings/LetterboxdImportPart";
 import { RegisterCalloutPart } from "@/pages/parts/settings/RegisterCalloutPart";
 import { SidebarPart } from "@/pages/parts/settings/SidebarPart";
 import { PageTitle } from "@/pages/parts/util/PageTitle";
@@ -186,6 +187,7 @@ export function SettingsPage() {
         "settings-appearance",
         "settings-captions",
         "settings-connection",
+        "settings-import",
       ];
 
       // Map sub-section hashes to their parent categories
@@ -236,6 +238,7 @@ export function SettingsPage() {
           "settings-appearance",
           "settings-captions",
           "settings-connection",
+          "settings-import",
         ];
         const subSectionToCategory: Record<string, string> = {
           "source-order": "settings-preferences",
@@ -1180,6 +1183,14 @@ export function SettingsPage() {
               proxyTmdb={state.proxyTmdb.state}
               setProxyTmdb={state.proxyTmdb.set}
             />
+          </div>
+        )}
+
+        {(searchQuery.trim() ||
+          !selectedCategory ||
+          selectedCategory === "settings-import") && (
+          <div id="settings-import">
+            <LetterboxdImportPart />
           </div>
         )}
       </SettingsLayout>

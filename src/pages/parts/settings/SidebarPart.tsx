@@ -45,6 +45,11 @@ export function SidebarPart(props: {
         id: "settings-connection",
         icon: Icons.LINK,
       },
+      {
+        textKey: "settings.letterboxd.title",
+        id: "settings-import",
+        icon: Icons.CLOUD_ARROW_UP,
+      },
     ],
     [],
   );

@@ -1169,6 +1169,21 @@
     "all": {
       "title": "All Settings"
     },
+    "letterboxd": {
+      "title": "Import",
+      "heading": "Import from Letterboxd",
+      "description": "Upload your Letterboxd watchlist CSV export and we'll match each film on TMDB and add it to your bookmarks.",
+      "help": "On Letterboxd, go to Settings → Data → Export your data, then upload the watchlist.csv file here.",
+      "selectFile": "Select CSV file",
+      "changeFile": "Choose a different file",
+      "import": "Import to bookmarks",
+      "importing": "Importing…",
+      "parsed": "Found {n} films in this file",
+      "empty": "No films found in this file. Make sure it's a Letterboxd watchlist export.",
+      "invalid": "Could not read this file. Please upload a Letterboxd watchlist CSV export.",
+      "progress": "Imported {done} of {total}…",
+      "summary": "Added {added} films. {duplicates} already bookmarked, {notfound} not found."
+    },
     "account": {
       "accountDetails": {
         "nicknameLabel": "Nickname",
