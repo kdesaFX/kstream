@@ -1,5 +1,4 @@
 import { useCallback, useState } from "react";
-
 import { Icon, Icons } from "@/components/Icon";
 import { conf } from "@/setup/config";
 
@@ -34,10 +33,9 @@ export function AdsPart(): JSX.Element | null {
   if (isAdDismissed) return null;
 
   return (
-    <div className="w-fit max-w-[32rem] mx-auto relative group pb-4">
+    <div className="w-fit max-w-[16rem] mx-auto relative group pb-4">
       {(() => {
         const adContentUrl = conf().AD_CONTENT_URL;
-
         // VITE_AD_CONTENT_URL=default message (null will be nothing),referal link,image link, card message
         // Ensure adContentUrl is an array. If not, render nothing for ads.
         if (!Array.isArray(adContentUrl)) {
@@ -58,9 +56,9 @@ export function AdsPart(): JSX.Element | null {
 
         return (
           <>
-            <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 justify-center w-full items-center md:items-start">
+            <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 justify-center w-full items-center">
               {showAd1 ? (
-                <div className="rounded-xl bg-background-main hover:scale-[1.02] max-w-[16rem] md:max-w-[22rem] transition-all duration-300 md:flex-1 relative group">
+                <div className="rounded-xl bg-background-main hover:scale-[1.02] max-w-[8rem] md:max-w-[11rem] transition-all duration-300 relative group">
                   <div className="bg-opacity-10 bg-buttons-purple rounded-xl border-2 border-buttons-purple border-opacity-30 hover:border-opacity-70 hover:shadow-lg hover:shadow-buttons-purple/20">
                     {" "}
                     <button
@@ -89,8 +87,9 @@ export function AdsPart(): JSX.Element | null {
                   </div>
                 </div>
               ) : null}
+
               {showAd2 ? (
-                <div className="rounded-xl bg-background-main hover:scale-[1.02] max-w-[16rem] md:max-w-[20rem] transition-all duration-300 md:flex-1 relative group">
+                <div className="rounded-xl bg-background-main hover:scale-[1.02] max-w-[8rem] md:max-w-[10rem] transition-all duration-300 relative group">
                   <div className="bg-opacity-10 bg-buttons-purple rounded-xl border-2 border-buttons-purple border-opacity-30 hover:border-opacity-70 hover:shadow-lg hover:shadow-buttons-purple/20">
                     <button
                       onClick={dismissAd}
@@ -119,6 +118,7 @@ export function AdsPart(): JSX.Element | null {
                 </div>
               ) : null}
             </div>
+
             {adContentUrl[0] !== "null" && (
               <div>
                 <p className="text-xs text-type-dimmed text-center pt-2 mx-4">
