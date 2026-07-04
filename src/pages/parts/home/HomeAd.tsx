@@ -140,16 +140,16 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
 
   if (dismissed) return null;
 
-  const wrapperStyle = {
-    maxWidth: "744px",
-    width: "100%",
-  };
+const wrapperStyle = {
+maxWidth: "360px",   
+width: "100%",
+};
 
-  return (
-    <div
-      className="relative rounded-lg ring-1 ring-white/20 bg-black/30 transition-opacity duration-500 group"
-      style={wrapperStyle}
-    >
+return (
+<div
+className="relative rounded-lg ring-1 ring-white/20 bg-black/30 transition-opacity duration-500 group mx-auto"  // added mx-auto to center
+style={wrapperStyle}
+>
       <button
         onClick={dismiss}
         type="button"
