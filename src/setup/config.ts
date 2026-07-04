@@ -39,6 +39,9 @@ interface Config {
   SECONDARY_AD_SUB: string;
   ENABLE_BOOKMARKS_AD: boolean;
   BOOKMARKS_AD_ZONE_ID: string;
+  ENABLE_PRIMARY_BANNER_GIF: boolean;
+  PRIMARY_BANNER_GIF_LINK: string;
+  PRIMARY_BANNER_GIF_URL: string;
   TRACK_SCRIPT: string; // like <script src="https://umami.com/script.js"></script>
   BANNER_MESSAGE: string;
   BANNER_ID: string;
@@ -95,6 +98,9 @@ export interface RuntimeConfig {
   SECONDARY_AD_SUB: string | null;
   ENABLE_BOOKMARKS_AD: boolean;
   BOOKMARKS_AD_ZONE_ID: string | null;
+  ENABLE_PRIMARY_BANNER_GIF: boolean;
+  PRIMARY_BANNER_GIF_LINK: string | null;
+  PRIMARY_BANNER_GIF_URL: string | null;
   TRACK_SCRIPT: string | null;
   BANNER_MESSAGE: string | null;
   BANNER_ID: string | null;
@@ -153,6 +159,9 @@ const env: Record<keyof Config, undefined | string> = {
   SECONDARY_AD_SUB: import.meta.env.VITE_SECONDARY_AD_SUB,
   ENABLE_BOOKMARKS_AD: import.meta.env.VITE_ENABLE_BOOKMARKS_AD,
   BOOKMARKS_AD_ZONE_ID: import.meta.env.VITE_BOOKMARKS_AD_ZONE_ID,
+  ENABLE_PRIMARY_BANNER_GIF: import.meta.env.VITE_PRIMARY_BANNER_GIF,
+  PRIMARY_BANNER_GIF_LINK: import.meta.env.VITE_PRIMARY_BANNER_GIF_LINK,
+  PRIMARY_BANNER_GIF_URL: import.meta.env.VITE_PRIMARY_BANNER_GIF_URL,
   TRACK_SCRIPT: import.meta.env.VITE_TRACK_SCRIPT,
   BANNER_MESSAGE: import.meta.env.VITE_BANNER_MESSAGE,
   BANNER_ID: import.meta.env.VITE_BANNER_ID,
@@ -271,6 +280,9 @@ export function conf(): RuntimeConfig {
     SECONDARY_AD_SUB: getKey("SECONDARY_AD_SUB"),
     ENABLE_BOOKMARKS_AD: getKey("ENABLE_BOOKMARKS_AD", "false") === "true",
     BOOKMARKS_AD_ZONE_ID: getKey("BOOKMARKS_AD_ZONE_ID"),
+    ENABLE_PRIMARY_BANNER_GIF: getKey("ENABLE_PRIMARY_BANNER_GIF", "false") === "true",
+    PRIMARY_BANNER_GIF_LINK: getKey("PRIMARY_BANNER_GIF_LINK"),
+    PRIMARY_BANNER_GIF_URL: getKey("PRIMARY_BANNER_GIF_URL"),
     TRACK_SCRIPT: getKey("TRACK_SCRIPT"),
     BANNER_MESSAGE: getKey("BANNER_MESSAGE"),
     BANNER_ID: getKey("BANNER_ID"),
