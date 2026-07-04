@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { Icon, Icons } from "@/components/Icon";
 
 import { conf } from "@/setup/config";
 
@@ -112,10 +114,89 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
   );
 }
 
+const PRIMARY_GIF_DISMISS_KEY = "primaryBannerGifDismissedUntil";
+const PRIMARY_GIF_DISMISS_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const until = Number(
+      window.localStorage.getItem(PRIMARY_GIF_DISMISS_KEY) || "0",
+    );
+    return Date.now() < until;
+  });
+
+  const dismiss = useCallback(() => {
+    setDismissed(true);
+    try {
+      window.localStorage.setItem(
+        PRIMARY_GIF_DISMISS_KEY,
+        String(Date.now() + PRIMARY_GIF_DISMISS_MS),
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+
+  if (dismissed) return null;
+
+  const wrapperStyle = {
+    maxWidth: "744px",
+    width: "100%",
+  };
+
+  return (
+    <div
+      className="relative rounded-lg ring-1 ring-white/20 bg-black/30 transition-opacity duration-500 group"
+      style={wrapperStyle}
+    >
+      <button
+        onClick={dismiss}
+        type="button"
+        className="absolute z-20 -top-2 -right-2 w-6 h-6 bg-mediaCard-hoverBackground rounded-full flex items-center justify-center md:opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        aria-label="Dismiss ad"
+      >
+        <Icon
+          className="text-xs font-semibold text-type-secondary"
+          icon={Icons.X}
+        />
+      </button>
+      <div className="rounded-lg overflow-hidden">
+        <div className="px-2.5 pt-1.5 pb-0.5">
+          <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-white/60 select-none">
+            Advertisement
+          </span>
+        </div>
+        <div className="px-2 pb-2 pt-0.5">
+          <a href={href} target="_blank" rel="noreferrer" className="block">
+            <img
+              src={img}
+              alt="ad banner"
+              className="w-full h-auto rounded mx-auto"
+            />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
   const cfg = conf();
 
   if (slot === "primary") {
+    if (
+      cfg.ENABLE_PRIMARY_BANNER_GIF &&
+      cfg.PRIMARY_BANNER_GIF_LINK &&
+      cfg.PRIMARY_BANNER_GIF_URL
+    ) {
+      return (
+        <PrimaryGifBanner
+          img={cfg.PRIMARY_BANNER_GIF_LINK}
+          href={cfg.PRIMARY_BANNER_GIF_URL}
+        />
+      );
+    }
     if (!cfg.ENABLE_HOME_AD || !cfg.HOME_AD_ZONE_ID) return null;
     return (
       <AdSlotInner
