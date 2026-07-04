@@ -66,7 +66,7 @@ jobs:
           VITE_SECONDARY_AD_ZONE_ID: "11471918"
           VITE_ENABLE_BOOKMARKS_AD: "false"
           VITE_PRIMARY_BANNER_GIF: "true"
-          VITE_PRIMARY_BANNER_GIF_LINK: "https://i.ibb.co/CKTP6XM1/undefined-Imgur-ezgif-com-optimize-1.gif"
+          VITE_PRIMARY_BANNER_GIF_LINK: "https://i.ibb.co/Mk3BfjG2/undefined-Imgur-ezgif-com-optimize-1.gif"
           VITE_PRIMARY_BANNER_GIF_URL: "https://clixou.com/"
           VITE_BOOKMARKS_AD_ZONE_ID: "11478966"
           VITE_ENABLE_POPUNDER: "false"
