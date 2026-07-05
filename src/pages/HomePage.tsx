@@ -26,6 +26,7 @@ import { MediaItem } from "@/utils/mediaTypes";
 
 import { Button } from "./About";
 import { AdsPart } from "./parts/home/AdsPart";
+import { DiscordNotice } from "./parts/home/DiscordNotice";
 import { HomeAd } from "./parts/home/HomeAd";
 import { RevivalAnnouncementModal } from "./parts/home/RevivalAnnouncementModal";
 import { SupportBar } from "./parts/home/SupportBar";
@@ -148,6 +149,7 @@ export function HomePage() {
 
   return (
     <HomeLayout showBg={showBg}>
+      {!search && <DiscordNotice />}
       <div className="mb-2">
         <Helmet>
           <style type="text/css">{`
