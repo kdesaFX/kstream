@@ -7,6 +7,7 @@ import { conf } from "@/setup/config";
 const ACLIB_URL = "https://acscdn.com/script/aclib.js";
 const SCRIPT_ID = "aclib";
 const LOAD_TIMEOUT_MS = 8000;
+const PRIMARY_BANNER_GIF_SRC = "/ads/primary-banner.gif";
 
 declare global {
   interface Window {
@@ -140,20 +141,14 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
 
   if (dismissed) return null;
 
-const wrapperStyle = {
-maxWidth: "360px",   
-width: "100%",
-};
-
-return (
-<div
-className="relative rounded-lg ring-1 ring-white/20 bg-black/30 transition-opacity duration-500 group mx-auto"  // added mx-auto to center
-style={wrapperStyle}
->
+  return (
+    <div
+      className="relative mx-auto w-full max-w-[700px] rounded-xl bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group"
+    >
       <button
         onClick={dismiss}
         type="button"
-        className="absolute z-20 -top-2 -right-2 w-6 h-6 bg-mediaCard-hoverBackground rounded-full flex items-center justify-center md:opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        className="absolute -right-2 -top-2 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-mediaCard-hoverBackground md:opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         aria-label="Dismiss ad"
       >
         <Icon
@@ -161,18 +156,24 @@ style={wrapperStyle}
           icon={Icons.X}
         />
       </button>
-      <div className="rounded-lg overflow-hidden">
-        <div className="px-2.5 pt-1.5 pb-0.5">
+      <div className="overflow-hidden rounded-xl">
+        <div className="px-3 pt-2 pb-1">
           <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-white/60 select-none">
             Advertisement
           </span>
         </div>
-        <div className="px-2 pb-2 pt-0.5">
-          <a href={href} target="_blank" rel="noreferrer" className="block">
+        <div className="px-3 pb-3 pt-1">
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="block overflow-hidden rounded-lg"
+          >
             <img
               src={img}
               alt="ad banner"
-              className="w-full h-auto rounded mx-auto"
+              className="block w-full rounded-lg object-cover"
+              style={{ aspectRatio: "7 / 2", maxHeight: "200px" }}
             />
           </a>
         </div>
@@ -185,14 +186,10 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
   const cfg = conf();
 
   if (slot === "primary") {
-    if (
-      cfg.ENABLE_PRIMARY_BANNER_GIF &&
-      cfg.PRIMARY_BANNER_GIF_LINK &&
-      cfg.PRIMARY_BANNER_GIF_URL
-    ) {
+    if (cfg.ENABLE_PRIMARY_BANNER_GIF && cfg.PRIMARY_BANNER_GIF_URL) {
       return (
         <PrimaryGifBanner
-          img={cfg.PRIMARY_BANNER_GIF_LINK}
+          img={PRIMARY_BANNER_GIF_SRC}
           href={cfg.PRIMARY_BANNER_GIF_URL}
         />
       );
