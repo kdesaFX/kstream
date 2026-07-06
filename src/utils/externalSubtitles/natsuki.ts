@@ -1,4 +1,6 @@
 /* eslint-disable no-console */
+import { labelToLanguageCode } from "@p-stream/providers";
+
 import { CaptionListItem } from "@/stores/player/slices/source";
 
 const NATSUKI_BASE = "https://natsuki.fontaine.lol/subs";
@@ -37,7 +39,11 @@ function mapEntries(data: unknown): CaptionListItem[] {
     .filter((sub) => typeof sub.url === "string" && sub.url)
     .map((sub) => ({
       id: sub.sid ?? sub.url!,
-      language: sub.langCode || sub.language || "unknown",
+      language:
+        labelToLanguageCode(sub.language ?? "") ||
+        sub.langCode ||
+        sub.language ||
+        "unknown",
       url: sub.url!,
       type: getSubtitleType(sub.url!, sub.fileName),
       needsProxy: false,
