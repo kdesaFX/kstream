@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - production
-
+  workflow_dispatch:
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -37,7 +37,6 @@ jobs:
         run: |
           git clone --depth 1 https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/xp-technologies-dev/private-providers.git /tmp/private-providers
           ls /tmp/private-providers/lib/
-
       - name: Force private providers
         run: |
           node -e "
@@ -48,7 +47,6 @@ jobs:
           "
           grep providers package.json
           rm -f pnpm-lock.yaml
-
       - name: Install dependencies
         run: pnpm install --force
 
@@ -62,8 +60,26 @@ jobs:
           VITE_TRAKT_CLIENT_SECRET: ${{ secrets.VITE_TRAKT_CLIENT_SECRET }}
           VITE_TRAKT_REDIRECT_URI: ${{ secrets.VITE_TRAKT_REDIRECT_URI }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL }}
-
-
+          VITE_ENABLE_HOME_AD: "false"
+          VITE_HOME_AD_ZONE_ID: "11471906"
+          VITE_ENABLE_SECONDARY_AD: "false"
+          VITE_SECONDARY_AD_ZONE_ID: "11471918"
+          VITE_ENABLE_BOOKMARKS_AD: "false"
+          VITE_PRIMARY_BANNER_GIF: "true"
+          VITE_PRIMARY_BANNER_GIF_LINK: "https://i.ibb.co/Mk3BfjG2/undefined-Imgur-ezgif-com-optimize-1.gif"
+          VITE_PRIMARY_BANNER_GIF_URL: "https://clixou.com/"
+          VITE_BOOKMARKS_AD_ZONE_ID: "11478966"
+          VITE_ENABLE_POPUNDER: "false"
+          VITE_POPUNDER_SCRIPT_URL: "https://ub.fizzledesire.com/rkI2bQVMeQg1IJP/JLeVW"
+          VITE_POPUNDER_COOLDOWN_HOURS: "2"
+          VITE_ENABLE_RYBBIT: "true"
+          VITE_RYBBIT_SCRIPT_URL: ${{ vars.VITE_RYBBIT_SCRIPT_URL }}
+          VITE_RYBBIT_SITE_ID: ${{ vars.VITE_RYBBIT_SITE_ID }}
+          VITE_USE_SIMKL: "true"
+          VITE_SIMKL_CLIENT_ID: "ba3e36f42507238bc3466a995763505b0cf4407953f286e09935c51bf3347ebc"
+          VITE_SIMKL_CLIENT_SECRET: ${{ secrets.VITE_SIMKL_CLIENT_SECRET }}
+          VITE_SIMKL_REDIRECT_URI: "https://zstream.mov/settings"
+          VITE_DMCA_EMAIL: "zstream-dmca@proton.me"
       - name: Clean credentials
         if: always()
         run: rm -rf /tmp/private-providers

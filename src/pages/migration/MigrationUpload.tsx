@@ -51,6 +51,33 @@ interface UploadedData {
   exportDate?: string;
 }
 
+function normalizeStringArray(value: unknown): string[] | undefined {
+  const strings = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? [value]
+      : [];
+
+  const normalized = strings.filter(
+    (item): item is string =>
+      typeof item === "string" && item.trim().length > 0,
+  );
+
+  return normalized.length > 0 ? Array.from(new Set(normalized)) : undefined;
+}
+
+function getImportGroupOrder(data: UploadedData): string[] {
+  const groups = new Set<string>();
+
+  normalizeStringArray(data.groupOrder)?.forEach((group) => groups.add(group));
+
+  Object.values(data.bookmarks ?? {}).forEach((bookmark) => {
+    normalizeStringArray(bookmark.group)?.forEach((group) => groups.add(group));
+  });
+
+  return Array.from(groups).slice(0, 30);
+}
+
 export function MigrationUploadPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -94,15 +121,23 @@ export function MigrationUploadPage() {
                   typeof item.type === "string" &&
                   (item.type === "show" || item.type === "movie")
                 ) {
+                  const group = normalizeStringArray(item.group);
+                  const favoriteEpisodes = normalizeStringArray(
+                    item.favoriteEpisodes,
+                  );
+
                   acc[id] = {
                     title: item.title || "",
                     year: typeof item.year === "number" ? item.year : undefined,
-                    poster: item.poster,
+                    poster:
+                      typeof item.poster === "string" ? item.poster : undefined,
                     type: item.type as "show" | "movie",
                     updatedAt:
                       typeof item.updatedAt === "number"
                         ? item.updatedAt
                         : Date.now(),
+                    ...(group ? { group } : {}),
+                    ...(favoriteEpisodes ? { favoriteEpisodes } : {}),
                   };
                 }
                 return acc;
@@ -172,6 +207,8 @@ export function MigrationUploadPage() {
               {} as Record<string, WatchHistoryItem>,
             )
           : undefined,
+
+        groupOrder: normalizeStringArray(parsedData.groupOrder),
       };
 
       setUploadedData(validatedData);
@@ -238,22 +275,9 @@ export function MigrationUploadPage() {
       );
     }
 
-    // Import group order
-    let groupOrderToImport = uploadedData.groupOrder;
-    if (!groupOrderToImport || groupOrderToImport.length === 0) {
-      // Create group order from bookmarks if not provided
-      const allGroups = new Set<string>();
-      if (uploadedData.bookmarks) {
-        Object.values(uploadedData.bookmarks).forEach((bookmark: any) => {
-          if (Array.isArray(bookmark.group)) {
-            bookmark.group.forEach((group: string) => allGroups.add(group));
-          }
-        });
-      }
-      groupOrderToImport = Array.from(allGroups);
-    }
+    const groupOrderToImport = getImportGroupOrder(uploadedData);
 
-    if (groupOrderToImport && groupOrderToImport.length > 0) {
+    if (groupOrderToImport.length > 0) {
       importPromises.push(
         importGroupOrder(backendUrl, user.account, groupOrderToImport),
       );
@@ -290,6 +314,11 @@ export function MigrationUploadPage() {
       replaceWatchHistory(uploadedData.watchHistory);
     }
 
+    const groupOrderToImport = getImportGroupOrder(uploadedData);
+    if (groupOrderToImport.length > 0) {
+      setGroupOrder(groupOrderToImport);
+    }
+
     // Import all data types to backend
     try {
       await handleBackendImport();
@@ -302,6 +331,7 @@ export function MigrationUploadPage() {
     replaceBookmarks,
     replaceProgress,
     replaceWatchHistory,
+    setGroupOrder,
     uploadedData,
     user.account,
     handleBackendImport,
@@ -333,30 +363,13 @@ export function MigrationUploadPage() {
         );
         replaceWatchHistory(uploadedData.watchHistory);
       }
-      if (uploadedData.groupOrder) {
+      const groupOrderToImport = getImportGroupOrder(uploadedData);
+      if (groupOrderToImport.length > 0) {
         localStorage.setItem(
           "__MW::groupOrder",
-          JSON.stringify({ state: { groupOrder: uploadedData.groupOrder } }),
+          JSON.stringify({ state: { groupOrder: groupOrderToImport } }),
         );
-        setGroupOrder(uploadedData.groupOrder);
-      } else {
-        // If no groupOrder in upload, create one from all groups found in bookmarks
-        const allGroups = new Set<string>();
-        if (uploadedData.bookmarks) {
-          Object.values(uploadedData.bookmarks).forEach((bookmark: any) => {
-            if (Array.isArray(bookmark.group)) {
-              bookmark.group.forEach((group: string) => allGroups.add(group));
-            }
-          });
-        }
-        const groupOrderArray = Array.from(allGroups);
-        if (groupOrderArray.length > 0) {
-          localStorage.setItem(
-            "__MW::groupOrder",
-            JSON.stringify({ state: { groupOrder: groupOrderArray } }),
-          );
-          setGroupOrder(groupOrderArray);
-        }
+        setGroupOrder(groupOrderToImport);
       }
       if (uploadedData.settings) {
         // Apply subtitle settings
