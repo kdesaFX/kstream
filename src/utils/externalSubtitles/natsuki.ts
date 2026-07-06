@@ -58,25 +58,42 @@ export async function scrapeNatsukiCaptions(
 ): Promise<CaptionListItem[]> {
   if (!imdbId && !tmdbId) return [];
 
-  const params = new URLSearchParams();
-  if (imdbId) params.set("imdbId", imdbId);
-  else params.set("tmdbId", String(tmdbId));
-
-  if (season && episode) {
-    params.set("season", String(season));
-    params.set("episode", String(episode));
+  const attempts: URLSearchParams[] = [];
+  if (tmdbId) {
+    const params = new URLSearchParams();
+    params.set("tmdbId", String(tmdbId));
+    if (season && episode) {
+      params.set("season", String(season));
+      params.set("episode", String(episode));
+    }
+    attempts.push(params);
+  }
+  if (imdbId) {
+    const params = new URLSearchParams();
+    params.set("imdbId", imdbId);
+    if (season && episode) {
+      params.set("season", String(season));
+      params.set("episode", String(episode));
+    }
+    attempts.push(params);
   }
 
   try {
-    const res = await fetch(`${NATSUKI_BASE}?${params.toString()}`, {
-      method: "GET",
-    });
-    if (!res.ok) {
-      console.warn(`Natsuki HTTP ${res.status}`);
-      return [];
+    for (const params of attempts) {
+      const res = await fetch(`${NATSUKI_BASE}?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!res.ok) {
+        console.warn(`Natsuki HTTP ${res.status} for ${params.toString()}`);
+        continue;
+      }
+      const data = await res.json();
+      const mapped = mapEntries(data);
+      if (mapped.length > 0) {
+        return mapped;
+      }
     }
-    const data = await res.json();
-    return mapEntries(data);
+    return [];
   } catch (err) {
     console.error("Natsuki fetch failed:", err);
     return [];
