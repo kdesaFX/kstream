@@ -1,50 +1,53 @@
 /* eslint-disable no-console */
 import { CaptionListItem } from "@/stores/player/slices/source";
 
-const NATSUKI_BASE = "https://natsuki.fontaine.lol/search";
+const NATSUKI_BASE = "https://natsuki.fontaine.lol/subs";
 
 interface NatsukiSubtitleEntry {
-  id?: string;
-  url?: string;
-  format?: string;
-  encoding?: string;
-  display?: string;
+  sid?: string;
   language?: string;
-  media?: string;
-  isHearingImpaired?: boolean;
-  source?: string;
-  release?: string;
-  releases?: string[];
-  flagUrl?: string;
-  origin?: string;
+  langCode?: string;
+  url?: string;
+  fileName?: string;
+  date?: string;
+  delay?: string;
+  hearingImpaired?: boolean;
+  translatedFrom?: string;
+  sidOrg?: string;
+}
+
+interface NatsukiResponse {
+  fid?: string;
+  imdbId?: string;
+  title?: string;
+  cached?: boolean;
+  subtitles?: NatsukiSubtitleEntry[];
+}
+
+function getSubtitleType(url: string, fileName?: string): "srt" | "vtt" {
+  const target = `${url} ${fileName ?? ""}`.toLowerCase();
+  return target.includes(".vtt") ? "vtt" : "srt";
 }
 
 function mapEntries(data: unknown): CaptionListItem[] {
-  if (!Array.isArray(data)) return [];
-  return (data as NatsukiSubtitleEntry[])
+  const payload = data as NatsukiResponse | null;
+  if (!payload || !Array.isArray(payload.subtitles)) return [];
+
+  return payload.subtitles
     .filter((sub) => typeof sub.url === "string" && sub.url)
-    .map((sub) => {
-      const fmt =
-        sub.format === "srt" || sub.format === "vtt" ? sub.format : "srt";
-      const upstream = sub.source ?? "";
-      return {
-        id: sub.id ?? sub.url!,
-        language: sub.language || "unknown",
-        url: sub.url!,
-        type: fmt,
-        needsProxy: false,
-        opensubtitles: true,
-        display: sub.display,
-        media: sub.media,
-        isHearingImpaired: sub.isHearingImpaired,
-        source: `natsuki ${upstream}`.trim(),
-        encoding: sub.encoding,
-        flagUrl: sub.flagUrl,
-        release: sub.release,
-        releases: sub.releases,
-        origin: sub.origin,
-      } as CaptionListItem;
-    });
+    .map((sub) => ({
+      id: sub.sid ?? sub.url!,
+      language: sub.language || sub.langCode || "unknown",
+      url: sub.url!,
+      type: getSubtitleType(sub.url!, sub.fileName),
+      needsProxy: false,
+      opensubtitles: true,
+      display: sub.fileName,
+      isHearingImpaired: sub.hearingImpaired,
+      source: "natsuki",
+      release: sub.date ?? null,
+      origin: sub.translatedFrom ?? null,
+    }) as CaptionListItem);
 }
 
 export async function scrapeNatsukiCaptions(
@@ -53,12 +56,12 @@ export async function scrapeNatsukiCaptions(
   season?: number,
   episode?: number,
 ): Promise<CaptionListItem[]> {
-  const id = imdbId || (tmdbId ? String(tmdbId) : "");
-  if (!id) return [];
+  if (!imdbId && !tmdbId) return [];
 
   const params = new URLSearchParams();
-  params.set("id", id);
-  params.set("source", "all");
+  if (imdbId) params.set("imdbId", imdbId);
+  else params.set("tmdbId", String(tmdbId));
+
   if (season && episode) {
     params.set("season", String(season));
     params.set("episode", String(episode));
