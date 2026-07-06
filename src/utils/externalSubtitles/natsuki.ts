@@ -37,7 +37,7 @@ function mapEntries(data: unknown): CaptionListItem[] {
     .filter((sub) => typeof sub.url === "string" && sub.url)
     .map((sub) => ({
       id: sub.sid ?? sub.url!,
-      language: sub.language || sub.langCode || "unknown",
+      language: sub.langCode || sub.language || "unknown",
       url: sub.url!,
       type: getSubtitleType(sub.url!, sub.fileName),
       needsProxy: false,
