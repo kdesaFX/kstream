@@ -116,7 +116,7 @@ export function HeroPart({
                 {!isInFeatured && (
                   <Link
                     to="/discover"
-                    className="group relative flex items-center justify-center h-14 rounded-[28px] bg-search-background/50 hover:bg-search-background backdrop-blur-sm transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden"
+                    className="group relative flex items-center justify-center h-14 rounded-[28px] bg-search-background/50 hover:bg-search-background backdrop-blur-sm transition-[transform,background-color] duration-300 ease-spring hover:scale-105 active:scale-95 overflow-hidden"
                   >
                     <div className="absolute inset-0 rounded-[28px] bg-[linear-gradient(90deg,#a855f7,#ec4899,#d946ef,#c084fc,#a855f7,#ec4899,#d946ef,#c084fc,#a855f7)] bg-[length:300%_100%] opacity-70 group-hover:opacity-100 transition-opacity duration-500 animate-gradient-flow" />
                     <div className="absolute inset-[2px] rounded-[26px] bg-search-background transition-colors duration-300" />

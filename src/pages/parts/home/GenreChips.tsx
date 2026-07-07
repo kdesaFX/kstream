@@ -61,8 +61,8 @@ export function GenreChips() {
               "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide whitespace-nowrap shrink-0",
               "bg-search-background/40 backdrop-blur-md hover:bg-search-hoverBackground/80",
               "text-type-secondary hover:text-white border border-white/5 hover:border-white/15 select-none",
-              "transition-all duration-300 ease-out",
-              "hover:-translate-y-0.5 active:translate-y-0 active:scale-95 hover:shadow-[0_4px_15px_rgba(0,0,0,0.3)]",
+              "transition-all duration-200 ease-out-quint",
+              "hover:-translate-y-0.5 active:translate-y-0 active:scale-95 hover:shadow-soft-md",
             )}
           >
             <Icon
@@ -83,8 +83,8 @@ export function GenreChips() {
               "min-w-[5.5rem]",
               "bg-search-background/60 backdrop-blur-md hover:bg-search-hoverBackground",
               "text-type-secondary hover:text-white border border-white/40 hover:border-white/60",
-              "transition-all duration-300 ease-out",
-              "hover:-translate-y-0.5 active:translate-y-0 active:scale-95 hover:shadow-[0_4px_15px_rgba(0,0,0,0.3)] select-none",
+              "transition-all duration-200 ease-out-quint",
+              "hover:-translate-y-0.5 active:translate-y-0 active:scale-95 hover:shadow-soft-md select-none",
             )}
           >
             <Icon icon={expanded ? Icons.CHEVRON_UP : Icons.PLUS} />
