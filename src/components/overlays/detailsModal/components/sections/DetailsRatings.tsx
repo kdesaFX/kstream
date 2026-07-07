@@ -13,10 +13,11 @@ export function DetailsRatings({
   imdbId,
   provider,
 }: DetailsRatingsProps) {
-  const getProviderImage = (providerName: string) => {
+  const getProviderImage = (providerName?: string | null) => {
+    const safeProviderName = providerName ?? "";
     const imageKey =
-      PROVIDER_TO_IMAGE_MAP[providerName] ||
-      providerName.toLowerCase().replace(/\s+/g, "");
+      PROVIDER_TO_IMAGE_MAP[safeProviderName] ||
+      safeProviderName.toLowerCase().replace(/\s+/g, "");
     return `/platforms/${imageKey}.png`;
   };
 

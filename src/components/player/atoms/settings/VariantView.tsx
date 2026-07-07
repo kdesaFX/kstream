@@ -119,13 +119,13 @@ export function VariantView({ id }: { id: string }) {
 
           const captions = result.subtitles
             ? Object.entries(result.subtitles).map(([key, sub]) => ({
-                id: sub.subtitle_link,
+                id: sub.subtitle_link ?? `${key}-subtitle`,
                 language:
                   key.split("_")[0].charAt(0).toUpperCase() +
                   key.split("_")[0].slice(1),
                 url: sub.subtitle_link,
                 needsProxy: false,
-                type: sub.subtitle_link.toLowerCase().endsWith(".vtt")
+                type: (sub.subtitle_link ?? "").toLowerCase().endsWith(".vtt")
                   ? "vtt"
                   : "srt",
               }))
