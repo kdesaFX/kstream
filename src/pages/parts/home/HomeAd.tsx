@@ -143,12 +143,12 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
 
   return (
     <div
-      className="relative mx-auto w-full max-w-[700px] rounded-xl bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group"
+      className="relative mx-auto w-full max-w-[640px] rounded-[0.95rem] bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group"
     >
       <button
         onClick={dismiss}
         type="button"
-        className="absolute -right-2 -top-2 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-mediaCard-hoverBackground md:opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        className="absolute -right-2 -top-2 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-mediaCard-hoverBackground transition-opacity duration-300 md:opacity-0 group-hover:opacity-100"
         aria-label="Dismiss ad"
       >
         <Icon
@@ -156,24 +156,24 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
           icon={Icons.X}
         />
       </button>
-      <div className="overflow-hidden rounded-xl">
-        <div className="px-3 pt-2 pb-1">
+      <div className="overflow-hidden rounded-[0.95rem]">
+        <div className="px-2.5 pt-1.5 pb-1">
           <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-white/60 select-none">
             Advertisement
           </span>
         </div>
-        <div className="px-3 pb-3 pt-1">
+        <div className="px-2.5 pb-2.5 pt-0.5">
           <a
             href={href}
             target="_blank"
             rel="noreferrer"
-            className="block overflow-hidden rounded-lg"
+            className="block overflow-hidden rounded-[0.8rem]"
           >
             <img
               src={img}
               alt="ad banner"
-              className="block w-full rounded-lg object-cover"
-              style={{ aspectRatio: "7 / 2", maxHeight: "200px" }}
+              className="block w-full rounded-[0.8rem] object-cover"
+              style={{ aspectRatio: "7 / 2", maxHeight: "176px" }}
             />
           </a>
         </div>
