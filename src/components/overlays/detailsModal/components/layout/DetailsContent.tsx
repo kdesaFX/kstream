@@ -49,6 +49,11 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
   const enableImageLogos = usePreferencesStore(
     (state) => state.enableImageLogos,
   );
+  const mediaSlug = useMemo(() => {
+    const source = typeof data.title === "string" ? data.title : "";
+    const slug = source.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    return slug || "untitled";
+  }, [data.title]);
 
   // Check if movie is watched (>90% progress)
   const isMovieWatched = useMemo(() => {
@@ -217,19 +222,14 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
 
   const handlePlayClick = () => {
     if (data.type === "movie") {
-      window.location.assign(
-        `/media/tmdb-movie-${data.id}-${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-      );
+      window.location.assign(`/media/tmdb-movie-${data.id}-${mediaSlug}`);
     } else if (data.type === "show") {
       if (showProgress?.season?.id && showProgress?.episode?.id) {
         window.location.assign(
-          `/media/tmdb-tv-${data.id}-${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}/${showProgress.season.id}/${showProgress.episode.id}`,
+          `/media/tmdb-tv-${data.id}-${mediaSlug}/${showProgress.season.id}/${showProgress.episode.id}`,
         );
       } else {
-        // Start new show
-        window.location.assign(
-          `/media/tmdb-tv-${data.id}-${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-        );
+        window.location.assign(`/media/tmdb-tv-${data.id}-${mediaSlug}`);
       }
     }
   };
@@ -237,8 +237,8 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
   const handleShareClick = () => {
     const shareUrl =
       data.type === "movie"
-        ? `${window.location.origin}/media/tmdb-movie-${data.id}-${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
-        : `${window.location.origin}/media/tmdb-tv-${data.id}-${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+        ? `${window.location.origin}/media/tmdb-movie-${data.id}-${mediaSlug}`
+        : `${window.location.origin}/media/tmdb-tv-${data.id}-${mediaSlug}`;
 
     // Check if the device is iOS and share API is available
     if (/iPad|iPhone|iPod/i.test(navigator.userAgent) && navigator.share) {

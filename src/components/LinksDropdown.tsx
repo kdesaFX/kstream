@@ -130,10 +130,12 @@ function WatchPartyInputLink() {
       }
 
       const { content } = hostUser;
+      const contentType =
+        typeof content?.type === "string" ? content.type.toLowerCase() : "";
 
       let targetUrl = "";
       if (
-        content.type.toLowerCase() === "tv show" &&
+        contentType === "tv show" &&
         content.seasonId &&
         content.episodeId
       ) {

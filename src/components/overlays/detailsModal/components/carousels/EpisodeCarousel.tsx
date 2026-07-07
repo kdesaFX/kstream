@@ -15,6 +15,11 @@ import { EpisodeCarouselProps } from "../../types";
 
 const EMPTY_ARRAY: string[] = [];
 
+function slugifyTitle(title?: string | null) {
+  const slug = (title ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  return slug || "untitled";
+}
+
 export function EpisodeCarousel({
   episodes,
   showProgress,
@@ -73,7 +78,7 @@ export function EpisodeCarousel({
     if (!season || !mediaId || !mediaTitle) return "#";
 
     // Create the URL in the format: /media/tmdb-tv-{showId}-{showName}/{seasonId}/{episodeId}
-    return `/media/tmdb-tv-${mediaId}-${mediaTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-")}/${season.id}/${episode.id}`;
+    return `/media/tmdb-tv-${mediaId}-${slugifyTitle(mediaTitle)}/${season.id}/${episode.id}`;
   };
 
   useEffect(() => {
@@ -152,7 +157,7 @@ export function EpisodeCarousel({
     }
 
     // Navigate to the episode using the same URL format as getEpisodeUrl
-    const url = `/media/tmdb-tv-${mediaId}-${mediaTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-")}/${seasonData.id}/${episodeData.id}`;
+    const url = `/media/tmdb-tv-${mediaId}-${slugifyTitle(mediaTitle)}/${seasonData.id}/${episodeData.id}`;
     window.location.href = url;
     setShowEpisodeMenu(false);
   };

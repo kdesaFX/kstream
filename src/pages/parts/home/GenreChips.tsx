@@ -7,8 +7,8 @@ import { useDiscoverOptions } from "@/pages/discover/hooks/useDiscoverMedia";
 
 const TOP_GENRES = 5;
 
-const getGenreIcon = (name: string): Icons => {
-  const n = name.toLowerCase();
+const getGenreIcon = (name?: string | null): Icons => {
+  const n = (name ?? "").toLowerCase();
   if (n.includes("action")) return Icons.GENRE_ACTION;
   if (n.includes("adventure")) return Icons.GENRE_ADVENTURE;
   if (n.includes("animation")) return Icons.GENRE_ANIMATION;
@@ -69,7 +69,7 @@ export function GenreChips() {
               icon={getGenreIcon(genre.name)}
               className="text-[14px] opacity-70"
             />
-            {genre.name}
+            {genre.name || "Unknown"}
           </Link>
         ))}
 
