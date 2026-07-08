@@ -906,7 +906,13 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       const originalUrl =
         source?.type === "hls" ? hls?.url || source.url : videoPlayer.src;
 
+      // Whether we actually need to swap in a proxied URL for Airplay to
+      // work — tracked explicitly rather than inferred by comparing computed
+      // URL strings, since hls.js's internally-tracked url can legitimately
+      // differ from source.url (redirects, etc.) even when no proxy is
+      // needed, which previously caused a spurious "needs reload" verdict.
       let proxiedUrl: string | null = null;
+      let needsProxy = false;
 
       if (source?.type === "hls") {
         // Only proxy HLS streams if they need it:
@@ -918,11 +924,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         };
         const hasHeaders = Object.keys(allHeaders).length > 0;
 
-        // Don't create proxy URL if it's already using the proxy
         if (!isUrlAlreadyProxied(source.url) && hasHeaders) {
           proxiedUrl = createM3U8ProxyUrl(source.url, allHeaders);
-        } else {
-          proxiedUrl = source.url; // Already proxied or no headers needed
+          needsProxy = true;
         }
       } else if (source?.type === "mp4") {
         const allHeaders = {
@@ -933,8 +937,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         if (!isUrlAlreadyProxied(source.url) && hasHeaders) {
           // Use MP4 proxy for streams with headers
           proxiedUrl = createMP4ProxyUrl(source.url, allHeaders);
-        } else {
-          proxiedUrl = source.url;
+          needsProxy = true;
         }
       }
 
@@ -949,16 +952,41 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         }
       };
 
-      // Function to check airplay state and restore if needed
-      const checkAirplayState = () => {
-        const isWireless = videoPlayer.webkitCurrentPlaybackTargetIsWireless;
-        if (!isWireless) {
-          // Airplay didn't start or ended, restore original URL
+      // React to the real WebKit event instead of guessing with timers — the
+      // native picker is a blocking OS UI the user can take any amount of
+      // time to interact with, so a fixed setTimeout can fire while they're
+      // still choosing a device and yank playback back to the local URL.
+      // This event fires whenever the wireless-target state actually
+      // changes, both when a device connects and when the session ends.
+      const onWirelessTargetChange = () => {
+        if (!videoPlayer.webkitCurrentPlaybackTargetIsWireless) {
           restoreOriginalUrl();
+          videoPlayer.removeEventListener(
+            "webkitcurrentplaybacktargetiswireless",
+            onWirelessTargetChange,
+          );
+          clearTimeout(safetyTimeout);
         }
       };
+      // Safety net only — covers the rare case where the browser never fires
+      // the event at all (e.g. picker dismissed with no target picked and no
+      // state change). Not relied on for the normal connect/disconnect flow.
+      const safetyTimeout = setTimeout(() => {
+        videoPlayer.removeEventListener(
+          "webkitcurrentplaybacktargetiswireless",
+          onWirelessTargetChange,
+        );
+        if (!videoPlayer.webkitCurrentPlaybackTargetIsWireless) {
+          restoreOriginalUrl();
+        }
+      }, 300000);
 
-      if (proxiedUrl && proxiedUrl !== originalUrl) {
+      if (needsProxy && proxiedUrl) {
+        videoPlayer.addEventListener(
+          "webkitcurrentplaybacktargetiswireless",
+          onWirelessTargetChange,
+        );
+
         // Set the proxied URL for Airplay
         if (source?.type === "hls") {
           if (hls) {
@@ -973,26 +1001,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         // Small delay to ensure the URL is set before triggering Airplay
         setTimeout(() => {
           videoPlayer.webkitShowPlaybackTargetPicker();
-
-          // Check airplay state after user interaction
-          // Give user time to select device, then check if airplay started
-          setTimeout(() => {
-            checkAirplayState();
-          }, 2000);
-
-          // Set up periodic check for airplay state changes
-          const airplayCheckInterval = setInterval(() => {
-            const isWireless =
-              videoPlayer.webkitCurrentPlaybackTargetIsWireless;
-            if (!isWireless) {
-              // Airplay ended, restore original URL
-              restoreOriginalUrl();
-              clearInterval(airplayCheckInterval);
-            }
-          }, 1000);
-
-          // Clear interval after 5 minutes as safety measure
-          setTimeout(() => clearInterval(airplayCheckInterval), 300000);
         }, 100);
       } else {
         // No proxying needed, just trigger Airplay

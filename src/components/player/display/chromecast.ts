@@ -9,6 +9,7 @@ import {
   DisplayInterfaceEvents,
   DisplayMeta,
 } from "@/components/player/display/displayInterface";
+import { convertSubtitlesToVttDataurl } from "@/components/player/utils/captions";
 import {
   createM3U8ProxyUrl,
   createMP4ProxyUrl,
@@ -26,9 +27,8 @@ export interface ChromeCastDisplayInterfaceOptions {
 }
 
 /*
- ** Chromecasting is unfinished, here is its limitations:
- **  1. Captions - chromecast requires only VTT, but needs it from a URL. we only have SRT urls
- **  2. HLS - we've having some issues with content types. sometimes it loads, sometimes it doesn't
+ ** Chromecasting limitations:
+ **  1. HLS - we've having some issues with content types. sometimes it loads, sometimes it doesn't
  */
 
 export function makeChromecastDisplayInterface(
@@ -103,6 +103,30 @@ export function makeChromecastDisplayInterface(
     };
   }
 
+  // The Default Media Receiver only accepts sideloaded text tracks as VTT —
+  // our caption sources are SRT, so convert the already-fetched srtData
+  // (never the original .srt url, which the receiver can't render) into a
+  // self-contained VTT data: URI. Data URIs resolve locally on the receiver
+  // with no network round-trip, so this works regardless of CORS/headers.
+  function buildCaptionTrack(c: DisplayCaption): chrome.cast.media.Track | null {
+    if (!c.srtData?.trim()) return null;
+    try {
+      const vttDataUrl = convertSubtitlesToVttDataurl(c.srtData);
+      const textTrack = new chrome.cast.media.Track(
+        1,
+        chrome.cast.media.TrackType.TEXT,
+      );
+      textTrack.trackContentType = "text/vtt";
+      textTrack.trackContentId = vttDataUrl;
+      textTrack.language = c.language;
+      textTrack.name = c.language || "Subtitles";
+      textTrack.subtype = chrome.cast.media.TextTrackType.SUBTITLES;
+      return textTrack;
+    } catch {
+      return null;
+    }
+  }
+
   function setupSource() {
     if (!source) {
       ops.controller?.stop();
@@ -144,28 +168,13 @@ export function makeChromecastDisplayInterface(
       playbackRate,
     };
 
-    // Add basic VTT captions support if a caption URL is provided
-    if (caption?.url) {
-      try {
-        const textTrack = new chrome.cast.media.Track(
-          1,
-          chrome.cast.media.TrackType.TEXT,
-        );
-        textTrack.trackContentType = "text/vtt";
-        textTrack.trackContentId = caption.url;
-        textTrack.language = caption.language;
-        textTrack.name = caption.language || "Subtitles";
-        textTrack.subtype = chrome.cast.media.TextTrackType.SUBTITLES;
-        mediaInfo.tracks = [textTrack];
-      } catch {
-        // ignore track creation errors
-      }
-    }
+    const captionTrack = caption ? buildCaptionTrack(caption) : null;
+    if (captionTrack) mediaInfo.tracks = [captionTrack];
 
     const request = new chrome.cast.media.LoadRequest(mediaInfo);
     request.autoplay = true;
     request.currentTime = startAt;
-    if (caption?.url) request.activeTrackIds = [1];
+    if (captionTrack) request.activeTrackIds = [1];
 
     const session = ops.instance.getCurrentSession();
     session
@@ -225,19 +234,26 @@ export function makeChromecastDisplayInterface(
       // cant control qualities
     },
     setCaption(newCaption) {
+      const hadTrackLoaded = !!caption;
       caption = newCaption;
-      // If a session and media exist, toggle active track IDs without reloading
-      const session = ops.instance.getCurrentSession();
-      const media = session?.getMediaSession();
-      try {
-        if (media) {
-          const ids = newCaption?.url ? [1] : [];
-          const req = new chrome.cast.media.EditTracksInfoRequest(ids);
-          (media as any).editTracksInfo(req);
-          return;
+
+      // Turning captions OFF just deactivates the already-loaded track — no
+      // reload needed. Turning them ON (or switching to a different one) has
+      // to go through setSource() so the receiver actually receives the new
+      // track in mediaInfo.tracks; editTracksInfo can only toggle a track id
+      // that was already part of the original LoadRequest.
+      if (!newCaption) {
+        const session = ops.instance.getCurrentSession();
+        const media = session?.getMediaSession();
+        try {
+          if (media && hadTrackLoaded) {
+            const req = new chrome.cast.media.EditTracksInfoRequest([]);
+            (media as any).editTracksInfo(req);
+            return;
+          }
+        } catch {
+          // Fallback to reload if needed
         }
-      } catch {
-        // Fallback to reload if needed
       }
       setSource();
     },

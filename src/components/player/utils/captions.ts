@@ -86,6 +86,10 @@ export function convertSubtitlesToSrtDataurl(text: string): string {
   )}`;
 }
 
+export function convertSubtitlesToVttDataurl(text: string): string {
+  return `data:text/vtt;base64,${stringToBase64(convertSubtitlesToVtt(text))}`;
+}
+
 export function convertSubtitlesToObjectUrl(text: string): string {
   return URL.createObjectURL(
     new Blob([convertSubtitlesToVtt(text)], {
