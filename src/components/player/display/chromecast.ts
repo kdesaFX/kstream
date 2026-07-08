@@ -176,13 +176,46 @@ export function makeChromecastDisplayInterface(
     request.currentTime = startAt;
     if (captionTrack) request.activeTrackIds = [1];
 
+    doLoadMedia(request);
+  }
+
+  // ops.instance.getCurrentSession() can briefly return null right after the
+  // RemotePlayerController reports isConnected — the session object attaches
+  // to CastContext a tick or two later. session?.loadMedia(...) previously
+  // just no-op'd in that window: no request, no error, nothing — indistinguishable
+  // from a network/referer problem. Retry for a couple seconds before giving up
+  // loudly instead of silently.
+  function doLoadMedia(request: chrome.cast.media.LoadRequest, attempt = 0) {
     const session = ops.instance.getCurrentSession();
+    if (!session) {
+      if (attempt >= 20) {
+        emit("loading", false);
+        emit("error", {
+          type: "global",
+          errorName: "chromecast_load_failure",
+          message: "No active Cast session to load media into",
+        });
+        return;
+      }
+      setTimeout(() => doLoadMedia(request, attempt + 1), 100);
+      return;
+    }
     session
-      ?.loadMedia(request)
+      .loadMedia(request)
       .then(() => {
         emit("loading", false);
       })
       .catch((err: unknown) => {
+        // chrome.cast.ErrorCode.SESSION_ERROR means "session invalid or
+        // receiver couldn't load the media" — seen in practice moments after
+        // a session connects, before the receiver has actually finished
+        // settling. Retry a few times before surfacing it as fatal, same as
+        // the null-session case above.
+        const code = (err as any)?.code;
+        if (code === "session_error" && attempt < 20) {
+          setTimeout(() => doLoadMedia(request, attempt + 1), 250);
+          return;
+        }
         emit("loading", false);
         emit("error", {
           type: "global",
