@@ -70,6 +70,28 @@ export function makeChromecastDisplayInterface(
           emit("loading", e.value === "BUFFERING");
           if (e.value === "PLAYING") emit("play", undefined);
           else if (e.value === "PAUSED") emit("pause", undefined);
+          else if (e.value === "IDLE") {
+            // IDLE with idleReason "ERROR" means the receiver failed during
+            // an actual playback attempt (as opposed to a clean end/cancel) —
+            // previously silent: no BUFFERING/PLAYING/PAUSED event ever
+            // followed a failed load, so the UI just froze on whatever state
+            // it last had (matches reports of a stuck progress bar and a
+            // play/pause button that does nothing).
+            const media = ops.instance.getCurrentSession()?.getMediaSession();
+            const idleReason = (media as any)?.idleReason;
+            if (idleReason === chrome.cast.media.IdleReason.ERROR) {
+              emit("loading", false);
+              emit("error", {
+                type: "global",
+                errorName: "chromecast_playback_failure",
+                message: `Receiver reported idleReason=ERROR${
+                  (media as any)?.extendedStatus
+                    ? `: ${JSON.stringify((media as any).extendedStatus)}`
+                    : ""
+                }`,
+              });
+            }
+          }
           isPaused = e.value === "PAUSED";
           break;
         case "isMuted":
