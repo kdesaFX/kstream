@@ -5,13 +5,12 @@ import { getCachedMetadata } from "@/backend/helpers/providerApi";
 import { Toggle } from "@/components/buttons/Toggle";
 import { Icon, Icons } from "@/components/Icon";
 import { useCaptions } from "@/components/player/hooks/useCaptions";
+import { useCasting } from "@/components/player/casting/useCasting";
 import { Menu } from "@/components/player/internals/ContextMenu";
-import { useChromecastAvailable } from "@/hooks/useChromecastAvailable";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { usePlayerStore } from "@/stores/player/store";
 import { qualityToString } from "@/stores/player/utils/qualities";
 import { useSubtitleStore } from "@/stores/subtitles";
-import { isSafari } from "@/utils/detectFeatures";
 import { getPrettyLanguageNameFromLocale } from "@/utils/language";
 import { getArtemisVariantMeta, getVariantMeta } from "@p-stream/providers";
 
@@ -58,21 +57,22 @@ export function SettingsMenu({ id }: { id: string }) {
   const downloadable = source?.type === "file" || source?.type === "hls";
 
 
-  const display = usePlayerStore((s) => s.display);
-  const canAirplay = usePlayerStore((s) => s.interface.canAirplay);
-  const chromecastAvailable = useChromecastAvailable();
+  const { isCasting, chromecastAvailable, airplayAvailable, startChromecast, startAirplay, stop } =
+    useCasting();
   const isArtemis = currentSourceId === "artemis";
-  const castPlatformAvailable = !!chromecastAvailable || canAirplay || isSafari;
+  const castPlatformAvailable = chromecastAvailable || airplayAvailable;
 
   const requestCast = () => {
     if (!isArtemis) return;
-    const ctx = (window as any).cast?.framework?.CastContext?.getInstance?.();
-    if (ctx?.requestSession) {
-      ctx.requestSession().catch(() => {});
+    if (isCasting) {
+      stop();
       return;
     }
-
-    display?.startAirplay();
+    if (chromecastAvailable) {
+      startChromecast();
+      return;
+    }
+    startAirplay();
   };
 
   const variantMeta =

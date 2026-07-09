@@ -90,11 +90,6 @@ export const createDisplaySlice: MakeSlice<DisplaySlice> = (set, get) => ({
         s.caption.asTrack = needsTrack;
       });
     });
-    newDisplay.on("canairplay", (canAirplay) => {
-      set((s) => {
-        s.interface.canAirplay = canAirplay;
-      });
-    });
     newDisplay.on("playbackrate", (rate) => {
       set((s) => {
         s.mediaPlaying.playbackRate = rate;

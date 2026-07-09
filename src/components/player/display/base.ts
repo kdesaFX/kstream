@@ -15,11 +15,6 @@ import {
 import { handleBuffered } from "@/components/player/utils/handleBuffered";
 import { getMediaErrorDetails } from "@/components/player/utils/mediaErrorDetails";
 import { SpeechCapture } from "@/components/player/utils/speechCapture";
-import {
-  createM3U8ProxyUrl,
-  createMP4ProxyUrl,
-  isUrlAlreadyProxied,
-} from "@/components/player/utils/proxy";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
 import {
@@ -538,14 +533,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       if (!isFullscreen) emit("needstrack", false);
     });
     videoElement.addEventListener(
-      "webkitplaybacktargetavailabilitychanged",
-      (e: any) => {
-        if (e.availability === "available") {
-          emit("canairplay", true);
-        }
-      },
-    );
-    videoElement.addEventListener(
       "webkitpresentationmodechanged",
       webkitPresentationModeChange,
     );
@@ -890,121 +877,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         } else {
           document.exitPictureInPicture();
         }
-      }
-    },
-    startAirplay() {
-      const videoPlayer = videoElement as any;
-      if (!videoPlayer || !videoPlayer.webkitShowPlaybackTargetPicker) return;
-
-      if (!source) {
-        // No source loaded, just trigger Airplay
-        videoPlayer.webkitShowPlaybackTargetPicker();
-        return;
-      }
-
-      // Store the original URL to restore later
-      const originalUrl =
-        source?.type === "hls" ? hls?.url || source.url : videoPlayer.src;
-
-      // Whether we actually need to swap in a proxied URL for Airplay to
-      // work — tracked explicitly rather than inferred by comparing computed
-      // URL strings, since hls.js's internally-tracked url can legitimately
-      // differ from source.url (redirects, etc.) even when no proxy is
-      // needed, which previously caused a spurious "needs reload" verdict.
-      let proxiedUrl: string | null = null;
-      let needsProxy = false;
-
-      if (source?.type === "hls") {
-        // Only proxy HLS streams if they need it:
-        // 1. Not already proxied AND
-        // 2. Has headers (either preferredHeaders or headers)
-        const allHeaders = {
-          ...source.preferredHeaders,
-          ...source.headers,
-        };
-        const hasHeaders = Object.keys(allHeaders).length > 0;
-
-        if (!isUrlAlreadyProxied(source.url) && hasHeaders) {
-          proxiedUrl = createM3U8ProxyUrl(source.url, allHeaders);
-          needsProxy = true;
-        }
-      } else if (source?.type === "mp4") {
-        const allHeaders = {
-          ...source.preferredHeaders,
-          ...source.headers,
-        };
-        const hasHeaders = Object.keys(allHeaders).length > 0;
-        if (!isUrlAlreadyProxied(source.url) && hasHeaders) {
-          // Use MP4 proxy for streams with headers
-          proxiedUrl = createMP4ProxyUrl(source.url, allHeaders);
-          needsProxy = true;
-        }
-      }
-
-      // Function to restore original URL
-      const restoreOriginalUrl = () => {
-        if (source?.type === "hls") {
-          if (hls && originalUrl) {
-            hls.loadSource(originalUrl);
-          }
-        } else if (originalUrl) {
-          videoPlayer.src = originalUrl;
-        }
-      };
-
-      // React to the real WebKit event instead of guessing with timers — the
-      // native picker is a blocking OS UI the user can take any amount of
-      // time to interact with, so a fixed setTimeout can fire while they're
-      // still choosing a device and yank playback back to the local URL.
-      // This event fires whenever the wireless-target state actually
-      // changes, both when a device connects and when the session ends.
-      const onWirelessTargetChange = () => {
-        if (!videoPlayer.webkitCurrentPlaybackTargetIsWireless) {
-          restoreOriginalUrl();
-          videoPlayer.removeEventListener(
-            "webkitcurrentplaybacktargetiswireless",
-            onWirelessTargetChange,
-          );
-          clearTimeout(safetyTimeout);
-        }
-      };
-      // Safety net only — covers the rare case where the browser never fires
-      // the event at all (e.g. picker dismissed with no target picked and no
-      // state change). Not relied on for the normal connect/disconnect flow.
-      const safetyTimeout = setTimeout(() => {
-        videoPlayer.removeEventListener(
-          "webkitcurrentplaybacktargetiswireless",
-          onWirelessTargetChange,
-        );
-        if (!videoPlayer.webkitCurrentPlaybackTargetIsWireless) {
-          restoreOriginalUrl();
-        }
-      }, 300000);
-
-      if (needsProxy && proxiedUrl) {
-        videoPlayer.addEventListener(
-          "webkitcurrentplaybacktargetiswireless",
-          onWirelessTargetChange,
-        );
-
-        // Set the proxied URL for Airplay
-        if (source?.type === "hls") {
-          if (hls) {
-            hls.loadSource(proxiedUrl);
-          } else {
-            videoPlayer.src = proxiedUrl;
-          }
-        } else {
-          videoPlayer.src = proxiedUrl;
-        }
-
-        // Small delay to ensure the URL is set before triggering Airplay
-        setTimeout(() => {
-          videoPlayer.webkitShowPlaybackTargetPicker();
-        }, 100);
-      } else {
-        // No proxying needed, just trigger Airplay
-        videoPlayer.webkitShowPlaybackTargetPicker();
       }
     },
     setPlaybackRate(rate) {

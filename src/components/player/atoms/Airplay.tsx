@@ -1,16 +1,12 @@
 import { Icons } from "@/components/Icon";
+import { useCasting } from "@/components/player/casting/useCasting";
 import { VideoPlayerButton } from "@/components/player/internals/Button";
 import { usePlayerStore } from "@/stores/player/store";
-import { isSafari } from "@/utils/detectFeatures";
 
 export function Airplay() {
-  const canAirplay = usePlayerStore((s) => s.interface.canAirplay);
-  const display = usePlayerStore((s) => s.display);
+  const { isCasting, castType, airplayAvailable, startAirplay } = useCasting();
   const source = usePlayerStore((s) => s.source);
 
-  // Check if source is supported for casting
-  // HLS is always supported (proxied if needed)
-  // MP4/File is only supported if it doesn't need headers (no proxy available)
   const isCastable = (() => {
     if (!source) return false;
     if (source.type === "hls") return true;
@@ -20,17 +16,11 @@ export function Airplay() {
         Object.keys(source.preferredHeaders || {}).length > 0;
       return !hasHeaders;
     }
-    return true; // Unknown types assumed castable
+    return true;
   })();
 
-  // Show Airplay button on Safari browsers (which support AirPlay natively)
-  // or when the webkit event has confirmed availability
-  if ((!canAirplay && !isSafari) || !isCastable) return null;
+  if (!airplayAvailable || !isCastable) return null;
+  if (isCasting && castType !== "airplay") return null;
 
-  return (
-    <VideoPlayerButton
-      onClick={() => display?.startAirplay()}
-      icon={Icons.AIRPLAY}
-    />
-  );
+  return <VideoPlayerButton onClick={() => startAirplay()} icon={Icons.AIRPLAY} />;
 }
