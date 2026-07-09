@@ -55,57 +55,63 @@ export function useCasting() {
 
   useEffect(() => {
     if (!chromecastConnected || !source) return;
-    const qualityPreferences = useQualityStore.getState().quality;
-    const { stream } = selectQuality(source, qualityPreferences);
+    let cancelled = false;
 
-    let contentUrl = processCdnLink(stream.url);
-    let contentType = "video/mp4";
-    const allHeaders = { ...stream.preferredHeaders, ...stream.headers };
-    const hasHeaders = Object.keys(allHeaders).length > 0;
+    void (async () => {
+      const qualityPreferences = useQualityStore.getState().quality;
+      const { stream } = selectQuality(source, qualityPreferences);
 
-    if (stream.type === "hls") {
-      contentType = "application/x-mpegurl";
-      if (!isUrlAlreadyProxied(stream.url) && hasHeaders) {
-        contentUrl = createM3U8ProxyUrl(stream.url, allHeaders);
-      } else {
-        // Feed Chromecast the already-resolved single-variant media playlist
-        // instead of the master. Confirmed live (2026-07-09): the master
-        // makes Shaka Player do its own variant-selection fetch through
-        // artemis — that's where playback was silently stalling (infinite
-        // yellow line). The resolved variant's own playlist already contains
-        // real CDN segment URLs directly (one artemis hop, then straight to
-        // hls-aws.shegu.net), so the receiver just plays a flat file with no
-        // further negotiation. Falls back to the master if unavailable
-        // (e.g. display doesn't implement it, or hls.js hasn't picked a
-        // level yet).
-        const resolvedUrl = display?.getResolvedVariantUrl?.();
-        if (resolvedUrl) contentUrl = resolvedUrl;
+      let contentUrl = processCdnLink(stream.url);
+      let contentType = "video/mp4";
+      const allHeaders = { ...stream.preferredHeaders, ...stream.headers };
+      const hasHeaders = Object.keys(allHeaders).length > 0;
 
-        // Real, client-probed codec data — harmless to keep sending even
-        // though a resolved media playlist has no #EXT-X-STREAM-INF lines
-        // for it to apply to; costs nothing, helps if we ever fall back to
-        // handing Chromecast a master again.
-        const codecsHint = display?.getCodecsHint?.();
-        if (codecsHint) {
+      if (stream.type === "hls") {
+        contentType = "application/x-mpegurl";
+        if (!isUrlAlreadyProxied(stream.url) && hasHeaders) {
+          contentUrl = createM3U8ProxyUrl(stream.url, allHeaders);
+        } else {
+          // Bypass artemis entirely for the manifest itself: fetch the
+          // already-resolved single-variant media playlist (real CDN segment
+          // URLs, no further artemis references — confirmed live) client-side
+          // — this browser tab can fetch it fine since local playback already
+          // works — then hand Chromecast a self-contained data: URI instead
+          // of an https://artemis.fontaine.lol/... URL. Whatever was blocking
+          // the receiver's own fetch to artemis (still unconfirmed — not
+          // artemis's app logic itself, no matching log line server-side)
+          // never gets a chance to matter, since the receiver never contacts
+          // artemis at all: it decodes the manifest locally and streams
+          // segments straight from hls-aws.shegu.net.
+          const resolvedUrl =
+            display?.getResolvedVariantUrl?.() ?? contentUrl;
           try {
-            const u = new URL(contentUrl);
-            u.searchParams.set("codecs", codecsHint);
-            contentUrl = u.toString();
+            const res = await fetch(resolvedUrl);
+            const text = await res.text();
+            if (cancelled) return;
+            const b64 = btoa(String.fromCodePoint(...new TextEncoder().encode(text)));
+            contentUrl = `data:application/vnd.apple.mpegurl;base64,${b64}`;
           } catch {
-            // malformed URL — fall through with the un-hinted contentUrl
+            // Fetch failed — fall back to handing Chromecast the plain URL
+            // (old behavior) rather than blocking the cast entirely.
+            contentUrl = resolvedUrl;
           }
         }
+      } else if (hasHeaders) {
+        contentUrl = createMP4ProxyUrl(stream.url, allHeaders);
       }
-    } else if (hasHeaders) {
-      contentUrl = createMP4ProxyUrl(stream.url, allHeaders);
-    }
 
-    loadChromecastMedia({
-      url: contentUrl,
-      contentType,
-      title: meta?.title,
-    });
-    display?.pause();
+      if (cancelled) return;
+      loadChromecastMedia({
+        url: contentUrl,
+        contentType,
+        title: meta?.title,
+      });
+      display?.pause();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [chromecastConnected, source, meta, display]);
 
   const isCasting = chromecastConnected || airplayConnected;
