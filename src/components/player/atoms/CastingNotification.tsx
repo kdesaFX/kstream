@@ -1,21 +1,15 @@
 import { useTranslation } from "react-i18next";
 
 import { Icon, Icons } from "@/components/Icon";
+import { useCasting } from "@/components/player/casting/useCasting";
 import { usePlayerStore } from "@/stores/player/store";
 
 export function CastingNotification() {
   const { t } = useTranslation();
   const isLoading = usePlayerStore((s) => s.mediaPlaying.isLoading);
-  const display = usePlayerStore((s) => s.display);
-  const isCasting = display?.getType() === "casting";
-  const remotePlayer = usePlayerStore((s) => s.casting.player);
+  const { isCasting } = useCasting();
 
   if (isLoading || !isCasting) return null;
-
-  let deviceName = remotePlayer?.displayName || t("player.casting.device");
-  if (deviceName === "Default Media Receiver") {
-    deviceName = t("player.casting.device"); // e.g., "your TV"
-  }
 
   return (
     <div className="flex flex-col items-center justify-center gap-4">
@@ -23,7 +17,7 @@ export function CastingNotification() {
         <Icon icon={Icons.CASTING} />
       </div>
       <p className="text-center">
-        {t("player.casting.to", { device: deviceName })}
+        {t("player.casting.to", { device: t("player.casting.device") })}
       </p>
     </div>
   );

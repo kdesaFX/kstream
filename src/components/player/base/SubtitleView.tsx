@@ -6,6 +6,7 @@ import {
   parseSubtitles,
   sanitize,
 } from "@/components/player/utils/captions";
+import { useCasting } from "@/components/player/casting/useCasting";
 import { Transition } from "@/components/utils/Transition";
 import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -154,8 +155,7 @@ export function SubtitleRenderer() {
 export function SubtitleView(props: { controlsShown: boolean }) {
   const caption = usePlayerStore((s) => s.caption.selected);
   const source = usePlayerStore((s) => s.source);
-  const display = usePlayerStore((s) => s.display);
-  const isCasting = display?.getType() === "casting";
+  const { isCasting } = useCasting();
   const styling = useSubtitleStore((s) => s.styling);
   const enableNativeSubtitles = usePreferencesStore(
     (s) => s.enableNativeSubtitles,

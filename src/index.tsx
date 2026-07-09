@@ -42,7 +42,6 @@ import {
   extensionInfo,
   isExtensionActiveCached,
 } from "./backend/extension/messaging";
-import { initializeChromecast } from "./setup/chromecast";
 import { initializeImageFadeIn } from "./setup/imageFadeIn";
 import { initializeOldStores } from "./stores/__old/migrations";
 
@@ -62,7 +61,6 @@ try {
 }
 
 // initialize
-initializeChromecast();
 initializeImageFadeIn();
 
 function LoadingScreen(props: { type: "user" | "lazy" }) {

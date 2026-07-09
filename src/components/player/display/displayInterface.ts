@@ -48,7 +48,6 @@ export type DisplayInterfaceEvents = {
   audiotracks: AudioTrack[];
   changedaudiotrack: AudioTrack | null;
   needstrack: boolean;
-  canairplay: boolean;
   playbackrate: number;
   error: DisplayError;
 };
@@ -91,7 +90,6 @@ export interface DisplayInterface extends Listener<DisplayInterfaceEvents> {
   setVolume(vol: number): void;
   setTime(t: number): void;
   destroy(): void;
-  startAirplay(): void;
   setPlaybackRate(rate: number): void;
   setMeta(meta: DisplayMeta): void;
   setCaption(caption: DisplayCaption | null): void;

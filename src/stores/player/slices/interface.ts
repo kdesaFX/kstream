@@ -20,8 +20,6 @@ export interface InterfaceSlice {
     hasOpenOverlay: boolean;
     hovering: PlayerHoverState;
     lastHoveringState: PlayerHoverState;
-    canAirplay: boolean;
-    isCasting: boolean;
     hideNextEpisodeBtn: boolean;
     shouldStartFromBeginning: boolean;
     error?: DisplayError;
@@ -50,7 +48,6 @@ export interface InterfaceSlice {
 
 export const createInterfaceSlice: MakeSlice<InterfaceSlice> = (set, get) => ({
   interface: {
-    isCasting: false,
     hasOpenOverlay: false,
     isFullscreen: false,
     isSeeking: false,
@@ -62,7 +59,6 @@ export const createInterfaceSlice: MakeSlice<InterfaceSlice> = (set, get) => ({
     volumeChangedWithKeybind: false,
     volumeChangedWithKeybindDebounce: null,
     timeFormat: VideoPlayerTimeFormat.REGULAR,
-    canAirplay: false,
     hideNextEpisodeBtn: false,
     shouldStartFromBeginning: false,
     isSpeedBoosted: false,

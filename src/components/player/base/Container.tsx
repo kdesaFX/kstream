@@ -3,7 +3,6 @@ import { ReactNode, RefObject, useEffect, useRef } from "react";
 import { OverlayDisplay } from "@/components/overlays/OverlayDisplay";
 import { AutoSkipSegments } from "@/components/player/internals/AutoSkipSegments";
 import { SkipTracker } from "@/components/player/internals/Backend/SkipTracker";
-import { CastingInternal } from "@/components/player/internals/CastingInternal";
 import { GamepadEvents } from "@/components/player/internals/GamepadEvents";
 import { HeadUpdater } from "@/components/player/internals/HeadUpdater";
 import { KeyboardEvents } from "@/components/player/internals/KeyboardEvents";
@@ -95,7 +94,6 @@ export function Container(props: PlayerProps) {
       <BaseContainer>
         <MetaReporter />
         <ThumbnailScraper />
-        <CastingInternal />
         <VideoContainer />
         <ProgressSaver />
         <KeyboardEvents />
