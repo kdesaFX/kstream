@@ -87,5 +87,14 @@ jobs:
       - name: Deploy to VPS
         run: |
           tar -czf /tmp/dist.tar.gz -C dist .
-          scp /tmp/dist.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/p-stream/dist.tar.gz
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/p-stream && rm -rf dist && mkdir dist && tar -xzf dist.tar.gz -C dist && rm dist.tar.gz"
+          scp /tmp/dist.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/dist.tar.gz
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+            set -e
+            rm -rf /var/www/zstream.new && mkdir -p /var/www/zstream.new
+            tar -xzf /tmp/dist.tar.gz -C /var/www/zstream.new
+            rm -f /tmp/dist.tar.gz
+            rm -rf /var/www/zstream.old
+            mv /var/www/zstream /var/www/zstream.old
+            mv /var/www/zstream.new /var/www/zstream
+            rm -rf /var/www/zstream.old
+          "
