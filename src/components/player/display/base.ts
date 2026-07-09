@@ -900,9 +900,23 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       return hls?.subtitleTracks ?? [];
     },
     getAudioActivity() {
-      
+
       if (speechCapture?.isReady()) return speechCapture.getActivitySamples();
       return audioBuffer;
+    },
+    getCodecsHint() {
+      // hls.js probes real codec fourccs from the actual segment bytes
+      // during demuxing, even when the manifest's #EXT-X-STREAM-INF line
+      // omits CODECS= entirely — this is ground truth, unlike a
+      // resolution-keyed guess. Used to hand Chromecast's receiver (which
+      // never runs hls.js and needs CODECS in the manifest text) real data
+      // instead of a server-side guess.
+      const level = hls?.levels?.[hls.currentLevel];
+      if (!level) return null;
+      const codecs = [level.videoCodec, level.audioCodec]
+        .filter((c): c is string => !!c)
+        .join(",");
+      return codecs || null;
     },
     isAudioSyncAvailable() {
       return audioSyncAvailable || !!speechCapture?.isReady();
