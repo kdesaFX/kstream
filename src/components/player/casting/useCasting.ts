@@ -67,6 +67,22 @@ export function useCasting() {
       contentType = "application/x-mpegurl";
       if (!isUrlAlreadyProxied(stream.url) && hasHeaders) {
         contentUrl = createM3U8ProxyUrl(stream.url, allHeaders);
+      } else {
+        // Only the unproxied path (the common case for our own artemis /hls
+        // URLs) — pass real, client-probed codec data through so Chromecast's
+        // receiver (which never runs hls.js and needs CODECS in the manifest
+        // text) gets ground truth instead of the backend's resolution guess.
+        // See artemis/proxy.go's ?codecs= handling.
+        const codecsHint = display?.getCodecsHint?.();
+        if (codecsHint) {
+          try {
+            const u = new URL(contentUrl);
+            u.searchParams.set("codecs", codecsHint);
+            contentUrl = u.toString();
+          } catch {
+            // malformed URL — fall through with the un-hinted contentUrl
+          }
+        }
       }
     } else if (hasHeaders) {
       contentUrl = createMP4ProxyUrl(stream.url, allHeaders);

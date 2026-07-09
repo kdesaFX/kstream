@@ -33,7 +33,7 @@ export function CelPage() {
     <SubPageLayout>
       <PageTitle subpage k="global.pages.cel" />
       <ThinContainer>
-        <Heading1>mükemmel bi&apos; film tadında</Heading1>
+        <Heading1>Mükemmel bi&apos; film tadında</Heading1>
         <Paragraph className="flex flex-col gap-6">
           <span style={{ color: "#cfcfcf" }}>
             sen ve ben, karanlıkta - onca yıldızın içinde
