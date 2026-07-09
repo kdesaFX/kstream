@@ -918,6 +918,17 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         .join(",");
       return codecs || null;
     },
+    getResolvedVariantUrl() {
+      // The currently-active level's OWN media-playlist URL (already
+      // resolved to an absolute /hls?v=<token> through artemis) — fetching
+      // this directly returns a plain media playlist with real CDN segment
+      // URLs already in it (confirmed live), no further master/variant
+      // negotiation needed. Handing this to Chromecast instead of the master
+      // means Shaka Player never has to do its own variant-selection fetch
+      // through artemis at all — it just gets one flat playlist.
+      const level = hls?.levels?.[hls.currentLevel];
+      return level?.uri ?? null;
+    },
     isAudioSyncAvailable() {
       return audioSyncAvailable || !!speechCapture?.isReady();
     },
