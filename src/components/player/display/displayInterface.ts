@@ -111,4 +111,8 @@ export interface DisplayInterface extends Listener<DisplayInterfaceEvents> {
   // Real codec fourccs (e.g. "avc1.4d0020,mp4a.40.2") probed client-side by
   // hls.js against actual segment data, or null if unavailable/not hls.
   getCodecsHint?(): string | null;
+
+  // The currently-active HLS level's own resolved media-playlist URL (not
+  // the master), or null if unavailable/not hls.
+  getResolvedVariantUrl?(): string | null;
 }

@@ -68,11 +68,23 @@ export function useCasting() {
       if (!isUrlAlreadyProxied(stream.url) && hasHeaders) {
         contentUrl = createM3U8ProxyUrl(stream.url, allHeaders);
       } else {
-        // Only the unproxied path (the common case for our own artemis /hls
-        // URLs) — pass real, client-probed codec data through so Chromecast's
-        // receiver (which never runs hls.js and needs CODECS in the manifest
-        // text) gets ground truth instead of the backend's resolution guess.
-        // See artemis/proxy.go's ?codecs= handling.
+        // Feed Chromecast the already-resolved single-variant media playlist
+        // instead of the master. Confirmed live (2026-07-09): the master
+        // makes Shaka Player do its own variant-selection fetch through
+        // artemis — that's where playback was silently stalling (infinite
+        // yellow line). The resolved variant's own playlist already contains
+        // real CDN segment URLs directly (one artemis hop, then straight to
+        // hls-aws.shegu.net), so the receiver just plays a flat file with no
+        // further negotiation. Falls back to the master if unavailable
+        // (e.g. display doesn't implement it, or hls.js hasn't picked a
+        // level yet).
+        const resolvedUrl = display?.getResolvedVariantUrl?.();
+        if (resolvedUrl) contentUrl = resolvedUrl;
+
+        // Real, client-probed codec data — harmless to keep sending even
+        // though a resolved media playlist has no #EXT-X-STREAM-INF lines
+        // for it to apply to; costs nothing, helps if we ever fall back to
+        // handing Chromecast a master again.
         const codecsHint = display?.getCodecsHint?.();
         if (codecsHint) {
           try {
