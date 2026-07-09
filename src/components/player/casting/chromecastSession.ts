@@ -36,9 +36,12 @@ function setupContext() {
   if (!(window as any).cast?.framework) return;
   context = cast.framework.CastContext.getInstance();
 
+  // AutoJoinPolicy lives on chrome.cast, not cast.framework — the type defs
+  // don't expose it off cast.framework despite that being the SDK's own
+  // namespace for CastOptions.
   const options: cast.framework.CastOptions = {
     receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
-    autoJoinPolicy: cast.framework.AutoJoinPolicy.ORIGIN_SCOPED,
+    autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
   };
   context.setOptions(options);
 
@@ -77,7 +80,9 @@ export function initChromecast() {
 
 export function onChromecastConnectionChange(cb: ConnectionListener) {
   connectionListeners.add(cb);
-  return () => connectionListeners.delete(cb);
+  return () => {
+    connectionListeners.delete(cb);
+  };
 }
 
 export function isChromecastConnected() {
