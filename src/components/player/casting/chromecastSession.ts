@@ -104,9 +104,6 @@ export interface ChromecastMediaOptions {
 }
 
 export function loadChromecastMedia(ops: ChromecastMediaOptions) {
-  const session = context?.getCurrentSession();
-  if (!session) return;
-
   const metaData = new chrome.cast.media.GenericMediaMetadata();
   if (ops.title) metaData.title = ops.title;
 
@@ -117,7 +114,33 @@ export function loadChromecastMedia(ops: ChromecastMediaOptions) {
   const request = new chrome.cast.media.LoadRequest(mediaInfo);
   request.autoplay = true;
 
+  doLoadMedia(request);
+}
+
+// context?.getCurrentSession() can briefly return null right after
+// IS_CONNECTED_CHANGED fires — the session object attaches to CastContext a
+// tick or two later — and even once present, loadMedia() can reject with
+// SESSION_ERROR for a moment after connecting, before the receiver has
+// actually finished settling. Both are real, previously-confirmed races (not
+// hypothetical): dropping this retry loop in an earlier rewrite reproduced
+// the exact "connects, then nothing happens" symptom. Retry for a couple
+// seconds before giving up loudly instead of silently.
+function doLoadMedia(request: chrome.cast.media.LoadRequest, attempt = 0) {
+  const session = context?.getCurrentSession();
+  if (!session) {
+    if (attempt >= 20) {
+      console.warn("Chromecast load failed: no active session after retries");
+      return;
+    }
+    setTimeout(() => doLoadMedia(request, attempt + 1), 100);
+    return;
+  }
   session.loadMedia(request).catch((err: unknown) => {
+    const code = (err as any)?.code;
+    if (code === "session_error" && attempt < 20) {
+      setTimeout(() => doLoadMedia(request, attempt + 1), 250);
+      return;
+    }
     console.warn("Chromecast load failed:", err);
   });
 }
