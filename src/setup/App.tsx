@@ -20,7 +20,6 @@ import { SupportInfoModal } from "@/components/overlays/SupportInfoModal";
 import { TipJarModal } from "@/components/overlays/tipJarModal";
 import { SimklAuthHandler } from "@/components/auth/SimklAuthHandler";
 import { TraktAuthHandler } from "@/components/auth/TraktAuthHandler";
-import { DebugFab } from "@/components/utils/DebugFab";
 import { useGlobalKeyboardEvents } from "@/hooks/useGlobalKeyboardEvents";
 import { useOnlineListener } from "@/hooks/usePing";
 import { AboutPage } from "@/pages/About";
@@ -194,7 +193,7 @@ function App() {
       <DetailsModal id="details" />
       <DetailsModal id="discover-details" />
       <DetailsModal id="player-details" />
-      {process.env.NODE_ENV === "development" ? <DebugFab /> : null}
+      {/* DebugFab: dev-only floating panel (cookie/ratings/local-data resets) */}
       {!showDowntime && (
         <Routes>
           {/* functional routes */}
