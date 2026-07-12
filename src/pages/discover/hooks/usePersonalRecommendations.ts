@@ -4,7 +4,11 @@ import { useTranslation } from "react-i18next";
 import type { DiscoverMedia } from "@/pages/discover/types/discover";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useProgressStore } from "@/stores/progress";
-import { useRatingsStore } from "@/stores/ratings";
+import {
+  AlgorithmPreferences,
+  RatedMediaItem,
+  useRatingsStore,
+} from "@/stores/ratings";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
 
 import {
@@ -14,6 +18,10 @@ import {
   type RatingSource,
   fetchPersonalRecommendations,
 } from "../lib/personalRecommendations";
+import {
+  readRecommendationsCache,
+  writeRecommendationsCache,
+} from "../lib/recommendationsCache";
 
 export interface UsePersonalRecommendationsOptions {
   isTVShow: boolean;
@@ -47,6 +55,31 @@ function getHistorySources(
   return Array.from(byKey.values()).sort((a, b) => b.watchedAt - a.watchedAt);
 }
 
+// Compact fingerprint of everything the algorithm reacts to, so the cache
+// invalidates itself the moment a rating, watch, or preference changes.
+function buildSignature(
+  ratingItems: Record<string, RatedMediaItem>,
+  preferences: AlgorithmPreferences,
+  watchHistoryItems: Record<string, unknown>,
+  progressItems: Record<string, unknown>,
+  bookmarks: Record<string, unknown>,
+): string {
+  const ratingsKey = Object.entries(ratingItems)
+    .map(([id, r]) => `${id}:${r.rating}`)
+    .sort()
+    .join(",");
+  const historyKey = Object.keys(watchHistoryItems).sort().join(",");
+  const progressKey = Object.keys(progressItems).sort().join(",");
+  const bookmarksKey = Object.keys(bookmarks).sort().join(",");
+  return [
+    ratingsKey,
+    historyKey,
+    progressKey,
+    bookmarksKey,
+    JSON.stringify(preferences),
+  ].join("|");
+}
+
 export function usePersonalRecommendations({
   isTVShow,
   enabled = true,
@@ -73,7 +106,9 @@ export function usePersonalRecommendations({
     return exclude;
   }, [watchHistoryItems, progressItems, bookmarks]);
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (options?: { background?: boolean }) => {
+    const background = options?.background ?? false;
+
     const history: HistorySource[] = getHistorySources(watchHistoryItems);
     const progress: ProgressSource[] = Object.entries(progressItems).map(
       ([tmdbId, item]) => ({ tmdbId, type: item.type }),
@@ -115,7 +150,28 @@ export function usePersonalRecommendations({
       return;
     }
 
-    setIsLoading(true);
+    const cacheKey = wantedType;
+    const signature = buildSignature(
+      ratingItems,
+      preferences,
+      watchHistoryItems,
+      progressItems,
+      bookmarks,
+    );
+
+    if (!background) {
+      const cached = readRecommendationsCache(cacheKey, signature);
+      if (cached.freshness !== "miss") {
+        setMedia(cached.media);
+        setError(null);
+        setIsLoading(false);
+        // Cache is usable but aging - refresh it quietly, no skeleton flash.
+        if (cached.freshness === "stale") fetch({ background: true });
+        return;
+      }
+    }
+
+    if (!background) setIsLoading(true);
     setError(null);
 
     try {
@@ -130,11 +186,14 @@ export function usePersonalRecommendations({
         preferences,
       );
       setMedia(results);
+      writeRecommendationsCache(cacheKey, signature, results);
     } catch (err) {
-      setError((err as Error).message);
-      setMedia([]);
+      if (!background) {
+        setError((err as Error).message);
+        setMedia([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (!background) setIsLoading(false);
     }
   }, [
     isTVShow,
