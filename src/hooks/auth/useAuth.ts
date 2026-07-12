@@ -34,6 +34,7 @@ import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { AccountWithToken, useAuthStore } from "@/stores/auth";
 import { BookmarkMediaItem } from "@/stores/bookmarks";
 import { ProgressMediaItem } from "@/stores/progress";
+import { sleep } from "@/utils/translation/utils";
 
 export interface RegistrationData {
   recaptchaToken?: string;
@@ -55,6 +56,33 @@ export interface LoginData {
   userData: {
     device: string;
   };
+}
+
+// A single failed session-check request (network blip, backend cold start, a
+// proxy/WAF hiccup) shouldn't be treated the same as a server explicitly
+// rejecting the token. Only 401 is unambiguous - retry everything else a
+// couple times with a short backoff before giving up.
+async function getUserWithRetry(
+  backendUrl: string,
+  token: string,
+  attempts = 3,
+): ReturnType<typeof getUser> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      return await getUser(backendUrl, token);
+    } catch (err) {
+      const status = (err as any)?.response?.status;
+      if (status === 401) throw err;
+      lastErr = err;
+      if (attempt < attempts - 1) {
+        // eslint-disable-next-line no-await-in-loop
+        await sleep(500 * 2 ** attempt); // 500ms, 1000ms
+      }
+    }
+  }
+  throw lastErr;
 }
 
 export function useAuth() {
@@ -224,19 +252,19 @@ export function useAuth() {
       if (!backendUrl) return;
       let user: { user: UserResponse; session: SessionResponse };
       try {
-        user = await getUser(backendUrl, account.token);
+        user = await getUserWithRetry(backendUrl, account.token);
       } catch (err) {
         const anyError: any = err;
-        if (
-          anyError?.response?.status === 401 ||
-          anyError?.response?.status === 403 ||
-          anyError?.response?.status === 400
-        ) {
+        if (anyError?.response?.status === 401) {
           await logout();
           return;
         }
+        // Ambiguous/transient failure (network error, or a 400/403 that
+        // persisted through retries) - don't destroy the local session on a
+        // guess. Leave state untouched; the next scheduled check or page
+        // load gets another chance to validate for real.
         console.error(err);
-        throw err;
+        return;
       }
 
       const [bookmarks, progress, watchHistory, settings, groupOrder] =
