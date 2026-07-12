@@ -1,5 +1,11 @@
 import classNames from "classnames";
-import { useCallback } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { Icon, Icons } from "@/components/Icon";
 import {
@@ -12,7 +18,7 @@ interface MediaRatingCapsuleProps {
   media: RateMediaMeta;
 }
 
-const SEGMENTS: Array<{
+const OPTIONS: Array<{
   rating: MediaRating;
   icon: Icons;
   label: string;
@@ -22,71 +28,136 @@ const SEGMENTS: Array<{
     rating: "loved",
     icon: Icons.HEART,
     label: "Love it",
-    activeClass: "bg-pill-backgroundHover text-red-400",
+    activeClass: "text-red-400",
   },
   {
     rating: "liked",
     icon: Icons.THUMBS_UP,
     label: "Like",
-    activeClass: "bg-pill-backgroundHover text-white",
+    activeClass: "text-white",
   },
   {
     rating: "disliked",
     icon: Icons.THUMBS_DOWN,
     label: "Dislike",
-    activeClass: "bg-pill-backgroundHover text-white",
+    activeClass: "text-white",
   },
   {
     rating: "hated",
     icon: Icons.HEART_CRACK,
     label: "Hate it",
-    activeClass: "bg-pill-backgroundHover text-red-400",
+    activeClass: "text-red-400",
   },
 ];
 
-/**
- * A pill split into four segments (love | like | dislike | hate).
- * Ratings feed the "For You" recommendation algorithm; the outer
- * segments weigh roughly twice as much as the inner ones.
- */
+/** Rating button that expands into 4 options, Netflix-style. */
 export function MediaRatingCapsule({ media }: MediaRatingCapsuleProps) {
   const rating = useRatingsStore((s) => s.ratings[media.tmdbId]?.rating);
   const toggleRating = useRatingsStore((s) => s.toggleRating);
+  const [expanded, setExpanded] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  // Measured from the DOM (h-12 isn't a fixed 48px in this app).
+  const [expandedWidth, setExpandedWidth] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (rowRef.current) setExpandedWidth(rowRef.current.scrollWidth);
+  }, []);
+
+  useEffect(() => {
+    if (!expanded) return undefined;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setExpanded(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [expanded]);
 
   const rate = useCallback(
     (value: MediaRating) => {
       if (!media.tmdbId) return;
       toggleRating(media, value);
+      setExpanded(false);
     },
     [media, toggleRating],
   );
 
+  const current = OPTIONS.find((o) => o.rating === rating);
+
   return (
-    <div className="flex items-center overflow-hidden rounded-full bg-pill-background">
-      {SEGMENTS.map((segment, index) => (
-        <div key={segment.rating} className="flex items-center">
-          {index > 0 && <div className="h-6 w-px bg-white/20" />}
-          <button
-            type="button"
-            title={segment.label}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              rate(segment.rating);
-            }}
-            className={classNames(
-              "flex h-12 w-9 items-center justify-center transition-[background-color,color,transform] duration-75 cursor-pointer hover:text-white active:scale-110",
-              index === 0 && "pl-1",
-              index === SEGMENTS.length - 1 && "pr-1",
-              rating === segment.rating
-                ? segment.activeClass
-                : "hover:bg-pill-backgroundHover",
+    <div
+      ref={containerRef}
+      className={classNames(
+        "relative flex h-12 items-center overflow-hidden rounded-full bg-buttons-secondary transition-[width,transform] duration-300 ease-out",
+        expanded ? "" : "w-12 hover:scale-110",
+      )}
+      style={expanded ? { width: expandedWidth ?? undefined } : undefined}
+    >
+      <div ref={rowRef} className="flex h-12 w-max">
+        {OPTIONS.map((option, index) => (
+          <div key={option.rating} className="flex h-12 items-center">
+            {index > 0 && (
+              <div
+                className={classNames(
+                  "h-6 w-px bg-white/20 transition-opacity duration-150",
+                  expanded ? "opacity-100 delay-150" : "opacity-0",
+                )}
+              />
             )}
-          >
-            <Icon icon={segment.icon} />
-          </button>
+            <button
+              type="button"
+              title={option.label}
+              tabIndex={expanded ? 0 : -1}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                rate(option.rating);
+              }}
+              className={classNames(
+                "cursor-pointer rounded-full transition-opacity duration-200 ease-out",
+                expanded
+                  ? "opacity-100 delay-100"
+                  : "pointer-events-none opacity-0",
+              )}
+            >
+              <div
+                className={classNames(
+                  "flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-[color,transform] duration-150 hover:scale-110",
+                  rating === option.rating
+                    ? option.activeClass
+                    : "text-white/70",
+                )}
+              >
+                <Icon icon={option.icon} />
+              </div>
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        title={expanded ? undefined : (current?.label ?? "Rate")}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setExpanded((v) => !v);
+        }}
+        className={classNames(
+          "absolute left-0 top-0 z-10 transition-opacity duration-150",
+          expanded ? "pointer-events-none opacity-0" : "opacity-100",
+        )}
+      >
+        <div
+          className={classNames(
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pill-background transition-[color,transform] duration-150",
+            current ? current.activeClass : "text-white/60 hover:text-white",
+          )}
+        >
+          <Icon icon={current?.icon ?? Icons.THUMBS_UP} />
         </div>
-      ))}
+      </button>
     </div>
   );
 }

@@ -205,9 +205,7 @@ export function EpisodeCarousel({
       : EMPTY_ARRAY,
   );
 
-  // Calculate watched episodes count and percentage across the whole
-  // show, not just the currently selected season: the progress store
-  // already holds every episode the user has watched.
+  // Count watched episodes across all seasons, not just the selected one.
   const watchedStats = useMemo(() => {
     if (!mediaId || !totalEpisodes) return { watched: 0, percentage: 0 };
 
@@ -224,8 +222,7 @@ export function EpisodeCarousel({
       }
     });
 
-    // Specials can push the count past TMDB's episode total; clamp so
-    // the display never exceeds 100%.
+    // Clamp in case specials push the count past the TMDB total.
     const watched = Math.min(watchedCount, totalEpisodes);
     const percentage = Math.round((watched / totalEpisodes) * 100);
 

@@ -532,12 +532,7 @@ export interface TMDBCollectionSearchResult {
   backdrop_path: string | null;
 }
 
-/**
- * Searches TMDB collections (franchises) by name. Used to expand a
- * search with every film of a matching saga — "fast and furious" should
- * surface "F9" and "Fast Five" even though their titles share no words
- * with the query.
- */
+/** Searches TMDB collections (franchises) by name. */
 export async function searchCollections(
   query: string,
 ): Promise<TMDBCollectionSearchResult[]> {
@@ -552,10 +547,7 @@ export async function searchCollections(
   return data.results ?? [];
 }
 
-/**
- * Returns a collection's films shaped like movie search results
- * (collection parts carry the same fields; media_type is stamped on).
- */
+/** Returns a collection's films, shaped like movie search results. */
 export async function getCollectionParts(
   collectionId: number,
 ): Promise<TMDBMovieSearchResult[]> {
@@ -725,11 +717,7 @@ export async function getRelatedMedia(
   return data.results.slice(0, limit);
 }
 
-/**
- * Fetches popular, well-voted media matching all the given genres via the
- * TMDB discover endpoint. Used to seed recommendations directly from a
- * user's genre taste profile.
- */
+/** Fetches popular, well-voted media matching the given genres. */
 export async function getMediaByGenres(
   genreIds: number[],
   type: TMDBContentTypes,
@@ -745,13 +733,47 @@ export async function getMediaByGenres(
     include_adult: false,
   });
 
-  // discover results lack media_type; stamp it so downstream code that
-  // keys on media_type keeps working.
+  // discover results lack media_type; stamp it back on.
   const mediaType =
     type === TMDBContentTypes.MOVIE ? TMDBContentTypes.MOVIE : TMDBContentTypes.TV;
   return data.results.slice(0, limit).map((r) => ({
     ...r,
     media_type: mediaType,
+  })) as TMDBMovieSearchResult[] | TMDBShowSearchResult[];
+}
+
+/** Fetches the current most popular movies (for taste onboarding). */
+export async function getPopularMovies(
+  limit: number = 15,
+): Promise<TMDBMovieSearchResult[]> {
+  const data = await get<{ results: TMDBMovieSearchResult[] }>(
+    "/movie/popular",
+    { page: 1 },
+  );
+  return (data.results ?? []).slice(0, limit).map((r) => ({
+    ...r,
+    media_type: TMDBContentTypes.MOVIE,
+  }));
+}
+
+/** Fetches popular media from any of the given production companies. */
+export async function getMediaByCompanies(
+  companyIds: number[],
+  type: TMDBContentTypes,
+  limit: number = 12,
+): Promise<TMDBMovieSearchResult[] | TMDBShowSearchResult[]> {
+  const endpoint = type === TMDBContentTypes.MOVIE ? "movie" : "tv";
+  const data = await get<{
+    results: TMDBMovieSearchResult[] | TMDBShowSearchResult[];
+  }>(`/discover/${endpoint}`, {
+    with_companies: companyIds.join("|"),
+    sort_by: "popularity.desc",
+    "vote_count.gte": 200,
+    include_adult: false,
+  });
+  return data.results.slice(0, limit).map((r) => ({
+    ...r,
+    media_type: type,
   })) as TMDBMovieSearchResult[] | TMDBShowSearchResult[];
 }
 

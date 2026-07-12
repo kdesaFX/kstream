@@ -18,11 +18,7 @@ interface DebugAction {
   run: () => void;
 }
 
-/**
- * Floating debug panel, only rendered in development builds. Gives quick
- * access to destructive resets (cookies, ratings, all local data) without
- * digging through devtools.
- */
+/** Floating debug panel, dev builds only: cookie/ratings/local-data resets. */
 export function DebugFab() {
   const [open, setOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);

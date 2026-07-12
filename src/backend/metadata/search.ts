@@ -71,42 +71,27 @@ function dedupeTMDBResults(
   return Array.from(deduped.values());
 }
 
-// ---------------------------------------------------------------------
-// Result ranking: a weighted additive score over normalized [0, 1]
-// components. Tuned so that among title matches, current audience
-// interest decides ("The Fast and the Furious" 2001 over "Fast and
-// Furious" 1939), while franchise entries with little title overlap
-// (e.g. "Fast X") still beat obscure exact matches via popularity,
-// votes, and recency.
-// ---------------------------------------------------------------------
+// Weighted score: title match + audience signals (popularity, votes,
+// recency), tuned so franchise/popular results beat obscure exact matches.
 const WEIGHT_EXACT_TITLE = 0.2;
 const WEIGHT_SIMILARITY = 0.2;
 const WEIGHT_POPULARITY = 0.3;
 const WEIGHT_VOTE_COUNT = 0.12;
 const WEIGHT_RECENCY = 0.08;
 const WEIGHT_RATING = 0.05;
-// Query contained a year and the result matches it ("avatar 2009").
+// Boost when the query contains a year matching the result ("avatar 2009").
 const QUERY_YEAR_MATCH_BOOST = 0.35;
-// The result belongs to a collection whose name matches the query, so
-// it's part of the saga the user is looking for ("F9" for "fast and
-// furious") even when its title shares no words with the query.
+// Boost for results in a franchise collection matched by name.
 const FRANCHISE_BOOST = 0.1;
-// How many name-matching collections to expand into the result pool.
+// Max name-matching collections to expand into the result pool.
 const MAX_COLLECTIONS = 2;
-// A title that starts with the query ("...: Tokyo Drift") earns this
-// fraction of the exact-match credit.
+// Credit for a title that starts with the query (e.g. "...: Tokyo Drift").
 const PREFIX_MATCH_FRACTION = 0.6;
-// Similarity assigned to items Fuse rejects entirely; they sink to the
-// bottom but stay in the list.
+// Fallback similarity for items Fuse didn't match at all.
 const UNMATCHED_SIMILARITY = 0.05;
 const RECENCY_FLOOR_YEAR = 1970;
 
-/**
- * Canonical title form for exact-match comparison: "&" becomes "and",
- * punctuation and casing are dropped, and article words are removed so
- * "The Fast and the Furious" and "Fast & Furious" both reduce to
- * "fast and furious".
- */
+/** Normalizes a title for exact-match comparison ("&" -> "and", no articles). */
 function canonicalTitle(input: string): string {
   return normalizeQuery(input.replace(/&/g, " and "))
     .split(" ")
@@ -132,12 +117,7 @@ function itemYear(
   return Number.isNaN(year) ? null : year;
 }
 
-/**
- * Finds collections (franchises) whose name matches the query and
- * returns all their films plus the member id set for the ranking boost.
- * "Collection" is stripped from names before comparing, so "fast and
- * furious" matches "The Fast and the Furious Collection".
- */
+/** Finds franchise collections matching the query and returns their films. */
 async function expandWithCollections(query: string): Promise<{
   parts: TMDBMovieSearchResult[];
   franchiseIds: Set<number>;
@@ -232,8 +212,7 @@ function rankTMDBResults(
       similarityByKey.get(`${item.media_type}:${item.id}`) ??
       UNMATCHED_SIMILARITY;
 
-    // TMDB rescaled `popularity` in 2024, so vote_count complements it:
-    // popularity captures current interest, votes lifetime audience.
+    // popularity = current interest, vote_count = lifetime audience.
     const popScore = Math.min(1, Math.log10(1 + (item.popularity ?? 0)) / 2);
     const voteScore = Math.min(1, Math.log10(1 + (item.vote_count ?? 0)) / 4);
 
@@ -253,10 +232,8 @@ function rankTMDBResults(
       ((item.vote_average ?? 0) / 10) *
       Math.min(1, (item.vote_count ?? 0) / 200);
 
-    // Title-match credit is gated by audience confidence: an exact title
-    // match on a film almost nobody has rated (1939's "Fast and
-    // Furious", 27 votes) earns roughly half credit, so it can't outrank
-    // living franchise entries on title text alone.
+    // Gate title-match credit by audience confidence, so an obscure
+    // exact match can't outrank a popular franchise entry on text alone.
     const textConfidence = 0.3 + 0.7 * voteScore;
 
     let score =
@@ -281,12 +258,7 @@ function rankTMDBResults(
   return scored.map((s) => s.item);
 }
 
-/**
- * Fallback queries for when the primary search returns nothing —
- * usually a typo. Dropping one word at a time lets TMDB match on the
- * correctly spelled remainder ("fast and furoius" -> "fast and"), and
- * the fuzzy ranking against the original query sorts the merged pool.
- */
+/** Typo fallback: drop one word at a time so TMDB can match the rest. */
 function getTypoFallbackQueries(searchQuery: string): string[] {
   const words = normalizeQuery(searchQuery).split(" ");
   if (words.length < 2 || words.length > 6) return [];
@@ -360,19 +332,15 @@ export async function searchForMedia(query: MWQuery): Promise<MediaItem[]> {
       .flatMap((result) => result.value);
   };
 
-  // Franchise expansion runs in parallel with the title search: if a
-  // collection's name matches the query, every film in it joins the
-  // pool — that's how "F9" and "Fast Five" surface for "fast and
-  // furious" despite sharing no title words.
+  // Runs in parallel with the title search; matches franchise films
+  // that share no words with the query (e.g. "F9" for "fast and furious").
   const collectionsPromise = expandWithCollections(
     searchQuery.replace(trailingYearPattern, "").trim(),
   );
 
   let pool = await runQueries(getLenientQueries(searchQuery));
 
-  // Nothing matched — likely a typo. Retry with one word dropped at a
-  // time; the fuzzy ranking below sorts the merged pool against the
-  // original (typo'd) query.
+  // No matches — retry as a typo.
   if (pool.length === 0) {
     const fallbackQueries = getTypoFallbackQueries(searchQuery);
     if (fallbackQueries.length > 0) {

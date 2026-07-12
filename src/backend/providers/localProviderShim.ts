@@ -1,8 +1,5 @@
-// TEMPORARY local shim for @p-stream/providers APIs not present in the
-// currently installed package version (private repo, no access yet).
-// Mirrors the upstream types/signatures so callers need no logic changes.
-// Remove this file and point imports back at "@p-stream/providers" once
-// the real package exports these.
+// Temporary stand-in for @p-stream/providers APIs missing from the
+// private package. Delete once the real package has them.
 
 export type FileVariant = {
   fid: string;

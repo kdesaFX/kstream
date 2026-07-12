@@ -6,10 +6,12 @@ import type {
   TMDBMovieSearchResult,
   TMDBShowSearchResult,
 } from "@/backend/metadata/types/tmdb";
+import { Button } from "@/components/buttons/Button";
 import { Icon, Icons } from "@/components/Icon";
 import { WideContainer } from "@/components/layout/WideContainer";
 import { MediaRatingCapsule } from "@/components/media/MediaRatingCapsule";
 import { Heading1 } from "@/components/utils/Text";
+import { CreateAlgorithmWizard } from "@/pages/algorithm/CreateAlgorithmWizard";
 import {
   GENRE_LABELS,
   type RatingSource,
@@ -18,8 +20,7 @@ import {
 import { SubPageLayout } from "@/pages/layouts/SubPageLayout";
 import { useRatingsStore } from "@/stores/ratings";
 
-// Validated categorical palette for dark surfaces (see dataviz skill;
-// identity is never color-alone — every slice is directly labeled).
+// Validated categorical palette for dark surfaces.
 const GENRE_COLORS = [
   "#3987e5",
   "#199e70",
@@ -30,9 +31,34 @@ const GENRE_COLORS = [
   "#d55181",
   "#d95926",
 ];
-const MAX_DONUT_GENRES = 7;
 // Soft fade width between donut slices, in percent of the circle.
 const DONUT_FADE = 2.5;
+
+function hexToRgb(hex: string): [number, number, number] {
+  const clean = hex.replace("#", "");
+  const value = parseInt(clean, 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+}
+
+/** Midpoint color between two hex colors, used to blend the donut seam. */
+function mixColors(a: string, b: string): string {
+  const [r1, g1, b1] = hexToRgb(a);
+  const [r2, g2, b2] = hexToRgb(b);
+  return `rgb(${Math.round((r1 + r2) / 2)}, ${Math.round((g1 + g2) / 2)}, ${Math.round((b1 + b2) / 2)})`;
+}
+
+// Fixed genre id -> color, so a genre's color never changes with rank.
+const GENRE_COLOR_MAP: Record<number, string> = Object.keys(GENRE_LABELS)
+  .map(Number)
+  .sort((a, b) => a - b)
+  .reduce<Record<number, string>>((acc, id, i) => {
+    acc[id] = GENRE_COLORS[i % GENRE_COLORS.length];
+    return acc;
+  }, {});
+
+function colorForGenre(id: number): string {
+  return GENRE_COLOR_MAP[id] ?? GENRE_COLORS[id % GENRE_COLORS.length];
+}
 
 interface GenreShare {
   id: number;
@@ -43,6 +69,7 @@ interface GenreShare {
 
 function useTasteData() {
   const ratings = useRatingsStore((s) => s.ratings);
+  const preferences = useRatingsStore((s) => s.preferences);
 
   return useMemo(() => {
     const sources: RatingSource[] = Object.entries(ratings).map(
@@ -54,7 +81,7 @@ function useTasteData() {
         ratedAt: r.ratedAt,
       }),
     );
-    const profile = buildTasteProfile(sources);
+    const profile = buildTasteProfile(sources, preferences);
 
     const positive = Array.from(profile.entries())
       .filter(([, w]) => w > 0)
@@ -65,25 +92,13 @@ function useTasteData() {
 
     const positiveTotal = positive.reduce((acc, [, w]) => acc + w, 0);
 
-    const top = positive.slice(0, MAX_DONUT_GENRES);
-    const restTotal = positive
-      .slice(MAX_DONUT_GENRES)
-      .reduce((acc, [, w]) => acc + w, 0);
-
-    const shares: GenreShare[] = top.map(([id, w], i) => ({
+    // Every genre with a positive weight gets its own slice, no "Other" bucket.
+    const shares: GenreShare[] = positive.map(([id, w]) => ({
       id,
       label: GENRE_LABELS[id] ?? `Genre ${id}`,
       share: positiveTotal > 0 ? (w / positiveTotal) * 100 : 0,
-      color: GENRE_COLORS[i % GENRE_COLORS.length],
+      color: colorForGenre(id),
     }));
-    if (restTotal > 0) {
-      shares.push({
-        id: -1,
-        label: "Other",
-        share: (restTotal / positiveTotal) * 100,
-        color: GENRE_COLORS[MAX_DONUT_GENRES % GENRE_COLORS.length],
-      });
-    }
 
     const avoided = negative.map(([id, w]) => ({
       id,
@@ -92,15 +107,10 @@ function useTasteData() {
     }));
 
     return { shares, avoided, ratingCount: Object.keys(ratings).length };
-  }, [ratings]);
+  }, [ratings, preferences]);
 }
 
-/**
- * Donut built from a conic-gradient: each slice holds its color for most
- * of its arc and fades into the next over a small overlap, giving the
- * soft blended look. The center hole is cut with a CSS mask so it works
- * on any background.
- */
+/** Donut built from a conic-gradient with soft fades between slices. */
 function TasteDonut({
   shares,
   ratingCount,
@@ -111,7 +121,15 @@ function TasteDonut({
   const gradient = useMemo(() => {
     if (shares.length === 0) return "";
     if (shares.length === 1) return shares[0].color;
-    const stops: string[] = [];
+
+    // Anchor both ends to the same blended color so the seam at 12
+    // o'clock doesn't show a hard split.
+    const seamColor = mixColors(
+      shares[shares.length - 1].color,
+      shares[0].color,
+    );
+
+    const stops: string[] = [`${seamColor} 0%`];
     let acc = 0;
     for (const s of shares) {
       const start = acc;
@@ -121,6 +139,7 @@ function TasteDonut({
       stops.push(`${s.color} ${(end - fade).toFixed(2)}%`);
       acc = end;
     }
+    stops.push(`${seamColor} 100%`);
     return stops.join(", ");
   }, [shares]);
 
@@ -170,7 +189,7 @@ function GenreBar({
       </span>
       <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
         <div
-          className="h-full rounded-full"
+          className="h-full rounded-full transition-[width,background-color] duration-500 ease-out"
           style={{ width: `${width}%`, backgroundColor: color }}
         />
       </div>
@@ -227,6 +246,14 @@ function RateSearchRow({ item }: { item: SearchResult }) {
   );
 }
 
+const RATING_LABELS: Record<string, string> = {
+  loved: "Loved it",
+  liked: "Liked it",
+  okay: "It was okay",
+  disliked: "Didn't like it",
+  hated: "Hated it",
+};
+
 function RatedItemRow({ tmdbId }: { tmdbId: string }) {
   const item = useRatingsStore((s) => s.ratings[tmdbId]);
   const removeRating = useRatingsStore((s) => s.removeRating);
@@ -246,7 +273,8 @@ function RatedItemRow({ tmdbId }: { tmdbId: string }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-white">{item.title}</p>
         <p className="text-xs text-type-secondary">
-          {item.year ?? "—"} · {item.type === "movie" ? "Movie" : "Show"}
+          {item.year ?? "—"} · {item.type === "movie" ? "Movie" : "Show"} ·{" "}
+          {RATING_LABELS[item.rating] ?? item.rating}
         </p>
       </div>
       <MediaRatingCapsule
@@ -274,6 +302,10 @@ function RatedItemRow({ tmdbId }: { tmdbId: string }) {
 export function MyAlgorithmPage() {
   const { shares, avoided, ratingCount } = useTasteData();
   const ratings = useRatingsStore((s) => s.ratings);
+  const completedOnboarding = useRatingsStore(
+    (s) => s.preferences.completedOnboarding,
+  );
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -321,16 +353,41 @@ export function MyAlgorithmPage() {
     <SubPageLayout>
       <WideContainer>
         <Heading1>My Algorithm</Heading1>
-        <p className="mb-8 text-type-secondary">
+        <p className="mb-6 text-type-secondary">
           Everything the recommendation algorithm knows about your taste.
           Rate more titles to sharpen your For You section — love and hate
           weigh about twice as much as like and dislike.
         </p>
 
+        <div className="mb-8">
+          {wizardOpen ? (
+            <CreateAlgorithmWizard onClose={() => setWizardOpen(false)} />
+          ) : (
+            <div className="flex flex-col items-start gap-3 rounded-xl bg-white/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-medium text-white">
+                  {completedOnboarding
+                    ? "Tune your algorithm"
+                    : "Create my algorithm"}
+                </p>
+                <p className="text-sm text-type-secondary">
+                  {completedOnboarding
+                    ? "Retake the quick quiz to refresh your genres, moods, and franchises."
+                    : "Answer a quick quiz — rate popular movies, pick genres, moods, and franchises — to kick-start your suggestions."}
+                </p>
+              </div>
+              <Button theme="purple" onClick={() => setWizardOpen(true)}>
+                {completedOnboarding ? "Retake quiz" : "Get started"}
+              </Button>
+            </div>
+          )}
+        </div>
+
         {ratingCount === 0 ? (
           <div className="mb-10 rounded-xl bg-white/5 p-6 text-center text-type-secondary">
-            No ratings yet. Search below for movies or shows you&apos;ve
-            seen and rate them to teach the algorithm what you enjoy.
+            No ratings yet. Take the quiz above or search below for movies
+            or shows you&apos;ve seen and rate them to teach the algorithm
+            what you enjoy.
           </div>
         ) : (
           <div className="mb-10 flex flex-col items-center gap-8 md:flex-row md:items-start">

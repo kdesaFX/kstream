@@ -60,6 +60,7 @@ export function usePersonalRecommendations({
   const progressItems = useProgressStore.getState().items;
   const bookmarks = useBookmarkStore((s) => s.bookmarks);
   const ratingItems = useRatingsStore((s) => s.ratings);
+  const preferences = useRatingsStore((s) => s.preferences);
 
   const buildExcludeSet = useCallback(() => {
     const exclude = new Set<string>();
@@ -102,9 +103,11 @@ export function usePersonalRecommendations({
       history.some((h) => h.type === wantedType) ||
       progress.some((p) => p.type === wantedType) ||
       bookmarkList.some((b) => b.type === wantedType) ||
-      // Positive ratings of EITHER type count: the taste profile is
-      // cross-type and can seed candidates via genre discovery.
-      ratings.some((r) => r.rating === "liked" || r.rating === "loved");
+      // Ratings of either type count; the taste profile is cross-type.
+      ratings.some((r) => r.rating === "liked" || r.rating === "loved") ||
+      preferences.favoriteGenres.length > 0 ||
+      preferences.moods.length > 0 ||
+      preferences.franchises.length > 0;
 
     if (!hasAnySource) {
       setMedia([]);
@@ -124,6 +127,7 @@ export function usePersonalRecommendations({
         bookmarkList,
         excludeIds,
         ratings,
+        preferences,
       );
       setMedia(results);
     } catch (err) {
@@ -138,6 +142,7 @@ export function usePersonalRecommendations({
     progressItems,
     bookmarks,
     ratingItems,
+    preferences,
     buildExcludeSet,
   ]);
 
