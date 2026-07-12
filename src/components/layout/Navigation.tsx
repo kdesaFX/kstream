@@ -5,7 +5,7 @@ import { Link, To, useNavigate } from "react-router-dom";
 import { NoUserAvatar, UserAvatar } from "@/components/Avatar";
 import { IconPatch } from "@/components/buttons/IconPatch";
 import { Icon, Icons } from "@/components/Icon";
-import { LinksDropdown } from "@/components/LinksDropdown";
+import { LinksDropdown } from "@/components/layout/LinksDropdown";
 import { useNotifications } from "@/components/overlays/notificationsModal";
 import { useTipJar } from "@/components/overlays/tipJarModal";
 import { Lightbar } from "@/components/utils/Lightbar";

@@ -12,7 +12,7 @@ import { useAuthStore } from "@/stores/auth";
 import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useWatchPartyStore } from "@/stores/watchParty";
-import { isAutoplayAllowed } from "@/utils/autoplay";
+import { isAutoplayAllowed } from "@/utils/media/autoplay";
 
 export function Slider(props: {
   label: string;

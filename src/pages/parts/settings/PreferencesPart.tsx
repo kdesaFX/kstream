@@ -14,8 +14,8 @@ import { Heading1 } from "@/components/utils/Text";
 import { appLanguageOptions } from "@/setup/i18n";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { usePreferencesStore } from "@/stores/preferences";
-import { isAutoplayAllowed } from "@/utils/autoplay";
-import { getLocaleInfo, sortLangCodes } from "@/utils/language";
+import { isAutoplayAllowed } from "@/utils/media/autoplay";
+import { getLocaleInfo, sortLangCodes } from "@/utils/locale/language";
 
 function Section({
   title,

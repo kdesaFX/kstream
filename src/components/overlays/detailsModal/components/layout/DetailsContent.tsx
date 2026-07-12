@@ -10,9 +10,9 @@ import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
 import { getProgressPercentage, useProgressStore } from "@/stores/progress";
 import { shouldShowProgress } from "@/stores/progress/utils";
-import { scrapeIMDb } from "@/utils/imdbScraper";
-import { getTmdbLanguageCode } from "@/utils/language";
-import { scrapeRottenTomatoes } from "@/utils/rottenTomatoesScraper";
+import { scrapeIMDb } from "@/utils/services/imdbScraper";
+import { getTmdbLanguageCode } from "@/utils/locale/language";
+import { scrapeRottenTomatoes } from "@/utils/services/rottenTomatoesScraper";
 
 import { DetailsContentProps } from "../../types";
 import { EpisodeCarousel } from "../carousels/EpisodeCarousel";

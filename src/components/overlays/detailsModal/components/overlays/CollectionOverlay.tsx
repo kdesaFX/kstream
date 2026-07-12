@@ -12,7 +12,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { CarouselNavButtons } from "@/pages/discover/components/CarouselNavButtons";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
-import { MediaItem } from "@/utils/mediaTypes";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 // Simple carousel component for collection overlay
 interface SimpleCarouselProps {

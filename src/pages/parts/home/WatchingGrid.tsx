@@ -13,8 +13,8 @@ import { MoreCard } from "@/pages/parts/home/BookmarksGrid";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
 import { shouldShowProgress } from "@/stores/progress/utils";
-import { SortOption, sortMediaItems } from "@/utils/mediaSorting";
-import { MediaItem } from "@/utils/mediaTypes";
+import { SortOption, sortMediaItems } from "@/utils/media/mediaSorting";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 export function WatchingGrid({
   onItemsChange,

@@ -17,7 +17,7 @@ import {
 } from "@/pages/discover/hooks/useDiscoverMedia";
 import { useDiscoverStore } from "@/stores/discover";
 import { useProgressStore } from "@/stores/progress";
-import { MediaItem } from "@/utils/mediaTypes";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
 

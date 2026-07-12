@@ -11,7 +11,7 @@ import { AuthInputBox } from "@/components/text-inputs/AuthInputBox";
 import { Heading3, Paragraph } from "@/components/utils/Text";
 import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
-import { submitIntro } from "@/utils/tidb";
+import { submitIntro } from "@/utils/services/tidb";
 
 import { IconPatch } from "../buttons/IconPatch";
 import { Flare } from "../utils/Flare";

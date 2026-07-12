@@ -5,8 +5,8 @@ import { get } from "@/backend/metadata/tmdb";
 import { Movie } from "@/pages/discover/common";
 import { conf } from "@/setup/config";
 import { useLanguageStore } from "@/stores/language";
-import { getTmdbLanguageCode } from "@/utils/language";
-import { detectUserLanguage, detectUserRegion } from "@/utils/userRegion";
+import { getTmdbLanguageCode } from "@/utils/locale/language";
+import { detectUserLanguage, detectUserRegion } from "@/utils/locale/userRegion";
 
 interface TMDBMovieResponse {
   results: Movie[];

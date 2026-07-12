@@ -29,8 +29,8 @@ import { PlayerMeta, playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
 import { getProgressPercentage, useProgressStore } from "@/stores/progress";
-import { needsOnboarding } from "@/utils/onboarding";
-import { parseTimestamp } from "@/utils/timestamp";
+import { needsOnboarding } from "@/utils/hosting/onboarding";
+import { parseTimestamp } from "@/utils/format/timestamp";
 
 import { BlurEllipsis } from "./layouts/SubPageLayout";
 

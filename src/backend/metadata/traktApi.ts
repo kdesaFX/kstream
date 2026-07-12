@@ -1,6 +1,6 @@
 import { conf } from "@/setup/config";
-import { SimpleCache } from "@/utils/cache";
-import { getTurnstileToken } from "@/utils/turnstile";
+import { SimpleCache } from "@/utils/common/cache";
+import { getTurnstileToken } from "@/utils/hosting/turnstile";
 
 import { getMediaDetails } from "./tmdb";
 import { TMDBContentTypes, TMDBMovieData } from "./types/tmdb";

@@ -1,5 +1,5 @@
 import { getLoadbalancedM3U8ProxyUrl } from "@/backend/providers/fetchers";
-import { getM3U8ProxyUrls } from "@/utils/proxyUrls";
+import { getM3U8ProxyUrls } from "@/utils/hosting/proxyUrls";
 
 /**
  * Creates a proxied M3U8 URL for HLS streams using a random proxy from config

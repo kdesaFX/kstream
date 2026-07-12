@@ -3,10 +3,10 @@ import slugify from "slugify";
 import { conf } from "@/setup/config";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
-import { SimpleCache } from "@/utils/cache";
-import { getTmdbLanguageCode } from "@/utils/language";
-import { MediaItem } from "@/utils/mediaTypes";
-import { getProxyUrls } from "@/utils/proxyUrls";
+import { SimpleCache } from "@/utils/common/cache";
+import { getTmdbLanguageCode } from "@/utils/locale/language";
+import { MediaItem } from "@/utils/media/mediaTypes";
+import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 
 import { MWMediaMeta, MWMediaType, MWSeasonMeta } from "./types/mw";
 import { getImdbEpisodes } from "./imdbMetadataProvider";
@@ -525,6 +525,49 @@ export async function getCollectionDetails(collectionId: number): Promise<any> {
   return get<any>(`/collection/${collectionId}`);
 }
 
+export interface TMDBCollectionSearchResult {
+  id: number;
+  name: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+}
+
+/**
+ * Searches TMDB collections (franchises) by name. Used to expand a
+ * search with every film of a matching saga — "fast and furious" should
+ * surface "F9" and "Fast Five" even though their titles share no words
+ * with the query.
+ */
+export async function searchCollections(
+  query: string,
+): Promise<TMDBCollectionSearchResult[]> {
+  const data = await get<{ results: TMDBCollectionSearchResult[] }>(
+    "search/collection",
+    {
+      query,
+      include_adult: false,
+      page: 1,
+    },
+  );
+  return data.results ?? [];
+}
+
+/**
+ * Returns a collection's films shaped like movie search results
+ * (collection parts carry the same fields; media_type is stamped on).
+ */
+export async function getCollectionParts(
+  collectionId: number,
+): Promise<TMDBMovieSearchResult[]> {
+  const data = await get<{ parts?: TMDBMovieSearchResult[] }>(
+    `/collection/${collectionId}`,
+  );
+  return (data.parts ?? []).map((p) => ({
+    ...p,
+    media_type: TMDBContentTypes.MOVIE,
+  }));
+}
+
 export async function getEpisodes(
   id: string,
   season: number,
@@ -680,6 +723,36 @@ export async function getRelatedMedia(
   }>(`/${endpoint}/${id}/recommendations`);
 
   return data.results.slice(0, limit);
+}
+
+/**
+ * Fetches popular, well-voted media matching all the given genres via the
+ * TMDB discover endpoint. Used to seed recommendations directly from a
+ * user's genre taste profile.
+ */
+export async function getMediaByGenres(
+  genreIds: number[],
+  type: TMDBContentTypes,
+  limit: number = 12,
+): Promise<TMDBMovieSearchResult[] | TMDBShowSearchResult[]> {
+  const endpoint = type === TMDBContentTypes.MOVIE ? "movie" : "tv";
+  const data = await get<{
+    results: TMDBMovieSearchResult[] | TMDBShowSearchResult[];
+  }>(`/discover/${endpoint}`, {
+    with_genres: genreIds.join(","),
+    sort_by: "popularity.desc",
+    "vote_count.gte": 200,
+    include_adult: false,
+  });
+
+  // discover results lack media_type; stamp it so downstream code that
+  // keys on media_type keeps working.
+  const mediaType =
+    type === TMDBContentTypes.MOVIE ? TMDBContentTypes.MOVIE : TMDBContentTypes.TV;
+  return data.results.slice(0, limit).map((r) => ({
+    ...r,
+    media_type: mediaType,
+  })) as TMDBMovieSearchResult[] | TMDBShowSearchResult[];
 }
 
 export async function getPersonDetails(id: string): Promise<TMDBPerson> {

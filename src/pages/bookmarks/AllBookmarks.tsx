@@ -28,8 +28,8 @@ import { useBookmarkStore } from "@/stores/bookmarks";
 import { useGroupOrderStore } from "@/stores/groupOrder";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { useProgressStore } from "@/stores/progress";
-import { SortOption, sortMediaItems } from "@/utils/mediaSorting";
-import { MediaItem } from "@/utils/mediaTypes";
+import { SortOption, sortMediaItems } from "@/utils/media/mediaSorting";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 function parseGroupString(group: string): { icon: UserIcons; name: string } {
   const match = group.match(/^\[([a-zA-Z0-9_]+)\](.*)$/);

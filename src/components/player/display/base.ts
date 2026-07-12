@@ -22,7 +22,7 @@ import {
   SourceQuality,
   getPreferredQuality,
 } from "@/stores/player/utils/qualities";
-import { processCdnLink } from "@/utils/cdn";
+import { processCdnLink } from "@/utils/hosting/cdn";
 import {
   canChangeVolume,
   canFullscreen,
@@ -31,8 +31,8 @@ import {
   canPlayHlsNatively,
   canWebkitFullscreen,
   canWebkitPictureInPicture,
-} from "@/utils/detectFeatures";
-import { makeEmitter } from "@/utils/events";
+} from "@/utils/browser/detectFeatures";
+import { makeEmitter } from "@/utils/common/events";
 
 const levelConversionMap: Record<number, SourceQuality> = {
   360: "360",

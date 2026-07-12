@@ -6,7 +6,7 @@ import {
 
 import { sendExtensionRequest } from "@/backend/extension/messaging";
 import { getApiToken, setApiToken } from "@/backend/helpers/providerApi";
-import { getM3U8ProxyUrls, getProxyUrls } from "@/utils/proxyUrls";
+import { getM3U8ProxyUrls, getProxyUrls } from "@/utils/hosting/proxyUrls";
 
 import { convertBodyToObject, getBodyTypeFromBody } from "../extension/request";
 

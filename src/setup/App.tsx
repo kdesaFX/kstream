@@ -18,8 +18,9 @@ import { KeyboardCommandsModal } from "@/components/overlays/KeyboardCommandsMod
 import { NotificationModal } from "@/components/overlays/notificationsModal";
 import { SupportInfoModal } from "@/components/overlays/SupportInfoModal";
 import { TipJarModal } from "@/components/overlays/tipJarModal";
-import { SimklAuthHandler } from "@/components/SimklAuthHandler";
-import { TraktAuthHandler } from "@/components/TraktAuthHandler";
+import { SimklAuthHandler } from "@/components/auth/SimklAuthHandler";
+import { TraktAuthHandler } from "@/components/auth/TraktAuthHandler";
+import { DebugFab } from "@/components/utils/DebugFab";
 import { useGlobalKeyboardEvents } from "@/hooks/useGlobalKeyboardEvents";
 import { useOnlineListener } from "@/hooks/usePing";
 import { AboutPage } from "@/pages/About";
@@ -47,6 +48,7 @@ import { OnboardingProxyPage } from "@/pages/onboarding/OnboardingProxy";
 import { PasPage } from "@/pages/Pas";
 import { RegisterPage } from "@/pages/Register";
 import { SupportPage } from "@/pages/Support";
+import { MyAlgorithmPage } from "@/pages/algorithm/MyAlgorithm";
 import { WatchHistory } from "@/pages/watchHistory/WatchHistory";
 import { Layout } from "@/setup/Layout";
 import { useHistoryListener } from "@/stores/history";
@@ -192,6 +194,7 @@ function App() {
       <DetailsModal id="details" />
       <DetailsModal id="discover-details" />
       <DetailsModal id="player-details" />
+      {process.env.NODE_ENV === "development" ? <DebugFab /> : null}
       {!showDowntime && (
         <Routes>
           {/* functional routes */}
@@ -265,6 +268,7 @@ function App() {
           <Route path="/person/:id" element={<PersonView />} />
           {/* Watch History page */}
           <Route path="/watch-history" element={<WatchHistory />} />
+          <Route path="/algorithm" element={<MyAlgorithmPage />} />
           {/* Settings page */}
           <Route
             path="/settings"

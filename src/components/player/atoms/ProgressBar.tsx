@@ -12,7 +12,7 @@ import { useSkipTime } from "@/components/player/hooks/useSkipTime";
 import { useProgressBar } from "@/hooks/useProgressBar";
 import { nearestImageAt } from "@/stores/player/slices/thumbnails";
 import { usePlayerStore } from "@/stores/player/store";
-import { durationExceedsHour, formatSeconds } from "@/utils/formatSeconds";
+import { durationExceedsHour, formatSeconds } from "@/utils/format/formatSeconds";
 
 const SEGMENT_COLORS: Record<
   "intro" | "recap" | "credits" | "preview",

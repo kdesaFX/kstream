@@ -21,7 +21,7 @@ import {
 import { usePlayerStore } from "@/stores/player/store";
 import { selectQuality } from "@/stores/player/utils/qualities";
 import { useQualityStore } from "@/stores/quality";
-import { processCdnLink } from "@/utils/cdn";
+import { processCdnLink } from "@/utils/hosting/cdn";
 
 export type CastType = "chromecast" | "airplay" | null;
 

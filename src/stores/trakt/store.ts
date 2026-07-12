@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
-import { TraktUser } from "@/utils/traktTypes";
+import { TraktUser } from "@/utils/services/traktTypes";
 
 export type TraktStatus = "idle" | "syncing";
 

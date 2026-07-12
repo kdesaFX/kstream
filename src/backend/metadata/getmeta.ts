@@ -1,7 +1,7 @@
 import { FetchError } from "ofetch";
 
 import { useLanguageStore } from "@/stores/language";
-import { getTmdbLanguageCode } from "@/utils/language";
+import { getTmdbLanguageCode } from "@/utils/locale/language";
 
 import { formatJWMeta, mediaTypeToJW } from "./justwatch";
 import {

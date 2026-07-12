@@ -3,7 +3,7 @@ import { useCallback, useMemo } from "react";
 import { Icons } from "@/components/Icon";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { PlayerMeta } from "@/stores/player/slices/source";
-import { MediaItem } from "@/utils/mediaTypes";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { IconPatch } from "../buttons/IconPatch";
 

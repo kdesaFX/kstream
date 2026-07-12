@@ -15,7 +15,7 @@ import { PlaybackErrorPart } from "@/pages/parts/player/PlaybackErrorPart";
 import { PlayerPart } from "@/pages/parts/player/PlayerPart";
 import { PlayerMeta, playerStatus } from "@/stores/player/slices/source";
 import { SourceSliceSource, StreamType } from "@/stores/player/utils/qualities";
-import { type ExtensionStatus, getExtensionState } from "@/utils/extension";
+import { type ExtensionStatus, getExtensionState } from "@/utils/browser/extension";
 
 const testMeta: PlayerMeta = {
   releaseYear: 2010,

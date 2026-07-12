@@ -19,9 +19,9 @@ import { conf } from "@/setup/config";
 import { useDiscoverStore } from "@/stores/discover";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
-import { scrapeIMDb } from "@/utils/imdbScraper";
-import { getTmdbLanguageCode } from "@/utils/language";
-import { detectUserLanguage, detectUserRegion } from "@/utils/userRegion";
+import { scrapeIMDb } from "@/utils/services/imdbScraper";
+import { getTmdbLanguageCode } from "@/utils/locale/language";
+import { detectUserLanguage, detectUserRegion } from "@/utils/locale/userRegion";
 
 import { RandomMovieButton } from "./RandomMovieButton";
 import {

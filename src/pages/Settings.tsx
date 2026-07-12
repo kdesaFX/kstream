@@ -41,7 +41,7 @@ import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useSubtitleStore } from "@/stores/subtitles";
 import { usePreviewThemeStore, useThemeStore } from "@/stores/theme";
-import { scrollToElement, scrollToHash } from "@/utils/scroll";
+import { scrollToElement, scrollToHash } from "@/utils/common/scroll";
 
 import { SubPageLayout } from "./layouts/SubPageLayout";
 import { AppInfoPart } from "./parts/settings/AppInfoPart";

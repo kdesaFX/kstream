@@ -9,7 +9,11 @@ import { Icon, Icons } from "@/components/Icon";
 import { Modal, ModalCard, useModal } from "@/components/overlays/Modal";
 import { hasAired } from "@/components/player/utils/aired";
 import { useBookmarkStore } from "@/stores/bookmarks";
-import { getProgressPercentage, useProgressStore } from "@/stores/progress";
+import {
+  getProgressPercentage,
+  ProgressEpisodeItem,
+  useProgressStore,
+} from "@/stores/progress";
 
 import { EpisodeCarouselProps } from "../../types";
 
@@ -32,9 +36,6 @@ export function EpisodeCarousel({
   mediaPosterUrl,
   totalEpisodes,
 }: EpisodeCarouselProps) {
-  const [showEpisodeMenu, setShowEpisodeMenu] = useState(false);
-  const [customSeason, setCustomSeason] = useState("");
-  const [customEpisode, setCustomEpisode] = useState("");
   const [SeasonWatched, setSeasonWatched] = useState(false);
   const [expandedEpisodes, setExpandedEpisodes] = useState<{
     [key: number]: boolean;
@@ -44,7 +45,6 @@ export function EpisodeCarousel({
   }>({});
   const [showFavorites, setShowFavorites] = useState(false);
   const [favoriteEpisodes, setFavoriteEpisodes] = useState<any[]>([]);
-  const episodeMenuRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
   const activeEpisodeRef = useRef<HTMLAnchorElement>(null);
   const descriptionRefs = useRef<{
@@ -107,60 +107,6 @@ export function EpisodeCarousel({
       }
     }
   }, [episodes, showProgress]);
-
-  // Add click outside handler for episode menu
-  useEffect(() => {
-    if (!showEpisodeMenu) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        episodeMenuRef.current &&
-        !episodeMenuRef.current.contains(event.target as Node)
-      ) {
-        setShowEpisodeMenu(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showEpisodeMenu]);
-
-  const handleCustomNavigation = () => {
-    const season = parseInt(customSeason, 10);
-    const episode = parseInt(customEpisode, 10);
-
-    if (
-      Number.isNaN(season) ||
-      Number.isNaN(episode) ||
-      !mediaId ||
-      !mediaTitle
-    )
-      return;
-
-    // Find the season
-    const seasonData = seasons.find((s) => s.season_number === season);
-    if (!seasonData) return;
-
-    // Find the episode in the current season's episodes
-    const episodeData = episodes.find(
-      (e) => e.season_number === season && e.episode_number === episode,
-    );
-
-    if (!episodeData) {
-      console.error(
-        "No episode data found for season:",
-        season,
-        "episode:",
-        episode,
-      );
-      return;
-    }
-
-    // Navigate to the episode using the same URL format as getEpisodeUrl
-    const url = `/media/tmdb-tv-${mediaId}-${slugifyTitle(mediaTitle)}/${seasonData.id}/${episodeData.id}`;
-    window.location.href = url;
-    setShowEpisodeMenu(false);
-  };
 
   const toggleWatchStatus = (episodeId: number, event: React.MouseEvent) => {
     event.preventDefault();
@@ -259,29 +205,32 @@ export function EpisodeCarousel({
       : EMPTY_ARRAY,
   );
 
-  // Calculate watched episodes count and percentage
+  // Calculate watched episodes count and percentage across the whole
+  // show, not just the currently selected season: the progress store
+  // already holds every episode the user has watched.
   const watchedStats = useMemo(() => {
     if (!mediaId || !totalEpisodes) return { watched: 0, percentage: 0 };
 
+    const showEpisodes: Record<string, ProgressEpisodeItem> =
+      progress[mediaId.toString()]?.episodes ?? {};
     let watchedCount = 0;
-    episodes.forEach((episode) => {
-      const episodeProgress =
-        progress[mediaId.toString()]?.episodes?.[episode.id];
-      const percentage = episodeProgress
-        ? getProgressPercentage(
-            episodeProgress.progress.watched,
-            episodeProgress.progress.duration,
-          )
-        : 0;
+    Object.values(showEpisodes).forEach((episodeProgress) => {
+      const percentage = getProgressPercentage(
+        episodeProgress.progress.watched,
+        episodeProgress.progress.duration,
+      );
       if (percentage > 90) {
         watchedCount += 1;
       }
     });
 
-    const percentage = Math.round((watchedCount / totalEpisodes) * 100);
+    // Specials can push the count past TMDB's episode total; clamp so
+    // the display never exceeds 100%.
+    const watched = Math.min(watchedCount, totalEpisodes);
+    const percentage = Math.round((watched / totalEpisodes) * 100);
 
-    return { watched: watchedCount, percentage };
-  }, [episodes, progress, mediaId, totalEpisodes]);
+    return { watched, percentage };
+  }, [progress, mediaId, totalEpisodes]);
 
   // Load favorite episodes when favorites is selected
   useEffect(() => {
@@ -442,61 +391,6 @@ export function EpisodeCarousel({
           <h4 className="text-lg font-semibold text-white">
             {t("details.episodes")}
           </h4>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowEpisodeMenu(!showEpisodeMenu)}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors"
-              title={t("details.goToEpisode")}
-            >
-              <Icon icon={Icons.SEARCH} className="text-white/80" />
-            </button>
-
-            {/* Episode Selection Menu */}
-            {showEpisodeMenu && (
-              <div
-                ref={episodeMenuRef}
-                className="absolute top-full left-0 mt-2 p-4 bg-background-main rounded-xl shadow-lg  z-50 min-w-[250px]"
-              >
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-white/80 mb-1">
-                      {t("details.season")}
-                    </label>
-                    <input
-                      type="number"
-                      value={customSeason}
-                      onChange={(e) => setCustomSeason(e.target.value)}
-                      min="1"
-                      max={seasons.length}
-                      className="w-full px-3 py-2 bg-white/5 rounded-xl text-white focus:outline-none focus:border-white/30"
-                      placeholder={t("details.season")}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-white/80 mb-1">
-                      {t("details.episode")}
-                    </label>
-                    <input
-                      type="number"
-                      value={customEpisode}
-                      onChange={(e) => setCustomEpisode(e.target.value)}
-                      min="1"
-                      className="w-full px-3 py-2 bg-white/5 rounded-xl text-white focus:outline-none focus:border-white/30"
-                      placeholder={t("details.episode")}
-                    />
-                  </div>
-                  <Button
-                    theme="purple"
-                    onClick={handleCustomNavigation}
-                    className="w-full px-4 py-2"
-                  >
-                    {t("details.play")}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
           {totalEpisodes && (
             <span className="text-xs md:text-sm text-white/70">
               {t("details.watched", {

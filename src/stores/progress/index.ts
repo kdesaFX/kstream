@@ -8,7 +8,7 @@ import {
   ProgressModificationOptions,
   ProgressModificationResult,
   modifyProgressItems,
-} from "@/utils/progressModifications";
+} from "@/utils/media/progressModifications";
 
 export { getProgressPercentage } from "./utils";
 

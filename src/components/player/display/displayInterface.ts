@@ -3,7 +3,7 @@ import { MediaPlaylist } from "hls.js";
 import { MWMediaType } from "@/backend/metadata/types/mw";
 import { AudioTrack, CaptionListItem } from "@/stores/player/slices/source";
 import { LoadableSource, SourceQuality } from "@/stores/player/utils/qualities";
-import { Listener } from "@/utils/events";
+import { Listener } from "@/utils/common/events";
 
 export type DisplayErrorType = "hls" | "htmlvideo" | "global";
 export type DisplayError = {

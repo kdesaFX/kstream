@@ -2,7 +2,7 @@ import { ofetch } from "ofetch";
 
 import { getAuthHeaders } from "@/backend/accounts/auth";
 import { AccountWithToken } from "@/stores/auth";
-import { KeyboardShortcuts } from "@/utils/keyboardShortcuts";
+import { KeyboardShortcuts } from "@/utils/browser/keyboardShortcuts";
 
 export interface CustomThemeSettings {
   primary?: string;

@@ -14,7 +14,7 @@ import {
   qualityToString,
 } from "@/stores/player/utils/qualities";
 import { useQualityStore } from "@/stores/quality";
-import { canPlayHlsNatively } from "@/utils/detectFeatures";
+import { canPlayHlsNatively } from "@/utils/browser/detectFeatures";
 
 const alwaysVisibleQualities: Record<SourceQuality, boolean> = {
   unknown: false,
