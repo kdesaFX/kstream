@@ -2,11 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useCopyToClipboard } from "react-use";
 
+import { fetchGridData } from "@/sdk";
+import type { GridData } from "@/sdk";
 import { downloadCaption } from "@/backend/helpers/subs";
-import {
-  fetchGridData,
-  type GridData,
-} from "@/backend/providers/localProviderShim";
 import { Button } from "@/components/buttons/Button";
 import { Icon, Icons } from "@/components/Icon";
 import { OverlayPage } from "@/components/overlays/OverlayPage";

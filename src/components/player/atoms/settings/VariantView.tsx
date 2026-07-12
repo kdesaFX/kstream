@@ -7,7 +7,7 @@ import {
   getVariantMeta,
   resolveArtemisVariant,
   resolveVariant,
-} from "@/backend/providers/localProviderShim";
+} from "@/sdk";
 import { Toggle } from "@/components/buttons/Toggle";
 import { Menu } from "@/components/player/internals/ContextMenu";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";

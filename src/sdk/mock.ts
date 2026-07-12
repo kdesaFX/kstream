@@ -1,5 +1,6 @@
-// Temporary stand-in for @p-stream/providers APIs missing from the
-// private package. Delete once the real package has them.
+// Local mock of @p-stream/providers exports not yet in the installed
+// package. Swap index.ts's export line to point here when you don't have
+// access to the private repo. Keep signatures in sync with upstream.
 
 export type FileVariant = {
   fid: string;

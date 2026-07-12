@@ -1,11 +1,8 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { getArtemisVariantMeta, getVariantMeta } from "@/sdk";
 import { getCachedMetadata } from "@/backend/helpers/providerApi";
-import {
-  getArtemisVariantMeta,
-  getVariantMeta,
-} from "@/backend/providers/localProviderShim";
 import { Toggle } from "@/components/buttons/Toggle";
 import { Icon, Icons } from "@/components/Icon";
 import { useCaptions } from "@/components/player/hooks/useCaptions";
