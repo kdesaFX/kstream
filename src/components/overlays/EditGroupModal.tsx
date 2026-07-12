@@ -10,7 +10,7 @@ import {
   createGroupString,
   findBookmarksByGroup,
   parseGroupString,
-} from "@/utils/bookmarkModifications";
+} from "@/utils/media/bookmarkModifications";
 
 const userIconList = Object.values(UserIcons);
 

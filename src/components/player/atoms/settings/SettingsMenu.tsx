@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { getArtemisVariantMeta, getVariantMeta } from "@/sdk";
 import { getCachedMetadata } from "@/backend/helpers/providerApi";
 import { Toggle } from "@/components/buttons/Toggle";
 import { Icon, Icons } from "@/components/Icon";
@@ -11,8 +12,7 @@ import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { usePlayerStore } from "@/stores/player/store";
 import { qualityToString } from "@/stores/player/utils/qualities";
 import { useSubtitleStore } from "@/stores/subtitles";
-import { getPrettyLanguageNameFromLocale } from "@/utils/language";
-import { getArtemisVariantMeta, getVariantMeta } from "@p-stream/providers";
+import { getPrettyLanguageNameFromLocale } from "@/utils/locale/language";
 
 export function SettingsMenu({ id }: { id: string }) {
   const { t } = useTranslation();

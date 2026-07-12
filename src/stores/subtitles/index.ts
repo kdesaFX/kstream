@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
-import { isFirefox } from "@/utils/detectFeatures";
+import { isFirefox } from "@/utils/browser/detectFeatures";
 
 export interface SubtitleStyling {
   /**

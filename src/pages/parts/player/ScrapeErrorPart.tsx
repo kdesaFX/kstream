@@ -17,8 +17,8 @@ import { ErrorContainer, ErrorLayout } from "@/pages/layouts/ErrorLayout";
 import { conf } from "@/setup/config";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { usePreferencesStore } from "@/stores/preferences";
-import { getExtensionState } from "@/utils/extension";
-import type { ExtensionStatus } from "@/utils/extension";
+import { getExtensionState } from "@/utils/browser/extension";
+import type { ExtensionStatus } from "@/utils/browser/extension";
 
 import { ErrorCardInModal } from "../errors/ErrorCard";
 

@@ -12,7 +12,7 @@ import { useProgressBar } from "@/hooks/useProgressBar";
 import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
 import { SubtitleStyling, useSubtitleStore } from "@/stores/subtitles";
-import { isFirefox } from "@/utils/detectFeatures";
+import { isFirefox } from "@/utils/browser/detectFeatures";
 
 export function ColorOption(props: {
   color: string;

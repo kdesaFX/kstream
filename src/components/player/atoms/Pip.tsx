@@ -4,7 +4,7 @@ import { usePlayerStore } from "@/stores/player/store";
 import {
   canPictureInPicture,
   canWebkitPictureInPicture,
-} from "@/utils/detectFeatures";
+} from "@/utils/browser/detectFeatures";
 
 export function Pip() {
   const display = usePlayerStore((s) => s.display);

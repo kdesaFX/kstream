@@ -7,7 +7,7 @@ import { Menu } from "@/components/player/internals/ContextMenu";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { AudioTrack } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
-import { getPrettyLanguageNameFromLocale } from "@/utils/language";
+import { getPrettyLanguageNameFromLocale } from "@/utils/locale/language";
 
 import { SelectableLink } from "../../internals/ContextMenu/Links";
 

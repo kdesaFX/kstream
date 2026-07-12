@@ -5,7 +5,7 @@ import { immer } from "zustand/middleware/immer";
 import {
   DEFAULT_KEYBOARD_SHORTCUTS,
   KeyboardShortcuts,
-} from "@/utils/keyboardShortcuts";
+} from "@/utils/browser/keyboardShortcuts";
 
 export interface PreferencesStore {
   enableThumbnails: boolean;

@@ -7,7 +7,7 @@ import {
   ShowProgressResult,
   shouldShowProgress,
 } from "@/stores/progress/utils";
-import { MediaItem } from "@/utils/mediaTypes";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { MediaCard } from "./MediaCard";
 

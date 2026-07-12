@@ -9,8 +9,8 @@ import {
   SourceSliceSource,
 } from "@/stores/player/utils/qualities";
 import { usePreferencesStore } from "@/stores/preferences";
-import { processCdnLink } from "@/utils/cdn";
-import { isSafari } from "@/utils/detectFeatures";
+import { processCdnLink } from "@/utils/hosting/cdn";
+import { isSafari } from "@/utils/browser/detectFeatures";
 
 function makeQueue(thumbnails: number): number[] {
   // Create a shuffled array of indices to ensure even distribution

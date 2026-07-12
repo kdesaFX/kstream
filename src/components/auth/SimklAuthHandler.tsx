@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useSimklAuthStore } from "@/stores/simkl/store";
-import { SIMKL_OAUTH_STATE, simklService } from "@/utils/simkl";
+import { SIMKL_OAUTH_STATE, simklService } from "@/utils/services/simkl";
 
 export function SimklAuthHandler() {
   const [searchParams, setSearchParams] = useSearchParams();

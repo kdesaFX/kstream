@@ -10,7 +10,7 @@ import {
   SimklSyncBody,
   SimklSyncItem,
   SimklUser,
-} from "@/utils/simklTypes";
+} from "@/utils/services/simklTypes";
 
 export const SIMKL_OAUTH_URL = "https://simkl.com/oauth/authorize";
 export const SIMKL_API_URL = "https://api.simkl.com";

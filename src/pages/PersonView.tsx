@@ -20,7 +20,7 @@ import { WatchedMediaCard } from "@/components/media/WatchedMediaCard";
 import { Heading1 } from "@/components/utils/Text";
 import { SubPageLayout } from "@/pages/layouts/SubPageLayout";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
-import { MediaItem } from "@/utils/mediaTypes";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 function creditYear(c: TMDBPersonCreditItem): number | undefined {
   const date = c.release_date || c.first_air_date;

@@ -11,8 +11,8 @@ import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useAuthStore } from "@/stores/auth";
 import { useTraktAuthStore } from "@/stores/trakt/store";
 import { WatchHistoryItem, useWatchHistoryStore } from "@/stores/watchHistory";
-import { traktService } from "@/utils/trakt";
-import { TraktContentData } from "@/utils/traktTypes";
+import { traktService } from "@/utils/services/trakt";
+import { TraktContentData } from "@/utils/services/traktTypes";
 
 const PROGRESS_THRESHOLD = 0.25; // Sync to Trakt if watched >= 25%
 const TRAKT_HISTORY_SYNC_INTERVAL_MS = 15 * 60 * 1000; // 15 min

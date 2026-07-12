@@ -20,9 +20,9 @@ import { conf } from "@/setup/config";
 import {
   ExtensionDetectionResult,
   detectExtensionInstall,
-} from "@/utils/detectFeatures";
-import { getExtensionState } from "@/utils/extension";
-import type { ExtensionStatus } from "@/utils/extension";
+} from "@/utils/browser/detectFeatures";
+import { getExtensionState } from "@/utils/browser/extension";
+import type { ExtensionStatus } from "@/utils/browser/extension";
 
 function RefreshBar() {
   const { t } = useTranslation();

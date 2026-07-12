@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { convert } from "subsrt-ts";
 
 import { subtitleTypeList } from "@/backend/helpers/subs";
-import { FileDropHandler } from "@/components/DropFile";
+import { FileDropHandler } from "@/components/form/DropFile";
 import { FlagIcon } from "@/components/FlagIcon";
 import { Icon, Icons } from "@/components/Icon";
 import { Spinner } from "@/components/layout/Spinner";
@@ -26,7 +26,7 @@ import { useSubtitleStore } from "@/stores/subtitles";
 import {
   getPrettyLanguageNameFromLocale,
   sortLangCodes,
-} from "@/utils/language";
+} from "@/utils/locale/language";
 
 import { useCaptionMatchScore } from "../../hooks/useCaptionMatchScore";
 

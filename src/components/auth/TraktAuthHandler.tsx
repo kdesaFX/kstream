@@ -2,8 +2,8 @@ import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useTraktAuthStore } from "@/stores/trakt/store";
-import { SIMKL_OAUTH_STATE } from "@/utils/simkl";
-import { traktService } from "@/utils/trakt";
+import { SIMKL_OAUTH_STATE } from "@/utils/services/simkl";
+import { traktService } from "@/utils/services/trakt";
 
 export function TraktAuthHandler() {
   const [searchParams, setSearchParams] = useSearchParams();

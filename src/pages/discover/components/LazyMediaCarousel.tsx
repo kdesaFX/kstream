@@ -1,7 +1,7 @@
 import React from "react";
 
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
-import { MediaItem } from "@/utils/mediaTypes";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { MediaCarousel } from "./MediaCarousel";
 import { DiscoverContentType } from "../types/discover";

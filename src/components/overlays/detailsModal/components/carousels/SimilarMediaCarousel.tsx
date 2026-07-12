@@ -7,7 +7,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { CarouselNavButtons } from "@/pages/discover/components/CarouselNavButtons";
 import { useSimilarMedia } from "@/pages/discover/hooks/useSimilarMedia";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
-import { MediaItem } from "@/utils/mediaTypes";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 interface SimilarMediaCarouselProps {
   mediaId: string;

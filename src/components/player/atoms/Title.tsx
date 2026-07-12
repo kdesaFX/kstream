@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { usePlayerStore } from "@/stores/player/store";
-import { formatSeconds } from "@/utils/formatSeconds";
+import { formatSeconds } from "@/utils/format/formatSeconds";
 
 export function Title() {
   const title = usePlayerStore((s) => s.meta?.title);

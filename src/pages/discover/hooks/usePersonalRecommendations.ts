@@ -4,12 +4,14 @@ import { useTranslation } from "react-i18next";
 import type { DiscoverMedia } from "@/pages/discover/types/discover";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useProgressStore } from "@/stores/progress";
+import { useRatingsStore } from "@/stores/ratings";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
 
 import {
   type BookmarkSource,
   type HistorySource,
   type ProgressSource,
+  type RatingSource,
   fetchPersonalRecommendations,
 } from "../lib/personalRecommendations";
 
@@ -57,6 +59,8 @@ export function usePersonalRecommendations({
   const watchHistoryItems = useWatchHistoryStore((s) => s.items);
   const progressItems = useProgressStore.getState().items;
   const bookmarks = useBookmarkStore((s) => s.bookmarks);
+  const ratingItems = useRatingsStore((s) => s.ratings);
+  const preferences = useRatingsStore((s) => s.preferences);
 
   const buildExcludeSet = useCallback(() => {
     const exclude = new Set<string>();
@@ -84,10 +88,26 @@ export function usePersonalRecommendations({
       }),
     );
 
+    const ratings: RatingSource[] = Object.entries(ratingItems).map(
+      ([tmdbId, item]) => ({
+        tmdbId,
+        type: item.type,
+        rating: item.rating,
+        genreIds: item.genreIds,
+        ratedAt: item.ratedAt,
+      }),
+    );
+
+    const wantedType = isTVShow ? "show" : "movie";
     const hasAnySource =
-      history.some((h) => h.type === (isTVShow ? "show" : "movie")) ||
-      progress.some((p) => p.type === (isTVShow ? "show" : "movie")) ||
-      bookmarkList.some((b) => b.type === (isTVShow ? "show" : "movie"));
+      history.some((h) => h.type === wantedType) ||
+      progress.some((p) => p.type === wantedType) ||
+      bookmarkList.some((b) => b.type === wantedType) ||
+      // Ratings of either type count; the taste profile is cross-type.
+      ratings.some((r) => r.rating === "liked" || r.rating === "loved") ||
+      preferences.favoriteGenres.length > 0 ||
+      preferences.moods.length > 0 ||
+      preferences.franchises.length > 0;
 
     if (!hasAnySource) {
       setMedia([]);
@@ -106,6 +126,8 @@ export function usePersonalRecommendations({
         progress,
         bookmarkList,
         excludeIds,
+        ratings,
+        preferences,
       );
       setMedia(results);
     } catch (err) {
@@ -114,7 +136,15 @@ export function usePersonalRecommendations({
     } finally {
       setIsLoading(false);
     }
-  }, [isTVShow, watchHistoryItems, progressItems, bookmarks, buildExcludeSet]);
+  }, [
+    isTVShow,
+    watchHistoryItems,
+    progressItems,
+    bookmarks,
+    ratingItems,
+    preferences,
+    buildExcludeSet,
+  ]);
 
   useEffect(() => {
     if (enabled) fetch();
@@ -129,8 +159,11 @@ export function usePersonalRecommendations({
   const bookmarkCount = Object.values(bookmarks).filter(
     (b) => b.type === (isTVShow ? "show" : "movie"),
   ).length;
+  const likedCount = Object.values(ratingItems).filter(
+    (r) => r.rating === "liked" || r.rating === "loved",
+  ).length;
   const hasRecommendations =
-    historyCount > 0 || progressCount > 0 || bookmarkCount > 0;
+    historyCount > 0 || progressCount > 0 || bookmarkCount > 0 || likedCount > 0;
 
   const sectionTitle = t("discover.carousel.title.forYou");
 

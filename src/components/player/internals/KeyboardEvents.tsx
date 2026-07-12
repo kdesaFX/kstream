@@ -18,7 +18,7 @@ import {
   LOCKED_SHORTCUTS,
   ShortcutId,
   matchesShortcut,
-} from "@/utils/keyboardShortcuts";
+} from "@/utils/browser/keyboardShortcuts";
 
 export function KeyboardEvents() {
   const router = useOverlayRouter("");

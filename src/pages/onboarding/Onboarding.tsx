@@ -34,7 +34,7 @@ import {
 import { PageTitle } from "@/pages/parts/util/PageTitle";
 import { conf } from "@/setup/config";
 import { usePreferencesStore } from "@/stores/preferences";
-import { getProxyUrls } from "@/utils/proxyUrls";
+import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 
 import { DebridEdit, FebboxSetup } from "../parts/settings/ConnectionsPart";
 

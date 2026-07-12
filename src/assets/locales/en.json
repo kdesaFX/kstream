@@ -626,6 +626,7 @@
     },
     "menu": {
       "about": "About and FAQ",
+      "algorithm": "My Algorithm",
       "logout": "Log out",
       "register": "Sync to Cloud",
       "settings": "Settings",

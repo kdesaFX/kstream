@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import { VideoPlayerButton } from "@/components/player/internals/Button";
 import { VideoPlayerTimeFormat } from "@/stores/player/slices/interface";
 import { usePlayerStore } from "@/stores/player/store";
-import { durationExceedsHour, formatSeconds } from "@/utils/formatSeconds";
-import { uses12HourClock } from "@/utils/uses12HourClock";
+import { durationExceedsHour, formatSeconds } from "@/utils/format/formatSeconds";
+import { uses12HourClock } from "@/utils/format/uses12HourClock";
 
 export function Time(props: { short?: boolean }) {
   const timeFormat = usePlayerStore((s) => s.interface.timeFormat);

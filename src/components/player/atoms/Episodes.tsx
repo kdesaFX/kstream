@@ -21,8 +21,8 @@ import { PlayerMeta } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
-import { concurrentMap } from "@/utils/async";
-import { scrollToElement } from "@/utils/scroll";
+import { concurrentMap } from "@/utils/common/async";
+import { scrollToElement } from "@/utils/common/scroll";
 
 import { hasAired } from "../utils/aired";
 
