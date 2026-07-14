@@ -176,23 +176,30 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
   const cfg = conf();
 
   if (slot === "primary") {
-    if (cfg.ENABLE_PRIMARY_BANNER_GIF && cfg.PRIMARY_BANNER_GIF_URL) {
-      return (
-        <PrimaryGifBanner
-          img={PRIMARY_BANNER_GIF_SRC}
-          href={cfg.PRIMARY_BANNER_GIF_URL}
-        />
-      );
-    }
-    if (!cfg.ENABLE_HOME_AD || !cfg.HOME_AD_ZONE_ID) return null;
+    const gifUrl =
+      cfg.ENABLE_PRIMARY_BANNER_GIF && cfg.PRIMARY_BANNER_GIF_URL
+        ? cfg.PRIMARY_BANNER_GIF_URL
+        : null;
+    const homeAdZoneId =
+      cfg.ENABLE_HOME_AD && cfg.HOME_AD_ZONE_ID ? cfg.HOME_AD_ZONE_ID : null;
+
+    if (!gifUrl && !homeAdZoneId) return null;
+
     return (
-      <AdSlotInner
-        cfg={{
-          zoneId: cfg.HOME_AD_ZONE_ID,
-          width: 728,
-          height: 90,
-        }}
-      />
+      <div className="flex flex-col items-center gap-3">
+        {gifUrl && (
+          <PrimaryGifBanner img={PRIMARY_BANNER_GIF_SRC} href={gifUrl} />
+        )}
+        {homeAdZoneId && (
+          <AdSlotInner
+            cfg={{
+              zoneId: homeAdZoneId,
+              width: 728,
+              height: 90,
+            }}
+          />
+        )}
+      </div>
     );
   }
 
