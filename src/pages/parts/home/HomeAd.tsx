@@ -186,7 +186,7 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
     if (!gifUrl && !homeAdZoneId) return null;
 
     return (
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex w-full flex-col items-center gap-3">
         {gifUrl && (
           <PrimaryGifBanner img={PRIMARY_BANNER_GIF_SRC} href={gifUrl} />
         )}

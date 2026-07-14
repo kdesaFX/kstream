@@ -28,7 +28,6 @@ import { Button } from "./About";
 import { AdsPart } from "./parts/home/AdsPart";
 import { DiscordNotice } from "./parts/home/DiscordNotice";
 import { HomeAd } from "./parts/home/HomeAd";
-import { RevivalAnnouncementModal } from "./parts/home/RevivalAnnouncementModal";
 import { SupportBar } from "./parts/home/SupportBar";
 
 function useSearch(search: string) {
@@ -180,7 +179,6 @@ export function HomePage() {
           />
         )}
 
-        <RevivalAnnouncementModal />
         {conf().SHOW_SUPPORT_BAR ? <SupportBar /> : null}
 
         {conf().SHOW_AD ? <AdsPart /> : null}
@@ -210,16 +208,20 @@ export function HomePage() {
 
       {/* User Content */}
       {!search && (
-        <div className="relative">
+        <div className={enableCarouselView ? undefined : "2xl:flow-root"}>
+          {!enableCarouselView && (
+            <div className="hidden 2xl:block 2xl:float-right 2xl:ml-6 2xl:mb-4 2xl:w-auto">
+              <HomeAd slot="secondary" />
+            </div>
+          )}
           {renderHomeSections()}
-          {!search && (
-            <div
-              className={`w-full flex justify-center my-6 px-4${
-                enableCarouselView
-                  ? ""
-                  : " 2xl:absolute 2xl:right-6 2xl:top-2 2xl:w-auto 2xl:my-0 2xl:px-0 2xl:block"
-              }`}
-            >
+          {enableCarouselView && (
+            <div className="w-full flex justify-center my-6 px-4">
+              <HomeAd slot="secondary" />
+            </div>
+          )}
+          {!enableCarouselView && (
+            <div className="2xl:hidden w-full flex justify-center my-6 px-4">
               <HomeAd slot="secondary" />
             </div>
           )}
