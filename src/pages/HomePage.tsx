@@ -65,6 +65,20 @@ export function HomePage() {
   const s = useSearch(search);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showWatching, setShowWatching] = useState(false);
+  // Real width check (not a CSS breakpoint) so exactly one <HomeAd> instance
+  // ever mounts -- rendering two copies toggled by CSS visibility both hits
+  // the ad script's dedupe-by-id guard, so whichever one mounts first can
+  // "win" the real script even while sitting in a display:none container,
+  // leaving the visible copy permanently empty.
+  const [hasWideMargins, setHasWideMargins] = useState(false);
+  useEffect(() => {
+    function onResize() {
+      setHasWideMargins(window.innerWidth >= 1536);
+    }
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   const { showModal } = useOverlayStack();
   const enableDiscover = usePreferencesStore((state) => state.enableDiscover);
   const enableFeatured = usePreferencesStore((state) => state.enableFeatured);
@@ -209,10 +223,17 @@ export function HomePage() {
       {/* User Content */}
       {!search && (
         <div>
+          {hasWideMargins && (
+            <div className="fixed right-6 top-24 z-10">
+              <HomeAd slot="secondary" />
+            </div>
+          )}
           {renderHomeSections()}
-          <div className="w-full flex justify-center my-6 px-4">
-            <HomeAd slot="secondary" />
-          </div>
+          {!hasWideMargins && (
+            <div className="w-full flex justify-center my-6 px-4">
+              <HomeAd slot="secondary" />
+            </div>
+          )}
         </div>
       )}
 
