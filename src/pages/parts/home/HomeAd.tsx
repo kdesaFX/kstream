@@ -4,28 +4,22 @@ import { Icon, Icons } from "@/components/Icon";
 
 import { conf } from "@/setup/config";
 
-const ACLIB_URL = "https://acscdn.com/script/aclib.js";
-const SCRIPT_ID = "aclib";
+
+const MONETAG_SRC = "https://dd133.com/vignette.min.js";
 const LOAD_TIMEOUT_MS = 8000;
 const PRIMARY_BANNER_GIF_SRC = "/ads/primary-banner.gif";
 
-declare global {
-  interface Window {
-    aclib?: { runBanner: (opts: { zoneId: string }) => void };
-  }
-}
-
 export type AdSlot = "primary" | "secondary" | "bookmarks";
 
-function loadAclibScript() {
-  if (typeof window === "undefined") return;
-  if (document.getElementById(SCRIPT_ID)) return;
+function loadMonetagVignette(container: HTMLElement, zoneId: string) {
+  if (typeof window === "undefined" || !zoneId) return;
+  const dedupeId = `monetag-vignette-${zoneId}`;
+  if (document.getElementById(dedupeId)) return;
   const s = document.createElement("script");
-  s.id = SCRIPT_ID;
-  s.type = "text/javascript";
-  s.src = ACLIB_URL;
-  s.async = true;
-  document.head.appendChild(s);
+  s.id = dedupeId;
+  s.dataset.zone = zoneId;
+  s.src = MONETAG_SRC;
+  container.appendChild(s);
 }
 
 interface SlotConfig {
@@ -41,24 +35,10 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
   );
 
   useEffect(() => {
-    loadAclibScript();
-
     const container = containerRef.current;
     if (!container) return;
 
-    let cancelled = false;
-    const tryRun = () => {
-      if (cancelled) return;
-      if (typeof window.aclib?.runBanner === "function") {
-        const s = document.createElement("script");
-        s.type = "text/javascript";
-        s.text = `try { aclib.runBanner({ zoneId: '${cfg.zoneId}' }); } catch (e) {}`;
-        container.appendChild(s);
-      } else {
-        setTimeout(tryRun, 150);
-      }
-    };
-    tryRun();
+    loadMonetagVignette(container, cfg.zoneId);
 
     const update = () => {
       if (container.querySelector("iframe, img")) {
@@ -74,7 +54,6 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
     }, LOAD_TIMEOUT_MS);
 
     return () => {
-      cancelled = true;
       observer.disconnect();
       clearTimeout(timeout);
     };
