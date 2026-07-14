@@ -5,20 +5,31 @@ import { Icon, Icons } from "@/components/Icon";
 import { conf } from "@/setup/config";
 
 
-const MONETAG_SRC = "https://dd133.com/vignette.min.js";
+const BTAG_SRC = "https://aqle3.com/btag.min.js";
 const LOAD_TIMEOUT_MS = 8000;
 const PRIMARY_BANNER_GIF_SRC = "/ads/primary-banner.gif";
 
 export type AdSlot = "primary" | "secondary" | "bookmarks";
 
-function loadMonetagVignette(container: HTMLElement, zoneId: string) {
+
+function loadBannerTag(
+  container: HTMLElement,
+  zoneId: string,
+  width: number,
+  height: number,
+) {
   if (typeof window === "undefined" || !zoneId) return;
-  const dedupeId = `monetag-vignette-${zoneId}`;
+  const dedupeId = `btag-${zoneId}`;
   if (document.getElementById(dedupeId)) return;
   const s = document.createElement("script");
   s.id = dedupeId;
+  s.async = true;
+  s.dataset.cfasync = "false";
+  s.dataset.size = `${width}x${height}`;
+  s.dataset.category = "common";
+  s.dataset.id = `dl-banner-${width}x${height}`;
   s.dataset.zone = zoneId;
-  s.src = MONETAG_SRC;
+  s.src = BTAG_SRC;
   container.appendChild(s);
 }
 
@@ -38,7 +49,7 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
     const container = containerRef.current;
     if (!container) return;
 
-    loadMonetagVignette(container, cfg.zoneId);
+    loadBannerTag(container, cfg.zoneId, cfg.width, cfg.height);
 
     const update = () => {
       if (container.querySelector("iframe, img")) {
@@ -57,7 +68,7 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
       observer.disconnect();
       clearTimeout(timeout);
     };
-  }, [cfg.zoneId]);
+  }, [cfg.zoneId, cfg.width, cfg.height]);
 
   if (adState === "failed") return null;
 
