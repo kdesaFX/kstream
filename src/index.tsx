@@ -1,3 +1,7 @@
+import { installPopupGuard } from "@/setup/popupGuard";
+
+installPopupGuard();
+
 import "@/setup/pwa";
 import "core-js/stable";
 import "./stores/__old/imports";
