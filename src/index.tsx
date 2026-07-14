@@ -1,7 +1,3 @@
-import { installPopupGuard } from "@/setup/popupGuard";
-
-installPopupGuard();
-
 import "@/setup/pwa";
 import "core-js/stable";
 import "./stores/__old/imports";
@@ -48,6 +44,11 @@ import {
 } from "./backend/extension/messaging";
 import { initializeImageFadeIn } from "./setup/imageFadeIn";
 import { initializeOldStores } from "./stores/__old/migrations";
+import { installPopupGuard } from "./setup/popupGuard";
+
+// Blocks popup/popunder ads before any ad script has a chance to load --
+// see popupGuard.ts.
+installPopupGuard();
 
 // Restore native decodeURIComponent if a browser extension (e.g. AdBlock Plus)
 // has replaced it with a broken version that throws ReferenceError on the browse page.
