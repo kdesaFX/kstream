@@ -29,6 +29,7 @@ import { AdsPart } from "./parts/home/AdsPart";
 import { DiscordNotice } from "./parts/home/DiscordNotice";
 import { HomeAd } from "./parts/home/HomeAd";
 import { SupportBar } from "./parts/home/SupportBar";
+import { ZliveNotice } from "./parts/home/ZliveNotice";
 
 function useSearch(search: string) {
   const [searching, setSearching] = useState<boolean>(false);
@@ -163,6 +164,7 @@ export function HomePage() {
   return (
     <HomeLayout showBg={showBg}>
       {!search && <DiscordNotice />}
+      {!search && <ZliveNotice />}
       <div className="relative mb-2">
         {hasWideMargins && (
           // Scoped to this hero container (not the viewport), so it scrolls
