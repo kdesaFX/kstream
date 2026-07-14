@@ -23,7 +23,7 @@ import {
   getKeyDisplayName,
   getModifierSymbol,
   isNumberKey,
-} from "@/utils/keyboardShortcuts";
+} from "@/utils/browser/keyboardShortcuts";
 
 interface KeyboardShortcut {
   id: ShortcutId;

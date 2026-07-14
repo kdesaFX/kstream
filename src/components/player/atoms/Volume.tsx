@@ -7,7 +7,7 @@ import {
   useProgressBar,
 } from "@/hooks/useProgressBar";
 import { usePlayerStore } from "@/stores/player/store";
-import { canChangeVolume } from "@/utils/detectFeatures";
+import { canChangeVolume } from "@/utils/browser/detectFeatures";
 
 import { useVolume } from "../hooks/useVolume";
 

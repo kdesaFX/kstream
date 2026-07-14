@@ -28,9 +28,9 @@ import { useGroupOrderStore } from "@/stores/groupOrder";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
 import { useMediaGridColumns } from "@/hooks/useMediaGridColumns";
-import { parseGroupString } from "@/utils/bookmarkModifications";
-import { SortOption } from "@/utils/mediaSorting";
-import { MediaItem } from "@/utils/mediaTypes";
+import { parseGroupString } from "@/utils/media/bookmarkModifications";
+import { SortOption } from "@/utils/media/mediaSorting";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { getList, sortMedia } from "./utils";
 import { OptionItem } from "@/components/form/Dropdown";

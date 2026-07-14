@@ -7,7 +7,7 @@ import {
 import { MWMediaType } from "@/backend/metadata/types/mw";
 import { TMDBContentTypes } from "@/backend/metadata/types/tmdb";
 import { BookmarkStoreData } from "@/stores/__old/bookmark/types";
-import { isNotNull } from "@/utils/typeguard";
+import { isNotNull } from "@/utils/common/typeguard";
 
 import { WatchedStoreData } from "../types";
 

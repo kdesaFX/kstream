@@ -12,7 +12,7 @@ import { WatchedMediaCard } from "@/components/media/WatchedMediaCard";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/pages/About";
 import { SearchLoadingPart } from "@/pages/parts/search/SearchLoadingPart";
-import { MediaItem } from "@/utils/mediaTypes";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 function SearchSuffix(props: { failed?: boolean; results?: number }) {
   const { t } = useTranslation();

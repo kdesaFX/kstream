@@ -11,7 +11,7 @@ import {
   ShortcutId,
   getKeyDisplayName,
   getModifierSymbol,
-} from "@/utils/keyboardShortcuts";
+} from "@/utils/browser/keyboardShortcuts";
 
 interface KeyboardShortcut {
   key: string;

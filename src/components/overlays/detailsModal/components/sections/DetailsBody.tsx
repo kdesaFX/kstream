@@ -9,6 +9,7 @@ import { IconPatch } from "@/components/buttons/IconPatch";
 import { GroupDropdown } from "@/components/form/GroupDropdown";
 import { Icon, Icons } from "@/components/Icon";
 import { MediaBookmarkButton } from "@/components/media/MediaBookmark";
+import { MediaRatingCapsule } from "@/components/media/MediaRatingCapsule";
 import { useBookmarkStore } from "@/stores/bookmarks";
 
 import { DetailsBodyProps } from "../../types";
@@ -231,6 +232,18 @@ export function DetailsBody({
             </span>
           </Button>
           <div className="flex items-center gap-1 flex-shrink-0">
+            <MediaRatingCapsule
+              media={{
+                tmdbId: data.id?.toString() || "",
+                title: data.title,
+                year: data.releaseDate
+                  ? new Date(data.releaseDate).getFullYear()
+                  : undefined,
+                poster: data.posterUrl,
+                type: data.type || "movie",
+                genreIds: data.genres?.map((g) => g.id),
+              }}
+            />
             <MediaBookmarkButton
               media={{
                 id: data.id?.toString() || "",

@@ -4,8 +4,8 @@ import { useInterval } from "react-use";
 import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { useTraktAuthStore } from "@/stores/trakt/store";
-import { traktService } from "@/utils/trakt";
-import { TraktContentData } from "@/utils/traktTypes";
+import { traktService } from "@/utils/services/trakt";
+import { TraktContentData } from "@/utils/services/traktTypes";
 
 export function TraktScrobbler() {
   const { accessToken } = useTraktAuthStore();

@@ -2,7 +2,7 @@ import { t } from "i18next";
 
 import { PROVIDER_TO_IMAGE_MAP } from "@/backend/metadata/traktApi";
 import { Icon, Icons } from "@/components/Icon";
-import { getRTIcon } from "@/utils/rottenTomatoesScraper";
+import { getRTIcon } from "@/utils/services/rottenTomatoesScraper";
 
 import { DetailsRatingsProps } from "../../types";
 

@@ -4,8 +4,8 @@ import { useInterval } from "react-use";
 import { getPosterForMedia } from "@/backend/metadata/tmdb";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useSimklAuthStore } from "@/stores/simkl/store";
-import { simklService } from "@/utils/simkl";
-import { SimklContentData, SimklSyncItem } from "@/utils/simklTypes";
+import { simklService } from "@/utils/services/simkl";
+import { SimklContentData, SimklSyncItem } from "@/utils/services/simklTypes";
 
 const SIMKL_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 min
 const INITIAL_SYNC_DELAY_MS = 2000;

@@ -3,7 +3,7 @@ import React, { useRef } from "react";
 import { MediaCard } from "@/components/media/MediaCard";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { DiscoverMedia } from "@/pages/discover/types/discover";
-import { MediaItem } from "@/utils/mediaTypes";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
 import { usePersonalRecommendations } from "../hooks/usePersonalRecommendations";

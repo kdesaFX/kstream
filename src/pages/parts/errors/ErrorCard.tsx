@@ -8,7 +8,7 @@ import { DisplayError } from "@/components/player/display/displayInterface";
 import {
   formatErrorDebugInfo,
   gatherErrorDebugInfo,
-} from "@/utils/errorDebugInfo";
+} from "@/utils/browser/errorDebugInfo";
 
 type AnyError = DisplayError | string | Error;
 

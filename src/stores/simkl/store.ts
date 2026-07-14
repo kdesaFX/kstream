@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
-import { SimklUser } from "@/utils/simklTypes";
+import { SimklUser } from "@/utils/services/simklTypes";
 
 export type SimklStatus = "idle" | "syncing";
 

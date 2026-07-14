@@ -13,7 +13,7 @@ import { PlayerMeta } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
-import { isAutoplayAllowed } from "@/utils/autoplay";
+import { isAutoplayAllowed } from "@/utils/media/autoplay";
 
 import { hasAired } from "../utils/aired";
 

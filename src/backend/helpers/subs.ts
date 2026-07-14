@@ -3,7 +3,7 @@ import { list } from "subsrt-ts";
 import { proxiedFetch } from "@/backend/helpers/fetch";
 import { convertSubtitlesToSrt } from "@/components/player/utils/captions";
 import { CaptionListItem } from "@/stores/player/slices/source";
-import { SimpleCache } from "@/utils/cache";
+import { SimpleCache } from "@/utils/common/cache";
 
 import {
   isExtensionActiveCached,

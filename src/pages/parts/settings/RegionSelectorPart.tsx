@@ -1,5 +1,5 @@
 import { Dropdown } from "@/components/form/Dropdown";
-import { Region, useRegionStore } from "@/utils/detectRegion";
+import { Region, useRegionStore } from "@/utils/locale/detectRegion";
 
 export function RegionSelectorPart() {
   const { region, setRegion } = useRegionStore();

@@ -21,6 +21,8 @@ import { TipJarModal } from "@/components/overlays/tipJarModal";
 import { SimklAuthHandler } from "@/components/SimklAuthHandler";
 import { TraktAuthHandler } from "@/components/TraktAuthHandler";
 import { UpdateNotice } from "@/components/UpdateNotice";
+import { SimklAuthHandler } from "@/components/auth/SimklAuthHandler";
+import { TraktAuthHandler } from "@/components/auth/TraktAuthHandler";
 import { useGlobalKeyboardEvents } from "@/hooks/useGlobalKeyboardEvents";
 import { useOnlineListener } from "@/hooks/usePing";
 import { AboutPage } from "@/pages/About";
@@ -48,6 +50,7 @@ import { OnboardingProxyPage } from "@/pages/onboarding/OnboardingProxy";
 import { PasPage } from "@/pages/Pas";
 import { RegisterPage } from "@/pages/Register";
 import { SupportPage } from "@/pages/Support";
+import { MyAlgorithmPage } from "@/pages/algorithm/MyAlgorithm";
 import { WatchHistory } from "@/pages/watchHistory/WatchHistory";
 import { Layout } from "@/setup/Layout";
 import { useHistoryListener } from "@/stores/history";
@@ -194,6 +197,7 @@ function App() {
       <DetailsModal id="details" />
       <DetailsModal id="discover-details" />
       <DetailsModal id="player-details" />
+      {/* DebugFab: dev-only floating panel (cookie/ratings/local-data resets) */}
       {!showDowntime && (
         <Routes>
           {/* functional routes */}
@@ -267,6 +271,7 @@ function App() {
           <Route path="/person/:id" element={<PersonView />} />
           {/* Watch History page */}
           <Route path="/watch-history" element={<WatchHistory />} />
+          <Route path="/algorithm" element={<MyAlgorithmPage />} />
           {/* Settings page */}
           <Route
             path="/settings"

@@ -36,7 +36,7 @@ import { SimklBookmarkSyncer } from "@/stores/simkl/SimklBookmarkSyncer";
 import { SimklHistorySyncer } from "@/stores/simkl/SimklHistorySyncer";
 import { TraktScrobbler } from "@/stores/trakt/TraktScrobbler";
 import { WatchHistorySyncer } from "@/stores/watchHistory/WatchHistorySyncer";
-import { detectRegion, useRegionStore } from "@/utils/detectRegion";
+import { detectRegion, useRegionStore } from "@/utils/locale/detectRegion";
 
 import {
   extensionInfo,

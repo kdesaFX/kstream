@@ -4,16 +4,16 @@ import { useInterval } from "react-use";
 import { getPosterForMedia } from "@/backend/metadata/tmdb";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useTraktAuthStore } from "@/stores/trakt/store";
-import { traktService } from "@/utils/trakt";
-import { TraktContentData } from "@/utils/traktTypes";
+import { traktService } from "@/utils/services/trakt";
+import { TraktContentData } from "@/utils/services/traktTypes";
 
 const TRAKT_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 min
 const INITIAL_SYNC_DELAY_MS = 2000; // Re-sync after backend restore
 const QUEUE_RETRY_DELAY_MS = 5000; // Retry failed queue items after 5s
 
 // Collections/groups sync disabled for now - bookmarks only sync to watchlist
-// import { modifyBookmarks } from "@/utils/bookmarkModifications";
-// import { TraktList } from "@/utils/traktTypes";
+// import { modifyBookmarks } from "@/utils/media/bookmarkModifications";
+// import { TraktList } from "@/utils/services/traktTypes";
 // function listId(list: TraktList): string {
 //   return list.ids.slug ?? String(list.ids.trakt);
 // }

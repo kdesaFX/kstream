@@ -8,7 +8,7 @@ import { Icon, Icons } from "@/components/Icon";
 import { Box } from "@/components/layout/Box";
 import { Divider } from "@/components/utils/Divider";
 import { Heading2 } from "@/components/utils/Text";
-import { getM3U8ProxyUrls } from "@/utils/proxyUrls";
+import { getM3U8ProxyUrls } from "@/utils/hosting/proxyUrls";
 
 export function M3U8ProxyItem(props: {
   name: string;

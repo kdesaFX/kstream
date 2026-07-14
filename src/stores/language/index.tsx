@@ -5,7 +5,7 @@ import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
 import i18n from "@/setup/i18n";
-import { getLocaleInfo } from "@/utils/language";
+import { getLocaleInfo } from "@/utils/locale/language";
 
 export interface LanguageStore {
   language: string;

@@ -1,7 +1,7 @@
 import merge from "lodash.merge";
 import { createTheme } from "./types";
 import { defaultTheme } from "./default";
-import { colorToRgbString } from "../src/utils/color";
+import { colorToRgbString } from "../src/utils/format/color";
 import { allThemes } from "./all";
 
 const availableThemes = [

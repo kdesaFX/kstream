@@ -16,7 +16,7 @@ import { SubPageLayout } from "@/pages/layouts/SubPageLayout";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { useProgressStore } from "@/stores/progress";
 import { shouldShowProgress } from "@/stores/progress/utils";
-import { MediaItem } from "@/utils/mediaTypes";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 interface WatchHistoryProps {
   onShowDetails?: (media: MediaItem) => void;

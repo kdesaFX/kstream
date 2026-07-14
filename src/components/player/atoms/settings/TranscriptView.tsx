@@ -15,7 +15,7 @@ import {
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { usePlayerStore } from "@/stores/player/store";
 import { useSubtitleStore } from "@/stores/subtitles";
-import { durationExceedsHour, formatSeconds } from "@/utils/formatSeconds";
+import { durationExceedsHour, formatSeconds } from "@/utils/format/formatSeconds";
 
 import { wordOverrides } from "../../Player";
 

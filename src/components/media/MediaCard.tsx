@@ -21,8 +21,8 @@ import { usePreferencesStore } from "@/stores/preferences";
 import {
   createGroupString,
   parseGroupString,
-} from "@/utils/bookmarkModifications";
-import { MediaItem } from "@/utils/mediaTypes";
+} from "@/utils/media/bookmarkModifications";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { MediaBookmarkButton } from "./MediaBookmark";
 import { IconPatch } from "../buttons/IconPatch";

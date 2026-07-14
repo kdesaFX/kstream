@@ -60,21 +60,21 @@ jobs:
           VITE_TRAKT_CLIENT_SECRET: ${{ secrets.VITE_TRAKT_CLIENT_SECRET }}
           VITE_TRAKT_REDIRECT_URI: ${{ secrets.VITE_TRAKT_REDIRECT_URI }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL }}
-          VITE_ENABLE_HOME_AD: "false"
-          VITE_HOME_AD_ZONE_ID: "11471906"
-          VITE_ENABLE_SECONDARY_AD: "false"
-          VITE_SECONDARY_AD_ZONE_ID: "11471918"
-          VITE_ENABLE_BOOKMARKS_AD: "false"
+          VITE_ENABLE_HOME_AD: "true"
+          VITE_HOME_AD_ZONE_ID: "11283226"
+          VITE_ENABLE_SECONDARY_AD: "true"
+          VITE_SECONDARY_AD_ZONE_ID: "11283340"
+          VITE_ENABLE_BOOKMARKS_AD: "true"
           VITE_PRIMARY_BANNER_GIF: "true"
           VITE_PRIMARY_BANNER_GIF_LINK: "https://i.ibb.co/Mk3BfjG2/undefined-Imgur-ezgif-com-optimize-1.gif"
           VITE_PRIMARY_BANNER_GIF_URL: "https://clixou.com/"
-          VITE_BOOKMARKS_AD_ZONE_ID: "11478966"
+          VITE_BOOKMARKS_AD_ZONE_ID: "11283340"
           VITE_ENABLE_POPUNDER: "false"
           VITE_POPUNDER_SCRIPT_URL: "https://ub.fizzledesire.com/rkI2bQVMeQg1IJP/JLeVW"
           VITE_POPUNDER_COOLDOWN_HOURS: "2"
           VITE_ENABLE_RYBBIT: "true"
           VITE_RYBBIT_SCRIPT_URL: ${{ vars.VITE_RYBBIT_SCRIPT_URL }}
-          VITE_RYBBIT_SITE_ID: ${{ vars.VITE_RYBBIT_SITE_ID }}
+          VITE_RYBBIT_SITE_ID: "de683ab9c45a"
           VITE_USE_SIMKL: "true"
           VITE_SIMKL_CLIENT_ID: "ba3e36f42507238bc3466a995763505b0cf4407953f286e09935c51bf3347ebc"
           VITE_SIMKL_CLIENT_SECRET: ${{ secrets.VITE_SIMKL_CLIENT_SECRET }}
@@ -87,5 +87,14 @@ jobs:
       - name: Deploy to VPS
         run: |
           tar -czf /tmp/dist.tar.gz -C dist .
-          scp /tmp/dist.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/p-stream/dist.tar.gz
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/p-stream && rm -rf dist && mkdir dist && tar -xzf dist.tar.gz -C dist && rm dist.tar.gz"
+          scp /tmp/dist.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/dist.tar.gz
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+            set -e
+            rm -rf /var/www/zstream.new && mkdir -p /var/www/zstream.new
+            tar -xzf /tmp/dist.tar.gz -C /var/www/zstream.new
+            rm -f /tmp/dist.tar.gz
+            rm -rf /var/www/zstream.old
+            mv /var/www/zstream /var/www/zstream.old
+            mv /var/www/zstream.new /var/www/zstream
+            rm -rf /var/www/zstream.old
+          "

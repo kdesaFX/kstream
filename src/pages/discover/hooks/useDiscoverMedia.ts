@@ -42,8 +42,8 @@ import type {
 } from "@/pages/discover/types/discover";
 import { conf } from "@/setup/config";
 import { useLanguageStore } from "@/stores/language";
-import { getTmdbLanguageCode } from "@/utils/language";
-import { detectUserLanguage, detectUserRegion } from "@/utils/userRegion";
+import { getTmdbLanguageCode } from "@/utils/locale/language";
+import { detectUserLanguage, detectUserRegion } from "@/utils/locale/userRegion";
 
 // Re-export types for backward compatibility
 export type {

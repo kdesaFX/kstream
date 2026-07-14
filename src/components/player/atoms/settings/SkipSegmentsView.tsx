@@ -9,7 +9,7 @@ import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
-import { formatSeconds } from "@/utils/formatSeconds";
+import { formatSeconds } from "@/utils/format/formatSeconds";
 
 export function SkipSegmentsView({ id }: { id: string }) {
   const { t } = useTranslation();

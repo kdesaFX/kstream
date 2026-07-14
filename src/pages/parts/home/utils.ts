@@ -1,7 +1,7 @@
 import { BookmarkMediaItem } from "@/stores/bookmarks";
 import { ProgressMediaItem } from "@/stores/progress";
-import { SortOption, sortMediaItems } from "@/utils/mediaSorting";
-import { MediaItem } from "@/utils/mediaTypes";
+import { SortOption, sortMediaItems } from "@/utils/media/mediaSorting";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 export type SortSections = SortOption;
 

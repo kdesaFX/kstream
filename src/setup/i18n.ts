@@ -2,7 +2,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
 import { locales } from "@/assets/languages";
-import { getLocaleInfo } from "@/utils/language";
+import { getLocaleInfo } from "@/utils/locale/language";
 
 // Languages
 const langCodes = Object.keys(locales);

@@ -1,6 +1,6 @@
 import classNames from "classnames";
 
-import { getCountryCodeForLocale } from "@/utils/language";
+import { getCountryCodeForLocale } from "@/utils/locale/language";
 import "flag-icons/css/flag-icons.min.css";
 
 export interface FlagIconProps {

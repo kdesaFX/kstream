@@ -5,7 +5,7 @@ import { makeExtensionFetcher } from "@/backend/providers/fetchers";
 import { useAuthStore } from "@/stores/auth";
 import { useLanguageStore } from "@/stores/language";
 
-import { getTmdbLanguageCode } from "./language";
+import { getTmdbLanguageCode } from "@/utils/locale/language";
 
 // IMDb language code mapping (differs from TMDB format)
 // Map from ISO language code to IMDb language parameter

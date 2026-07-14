@@ -9,7 +9,7 @@ import {
   BulkGroupModificationOptions,
   modifyBookmarks,
   modifyBookmarksByGroup,
-} from "@/utils/bookmarkModifications";
+} from "@/utils/media/bookmarkModifications";
 
 export interface BookmarkMediaItem {
   title: string;

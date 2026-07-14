@@ -12,7 +12,7 @@ import {
   TraktUser,
   TraktWatchedItem,
   TraktWatchlistItem,
-} from "@/utils/traktTypes";
+} from "@/utils/services/traktTypes";
 
 // Storage keys
 export const TRAKT_API_URL = "https://api.trakt.tv";

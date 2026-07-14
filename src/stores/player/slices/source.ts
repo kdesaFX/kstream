@@ -11,7 +11,7 @@ import {
 import { useQualityStore } from "@/stores/quality";
 import googletranslate from "@/utils/translation/googletranslate";
 import { translate } from "@/utils/translation/index";
-import { ValuesOf } from "@/utils/typeguard";
+import { ValuesOf } from "@/utils/common/typeguard";
 
 export const playerStatus = {
   IDLE: "idle",

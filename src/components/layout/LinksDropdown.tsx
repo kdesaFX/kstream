@@ -320,6 +320,9 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
           <DropdownLink href="/watch-history" icon={Icons.CLOCK}>
             {t("home.watchHistory.sectionTitle")}
           </DropdownLink>
+          <DropdownLink href="/algorithm" icon={Icons.WAND}>
+            {t("navigation.menu.algorithm")}
+          </DropdownLink>
           {process.env.NODE_ENV === "development" ? (
             <DropdownLink href="/dev" icon={Icons.COMPRESS}>
               {t("navigation.menu.development")}

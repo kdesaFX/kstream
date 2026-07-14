@@ -37,7 +37,7 @@ import { useAuthStore } from "@/stores/auth";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useSimklStore } from "@/stores/simkl/store";
 import { useTraktStore } from "@/stores/trakt/store";
-import { simklService } from "@/utils/simkl";
+import { simklService } from "@/utils/services/simkl";
 
 import { RegionSelectorPart } from "./RegionSelectorPart";
 

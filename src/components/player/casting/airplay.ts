@@ -1,4 +1,4 @@
-import { isSafari } from "@/utils/detectFeatures";
+import { isSafari } from "@/utils/browser/detectFeatures";
 
 // Minimal AirPlay wrapper. v1 scope: trigger the native picker on whatever
 // the local <video> element is already playing — no proxied-URL swap/restore

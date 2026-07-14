@@ -7,8 +7,8 @@ import {
   WatchHistoryItem,
   useWatchHistoryStore,
 } from "@/stores/watchHistory";
-import { simklService } from "@/utils/simkl";
-import { SimklContentData } from "@/utils/simklTypes";
+import { simklService } from "@/utils/services/simkl";
+import { SimklContentData } from "@/utils/services/simklTypes";
 
 const PROGRESS_THRESHOLD = 0.15; 
 const SIMKL_HISTORY_SYNC_INTERVAL_MS = 15 * 60 * 1000; // 15 min
