@@ -163,7 +163,15 @@ export function HomePage() {
   return (
     <HomeLayout showBg={showBg}>
       {!search && <DiscordNotice />}
-      <div className="mb-2">
+      <div className="relative mb-2">
+        {hasWideMargins && (
+          // Scoped to this hero container (not the viewport), so it scrolls
+          // away with the hero instead of chasing the page down like
+          // position:fixed would.
+          <div className="absolute right-6 top-2 z-10">
+            <HomeAd slot="secondary" />
+          </div>
+        )}
         <Helmet>
           <style type="text/css">{`
             html, body {
@@ -223,11 +231,6 @@ export function HomePage() {
       {/* User Content */}
       {!search && (
         <div>
-          {hasWideMargins && (
-            <div className="fixed right-6 top-24 z-10">
-              <HomeAd slot="secondary" />
-            </div>
-          )}
           {renderHomeSections()}
           {!hasWideMargins && (
             <div className="w-full flex justify-center my-6 px-4">
