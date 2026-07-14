@@ -207,30 +207,14 @@ export function HomePage() {
       )}
 
       {/* User Content */}
-      {!search && (() => {
-    
-        const hasSideContent =
-          !enableCarouselView && (showWatching || showBookmarks);
-        return (
-          <div className={hasSideContent ? "2xl:flow-root" : undefined}>
-            {hasSideContent && (
-              <div className="hidden 2xl:block 2xl:float-right 2xl:ml-6 2xl:mb-4 2xl:w-auto">
-                <HomeAd slot="secondary" />
-              </div>
-            )}
-            {renderHomeSections()}
-            <div
-              className={
-                hasSideContent
-                  ? "2xl:hidden w-full flex justify-center my-6 px-4"
-                  : "w-full flex justify-center my-6 px-4"
-              }
-            >
-              <HomeAd slot="secondary" />
-            </div>
+      {!search && (
+        <div>
+          {renderHomeSections()}
+          <div className="w-full flex justify-center my-6 px-4">
+            <HomeAd slot="secondary" />
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       {/* Under user content */}
       <WideContainer ultraWide classNames="!px-3 md:!px-9">
