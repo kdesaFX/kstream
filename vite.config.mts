@@ -1,15 +1,39 @@
+import fs from "fs";
+import path from "path";
+
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import loadVersion from "vite-plugin-package-version";
 import { VitePWA } from "vite-plugin-pwa";
 import checker from "vite-plugin-checker";
-import path from "path";
 import { handlebars } from "./plugins/handlebars";
 import { PluginOption, loadEnv, splitVendorChunkPlugin } from "vite";
 import { visualizer } from "rollup-plugin-visualizer";
 
 import tailwind from "tailwindcss";
 import rtl from "postcss-rtlcss";
+
+// Build id for the "new version available" update-notice: the deploying
+// GitHub Actions run's commit sha, so it changes on every real deploy.
+// package.json's version field doesn't get bumped per-deploy, so it can't be
+// used for this. Falls back to a timestamp for local/preview builds.
+const BUILD_ID = process.env.GITHUB_SHA || String(Date.now());
+
+// Emits dist/version.json with the same id the client is built against, so
+// a running tab can poll it and detect when a newer build has been deployed.
+function emitVersionJSON(): PluginOption {
+  return {
+    name: "emit-version-json",
+    apply: "build",
+    writeBundle(options) {
+      const dir = options.dir || "dist";
+      fs.writeFileSync(
+        path.join(dir, "version.json"),
+        JSON.stringify({ version: BUILD_ID }),
+      );
+    },
+  };
+}
 
 const captioningPackages = [
   "dompurify",
@@ -24,7 +48,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
   return {
     base: env.VITE_BASE_URL || "/",
+    define: {
+      __BUILD_ID__: JSON.stringify(BUILD_ID),
+    },
     plugins: [
+      emitVersionJSON(),
       handlebars({
         vars: {
           opensearchEnabled: env.VITE_OPENSEARCH_ENABLED === "true",

@@ -1,8 +1,14 @@
 {
   "discordNotice": {
     "title": "Join our Discord",
-    "description": "Get updates, the Windows app, help & chat with the community.",
+    "description": "Get help, Windows & Android app & chat with the community.",
     "join": "Join",
+    "dismiss": "Dismiss"
+  },
+  "updateNotice": {
+    "title": "A new version is available",
+    "description": "Refresh to get the latest version of Z-Stream.",
+    "refresh": "Refresh",
     "dismiss": "Dismiss"
   },
   "about": {
