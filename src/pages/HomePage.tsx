@@ -26,7 +26,6 @@ import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { Button } from "./About";
 import { AdsPart } from "./parts/home/AdsPart";
-import { DiscordNotice } from "./parts/home/DiscordNotice";
 import { HomeAd } from "./parts/home/HomeAd";
 import { SupportBar } from "./parts/home/SupportBar";
 import { ZliveNotice } from "./parts/home/ZliveNotice";
@@ -163,7 +162,6 @@ export function HomePage() {
 
   return (
     <HomeLayout showBg={showBg}>
-      {!search && <DiscordNotice />}
       {!search && <ZliveNotice />}
       <div className="relative mb-2">
         {hasWideMargins && (
