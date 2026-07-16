@@ -337,6 +337,9 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
               {t("navigation.menu.discover")}
             </DropdownLink>
           )}
+          <DropdownLink href="https://vidcodin.net" icon={Icons.LINK}>
+            {t("navigation.menu.freeEmbed")}
+          </DropdownLink>
           {backendSupportsWatchParty && <WatchPartyInputLink />}
           {deviceName ? (
             <DropdownLink
