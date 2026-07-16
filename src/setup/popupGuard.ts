@@ -26,13 +26,30 @@ function isWatchPagePath(pathname: string): boolean {
 export function installPopupGuard(): void {
   if (typeof window === "undefined") return;
   if (window.__zsPopupGuardInstalled) return;
-  window.__zsPopupGuardInstalled = true;
 
-  const nativeOpen = window.open.bind(window);
+  try {
+    const nativeOpen = window.open.bind(window);
 
-  window.open = ((...args: Parameters<typeof window.open>) => {
-    if (window.__zsPopupAllow) return nativeOpen(...args);
-    if (isWatchPagePath(window.location.pathname)) return null;
-    return nativeOpen(...args);
-  }) as typeof window.open;
+    const guarded = ((...args: Parameters<typeof window.open>) => {
+      if (window.__zsPopupAllow) return nativeOpen(...args);
+      if (isWatchPagePath(window.location.pathname)) return null;
+      return nativeOpen(...args);
+    }) as typeof window.open;
+
+    // window.open is a getter-only accessor in some browsers -- a plain
+    // `window.open = guarded` assignment throws "open is read-only" under
+    // strict mode (all ES modules are strict), which took the whole app
+    // down since this runs synchronously before React mounts. defineProperty
+    // works even when the original was accessor-defined, as long as it's
+    // configurable (which it is in every browser that matters here).
+    Object.defineProperty(window, "open", {
+      value: guarded,
+      writable: true,
+      configurable: true,
+    });
+    window.__zsPopupGuardInstalled = true;
+  } catch (err) {
+    // Never let a popup-guard install failure break the app.
+    console.warn("popupGuard: failed to install, skipping", err);
+  }
 }
