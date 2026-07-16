@@ -11,6 +11,10 @@ import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 import { MWMediaMeta, MWMediaType, MWSeasonMeta } from "./types/mw";
 import { getImdbEpisodes } from "./imdbMetadataProvider";
 import {
+  fetchValleyFallback,
+  resolveValleyFallbackTarget,
+} from "./valleyFallback";
+import {
   ExternalIdMovieSearchResult,
   TMDBContentTypes,
   TMDBCredits,
@@ -202,6 +206,34 @@ function abortOnTimeout(timeout: number): AbortSignal {
   return controller.signal;
 }
 
+
+async function raceWithValleyFallback<T>(
+  primary: Promise<T>,
+  target: Parameters<typeof fetchValleyFallback>[0],
+): Promise<T> {
+  const primaryOutcome = primary.then(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+
+  const timeout = new Promise<"timeout">((resolve) => {
+    setTimeout(() => resolve("timeout"), 5000);
+  });
+
+  const first = await Promise.race([primaryOutcome, timeout]);
+  if (first !== "timeout" && first.ok) {
+    return first.value;
+  }
+
+  try {
+    return await fetchValleyFallback<T>(target);
+  } catch (valleyErr) {
+    const outcome = await primaryOutcome;
+    if (outcome.ok) return outcome.value;
+    throw outcome.error;
+  }
+}
+
 let proxyRotationIndex = 0;
 
 function getNextProxy(proxyUrls: string[]): string | undefined {
@@ -271,21 +303,28 @@ export async function get<T>(url: string, params?: object): Promise<T> {
   }
 
   if (!result!) {
-    try {
-      result = await mwFetch<T>(encodeURI(url), {
-        headers: tmdbHeaders,
-        baseURL: tmdbBaseUrl1,
-        params: allParams,
-        signal: abortOnTimeout(5000),
-      });
-    } catch (err) {
-      result = await mwFetch<T>(encodeURI(url), {
-        headers: tmdbHeaders,
-        baseURL: tmdbBaseUrl2,
-        params: allParams,
-        signal: abortOnTimeout(30000),
-      });
-    }
+    const primaryAttempt = (async (): Promise<T> => {
+      try {
+        return await mwFetch<T>(encodeURI(url), {
+          headers: tmdbHeaders,
+          baseURL: tmdbBaseUrl1,
+          params: allParams,
+          signal: abortOnTimeout(5000),
+        });
+      } catch (err) {
+        return await mwFetch<T>(encodeURI(url), {
+          headers: tmdbHeaders,
+          baseURL: tmdbBaseUrl2,
+          params: allParams,
+          signal: abortOnTimeout(30000),
+        });
+      }
+    })();
+
+    const valleyTarget = resolveValleyFallbackTarget(url);
+    result = valleyTarget
+      ? await raceWithValleyFallback(primaryAttempt, valleyTarget)
+      : await primaryAttempt;
   }
 
   // Cache the result for 1 hour (3600 seconds)
