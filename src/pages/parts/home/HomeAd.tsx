@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import { Icon, Icons } from "@/components/Icon";
 
@@ -44,8 +45,15 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
   const [adState, setAdState] = useState<"loading" | "loaded" | "failed">(
     "loading",
   );
+  const location = useLocation();
+  const isWatchPage = location.pathname.startsWith("/media/");
 
   useEffect(() => {
+
+    if (isWatchPage) {
+      setAdState("failed");
+      return;
+    }
     const container = containerRef.current;
     if (!container) return;
 
@@ -68,7 +76,7 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
       observer.disconnect();
       clearTimeout(timeout);
     };
-  }, [cfg.zoneId, cfg.width, cfg.height]);
+  }, [cfg.zoneId, cfg.width, cfg.height, isWatchPage]);
 
   if (adState === "failed") return null;
 

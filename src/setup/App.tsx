@@ -12,6 +12,7 @@ import {
 import { convertLegacyUrl, isLegacyUrl } from "@/backend/metadata/getmeta";
 import { generateQuickSearchMediaUrl } from "@/backend/metadata/tmdb";
 import { DetailsModal } from "@/components/overlays/detailsModal";
+import { DownloadModal } from "@/components/overlays/downloadModal";
 import { GamepadControlsModal } from "@/components/overlays/GamepadControlsModal";
 import { KeyboardCommandsEditModal } from "@/components/overlays/KeyboardCommandsEditModal";
 import { KeyboardCommandsModal } from "@/components/overlays/KeyboardCommandsModal";
@@ -119,6 +120,8 @@ function App() {
   useOnlineListener();
   useGlobalKeyboardEvents();
   useClearModalsOnNavigation();
+  const location = useLocation();
+  const isWatchPage = location.pathname.startsWith("/media/");
   const maintenance = false; // Shows maintance page
   const [showDowntime, setShowDowntime] = useState(maintenance);
 
@@ -136,6 +139,9 @@ function App() {
   }, []);
 
   useEffect(() => {
+    // Never load ad scripts while actively watching -- a popunder firing
+    // mid-playback is exactly the kind of thing that tanks retention.
+    if (isWatchPage) return;
     const cfg = conf();
     if (!cfg.ENABLE_POPUNDER || !cfg.POPUNDER_SCRIPT_URL) return;
     if (typeof document === "undefined") return;
@@ -188,6 +194,7 @@ function App() {
       <UpdateNotice />
       <NotificationModal id="notifications" />
       <TipJarModal id="tip-jar" />
+      <DownloadModal id="download" />
       <KeyboardCommandsModal id="keyboard-commands" />
       <KeyboardCommandsEditModal id="keyboard-commands-edit" />
       <GamepadControlsModal id="gamepad-controls-edit" />
