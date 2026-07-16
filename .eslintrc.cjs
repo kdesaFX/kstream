@@ -131,6 +131,7 @@ module.exports = {
       "arrow-body-style": "off",
       "padded-blocks": "off",
       "object-curly-spacing": "off",
+    "react-hooks/exhaustive-deps": "off",
       "array-bracket-spacing": "off",
       "object-curly-newline": "off",
       "operator-linebreak": "off",
