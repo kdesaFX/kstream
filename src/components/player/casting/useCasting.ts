@@ -13,31 +13,37 @@ import {
   onChromecastConnectionChange,
   requestChromecastSession,
 } from "@/components/player/casting/chromecastSession";
-import {
-  createM3U8ProxyUrl,
-  createMP4ProxyUrl,
-  isUrlAlreadyProxied,
-} from "@/components/player/utils/proxy";
 import { usePlayerStore } from "@/stores/player/store";
 import { selectQuality } from "@/stores/player/utils/qualities";
 import { useQualityStore } from "@/stores/quality";
-import { processCdnLink } from "@/utils/hosting/cdn";
 
 export type CastType = "chromecast" | "airplay" | null;
 
-// Casting lives entirely outside usePlayerStore's AllSlices on purpose — see
+// Casting lives entirely outside usePlayerStore's AllSlices on purpose -- see
 // the plan notes on why the old CastingSlice + DisplayInterface-swap design
 // made a real bug impossible to isolate. This hook is the only place casting
 // state exists; the local <video> element is simply paused while casting,
 // never torn down or replaced.
+//
+// The Chromecast receiver is handed the exact same URL the local player
+// itself resolved to -- whatever selectQuality() picked, unmodified. No
+// proxy-URL reconstruction, no client-side manifest fetch-and-embed. The
+// receiver fetches it directly, same as any other HLS client. A source
+// whose URL genuinely isn't reachable/CORS-correct from the receiver's
+// origin will fail to cast -- that's a real problem with the source, and
+// working around it client-side (the previous approach) only hid it behind
+// a silent "connects, then nothing happens" failure instead of fixing it.
 export function useCasting() {
   const [chromecastAvailable, setChromecastAvailable] = useState(false);
   const [chromecastConnected, setChromecastConnected] = useState(false);
   const [airplayConnected, setAirplayConnected] = useState(false);
+  const [castError, setCastError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const source = usePlayerStore((s) => s.source);
   const meta = usePlayerStore((s) => s.meta);
   const display = usePlayerStore((s) => s.display);
+  const currentTime = usePlayerStore((s) => s.progress.time);
 
   useEffect(() => {
     initChromecast();
@@ -49,70 +55,40 @@ export function useCasting() {
     [],
   );
 
-  // Re-subscribe whenever the local video element is (re)created — it shares
+  // Re-subscribe whenever the local video element is (re)created -- it shares
   // a lifecycle with `display` (both are recreated by VideoContainer).
   useEffect(() => onAirplayConnectionChange(setAirplayConnected), [display]);
 
-  useEffect(() => {
-    if (!chromecastConnected || !source) return;
-    let cancelled = false;
-
-    void (async () => {
+  async function startChromecast() {
+    if (!source) return;
+    setCastError(null);
+    setIsConnecting(true);
+    try {
+      const session = await requestChromecastSession();
       const qualityPreferences = useQualityStore.getState().quality;
       const { stream } = selectQuality(source, qualityPreferences);
+      const contentType =
+        stream.type === "hls" ? "application/x-mpegurl" : "video/mp4";
 
-      let contentUrl = processCdnLink(stream.url);
-      let contentType = "video/mp4";
-      const allHeaders = { ...stream.preferredHeaders, ...stream.headers };
-      const hasHeaders = Object.keys(allHeaders).length > 0;
-
-      if (stream.type === "hls") {
-        contentType = "application/x-mpegurl";
-        if (!isUrlAlreadyProxied(stream.url) && hasHeaders) {
-          contentUrl = createM3U8ProxyUrl(stream.url, allHeaders);
-        } else {
-          // Bypass artemis entirely for the manifest itself: fetch the
-          // already-resolved single-variant media playlist (real CDN segment
-          // URLs, no further artemis references — confirmed live) client-side
-          // — this browser tab can fetch it fine since local playback already
-          // works — then hand Chromecast a self-contained data: URI instead
-          // of an https://artemis.fontaine.lol/... URL. Whatever was blocking
-          // the receiver's own fetch to artemis (still unconfirmed — not
-          // artemis's app logic itself, no matching log line server-side)
-          // never gets a chance to matter, since the receiver never contacts
-          // artemis at all: it decodes the manifest locally and streams
-          // segments straight from hls-aws.shegu.net.
-          const resolvedUrl =
-            display?.getResolvedVariantUrl?.() ?? contentUrl;
-          try {
-            const res = await fetch(resolvedUrl);
-            const text = await res.text();
-            if (cancelled) return;
-            const b64 = btoa(String.fromCodePoint(...new TextEncoder().encode(text)));
-            contentUrl = `data:application/vnd.apple.mpegurl;base64,${b64}`;
-          } catch {
-            // Fetch failed — fall back to handing Chromecast the plain URL
-            // (old behavior) rather than blocking the cast entirely.
-            contentUrl = resolvedUrl;
-          }
-        }
-      } else if (hasHeaders) {
-        contentUrl = createMP4ProxyUrl(stream.url, allHeaders);
-      }
-
-      if (cancelled) return;
-      loadChromecastMedia({
-        url: contentUrl,
+      await loadChromecastMedia(session, {
+        url: stream.url,
         contentType,
         title: meta?.title,
+        currentTime,
       });
       display?.pause();
-    })();
+    } catch (err) {
+      console.warn("Chromecast cast failed:", err);
+      setCastError(err instanceof Error ? err.message : "Failed to cast");
+    } finally {
+      setIsConnecting(false);
+    }
+  }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [chromecastConnected, source, meta, display]);
+  function stop() {
+    if (chromecastConnected) endChromecastSession();
+    setCastError(null);
+  }
 
   const isCasting = chromecastConnected || airplayConnected;
   const castType: CastType = chromecastConnected
@@ -123,13 +99,13 @@ export function useCasting() {
 
   return {
     isCasting,
+    isConnecting,
     castType,
+    castError,
     chromecastAvailable,
     airplayAvailable: isAirplayAvailable(),
-    startChromecast: requestChromecastSession,
+    startChromecast,
     startAirplay: triggerAirplayPicker,
-    stop: () => {
-      if (chromecastConnected) endChromecastSession();
-    },
+    stop,
   };
 }

@@ -1,9 +1,11 @@
 /// <reference types="chromecast-caf-sender" />
 
-// Minimal Chromecast wrapper. Unlike the previous implementation, casting is
-// NOT a DisplayInterface that gets swapped into the player store — it's a
-// standalone side-channel with its own tiny state, so it can never again leak
-// into the generic event bus that every other player feature depends on.
+// Chromecast wrapper. requestChromecastSession()/loadChromecastMedia() are
+// both promise-driven off the SDK's own async APIs -- no polling/retry loop
+// guessing when a session or media load is "ready". The previous
+// implementation's retry loop existed to paper over a race that doesn't
+// actually exist: CastContext.requestSession()'s own promise resolving IS
+// the signal that getCurrentSession() is populated.
 
 const CHROMECAST_SENDER_SDK =
   "https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1";
@@ -36,7 +38,7 @@ function setupContext() {
   if (!(window as any).cast?.framework) return;
   context = cast.framework.CastContext.getInstance();
 
-  // AutoJoinPolicy lives on chrome.cast, not cast.framework — the type defs
+  // AutoJoinPolicy lives on chrome.cast, not cast.framework -- the type defs
   // don't expose it off cast.framework despite that being the SDK's own
   // namespace for CastOptions.
   const options: cast.framework.CastOptions = {
@@ -89,8 +91,15 @@ export function isChromecastConnected() {
   return !!player?.isConnected;
 }
 
-export function requestChromecastSession() {
-  context?.requestSession().catch(() => {});
+// Resolves once the device is actually connected and a session exists --
+// callers can go straight from this to loadChromecastMedia without any
+// separate wait/poll step.
+export async function requestChromecastSession(): Promise<cast.framework.CastSession> {
+  if (!context) throw new Error("Chromecast SDK not available yet");
+  await context.requestSession();
+  const session = context.getCurrentSession();
+  if (!session) throw new Error("Chromecast session did not start");
+  return session;
 }
 
 export function endChromecastSession() {
@@ -101,9 +110,18 @@ export interface ChromecastMediaOptions {
   url: string;
   contentType: string;
   title?: string;
+  currentTime?: number;
 }
 
-export function loadChromecastMedia(ops: ChromecastMediaOptions) {
+// Loads media on an already-connected session. No data: URI embedding, no
+// manifest pre-fetching, no retry loop -- the receiver gets the exact same
+// URL the local player itself resolved and fetches it directly, same as any
+// other HLS client would. Throws on failure instead of swallowing it so the
+// caller can surface a real error instead of a silently-stuck spinner.
+export async function loadChromecastMedia(
+  session: cast.framework.CastSession,
+  ops: ChromecastMediaOptions,
+) {
   const metaData = new chrome.cast.media.GenericMediaMetadata();
   if (ops.title) metaData.title = ops.title;
 
@@ -113,34 +131,7 @@ export function loadChromecastMedia(ops: ChromecastMediaOptions) {
 
   const request = new chrome.cast.media.LoadRequest(mediaInfo);
   request.autoplay = true;
+  if (ops.currentTime) request.currentTime = ops.currentTime;
 
-  doLoadMedia(request);
-}
-
-// context?.getCurrentSession() can briefly return null right after
-// IS_CONNECTED_CHANGED fires — the session object attaches to CastContext a
-// tick or two later — and even once present, loadMedia() can reject with
-// SESSION_ERROR for a moment after connecting, before the receiver has
-// actually finished settling. Both are real, previously-confirmed races (not
-// hypothetical): dropping this retry loop in an earlier rewrite reproduced
-// the exact "connects, then nothing happens" symptom. Retry for a couple
-// seconds before giving up loudly instead of silently.
-function doLoadMedia(request: chrome.cast.media.LoadRequest, attempt = 0) {
-  const session = context?.getCurrentSession();
-  if (!session) {
-    if (attempt >= 20) {
-      console.warn("Chromecast load failed: no active session after retries");
-      return;
-    }
-    setTimeout(() => doLoadMedia(request, attempt + 1), 100);
-    return;
-  }
-  session.loadMedia(request).catch((err: unknown) => {
-    const code = (err as any)?.code;
-    if (code === "session_error" && attempt < 20) {
-      setTimeout(() => doLoadMedia(request, attempt + 1), 250);
-      return;
-    }
-    console.warn("Chromecast load failed:", err);
-  });
+  await session.loadMedia(request);
 }
