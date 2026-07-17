@@ -785,7 +785,9 @@
     "casting": {
       "to": "Casting to {{device}} 📺",
       "device": "device",
-      "enabled": "Casting to device 🎬"
+      "enabled": "Casting to device 🎬",
+      "connecting": "Connecting to device…",
+      "failed": "Couldn't cast this source"
     },
     "menus": {
       "downloads": {
