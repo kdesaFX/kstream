@@ -145,32 +145,16 @@ function App() {
     const cfg = conf();
     if (!cfg.ENABLE_POPUNDER || !cfg.POPUNDER_SCRIPT_URL) return;
     if (typeof document === "undefined") return;
-    if (document.querySelector("script[data-popunder]")) return;
-
-    const KEY = "__pu_last";
-    const cooldownMs = 2 * 60 * 60 * 1000;
-
-    try {
-      const last = parseInt(localStorage.getItem(KEY) ?? "0", 10);
-      if (Number.isFinite(last) && last > 0 && Date.now() - last < cooldownMs) {
-        return;
-      }
-    } catch {
-      /* ignore */
-    }
+    // Dedupe within this page session only (no cross-session cooldown --
+    // a stale localStorage timestamp from an earlier script/URL used to
+    // silently suppress this for up to 2h with nothing to show for it).
+    if (document.querySelector("script[data-pu-tag]")) return;
 
     const s = document.createElement("script");
     s.src = cfg.POPUNDER_SCRIPT_URL;
     s.async = true;
     s.setAttribute("data-cfasync", "false");
-    s.dataset.popunder = "1";
-    s.addEventListener("load", () => {
-      try {
-        localStorage.setItem(KEY, String(Date.now()));
-      } catch {
-        /* ignore */
-      }
-    });
+    s.dataset.puTag = "1";
     document.head.appendChild(s);
   }, []);
 
