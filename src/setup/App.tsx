@@ -139,22 +139,21 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Never load ad scripts while actively watching -- a popunder firing
-    // mid-playback is exactly the kind of thing that tanks retention.
+    
     if (isWatchPage) return;
     const cfg = conf();
     if (!cfg.ENABLE_POPUNDER || !cfg.POPUNDER_SCRIPT_URL) return;
     if (typeof document === "undefined") return;
-    // Dedupe within this page session only (no cross-session cooldown --
-    // a stale localStorage timestamp from an earlier script/URL used to
-    // silently suppress this for up to 2h with nothing to show for it).
-    if (document.querySelector("script[data-pu-tag]")) return;
+   
+    if (document.querySelector(`script[src="${cfg.POPUNDER_SCRIPT_URL}"]`)) {
+      return;
+    }
 
     const s = document.createElement("script");
-    s.src = cfg.POPUNDER_SCRIPT_URL;
-    s.async = true;
     s.setAttribute("data-cfasync", "false");
-    s.dataset.puTag = "1";
+    s.async = true;
+    s.type = "text/javascript";
+    s.src = cfg.POPUNDER_SCRIPT_URL;
     document.head.appendChild(s);
   }, []);
 

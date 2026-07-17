@@ -23,7 +23,6 @@ import { MigrationPart } from "@/pages/parts/migrations/MigrationPart";
 import { LargeTextPart } from "@/pages/parts/util/LargeTextPart";
 import App from "@/setup/App";
 import { conf } from "@/setup/config";
-import { installPopupGuard } from "@/setup/popupGuard";
 import { useAuthStore } from "@/stores/auth";
 import { BookmarkSyncer } from "@/stores/bookmarks/BookmarkSyncer";
 import { GroupSyncer } from "@/stores/groupOrder/GroupSyncer";
@@ -65,7 +64,6 @@ try {
 
 // initialize
 initializeImageFadeIn();
-installPopupGuard();
 
 function LoadingScreen(props: { type: "user" | "lazy" }) {
   const mapping = {
