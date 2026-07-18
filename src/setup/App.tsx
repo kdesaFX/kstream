@@ -52,6 +52,7 @@ import { SupportPage } from "@/pages/Support";
 import { MyAlgorithmPage } from "@/pages/algorithm/MyAlgorithm";
 import { WatchHistory } from "@/pages/watchHistory/WatchHistory";
 import { Layout } from "@/setup/Layout";
+import { useAdsStore } from "@/stores/ads";
 import { useHistoryListener } from "@/stores/history";
 import { useClearModalsOnNavigation } from "@/stores/interface/overlayStack";
 import { LanguageProvider } from "@/stores/language";
@@ -124,6 +125,7 @@ function App() {
   const isWatchPage = location.pathname.startsWith("/media/");
   const maintenance = false; // Shows maintance page
   const [showDowntime, setShowDowntime] = useState(maintenance);
+  const adsDisabled = useAdsStore((s) => s.adsDisabled);
 
   useEffect(() => {
     const cfg = conf();
@@ -139,12 +141,13 @@ function App() {
   }, []);
 
   useEffect(() => {
-    
+
     if (isWatchPage) return;
+    if (adsDisabled) return;
     const cfg = conf();
     if (!cfg.ENABLE_POPUNDER || !cfg.POPUNDER_SCRIPT_URL) return;
     if (typeof document === "undefined") return;
-   
+
     if (document.querySelector(`script[src="${cfg.POPUNDER_SCRIPT_URL}"]`)) {
       return;
     }
@@ -155,7 +158,7 @@ function App() {
     s.type = "text/javascript";
     s.src = cfg.POPUNDER_SCRIPT_URL;
     document.head.appendChild(s);
-  }, []);
+  }, [adsDisabled]);
 
   const handleButtonClick = () => {
     setShowDowntime(false);
