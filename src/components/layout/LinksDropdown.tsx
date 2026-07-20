@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 import { conf } from "@/setup/config";
+import { openWindowSafely } from "@/setup/popupGuard";
 import { useAuthStore } from "@/stores/auth";
 import { usePreferencesStore } from "@/stores/preferences";
 
@@ -32,7 +33,7 @@ function GoToLink(props: {
 
   const goTo = (href: string) => {
     if (href.startsWith("http")) {
-      window.open(href, "_blank");
+      openWindowSafely(href, "_blank");
     } else {
       window.scrollTo(0, 0);
       navigate(href);
@@ -336,6 +337,9 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
               {t("navigation.menu.discover")}
             </DropdownLink>
           )}
+          <DropdownLink href="https://vidcodin.net" icon={Icons.LINK}>
+            {t("navigation.menu.freeEmbed")}
+          </DropdownLink>
           {backendSupportsWatchParty && <WatchPartyInputLink />}
           {deviceName ? (
             <DropdownLink

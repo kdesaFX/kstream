@@ -1,31 +1,38 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import { Icon, Icons } from "@/components/Icon";
 
 import { conf } from "@/setup/config";
+import { useAdsStore } from "@/stores/ads";
 
-const ACLIB_URL = "https://acscdn.com/script/aclib.js";
-const SCRIPT_ID = "aclib";
+
+const BTAG_SRC = "https://aqle3.com/btag.min.js";
 const LOAD_TIMEOUT_MS = 8000;
 const PRIMARY_BANNER_GIF_SRC = "/ads/primary-banner.gif";
 
-declare global {
-  interface Window {
-    aclib?: { runBanner: (opts: { zoneId: string }) => void };
-  }
-}
-
 export type AdSlot = "primary" | "secondary" | "bookmarks";
 
-function loadAclibScript() {
-  if (typeof window === "undefined") return;
-  if (document.getElementById(SCRIPT_ID)) return;
+
+function loadBannerTag(
+  container: HTMLElement,
+  zoneId: string,
+  width: number,
+  height: number,
+) {
+  if (typeof window === "undefined" || !zoneId) return;
+  const dedupeId = `btag-${zoneId}`;
+  if (document.getElementById(dedupeId)) return;
   const s = document.createElement("script");
-  s.id = SCRIPT_ID;
-  s.type = "text/javascript";
-  s.src = ACLIB_URL;
+  s.id = dedupeId;
   s.async = true;
-  document.head.appendChild(s);
+  s.dataset.cfasync = "false";
+  s.dataset.size = `${width}x${height}`;
+  s.dataset.category = "common";
+  s.dataset.id = `dl-banner-${width}x${height}`;
+  s.dataset.zone = zoneId;
+  s.src = BTAG_SRC;
+  container.appendChild(s);
 }
 
 interface SlotConfig {
@@ -39,26 +46,19 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
   const [adState, setAdState] = useState<"loading" | "loaded" | "failed">(
     "loading",
   );
+  const location = useLocation();
+  const isWatchPage = location.pathname.startsWith("/media/");
 
   useEffect(() => {
-    loadAclibScript();
 
+    if (isWatchPage) {
+      setAdState("failed");
+      return;
+    }
     const container = containerRef.current;
     if (!container) return;
 
-    let cancelled = false;
-    const tryRun = () => {
-      if (cancelled) return;
-      if (typeof window.aclib?.runBanner === "function") {
-        const s = document.createElement("script");
-        s.type = "text/javascript";
-        s.text = `try { aclib.runBanner({ zoneId: '${cfg.zoneId}' }); } catch (e) {}`;
-        container.appendChild(s);
-      } else {
-        setTimeout(tryRun, 150);
-      }
-    };
-    tryRun();
+    loadBannerTag(container, cfg.zoneId, cfg.width, cfg.height);
 
     const update = () => {
       if (container.querySelector("iframe, img")) {
@@ -74,11 +74,10 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
     }, LOAD_TIMEOUT_MS);
 
     return () => {
-      cancelled = true;
       observer.disconnect();
       clearTimeout(timeout);
     };
-  }, [cfg.zoneId]);
+  }, [cfg.zoneId, cfg.width, cfg.height, isWatchPage]);
 
   if (adState === "failed") return null;
 
@@ -184,25 +183,35 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
 
 export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
   const cfg = conf();
+  const adsDisabled = useAdsStore((s) => s.adsDisabled);
+
+  if (adsDisabled) return null;
 
   if (slot === "primary") {
-    if (cfg.ENABLE_PRIMARY_BANNER_GIF && cfg.PRIMARY_BANNER_GIF_URL) {
-      return (
-        <PrimaryGifBanner
-          img={PRIMARY_BANNER_GIF_SRC}
-          href={cfg.PRIMARY_BANNER_GIF_URL}
-        />
-      );
-    }
-    if (!cfg.ENABLE_HOME_AD || !cfg.HOME_AD_ZONE_ID) return null;
+    const gifUrl =
+      cfg.ENABLE_PRIMARY_BANNER_GIF && cfg.PRIMARY_BANNER_GIF_URL
+        ? cfg.PRIMARY_BANNER_GIF_URL
+        : null;
+    const homeAdZoneId =
+      cfg.ENABLE_HOME_AD && cfg.HOME_AD_ZONE_ID ? cfg.HOME_AD_ZONE_ID : null;
+
+    if (!gifUrl && !homeAdZoneId) return null;
+
     return (
-      <AdSlotInner
-        cfg={{
-          zoneId: cfg.HOME_AD_ZONE_ID,
-          width: 728,
-          height: 90,
-        }}
-      />
+      <div className="flex w-full flex-col items-center gap-3">
+        {gifUrl && (
+          <PrimaryGifBanner img={PRIMARY_BANNER_GIF_SRC} href={gifUrl} />
+        )}
+        {homeAdZoneId && (
+          <AdSlotInner
+            cfg={{
+              zoneId: homeAdZoneId,
+              width: 728,
+              height: 90,
+            }}
+          />
+        )}
+      </div>
     );
   }
 

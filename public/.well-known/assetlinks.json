@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.zstream.android",
+      "sha256_cert_fingerprints": [
+        "4A:6D:BE:C9:5B:33:35:4D:A9:BF:4D:2F:2A:61:90:F8:86:B1:03:A7:5A:8F:EF:A1:DA:4C:9A:C8:CE:F1:F3:80"
+      ]
+    }
+  }
+]

@@ -17,6 +17,7 @@ import { convertRunoutputToSource } from "@/components/player/utils/convertRunou
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { ScrapingItems, ScrapingSegment } from "@/hooks/useProviderScrape";
 import { useQueryParam } from "@/hooks/useQueryParams";
+import { useRybbitWatchingEvent } from "@/hooks/useRybbitWatchingEvent";
 import { MetaPart } from "@/pages/parts/player/MetaPart";
 import { PlaybackErrorPart } from "@/pages/parts/player/PlaybackErrorPart";
 import { PlayerPart } from "@/pages/parts/player/PlayerPart";
@@ -52,6 +53,7 @@ export function RealPlayerView() {
   const setResumeFromSourceIdInStore = usePlayerStore(
     (s) => s.setResumeFromSourceId,
   );
+  useRybbitWatchingEvent();
   const [startAtParam] = useQueryParam("t");
   const {
     status,

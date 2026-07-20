@@ -12,6 +12,7 @@ import {
 import { convertLegacyUrl, isLegacyUrl } from "@/backend/metadata/getmeta";
 import { generateQuickSearchMediaUrl } from "@/backend/metadata/tmdb";
 import { DetailsModal } from "@/components/overlays/detailsModal";
+import { DownloadModal } from "@/components/overlays/downloadModal";
 import { GamepadControlsModal } from "@/components/overlays/GamepadControlsModal";
 import { KeyboardCommandsEditModal } from "@/components/overlays/KeyboardCommandsEditModal";
 import { KeyboardCommandsModal } from "@/components/overlays/KeyboardCommandsModal";
@@ -19,6 +20,7 @@ import { NotificationModal } from "@/components/overlays/notificationsModal";
 import { SupportInfoModal } from "@/components/overlays/SupportInfoModal";
 import { TipJarModal } from "@/components/overlays/tipJarModal";
 import { SimklAuthHandler } from "@/components/auth/SimklAuthHandler";
+import { UpdateNotice } from "@/components/UpdateNotice";
 import { TraktAuthHandler } from "@/components/auth/TraktAuthHandler";
 import { useGlobalKeyboardEvents } from "@/hooks/useGlobalKeyboardEvents";
 import { useOnlineListener } from "@/hooks/usePing";
@@ -50,6 +52,7 @@ import { SupportPage } from "@/pages/Support";
 import { MyAlgorithmPage } from "@/pages/algorithm/MyAlgorithm";
 import { WatchHistory } from "@/pages/watchHistory/WatchHistory";
 import { Layout } from "@/setup/Layout";
+import { useAdsStore } from "@/stores/ads";
 import { useHistoryListener } from "@/stores/history";
 import { useClearModalsOnNavigation } from "@/stores/interface/overlayStack";
 import { LanguageProvider } from "@/stores/language";
@@ -118,8 +121,11 @@ function App() {
   useOnlineListener();
   useGlobalKeyboardEvents();
   useClearModalsOnNavigation();
+  const location = useLocation();
+  const isWatchPage = location.pathname.startsWith("/media/");
   const maintenance = false; // Shows maintance page
   const [showDowntime, setShowDowntime] = useState(maintenance);
+  const adsDisabled = useAdsStore((s) => s.adsDisabled);
 
   useEffect(() => {
     const cfg = conf();
@@ -135,37 +141,24 @@ function App() {
   }, []);
 
   useEffect(() => {
+
+    if (isWatchPage) return;
+    if (adsDisabled) return;
     const cfg = conf();
     if (!cfg.ENABLE_POPUNDER || !cfg.POPUNDER_SCRIPT_URL) return;
     if (typeof document === "undefined") return;
-    if (document.querySelector("script[data-popunder]")) return;
 
-    const KEY = "__pu_last";
-    const cooldownMs = 2 * 60 * 60 * 1000;
-
-    try {
-      const last = parseInt(localStorage.getItem(KEY) ?? "0", 10);
-      if (Number.isFinite(last) && last > 0 && Date.now() - last < cooldownMs) {
-        return;
-      }
-    } catch {
-      /* ignore */
+    if (document.querySelector(`script[src="${cfg.POPUNDER_SCRIPT_URL}"]`)) {
+      return;
     }
 
     const s = document.createElement("script");
-    s.src = cfg.POPUNDER_SCRIPT_URL;
-    s.async = true;
     s.setAttribute("data-cfasync", "false");
-    s.dataset.popunder = "1";
-    s.addEventListener("load", () => {
-      try {
-        localStorage.setItem(KEY, String(Date.now()));
-      } catch {
-        /* ignore */
-      }
-    });
+    s.async = true;
+    s.type = "text/javascript";
+    s.src = cfg.POPUNDER_SCRIPT_URL;
     document.head.appendChild(s);
-  }, []);
+  }, [adsDisabled]);
 
   const handleButtonClick = () => {
     setShowDowntime(false);
@@ -184,8 +177,10 @@ function App() {
       <TraktAuthHandler />
       <SimklAuthHandler />
       <LanguageProvider />
+      <UpdateNotice />
       <NotificationModal id="notifications" />
       <TipJarModal id="tip-jar" />
+      <DownloadModal id="download" />
       <KeyboardCommandsModal id="keyboard-commands" />
       <KeyboardCommandsEditModal id="keyboard-commands-edit" />
       <GamepadControlsModal id="gamepad-controls-edit" />

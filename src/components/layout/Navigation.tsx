@@ -6,6 +6,7 @@ import { NoUserAvatar, UserAvatar } from "@/components/Avatar";
 import { IconPatch } from "@/components/buttons/IconPatch";
 import { Icon, Icons } from "@/components/Icon";
 import { LinksDropdown } from "@/components/layout/LinksDropdown";
+import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { useNotifications } from "@/components/overlays/notificationsModal";
 import { useTipJar } from "@/components/overlays/tipJarModal";
 import { Lightbar } from "@/components/utils/Lightbar";
@@ -70,6 +71,7 @@ export function Navigation(props: NavigationProps) {
   const [scrollPosition, setScrollPosition] = useState(0);
   const { openNotifications, getUnreadCount } = useNotifications();
   const { openTipJar } = useTipJar();
+  const { openDownloadModal } = useDownloadModal();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -191,6 +193,20 @@ export function Navigation(props: NavigationProps) {
               >
                 <IconPatch
                   icon={Icons.DISCORD}
+                  clickable
+                  downsized
+                  navigation
+                />
+              </a>
+
+              <a
+                onClick={() => openDownloadModal()}
+                rel="noreferrer"
+                className="text-xl text-white tabbable rounded-full backdrop-blur-lg"
+                title="Download"
+              >
+                <IconPatch
+                  icon={Icons.DOWNLOAD}
                   clickable
                   downsized
                   navigation

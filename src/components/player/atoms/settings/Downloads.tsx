@@ -12,6 +12,7 @@ import { Menu } from "@/components/player/internals/ContextMenu";
 import { convertSubtitlesToSrtDataurl } from "@/components/player/utils/captions";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
+import { openWindowSafely } from "@/setup/popupGuard";
 import { usePlayerStore } from "@/stores/player/store";
 // I swear
 
@@ -86,7 +87,7 @@ function OriginalFileView({ id }: { id: string }) {
       ? convertSubtitlesToSrtDataurl(selectedCaption?.srtData)
       : null;
     if (!dataUrl) return;
-    window.open(dataUrl);
+    openWindowSafely(dataUrl);
   }, [selectedCaption]);
 
   const hasDownloads = data?.downloads && data.downloads.length > 0;
@@ -175,7 +176,7 @@ function StreamLinkView({ id }: { id: string }) {
       ? convertSubtitlesToSrtDataurl(selectedCaption?.srtData)
       : null;
     if (!dataUrl) return;
-    window.open(dataUrl);
+    openWindowSafely(dataUrl);
   }, [selectedCaption]);
 
   return (

@@ -4,6 +4,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { ThinContainer } from "@/components/layout/ThinContainer";
 import { Heading1, Paragraph } from "@/components/utils/Text";
 import { PageTitle } from "@/pages/parts/util/PageTitle";
+import { openWindowSafely } from "@/setup/popupGuard";
 
 import { SubPageLayout } from "./layouts/SubPageLayout";
 
@@ -47,7 +48,7 @@ export function PasPage() {
           <Button
             className="box-content w-full py-1 text-lg bg-buttons-secondary hover:bg-buttons-secondaryHover bg-opacity-90 text-buttons-secondaryText justify-center items-center inline-block"
             onClick={() =>
-              window.open("https://github.com/Pasithea0", "_blank")
+              openWindowSafely("https://github.com/Pasithea0", "_blank")
             }
           >
             Pasithea0 on GitHub

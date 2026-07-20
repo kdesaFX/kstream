@@ -1,3 +1,4 @@
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAsync } from "react-use";
@@ -8,7 +9,12 @@ import { Icon, Icons } from "@/components/Icon";
 import { SidebarSection } from "@/components/layout/Sidebar";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { conf } from "@/setup/config";
+import { useAdsStore } from "@/stores/ads";
 import { useAuthStore } from "@/stores/auth";
+
+const SECRET_CLICK_COUNT = 5;
+const SECRET_CLICK_WINDOW_MS = 1500;
+const SECRET_CONFIRM_MS = 2000;
 
 function SecureBadge(props: { url: string | null }) {
   const { t } = useTranslation();
@@ -33,11 +39,28 @@ export function AppInfoPart() {
   const navigate = useNavigate();
 
   const backendUrl = useBackendUrl();
+  const disableAds = useAdsStore((s) => s.disableAds);
+  const [adsJustDisabled, setAdsJustDisabled] = useState(false);
+  const clickTimestamps = useRef<number[]>([]);
 
   const backendMeta = useAsync(async () => {
     if (!backendUrl) return;
     return getBackendMeta(backendUrl);
   }, [backendUrl]);
+
+  const handleVersionClick = useCallback(() => {
+    const now = Date.now();
+    clickTimestamps.current = clickTimestamps.current.filter(
+      (t2) => now - t2 < SECRET_CLICK_WINDOW_MS,
+    );
+    clickTimestamps.current.push(now);
+    if (clickTimestamps.current.length >= SECRET_CLICK_COUNT) {
+      clickTimestamps.current = [];
+      disableAds();
+      setAdsJustDisabled(true);
+      setTimeout(() => setAdsJustDisabled(false), SECRET_CONFIRM_MS);
+    }
+  }, [disableAds]);
 
   return (
     <SidebarSection
@@ -79,8 +102,11 @@ export function AppInfoPart() {
           <p className="text-type-dimmed font-medium">
             {t("settings.sidebar.info.appVersion")}
           </p>
-          <p className="text-type-dimmed px-2 py-1 rounded bg-settings-sidebar-badge inline-block">
-            {conf().APP_VERSION}
+          <p
+            className="text-type-dimmed px-2 py-1 rounded bg-settings-sidebar-badge inline-block select-none"
+            onClick={handleVersionClick}
+          >
+            {adsJustDisabled ? "✓" : conf().APP_VERSION}
           </p>
         </div>
 

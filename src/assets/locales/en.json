@@ -1,8 +1,21 @@
 {
   "discordNotice": {
     "title": "Join our Discord",
-    "description": "Get updates, the Windows app, help & chat with the community.",
+    "description": "Get help, Windows & Android app & chat with the community.",
     "join": "Join",
+    "dismiss": "Dismiss"
+  },
+  "updateNotice": {
+    "title": "A new version is available",
+    "description": "Refresh to get the latest version of Z-Stream.",
+    "refresh": "Refresh",
+    "dismiss": "Dismiss"
+  },
+  "zliveNotice": {
+    "title": "Looking for Live TV & Sports?",
+    "badge": "Affiliated",
+    "description": "We got you covered at zlive.st - World Cup, UFC, and more - for free.",
+    "visit": "Visit",
     "dismiss": "Dismiss"
   },
   "about": {
@@ -632,6 +645,7 @@
       "settings": "Settings",
       "support": "Support",
       "discover": "Discover",
+      "freeEmbed": "Free Embed",
       "development": "Development",
       "desktop": "App Settings"
     }
@@ -771,7 +785,9 @@
     "casting": {
       "to": "Casting to {{device}} 📺",
       "device": "device",
-      "enabled": "Casting to device 🎬"
+      "enabled": "Casting to device 🎬",
+      "connecting": "Connecting to device…",
+      "failed": "Couldn't cast this source"
     },
     "menus": {
       "downloads": {
