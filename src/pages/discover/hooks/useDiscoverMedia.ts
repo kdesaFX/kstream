@@ -22,6 +22,7 @@ import {
   getPrimeMovies,
   getPrimeTVShows,
   getTop10Movies,
+  isTraktEnabled,
 } from "@/backend/metadata/traktApi";
 import { paginateResults } from "@/backend/metadata/traktFunctions";
 import type { TraktListResponse } from "@/backend/metadata/types/trakt";
@@ -40,7 +41,6 @@ import type {
   UseDiscoverMediaProps,
   UseDiscoverMediaReturn,
 } from "@/pages/discover/types/discover";
-import { conf } from "@/setup/config";
 import { useLanguageStore } from "@/stores/language";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { detectUserLanguage, detectUserRegion } from "@/utils/locale/userRegion";
@@ -64,6 +64,14 @@ export {
   TV_PROVIDERS,
 };
 
+// Marks a Trakt call skipped because Trakt is disabled for this deployment,
+// so callers can fall back to TMDB without logging it as a real failure.
+class TraktDisabledError extends Error {
+  constructor() {
+    super("Trakt is disabled for this deployment");
+  }
+}
+
 export function useDiscoverOptions(mediaType: MediaType) {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -81,7 +89,6 @@ export function useDiscoverOptions(mediaType: MediaType) {
 
       try {
         const data = await get<any>(`/genre/${mediaType}/list`, {
-          api_key: conf().TMDB_READ_API_KEY,
           language: formattedLanguage,
         });
         setGenres(data.genres.slice(0, 50));
@@ -154,7 +161,6 @@ export function useDiscoverMedia({
         const region = detectUserRegion();
 
         const data = await get<any>(endpoint, {
-          api_key: conf().TMDB_READ_API_KEY,
           language: formattedLanguage,
           region,
           ...params,
@@ -182,6 +188,12 @@ export function useDiscoverMedia({
 
   const fetchTraktMedia = useCallback(
     async (traktFunction: () => Promise<TraktListResponse>) => {
+      // Trakt is off for this deployment - go straight to the TMDB
+      // fallback instead of making (and then discarding) a call.
+      if (!isTraktEnabled()) {
+        throw new TraktDisabledError();
+      }
+
       try {
         // Create a timeout promise
         const timeoutPromise = new Promise<TraktListResponse>((_, reject) => {
@@ -213,7 +225,6 @@ export function useDiscoverMedia({
           const endpoint = `/${mediaType}/${tmdbId}`;
           try {
             const data = await get<any>(endpoint, {
-              api_key: conf().TMDB_READ_API_KEY,
               language: formattedLanguage,
             });
             return {
@@ -242,7 +253,9 @@ export function useDiscoverMedia({
           hasMore: hasMoreResults,
         };
       } catch (err) {
-        console.error("Error fetching Trakt media:", err);
+        if (!(err instanceof TraktDisabledError)) {
+          console.error("Error fetching Trakt media:", err);
+        }
         throw err;
       }
     },
@@ -307,7 +320,6 @@ export function useDiscoverMedia({
       const mediaPromises = picksToFetch.map(async (item) => {
         const endpoint = `/${mediaType}/${item.id}`;
         const data = await get<any>(endpoint, {
-          api_key: conf().TMDB_READ_API_KEY,
           language: formattedLanguage,
           append_to_response: "videos,images",
         });
@@ -435,10 +447,12 @@ export function useDiscoverMedia({
                     }),
               );
             } catch (traktErr) {
-              console.error(
-                "Trakt provider fetch failed, falling back to TMDB:",
-                traktErr,
-              );
+              if (!(traktErr instanceof TraktDisabledError)) {
+                console.error(
+                  "Trakt provider fetch failed, falling back to TMDB:",
+                  traktErr,
+                );
+              }
               // Fall back to TMDB
               data = await fetchTMDBMedia(`/discover/${mediaType}`, {
                 with_watch_providers: id,
@@ -506,12 +520,14 @@ export function useDiscoverMedia({
       });
       setHasMore(data.hasMore);
     } catch (err) {
-      console.error("Error fetching media:", err);
+      const traktDisabled = err instanceof TraktDisabledError;
+      if (!traktDisabled) {
+        console.error("Error fetching media:", err);
+      }
       setError((err as Error).message);
 
       // Try fallback content type if available
       if (fallbackType && fallbackType !== contentType) {
-        console.info(`Falling back from ${contentType} to ${fallbackType}`);
         try {
           const fallbackData = await attemptFetch(fallbackType);
           setActualContentType(fallbackType); // Set actual content type to fallback

@@ -181,7 +181,18 @@ function GenreBar({
   max: number;
   color: string;
 }) {
-  const width = max > 0 ? Math.max(4, (value / max) * 100) : 0;
+  const target = max > 0 ? Math.max(4, (value / max) * 100) : 0;
+  const [width, setWidth] = useState(0);
+
+  // Start at 0 and grow to target; double rAF ensures the 0% state actually
+  // paints before the transition to target kicks in.
+  useEffect(() => {
+    const raf1 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setWidth(target));
+    });
+    return () => cancelAnimationFrame(raf1);
+  }, [target]);
+
   return (
     <div className="flex items-center gap-3">
       <span className="w-32 shrink-0 truncate text-sm text-white/80">
