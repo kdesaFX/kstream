@@ -331,35 +331,31 @@ export async function get<T>(url: string, params?: object): Promise<T> {
     }
 
     if (!result!) {
-      try {
-        result = await mwFetch<T>(encodeURI(url), {
-  if (!result!) {
-    const primaryAttempt = (async (): Promise<T> => {
-      try {
-        return await mwFetch<T>(encodeURI(url), {
-          headers: tmdbHeaders,
-          baseURL: tmdbBaseUrl1,
-          params: allParams,
-          signal: abortOnTimeout(5000),
-        });
-      } catch (err) {
-        result = await mwFetch<T>(encodeURI(url), {
-        return await mwFetch<T>(encodeURI(url), {
-          headers: tmdbHeaders,
-          baseURL: tmdbBaseUrl2,
-          params: allParams,
-          signal: abortOnTimeout(30000),
-        });
-      }
+      const primaryAttempt = (async (): Promise<T> => {
+        try {
+          return await mwFetch<T>(encodeURI(url), {
+            headers: tmdbHeaders,
+            baseURL: tmdbBaseUrl1,
+            params: allParams,
+            signal: abortOnTimeout(5000),
+          });
+        } catch (err) {
+          return await mwFetch<T>(encodeURI(url), {
+            headers: tmdbHeaders,
+            baseURL: tmdbBaseUrl2,
+            params: allParams,
+            signal: abortOnTimeout(30000),
+          });
+        }
+      })();
+
+      const valleyTarget = resolveValleyFallbackTarget(url);
+      result = valleyTarget
+        ? await raceWithValleyFallback(primaryAttempt, valleyTarget)
+        : await primaryAttempt;
     }
   } finally {
     releaseTmdbSlot();
-    })();
-
-    const valleyTarget = resolveValleyFallbackTarget(url);
-    result = valleyTarget
-      ? await raceWithValleyFallback(primaryAttempt, valleyTarget)
-      : await primaryAttempt;
   }
 
   // Cache the result for 1 hour (3600 seconds)
