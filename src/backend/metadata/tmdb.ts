@@ -243,6 +243,32 @@ function getNextProxy(proxyUrls: string[]): string | undefined {
   return proxy;
 }
 
+// Caps how many TMDB requests are in flight at once - features like the
+// personal recommendations feed fan out dozens of requests in one go,
+// which otherwise trips TMDB's rate limit (429s).
+const MAX_CONCURRENT_TMDB_REQUESTS = 6;
+let activeTmdbRequests = 0;
+const tmdbRequestQueue: (() => void)[] = [];
+
+function acquireTmdbSlot(): Promise<void> {
+  if (activeTmdbRequests < MAX_CONCURRENT_TMDB_REQUESTS) {
+    activeTmdbRequests += 1;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    tmdbRequestQueue.push(() => {
+      activeTmdbRequests += 1;
+      resolve();
+    });
+  });
+}
+
+function releaseTmdbSlot(): void {
+  activeTmdbRequests -= 1;
+  const next = tmdbRequestQueue.shift();
+  if (next) next();
+}
+
 export async function get<T>(url: string, params?: object): Promise<T> {
   const proxyUrls = getProxyUrls();
   const proxy = getNextProxy(proxyUrls);
@@ -286,45 +312,50 @@ export async function get<T>(url: string, params?: object): Promise<T> {
 
   let result: T;
 
-  if (proxy && shouldProxyTmdb) {
-    try {
-      result = await mwFetch<T>(
-        `/?destination=${encodeURIComponent(fullUrl.toString())}`,
-        {
-          headers: tmdbHeaders,
-          baseURL: proxy,
-          signal: abortOnTimeout(5000),
-        },
-      );
-    } catch (err) {
-      console.error(err);
-      // Fall through to try direct connection
-    }
-  }
-
-  if (!result!) {
-    const primaryAttempt = (async (): Promise<T> => {
+  await acquireTmdbSlot();
+  try {
+    if (proxy && shouldProxyTmdb) {
       try {
-        return await mwFetch<T>(encodeURI(url), {
-          headers: tmdbHeaders,
-          baseURL: tmdbBaseUrl1,
-          params: allParams,
-          signal: abortOnTimeout(5000),
-        });
+        result = await mwFetch<T>(
+          `/?destination=${encodeURIComponent(fullUrl.toString())}`,
+          {
+            headers: tmdbHeaders,
+            baseURL: proxy,
+            signal: abortOnTimeout(5000),
+          },
+        );
       } catch (err) {
-        return await mwFetch<T>(encodeURI(url), {
-          headers: tmdbHeaders,
-          baseURL: tmdbBaseUrl2,
-          params: allParams,
-          signal: abortOnTimeout(30000),
-        });
+        console.error(err);
+        // Fall through to try direct connection
       }
-    })();
+    }
 
-    const valleyTarget = resolveValleyFallbackTarget(url);
-    result = valleyTarget
-      ? await raceWithValleyFallback(primaryAttempt, valleyTarget)
-      : await primaryAttempt;
+    if (!result!) {
+      const primaryAttempt = (async (): Promise<T> => {
+        try {
+          return await mwFetch<T>(encodeURI(url), {
+            headers: tmdbHeaders,
+            baseURL: tmdbBaseUrl1,
+            params: allParams,
+            signal: abortOnTimeout(5000),
+          });
+        } catch (err) {
+          return await mwFetch<T>(encodeURI(url), {
+            headers: tmdbHeaders,
+            baseURL: tmdbBaseUrl2,
+            params: allParams,
+            signal: abortOnTimeout(30000),
+          });
+        }
+      })();
+
+      const valleyTarget = resolveValleyFallbackTarget(url);
+      result = valleyTarget
+        ? await raceWithValleyFallback(primaryAttempt, valleyTarget)
+        : await primaryAttempt;
+    }
+  } finally {
+    releaseTmdbSlot();
   }
 
   // Cache the result for 1 hour (3600 seconds)
