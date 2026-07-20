@@ -13,6 +13,10 @@ import type {
 
 export const TRAKT_BASE_URL = "";
 
+export function isTraktEnabled(): boolean {
+  return conf().USE_TRAKT;
+}
+
 // Token cookie configuration
 const TOKEN_COOKIE_NAME = "turnstile_token";
 const TOKEN_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
