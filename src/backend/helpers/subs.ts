@@ -2,6 +2,12 @@ import { list } from "subsrt-ts";
 
 import { proxiedFetch } from "@/backend/helpers/fetch";
 import { convertSubtitlesToSrt } from "@/components/player/utils/captions";
+import {
+  TTMLCue,
+  isTTML,
+  parseTTML,
+  ttmlCuesToSrt,
+} from "@/components/player/utils/ttml";
 import { CaptionListItem } from "@/stores/player/slices/source";
 import { SimpleCache } from "@/utils/common/cache";
 
@@ -15,15 +21,7 @@ const downloadCache = new SimpleCache<string, string>();
 downloadCache.setCompare((a, b) => a === b);
 const expirySeconds = 24 * 60 * 60;
 
-/**
- * Always returns SRT
- */
-export async function downloadCaption(
-  caption: CaptionListItem,
-): Promise<string> {
-  const cached = downloadCache.get(caption.url);
-  if (cached) return cached;
-
+async function fetchCaptionRaw(caption: CaptionListItem): Promise<string> {
   let data: string | undefined;
   if (caption.needsProxy) {
     if (isExtensionActiveCached()) {
@@ -60,10 +58,39 @@ export async function downloadCaption(
     data = decoder.decode(buffer);
   }
   if (!data) throw new Error("failed to get caption data");
+  return data;
+}
 
+/**
+ * Always returns SRT
+ */
+export async function downloadCaption(
+  caption: CaptionListItem,
+): Promise<string> {
+  const cached = downloadCache.get(caption.url);
+  if (cached) return cached;
+
+  const data = await fetchCaptionRaw(caption);
   const output = convertSubtitlesToSrt(data);
   downloadCache.set(caption.url, output, expirySeconds);
   return output;
+}
+
+
+export async function downloadCaptionSmart(
+  caption: CaptionListItem,
+): Promise<{ srtData: string; ttmlCues?: TTMLCue[] }> {
+  const data = await fetchCaptionRaw(caption);
+  if (isTTML(data)) {
+    const ttmlCues = parseTTML(data);
+    if (ttmlCues.length > 0) {
+      return { srtData: ttmlCuesToSrt(ttmlCues), ttmlCues };
+    }
+  }
+  const cached = downloadCache.get(caption.url);
+  const srtData = cached ?? convertSubtitlesToSrt(data);
+  if (!cached) downloadCache.set(caption.url, srtData, expirySeconds);
+  return { srtData };
 }
 
 /**
