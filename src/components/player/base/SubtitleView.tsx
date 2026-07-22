@@ -6,6 +6,7 @@ import {
   parseSubtitles,
   sanitize,
 } from "@/components/player/utils/captions";
+import { TTMLCue } from "@/components/player/utils/ttml";
 import { useCasting } from "@/components/player/casting/useCasting";
 import { Transition } from "@/components/utils/Transition";
 import { usePlayerStore } from "@/stores/player/store";
@@ -152,6 +153,97 @@ export function SubtitleRenderer() {
   );
 }
 
+// displayAlign is TTML's vertical alignment *within* the region box;
+// textAlign is horizontal. Mapped onto a flex box so the cue box's own
+// origin/extent percentages still anchor its position, matching how a real
+// TTML/IMSC renderer (e.g. Netflix's own player) lays these out.
+const displayAlignToJustify: Record<TTMLCue["displayAlign"], string> = {
+  before: "flex-start",
+  center: "center",
+  after: "flex-end",
+};
+
+function textAlignToItems(textAlign: string): string {
+  if (textAlign === "left") return "flex-start";
+  if (textAlign === "right") return "flex-end";
+  return "center";
+}
+
+function TTMLCueBox({ cue, sizeScale }: { cue: TTMLCue; sizeScale: number }) {
+  const outline =
+    cue.outlinePx > 0
+      ? [-1, 1].flatMap((dx) =>
+          [-1, 1].map(
+            (dy) =>
+              `${dx * cue.outlinePx}px ${dy * cue.outlinePx}px 0 ${cue.outlineColor}`,
+          ),
+        )
+      : [];
+
+  return (
+    <div
+      className="absolute pointer-events-none flex"
+      style={{
+        left: `${cue.originXPct}%`,
+        top: `${cue.originYPct}%`,
+        width: `${cue.extentWPct}%`,
+        height: `${cue.extentHPct}%`,
+        justifyContent: displayAlignToJustify[cue.displayAlign],
+        alignItems: textAlignToItems(cue.textAlign),
+        textAlign: cue.textAlign as any,
+      }}
+    >
+      <span
+        className="inline-block px-1 leading-tight"
+        style={{
+          color: cue.color,
+          fontFamily: cue.fontFamily,
+          fontWeight: cue.fontWeight,
+          fontSize: `${(1.3 * sizeScale).toFixed(2)}em`,
+          backgroundColor:
+            cue.backgroundColor === "transparent"
+              ? "transparent"
+              : cue.backgroundColor,
+          opacity: cue.opacity,
+          textShadow: outline.join(", ") || undefined,
+          whiteSpace: "pre-wrap",
+        }}
+        // cue.html is produced by ttml.ts's parseTTML, which runs every
+        // text/span through DOMPurify before it ever reaches here.
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: cue.html }}
+        dir="ltr"
+      />
+    </div>
+  );
+}
+
+function TTMLSubtitleRenderer({ cues }: { cues: TTMLCue[] }) {
+  const videoTime = usePlayerStore((s) => s.progress.time);
+  const delay = useSubtitleStore((s) => s.delay);
+  const styling = useSubtitleStore((s) => s.styling);
+
+  const visibleCues = useMemo(
+    () =>
+      cues.filter(({ start, end }) =>
+        captionIsVisible(start, end, delay, videoTime),
+      ),
+    [cues, videoTime, delay],
+  );
+
+  return (
+    <div className="pointer-events-none z-50 absolute inset-0 overflow-hidden">
+      {visibleCues.map((cue, i) => (
+        <TTMLCueBox
+          key={makeQueId(i, cue.start, cue.end)}
+          cue={cue}
+          sizeScale={styling.size}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function SubtitleView(props: { controlsShown: boolean }) {
   const caption = usePlayerStore((s) => s.caption.selected);
   const source = usePlayerStore((s) => s.source);
@@ -164,6 +256,13 @@ export function SubtitleView(props: { controlsShown: boolean }) {
 
   const shouldUseNativeTrack = (enableNativeSubtitles || captionAsTrack) && source !== null;
   if (shouldUseNativeTrack || !caption || isCasting) return null;
+
+  // TTML cues carry their own absolute region positions (which can be
+  // anywhere in frame, not just bottom-center), so they bypass the normal
+  // bottom-anchored wrapper entirely instead of being squeezed into it.
+  if (caption.ttmlCues && caption.ttmlCues.length > 0) {
+    return <TTMLSubtitleRenderer cues={caption.ttmlCues} />;
+  }
 
   return (
     <Transition animation="slide-up" show>

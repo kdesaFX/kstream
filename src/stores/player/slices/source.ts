@@ -2,6 +2,7 @@
 import { ScrapeMedia } from "@p-stream/providers";
 
 import { downloadCaption } from "@/backend/helpers/subs";
+import { TTMLCue } from "@/components/player/utils/ttml";
 import { MakeSlice } from "@/stores/player/slices/types";
 import {
   SourceQuality,
@@ -55,6 +56,7 @@ export interface Caption {
   language: string;
   url?: string;
   srtData: string;
+  ttmlCues?: TTMLCue[];
 }
 
 export interface CaptionListItem {

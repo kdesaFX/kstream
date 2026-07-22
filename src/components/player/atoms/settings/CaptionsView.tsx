@@ -18,6 +18,7 @@ import {
   captionIsVisible,
   parseSubtitles,
 } from "@/components/player/utils/captions";
+import { isTTML, parseTTML, ttmlCuesToSrt } from "@/components/player/utils/ttml";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { useLanguageStore } from "@/stores/language";
 import { CaptionListItem } from "@/stores/player/slices/source";
@@ -292,6 +293,22 @@ export function useSubtitleList(subs: CaptionListItem[], searchQuery: string) {
   }, [subs, searchQuery, unknownChoice, appLanguage]);
 }
 
+// TTML/IMSC (e.g. Netflix-style regioned captions) carry per-cue position
+// and styling that a flat SRT string can't hold -- parsed separately into
+// ttmlCues for SubtitleView's dedicated renderer, with srtData kept as a
+// plain-text fallback so every other srtData-consuming codepath (previews,
+// HLS merge, translation) still works.
+function buildCaptionFromUpload(text: string, id: string, language: string) {
+  if (isTTML(text)) {
+    const ttmlCues = parseTTML(text);
+    if (ttmlCues.length === 0) {
+      throw new Error("No cues found in TTML file");
+    }
+    return { id, language, srtData: ttmlCuesToSrt(ttmlCues), ttmlCues };
+  }
+  return { id, language, srtData: convert(text, "srt") };
+}
+
 export function CustomCaptionOption() {
   const { t } = useTranslation();
   const lang = usePlayerStore((s) => s.caption.selected?.language);
@@ -311,12 +328,12 @@ export function CustomCaptionOption() {
       }
 
       try {
-        const converted = convert(event.target.result, "srt");
-        setCaption({
-          language: "custom",
-          srtData: converted,
-          id: "custom-caption",
-        });
+        const caption = buildCaptionFromUpload(
+          event.target.result,
+          "custom-caption",
+          "custom",
+        );
+        setCaption(caption);
         setSubtitle(true, "custom", "custom-caption");
       } catch (err) {
         setError(
@@ -344,7 +361,7 @@ export function CustomCaptionOption() {
       <input
         className="hidden"
         ref={fileInput}
-        accept={subtitleTypeList.join(",")}
+        accept={[...subtitleTypeList, ".xml", ".ttml"].join(",")}
         type="file"
         onChange={(e) => {
           const files = e.target.files;
@@ -353,9 +370,13 @@ export function CustomCaptionOption() {
           const file = files[0];
           const fileExtension = `.${file.name.split(".").pop()?.toLowerCase()}`;
 
-          if (!subtitleTypeList.includes(fileExtension)) {
+          if (
+            !subtitleTypeList.includes(fileExtension) &&
+            fileExtension !== ".xml" &&
+            fileExtension !== ".ttml"
+          ) {
             setError(
-              `Unsupported file type. Supported: ${subtitleTypeList.join(", ")}`,
+              `Unsupported file type. Supported: ${[...subtitleTypeList, ".xml", ".ttml"].join(", ")}`,
             );
             e.target.value = ""; // Reset input
             return;
@@ -584,7 +605,8 @@ export function CaptionsView({
     if (!files || !firstFile) return;
 
     const fileExtension = `.${firstFile.name.split(".").pop()?.toLowerCase()}`;
-    if (!fileExtension || !subtitleTypeList.includes(fileExtension)) {
+    const isTtmlExt = fileExtension === ".xml" || fileExtension === ".ttml";
+    if (!fileExtension || (!subtitleTypeList.includes(fileExtension) && !isTtmlExt)) {
       return;
     }
 
@@ -595,13 +617,12 @@ export function CaptionsView({
       }
 
       try {
-        const converted = convert(e.target.result, "srt");
-
-        setCaption({
-          language: "custom",
-          srtData: converted,
-          id: "custom-caption",
-        });
+        const caption = buildCaptionFromUpload(
+          e.target.result,
+          "custom-caption",
+          "custom",
+        );
+        setCaption(caption);
       } catch (err) {
         // Silently fail on drop - user can use the upload button for better error feedback
       }
