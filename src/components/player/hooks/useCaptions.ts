@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import subsrt from "subsrt-ts";
 
-import { downloadCaption, downloadWebVTT } from "@/backend/helpers/subs";
+import { downloadCaptionSmart, downloadWebVTT } from "@/backend/helpers/subs";
 import { Caption, CaptionListItem } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -93,8 +93,9 @@ export function useCaptions() {
       };
 
       if (!caption.hls) {
-        const srtData = await downloadCaption(caption);
+        const { srtData, ttmlCues } = await downloadCaptionSmart(caption);
         captionToSet.srtData = srtData;
+        captionToSet.ttmlCues = ttmlCues;
       } else {
         // request a language change to hls, so it can load the subtitles
         await setSubtitlePreference?.(caption.language);

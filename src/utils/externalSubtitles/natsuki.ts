@@ -4,6 +4,7 @@ import { labelToLanguageCode } from "@p-stream/providers";
 import { CaptionListItem } from "@/stores/player/slices/source";
 
 const NATSUKI_BASE = "https://natsuki.fontaine.lol/subs";
+const CELESTIAL_BASE = "https://natsuki.fontaine.lol/celestial/subs";
 
 interface NatsukiSubtitleEntry {
   sid?: string;
@@ -56,6 +57,34 @@ function mapEntries(data: unknown): CaptionListItem[] {
     }) as CaptionListItem);
 }
 
+
+async function fetchCelestialCaptions(
+  tmdbId: string | number,
+  season?: number,
+  episode?: number,
+): Promise<CaptionListItem[]> {
+  if (!tmdbId) return [];
+
+  const params = new URLSearchParams();
+  params.set("tmdbId", String(tmdbId));
+  if (season && episode) {
+    params.set("season", String(season));
+    params.set("episode", String(episode));
+  }
+
+  try {
+    const res = await fetch(`${CELESTIAL_BASE}?${params.toString()}`, {
+      method: "GET",
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return mapEntries(data);
+  } catch (err) {
+    console.error("Celestial subs fetch failed:", err);
+    return [];
+  }
+}
+
 export async function scrapeNatsukiCaptions(
   tmdbId: string | number,
   imdbId: string,
@@ -63,6 +92,8 @@ export async function scrapeNatsukiCaptions(
   episode?: number,
 ): Promise<CaptionListItem[]> {
   if (!imdbId && !tmdbId) return [];
+
+  const celestialPromise = fetchCelestialCaptions(tmdbId, season, episode);
 
   const attempts: URLSearchParams[] = [];
   if (tmdbId) {
@@ -84,6 +115,7 @@ export async function scrapeNatsukiCaptions(
     attempts.push(params);
   }
 
+  let febboxResults: CaptionListItem[] = [];
   try {
     for (const params of attempts) {
       const res = await fetch(`${NATSUKI_BASE}?${params.toString()}`, {
@@ -96,12 +128,14 @@ export async function scrapeNatsukiCaptions(
       const data = await res.json();
       const mapped = mapEntries(data);
       if (mapped.length > 0) {
-        return mapped;
+        febboxResults = mapped;
+        break;
       }
     }
-    return [];
   } catch (err) {
     console.error("Natsuki fetch failed:", err);
-    return [];
   }
+
+  const celestialResults = await celestialPromise;
+  return [...celestialResults, ...febboxResults];
 }
