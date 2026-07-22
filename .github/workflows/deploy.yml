@@ -61,7 +61,7 @@ jobs:
           VITE_TRAKT_REDIRECT_URI: ${{ secrets.VITE_TRAKT_REDIRECT_URI }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL }}
           VITE_ENABLE_HOME_AD: "true"
-          VITE_HOME_AD_ZONE_ID: "11283226"
+          VITE_HOME_AD_ZONE_ID: "11371369"
           VITE_ENABLE_SECONDARY_AD: "false"
           VITE_SECONDARY_AD_ZONE_ID: "11283340"
           VITE_ENABLE_BOOKMARKS_AD: "true"
