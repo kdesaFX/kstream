@@ -1,8 +1,8 @@
 import DOMPurify from "dompurify";
 
 export interface TTMLCue {
-  start: number; // ms
-  end: number; // ms
+  start: number;
+  end: number;
   html: string;
   plainText: string;
   originXPct: number;
@@ -90,10 +90,6 @@ function parsePercentPair(
   return [nums[0], nums[1]];
 }
 
-// tts:textOutline is "<color> <length>", length usually in rh (percent of
-// root container height). No live layout access here, so it's approximated
-// against a nominal 720px reference frame -- good enough for a visible,
-// proportionate outline rather than exact IMSC conformance.
 function parseOutline(value: string | null): { color: string; px: number } | null {
   if (!value) return null;
   const parts = value.trim().split(/\s+/);
@@ -193,7 +189,6 @@ function nodeToHtml(node: Node, italicStyleIds: Set<string>): string {
     return `${openTag}${inner}${closeTag}`;
   }
 
-  // p, div, or anything unrecognized: just flatten children.
   return inner;
 }
 
@@ -306,10 +301,6 @@ function msToSrtTimestamp(ms: number): string {
   return `${pad(hh)}:${pad(mm)}:${pad(ss)},${pad(mmm, 3)}`;
 }
 
-// Flattens parsed TTML cues into a plain SRT string, so every existing
-// srtData-consuming codepath (previews, HLS merge, translation, etc.) keeps
-// working for a TTML caption -- it just loses position/style, which the
-// dedicated TTML renderer (using the cues themselves) restores.
 export function ttmlCuesToSrt(cues: TTMLCue[]): string {
   return cues
     .map((cue, i) => {

@@ -153,10 +153,6 @@ export function SubtitleRenderer() {
   );
 }
 
-// displayAlign is TTML's vertical alignment *within* the region box;
-// textAlign is horizontal. Mapped onto a flex box so the cue box's own
-// origin/extent percentages still anchor its position, matching how a real
-// TTML/IMSC renderer (e.g. Netflix's own player) lays these out.
 const displayAlignToJustify: Record<TTMLCue["displayAlign"], string> = {
   before: "flex-start",
   center: "center",
@@ -208,8 +204,6 @@ function TTMLCueBox({ cue, sizeScale }: { cue: TTMLCue; sizeScale: number }) {
           textShadow: outline.join(", ") || undefined,
           whiteSpace: "pre-wrap",
         }}
-        // cue.html is produced by ttml.ts's parseTTML, which runs every
-        // text/span through DOMPurify before it ever reaches here.
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: cue.html }}
         dir="ltr"
@@ -257,9 +251,6 @@ export function SubtitleView(props: { controlsShown: boolean }) {
   const shouldUseNativeTrack = (enableNativeSubtitles || captionAsTrack) && source !== null;
   if (shouldUseNativeTrack || !caption || isCasting) return null;
 
-  // TTML cues carry their own absolute region positions (which can be
-  // anywhere in frame, not just bottom-center), so they bypass the normal
-  // bottom-anchored wrapper entirely instead of being squeezed into it.
   if (caption.ttmlCues && caption.ttmlCues.length > 0) {
     return <TTMLSubtitleRenderer cues={caption.ttmlCues} />;
   }
