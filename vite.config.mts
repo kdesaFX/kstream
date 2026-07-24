@@ -96,7 +96,7 @@ export default defineConfig(({ mode }) => {
           name: "Z-Stream",
           short_name: "Z-Stream",
           description:
-            "Watch your favorite shows and movies for free with no ads ever! (っ'ヮ'c)",
+            "Watch your favorite shows and movies for free! (っ'ヮ'c)",
           theme_color: "#000000",
           background_color: "#000000",
           display: "standalone",
