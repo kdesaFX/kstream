@@ -25,6 +25,7 @@ import { TraktAuthHandler } from "@/components/auth/TraktAuthHandler";
 import { useGlobalKeyboardEvents } from "@/hooks/useGlobalKeyboardEvents";
 import { useOnlineListener } from "@/hooks/usePing";
 import { AboutPage } from "@/pages/About";
+import { AppsPage } from "@/pages/Apps";
 import { AdminPage } from "@/pages/admin/AdminPage";
 import { AllBookmarks } from "@/pages/bookmarks/AllBookmarks";
 import VideoTesterView from "@/pages/developer/VideoTesterView";
@@ -221,6 +222,7 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/apps" element={<AppsPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route
             path="/onboarding/extension"
