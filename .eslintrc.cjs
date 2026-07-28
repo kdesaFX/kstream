@@ -140,6 +140,7 @@ module.exports = {
       "function-paren-newline": "off",
       "no-multiple-empty-lines": "off",
       "no-multi-spaces": "off",
+    "no-unstable-nested-components": "off",
     "no-return-await": "off",
       "lines-between-class-members": "off",
       "comma-spacing": "off",
