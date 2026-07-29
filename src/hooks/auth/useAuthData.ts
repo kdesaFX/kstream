@@ -345,7 +345,7 @@ export function useAuthData() {
         setEnableNumberKeySeeking(settings.enableNumberKeySeeking);
       }
 
-      if (settings.keyboardShortcuts !== undefined) {
+      if (settings.keyboardShortcuts) {
         setKeyboardShortcuts(settings.keyboardShortcuts);
       }
 
@@ -373,7 +373,7 @@ export function useAuthData() {
         setEnableGamepadControls(settings.enableGamepadControls);
       }
 
-      if (settings.gamepadMapping !== undefined) {
+      if (settings.gamepadMapping) {
         setGamepadMapping(settings.gamepadMapping);
       }
     },

@@ -338,12 +338,12 @@ export const usePreferencesStore = create(
       },
       setGamepadMapping(v) {
         set((s) => {
-          s.gamepadMapping = v;
+          s.gamepadMapping = v ?? {};
         });
       },
       setKeyboardShortcuts(v) {
         set((s) => {
-          s.keyboardShortcuts = v;
+          s.keyboardShortcuts = v ?? DEFAULT_KEYBOARD_SHORTCUTS;
         });
       },
       setVideoBrightness(v) {
@@ -374,6 +374,19 @@ export const usePreferencesStore = create(
     })),
     {
       name: "__MW::preferences",
+      merge: (persisted, current) => {
+        const merged = {
+          ...current,
+          ...(persisted as Partial<PreferencesStore>),
+        };
+        if (!merged.keyboardShortcuts) {
+          merged.keyboardShortcuts = DEFAULT_KEYBOARD_SHORTCUTS;
+        }
+        if (!merged.gamepadMapping) {
+          merged.gamepadMapping = {};
+        }
+        return merged;
+      },
     },
   ),
 );
