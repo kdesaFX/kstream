@@ -145,19 +145,19 @@ function App() {
     if (isWatchPage) return;
     if (adsDisabled) return;
     const cfg = conf();
-    if (!cfg.ENABLE_POPUNDER || !cfg.POPUNDER_SCRIPT_URL) return;
+    if (!cfg.ENABLE_POPUNDER || !cfg.POPUNDER_SCRIPT_URL || !cfg.POPUNDER_ZONE_ID) return;
     if (typeof document === "undefined") return;
 
-    if (document.querySelector(`script[src="${cfg.POPUNDER_SCRIPT_URL}"]`)) {
+    if (document.querySelector(`script[data-zone="${cfg.POPUNDER_ZONE_ID}"]`)) {
       return;
     }
 
-    const s = document.createElement("script");
-    s.setAttribute("data-cfasync", "false");
-    s.async = true;
-    s.type = "text/javascript";
+    const target = [document.documentElement, document.body].filter(Boolean).pop();
+    if (!target) return;
+
+    const s = target.appendChild(document.createElement("script"));
+    s.dataset.zone = cfg.POPUNDER_ZONE_ID;
     s.src = cfg.POPUNDER_SCRIPT_URL;
-    document.head.appendChild(s);
   }, [adsDisabled, isWatchPage]);
 
   const handleButtonClick = () => {

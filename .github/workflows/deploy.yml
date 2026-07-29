@@ -60,7 +60,7 @@ jobs:
           VITE_TRAKT_CLIENT_SECRET: ${{ secrets.VITE_TRAKT_CLIENT_SECRET }}
           VITE_TRAKT_REDIRECT_URI: ${{ secrets.VITE_TRAKT_REDIRECT_URI }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL }}
-          VITE_ENABLE_HOME_AD: "true"
+          VITE_ENABLE_HOME_AD: "false"
           VITE_HOME_AD_ZONE_ID: "11371369"
           VITE_ENABLE_SECONDARY_AD: "false"
           VITE_SECONDARY_AD_ZONE_ID: "11283340"
@@ -70,7 +70,8 @@ jobs:
           VITE_PRIMARY_BANNER_GIF_URL: "https://clixou.com/"
           VITE_BOOKMARKS_AD_ZONE_ID: "11283340"
           VITE_ENABLE_POPUNDER: "true"
-          VITE_POPUNDER_SCRIPT_URL: "https://bw.toughergrave.com/rhqI7pvKubW3HSUs/JLeVW"
+          VITE_POPUNDER_SCRIPT_URL: "https://llvpn.com/tag.min.js"
+          VITE_POPUNDER_ZONE_ID: "11455429"
           VITE_ENABLE_RYBBIT: "true"
           VITE_RYBBIT_SCRIPT_URL: ${{ vars.VITE_RYBBIT_SCRIPT_URL }}
           VITE_RYBBIT_SITE_ID: "034c3186af9d"
