@@ -71,7 +71,6 @@ jobs:
           VITE_BOOKMARKS_AD_ZONE_ID: "11283340"
           VITE_ENABLE_POPUNDER: "true"
           VITE_POPUNDER_SCRIPT_URL: "https://bw.toughergrave.com/rhqI7pvKubW3HSUs/JLeVW"
-          VITE_POPUNDER_COOLDOWN_HOURS: "2"
           VITE_ENABLE_RYBBIT: "true"
           VITE_RYBBIT_SCRIPT_URL: ${{ vars.VITE_RYBBIT_SCRIPT_URL }}
           VITE_RYBBIT_SITE_ID: "034c3186af9d"

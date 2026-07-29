@@ -11,7 +11,6 @@ import { Menu } from "@/components/player/internals/ContextMenu";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { useWatchPartySync } from "@/hooks/useWatchPartySync";
-import { openWindowSafely } from "@/setup/popupGuard";
 import { useAuthStore } from "@/stores/auth";
 import { getProgressPercentage } from "@/stores/progress";
 import { useWatchPartyStore } from "@/stores/watchParty";
@@ -64,7 +63,7 @@ export function WatchPartyView({ id }: { id: string }) {
   const handleLegacyWatchPartyClick = () => {
     if (!downloadUrl) return;
     const url = `https://www.watchparty.me/create?video=${encodeURIComponent(downloadUrl)}`;
-    openWindowSafely(url);
+    window.open(url);
   };
 
   const handleHostParty = () => {

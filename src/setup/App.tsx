@@ -142,7 +142,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-
     if (isWatchPage) return;
     if (adsDisabled) return;
     const cfg = conf();
@@ -159,7 +158,7 @@ function App() {
     s.type = "text/javascript";
     s.src = cfg.POPUNDER_SCRIPT_URL;
     document.head.appendChild(s);
-  }, [adsDisabled]);
+  }, [adsDisabled, isWatchPage]);
 
   const handleButtonClick = () => {
     setShowDowntime(false);

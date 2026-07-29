@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 import { Icon, Icons } from "@/components/Icon";
 import { Spinner } from "@/components/layout/Spinner";
-import { openWindowSafely } from "@/setup/popupGuard";
 
 interface Props {
   icon?: Icons;
@@ -37,7 +36,7 @@ export function Button(props: Props) {
         if (!href.includes("http")) {
           navigate(href);
         } else {
-          openWindowSafely(href, "_blank", "noreferrer");
+          window.open(href, "_blank", "noreferrer");
         }
       } else onClick?.(event);
     },

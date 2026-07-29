@@ -14,7 +14,6 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 import { conf } from "@/setup/config";
-import { openWindowSafely } from "@/setup/popupGuard";
 import { useAuthStore } from "@/stores/auth";
 import { usePreferencesStore } from "@/stores/preferences";
 
@@ -32,7 +31,7 @@ function GoToLink(props: {
 
   const goTo = (href: string) => {
     if (href.startsWith("http")) {
-      openWindowSafely(href, "_blank");
+      window.open(href, "_blank");
     } else {
       window.scrollTo(0, 0);
       navigate(href);
