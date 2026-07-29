@@ -41,6 +41,8 @@ export function useAuthData() {
   const setFebboxKey = usePreferencesStore((s) => s.setFebboxKey);
   const setdebridToken = usePreferencesStore((s) => s.setdebridToken);
   const setdebridService = usePreferencesStore((s) => s.setdebridService);
+  const setTIDBKey = usePreferencesStore((s) => s.setTIDBKey);
+  const setWyzieKey = usePreferencesStore((s) => s.setWyzieKey);
 
   const replaceBookmarks = useBookmarkStore((s) => s.replaceBookmarks);
   const replaceItems = useProgressStore((s) => s.replaceItems);
@@ -106,6 +108,22 @@ export function useAuthData() {
   const setEnableMinimalCards = usePreferencesStore(
     (s) => s.setEnableMinimalCards,
   );
+  const setEnableAutoSkipSegments = usePreferencesStore(
+    (s) => s.setEnableAutoSkipSegments,
+  );
+  const setEnablePauseOverlay = usePreferencesStore(
+    (s) => s.setEnablePauseOverlay,
+  );
+  const setBookmarkRowsToShow = usePreferencesStore(
+    (s) => s.setBookmarkRowsToShow,
+  );
+  const setWatchingRowsToShow = usePreferencesStore(
+    (s) => s.setWatchingRowsToShow,
+  );
+  const setEnableGamepadControls = usePreferencesStore(
+    (s) => s.setEnableGamepadControls,
+  );
+  const setGamepadMapping = usePreferencesStore((s) => s.setGamepadMapping);
 
   const login = useCallback(
     async (
@@ -283,6 +301,14 @@ export function useAuthData() {
         setdebridService(settings.debridService);
       }
 
+      if (settings.tidbKey !== undefined) {
+        setTIDBKey(settings.tidbKey);
+      }
+
+      if (settings.wyzieKey !== undefined) {
+        setWyzieKey(settings.wyzieKey);
+      }
+
       if (settings.enableLowPerformanceMode !== undefined) {
         setEnableLowPerformanceMode(settings.enableLowPerformanceMode);
       }
@@ -326,6 +352,30 @@ export function useAuthData() {
       if (settings.enableMinimalCards !== undefined) {
         setEnableMinimalCards(settings.enableMinimalCards);
       }
+
+      if (settings.enableAutoSkipSegments !== undefined) {
+        setEnableAutoSkipSegments(settings.enableAutoSkipSegments);
+      }
+
+      if (settings.enablePauseOverlay !== undefined) {
+        setEnablePauseOverlay(settings.enablePauseOverlay);
+      }
+
+      if (settings.bookmarkRowsToShow !== undefined) {
+        setBookmarkRowsToShow(settings.bookmarkRowsToShow);
+      }
+
+      if (settings.watchingRowsToShow !== undefined) {
+        setWatchingRowsToShow(settings.watchingRowsToShow);
+      }
+
+      if (settings.enableGamepadControls !== undefined) {
+        setEnableGamepadControls(settings.enableGamepadControls);
+      }
+
+      if (settings.gamepadMapping !== undefined) {
+        setGamepadMapping(settings.gamepadMapping);
+      }
     },
     [
       replaceBookmarks,
@@ -357,6 +407,8 @@ export function useAuthData() {
       setFebboxKey,
       setdebridToken,
       setdebridService,
+      setTIDBKey,
+      setWyzieKey,
       setEnableLowPerformanceMode,
       setEnableNativeSubtitles,
       setEnableHoldToBoost,
@@ -367,6 +419,12 @@ export function useAuthData() {
       setEnableNumberKeySeeking,
       setKeyboardShortcuts,
       setEnableMinimalCards,
+      setEnableAutoSkipSegments,
+      setEnablePauseOverlay,
+      setBookmarkRowsToShow,
+      setWatchingRowsToShow,
+      setEnableGamepadControls,
+      setGamepadMapping,
     ],
   );
 

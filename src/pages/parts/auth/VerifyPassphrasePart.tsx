@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { useAsyncFn } from "react-use";
 
 import { authenticatePasskey } from "@/backend/accounts/crypto";
-import { updateSettings } from "@/backend/accounts/settings";
 import { Button } from "@/components/buttons/Button";
 import { Icon, Icons } from "@/components/Icon";
 import {
@@ -17,11 +16,8 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { AccountProfile } from "@/pages/parts/auth/AccountCreatePart";
 import { useBookmarkStore } from "@/stores/bookmarks";
-import { useLanguageStore } from "@/stores/language";
-import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
-import { useSubtitleStore } from "@/stores/subtitles";
-import { useThemeStore } from "@/stores/theme";
+import { useWatchHistoryStore } from "@/stores/watchHistory";
 
 interface VerifyPassphraseProps {
   mnemonic: string | null;
@@ -38,39 +34,7 @@ export function VerifyPassphrase(props: VerifyPassphraseProps) {
   const { register, restore, importData } = useAuth();
   const progressItems = useProgressStore((store) => store.items);
   const bookmarkItems = useBookmarkStore((store) => store.bookmarks);
-
-  const applicationLanguage = useLanguageStore((store) => store.language);
-  const defaultSubtitleLanguage = useSubtitleStore(
-    (store) => store.lastSelectedLanguage,
-  );
-  const applicationTheme = useThemeStore((store) => store.theme);
-
-  const preferences = usePreferencesStore((store) => ({
-    enableThumbnails: store.enableThumbnails,
-    enableAutoplay: store.enableAutoplay,
-    enableSkipCredits: store.enableSkipCredits,
-    enableDiscover: store.enableDiscover,
-    enableFeatured: store.enableFeatured,
-    enableDetailsModal: store.enableDetailsModal,
-    enableImageLogos: store.enableImageLogos,
-    enableCarouselView: store.enableCarouselView,
-    forceCompactEpisodeView: store.forceCompactEpisodeView,
-    sourceOrder: store.sourceOrder,
-    enableSourceOrder: store.enableSourceOrder,
-    embedOrder: store.embedOrder,
-    enableEmbedOrder: store.enableEmbedOrder,
-    proxyTmdb: store.proxyTmdb,
-    febboxKey: store.febboxKey,
-    debridToken: store.debridToken,
-    debridService: store.debridService,
-    enableLowPerformanceMode: store.enableLowPerformanceMode,
-    enableNativeSubtitles: store.enableNativeSubtitles,
-    enableHoldToBoost: store.enableHoldToBoost,
-    homeSectionOrder: store.homeSectionOrder,
-    enableDoubleClickToSeek: store.enableDoubleClickToSeek,
-    manualSourceSelection: store.manualSourceSelection,
-    enableAutoResumeOnPlaybackError: store.enableAutoResumeOnPlaybackError,
-  }));
+  const watchHistoryItems = useWatchHistoryStore((store) => store.items);
 
   const backendUrl = useBackendUrl();
   const { t } = useTranslation();
@@ -120,15 +84,7 @@ export function VerifyPassphrase(props: VerifyPassphraseProps) {
     if (!account)
       throw new Error(t("auth.verify.registrationFailed") ?? undefined);
 
-    await importData(account, progressItems, bookmarkItems);
-
-    await updateSettings(props.backendUrl, account, {
-      applicationLanguage,
-      defaultSubtitleLanguage: defaultSubtitleLanguage ?? undefined,
-      applicationTheme: applicationTheme ?? undefined,
-      proxyUrls: undefined,
-      ...preferences,
-    });
+    await importData(account, progressItems, bookmarkItems, watchHistoryItems);
 
     await restore(account);
 
@@ -163,15 +119,7 @@ export function VerifyPassphrase(props: VerifyPassphraseProps) {
       if (!account)
         throw new Error(t("auth.verify.registrationFailed") ?? undefined);
 
-      await importData(account, progressItems, bookmarkItems);
-
-      await updateSettings(backendUrl, account, {
-        applicationLanguage,
-        defaultSubtitleLanguage: defaultSubtitleLanguage ?? undefined,
-        applicationTheme: applicationTheme ?? undefined,
-        proxyUrls: undefined,
-        ...preferences,
-      });
+      await importData(account, progressItems, bookmarkItems, watchHistoryItems);
 
       await restore(account);
 

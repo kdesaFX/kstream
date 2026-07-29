@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useProgressStore } from "@/stores/progress";
+import { useWatchHistoryStore } from "@/stores/watchHistory";
 
 interface LoginFormPartProps {
   onLogin?: () => void;
@@ -34,6 +35,7 @@ export function LoginFormPart(props: LoginFormPartProps) {
   const backendUrl = useBackendUrl();
   const progressItems = useProgressStore((store) => store.items);
   const bookmarkItems = useBookmarkStore((store) => store.bookmarks);
+  const watchHistoryItems = useWatchHistoryStore((store) => store.items);
   const { t } = useTranslation();
 
   const [passkeyResult, executePasskey] = useAsyncFn(
@@ -67,7 +69,13 @@ export function LoginFormPart(props: LoginFormPartProps) {
       if (!account)
         throw new Error(t("auth.login.validationError") ?? undefined);
 
-      await importData(account, progressItems, bookmarkItems);
+      await importData(
+        account,
+        progressItems,
+        bookmarkItems,
+        watchHistoryItems,
+        false,
+      );
 
       await restore(account);
 
@@ -102,7 +110,13 @@ export function LoginFormPart(props: LoginFormPartProps) {
       if (!account)
         throw new Error(t("auth.login.validationError") ?? undefined);
 
-      await importData(account, progressItems, bookmarkItems);
+      await importData(
+        account,
+        progressItems,
+        bookmarkItems,
+        watchHistoryItems,
+        false,
+      );
 
       await restore(account);
 

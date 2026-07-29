@@ -9,7 +9,11 @@ import {
   encryptData,
 } from "@/backend/accounts/crypto";
 import { getSessions, updateSession } from "@/backend/accounts/sessions";
-import { getSettings, updateSettings } from "@/backend/accounts/settings";
+import {
+  SettingsInput,
+  getSettings,
+  updateSettings,
+} from "@/backend/accounts/settings";
 import { editUser } from "@/backend/accounts/user";
 import { getAllProviders } from "@/backend/providers/providers";
 import { Button } from "@/components/buttons/Button";
@@ -24,7 +28,7 @@ import { Transition } from "@/components/utils/Transition";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useIsIOS, useIsMobile, useIsPWA } from "@/hooks/useIsMobile";
-import { useSettingsState } from "@/hooks/useSettingsState";
+import { SETTINGS_FIELDS, useSettingsState } from "@/hooks/useSettingsState";
 import { AccountActionsPart } from "@/pages/parts/settings/AccountActionsPart";
 import { AccountEditPart } from "@/pages/parts/settings/AccountEditPart";
 import { AppearancePart } from "@/pages/parts/settings/AppearancePart";
@@ -412,6 +416,26 @@ export function SettingsPage() {
   const tidbKey = usePreferencesStore((s) => s.tidbKey);
   const setTIDBKey = usePreferencesStore((s) => s.setTIDBKey);
 
+  const wyzieKey = usePreferencesStore((s) => s.wyzieKey);
+  const setWyzieKey = usePreferencesStore((s) => s.setWyzieKey);
+
+  const bookmarkRowsToShow = usePreferencesStore((s) => s.bookmarkRowsToShow);
+  const setBookmarkRowsToShow = usePreferencesStore(
+    (s) => s.setBookmarkRowsToShow,
+  );
+  const watchingRowsToShow = usePreferencesStore((s) => s.watchingRowsToShow);
+  const setWatchingRowsToShow = usePreferencesStore(
+    (s) => s.setWatchingRowsToShow,
+  );
+  const enableGamepadControls = usePreferencesStore(
+    (s) => s.enableGamepadControls,
+  );
+  const setEnableGamepadControls = usePreferencesStore(
+    (s) => s.setEnableGamepadControls,
+  );
+  const gamepadMapping = usePreferencesStore((s) => s.gamepadMapping);
+  const setGamepadMapping = usePreferencesStore((s) => s.setGamepadMapping);
+
   const enableThumbnails = usePreferencesStore((s) => s.enableThumbnails);
   const setEnableThumbnails = usePreferencesStore((s) => s.setEnableThumbnails);
 
@@ -502,13 +526,12 @@ export function SettingsPage() {
     (s) => s.setEnableLowPerformanceMode,
   );
 
-  // These are commented because the NativeSubtitlesPart is accessable though the atoms caption style menu and not on the settings page.
   const enableNativeSubtitles = usePreferencesStore(
     (s) => s.enableNativeSubtitles,
   );
-  // const setEnableNativeSubtitles = usePreferencesStore(
-  //   (s) => s.setEnableNativeSubtitles,
-  // );
+  const setEnableNativeSubtitles = usePreferencesStore(
+    (s) => s.setEnableNativeSubtitles,
+  );
 
   const enableHoldToBoost = usePreferencesStore((s) => s.enableHoldToBoost);
   const setEnableHoldToBoost = usePreferencesStore(
@@ -750,19 +773,20 @@ export function SettingsPage() {
     setCustomTheme,
   ]);
 
-  const state = useSettingsState(
-    activeTheme,
+  const state = useSettingsState({
+    theme: activeTheme,
     appLanguage,
-    subStyling,
-    decryptedName,
-    account?.nickname || "",
-    proxySet,
-    backendUrlSetting,
+    subtitleStyling: subStyling,
+    deviceName: decryptedName,
+    nickname: account?.nickname || "",
+    proxyUrls: proxySet,
+    backendUrl: backendUrlSetting,
     febboxKey,
     debridToken,
     debridService,
     tidbKey,
-    account ? account.profile : undefined,
+    wyzieKey,
+    profile: account ? account.profile : undefined,
     enableThumbnails,
     enableAutoplay,
     enableSkipCredits,
@@ -789,10 +813,14 @@ export function SettingsPage() {
     enableDoubleClickToSeek,
     enableAutoResumeOnPlaybackError,
     enablePauseOverlay,
-    customThemeBaseline ?? customTheme,
+    customTheme: customThemeBaseline ?? customTheme,
     savedCustomThemes,
     hiddenDefaultThemes,
-  );
+    bookmarkRowsToShow,
+    watchingRowsToShow,
+    enableGamepadControls,
+    gamepadMapping,
+  });
 
   const availableSources = useMemo(() => {
     const sources = getAllProviders().listSources();
@@ -832,75 +860,30 @@ export function SettingsPage() {
 
   const saveChanges = useCallback(async () => {
     if (account && backendUrl) {
-      if (
-        state.appLanguage.changed ||
-        state.theme.changed ||
-        state.proxyUrls.changed ||
-        state.febboxKey.changed ||
-        state.debridToken.changed ||
-        state.debridService.changed ||
-        state.enableThumbnails.changed ||
-        state.enableAutoplay.changed ||
-        state.enableSkipCredits.changed ||
-        state.enableAutoSkipSegments.changed ||
-        state.enableDiscover.changed ||
-        state.enableFeatured.changed ||
-        state.enableDetailsModal.changed ||
-        state.enableImageLogos.changed ||
-        state.sourceOrder.changed ||
-        state.enableSourceOrder.changed ||
-        state.lastSuccessfulSource.changed ||
-        state.enableLastSuccessfulSource.changed ||
-        state.proxyTmdb.changed ||
-        state.enableCarouselView.changed ||
-        state.enableMinimalCards.changed ||
-        state.forceCompactEpisodeView.changed ||
-        state.enableLowPerformanceMode.changed ||
-        state.enableHoldToBoost.changed ||
-        state.homeSectionOrder.changed ||
-        state.manualSourceSelection.changed ||
-        state.enableDoubleClickToSeek.changed ||
-        state.enableAutoResumeOnPlaybackError.changed ||
-        state.enablePauseOverlay.changed ||
-        state.customTheme.changed
-      ) {
-        await updateSettings(backendUrl, account, {
-          applicationLanguage: state.appLanguage.state,
-          applicationTheme: state.theme.state,
-          proxyUrls: state.proxyUrls.state?.filter((v) => v !== "") ?? null,
-          febboxKey: state.febboxKey.state,
-          debridToken: state.debridToken.state,
-          debridService: state.debridService.state,
-          enableThumbnails: state.enableThumbnails.state,
-          enableAutoplay: state.enableAutoplay.state,
-          enableSkipCredits: state.enableSkipCredits.state,
-          enableAutoSkipSegments: state.enableAutoSkipSegments.state,
-          enableDiscover: state.enableDiscover.state,
-          enableFeatured: state.enableFeatured.state,
-          enableDetailsModal: state.enableDetailsModal.state,
-          enableImageLogos: state.enableImageLogos.state,
-          sourceOrder: state.sourceOrder.state,
-          enableSourceOrder: state.enableSourceOrder.state,
-          lastSuccessfulSource: state.lastSuccessfulSource.state,
-          enableLastSuccessfulSource: state.enableLastSuccessfulSource.state,
-          proxyTmdb: state.proxyTmdb.state,
-          enableCarouselView: state.enableCarouselView.state,
-          enableMinimalCards: state.enableMinimalCards.state,
-          forceCompactEpisodeView: state.forceCompactEpisodeView.state,
-          enableLowPerformanceMode: state.enableLowPerformanceMode.state,
-          enableHoldToBoost: state.enableHoldToBoost.state,
-          homeSectionOrder: state.homeSectionOrder.state,
-          manualSourceSelection: state.manualSourceSelection.state,
-          enableDoubleClickToSeek: state.enableDoubleClickToSeek.state,
-          enableAutoResumeOnPlaybackError:
-            state.enableAutoResumeOnPlaybackError.state,
-          enablePauseOverlay: state.enablePauseOverlay.state,
-          customTheme: {
-            activeTheme: state.customTheme.state,
-            savedCustomThemes: state.savedCustomThemes.state,
-            hiddenDefaultThemes: state.hiddenDefaultThemes.state,
-          },
+      const settingsChanged =
+        SETTINGS_FIELDS.some((f) => state[f.key].changed) ||
+        state.customTheme.changed ||
+        state.savedCustomThemes.changed ||
+        state.hiddenDefaultThemes.changed;
+
+      if (settingsChanged) {
+        const body: Record<string, unknown> = {};
+        SETTINGS_FIELDS.forEach((f) => {
+          body[f.backendKey] = state[f.key].state;
         });
+        body.proxyUrls =
+          (body.proxyUrls as string[] | null)?.filter((v) => v !== "") ??
+          null;
+        body.customTheme = {
+          activeTheme: state.customTheme.state,
+          savedCustomThemes: state.savedCustomThemes.state,
+          hiddenDefaultThemes: state.hiddenDefaultThemes.state,
+        };
+        await updateSettings(
+          backendUrl,
+          account,
+          body as unknown as SettingsInput,
+        );
       }
       if (state.deviceName.changed) {
         const newDeviceName = await encryptData(
@@ -947,12 +930,18 @@ export function SettingsPage() {
     setdebridToken(state.debridToken.state);
     setdebridService(state.debridService.state);
     setTIDBKey(state.tidbKey.state);
+    setWyzieKey(state.wyzieKey.state);
     setProxyTmdb(state.proxyTmdb.state);
     setEnableCarouselView(state.enableCarouselView.state);
     setEnableMinimalCards(state.enableMinimalCards.state);
     setForceCompactEpisodeView(state.forceCompactEpisodeView.state);
     setEnableLowPerformanceMode(state.enableLowPerformanceMode.state);
+    setEnableNativeSubtitles(state.enableNativeSubtitles.state);
     setEnableHoldToBoost(state.enableHoldToBoost.state);
+    setBookmarkRowsToShow(state.bookmarkRowsToShow.state);
+    setWatchingRowsToShow(state.watchingRowsToShow.state);
+    setEnableGamepadControls(state.enableGamepadControls.state);
+    setGamepadMapping(state.gamepadMapping.state);
     setHomeSectionOrder(state.homeSectionOrder.state);
     setManualSourceSelection(state.manualSourceSelection.state);
     setEnableDoubleClickToSeek(state.enableDoubleClickToSeek.state);
@@ -1160,6 +1149,8 @@ export function SettingsPage() {
             <CaptionsPart
               styling={state.subtitleStyling.state}
               setStyling={state.subtitleStyling.set}
+              enableNativeSubtitles={state.enableNativeSubtitles.state}
+              setEnableNativeSubtitles={state.enableNativeSubtitles.set}
             />
           </div>
         )}

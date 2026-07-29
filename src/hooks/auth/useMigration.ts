@@ -11,19 +11,14 @@ import {
   keysFromSeed,
   signChallenge,
 } from "@/backend/accounts/crypto";
-import {
-  importBookmarks,
-  importGroupOrder,
-  importProgress,
-  importSettings,
-  importWatchHistory,
-} from "@/backend/accounts/import";
+import { importAllUserData } from "@/backend/accounts/import";
 // import { getLoginChallengeToken, loginAccount } from "@/backend/accounts/login";
 import { progressMediaItemToInputs } from "@/backend/accounts/progress";
 import {
   getRegisterChallengeToken,
   registerAccount,
 } from "@/backend/accounts/register";
+import { buildFullSettingsInput } from "@/backend/accounts/settings";
 import { watchHistoryItemsToInputs } from "@/backend/accounts/watchHistory";
 // import { removeSession } from "@/backend/accounts/sessions";
 // import { getSettings } from "@/backend/accounts/settings";
@@ -38,9 +33,11 @@ import { useAuthData } from "@/hooks/auth/useAuthData";
 import { AccountWithToken, useAuthStore } from "@/stores/auth";
 import { BookmarkMediaItem, useBookmarkStore } from "@/stores/bookmarks";
 import { useGroupOrderStore } from "@/stores/groupOrder";
+import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
 import { ProgressMediaItem, useProgressStore } from "@/stores/progress";
 import { useSubtitleStore } from "@/stores/subtitles";
+import { useThemeStore } from "@/stores/theme";
 import { WatchHistoryItem, useWatchHistoryStore } from "@/stores/watchHistory";
 
 export interface RegistrationData {
@@ -71,6 +68,8 @@ export function useMigration() {
   const groupOrder = useGroupOrderStore((s) => s.groupOrder);
   const preferences = usePreferencesStore.getState();
   const subtitleLanguage = useSubtitleStore((s) => s.lastSelectedLanguage);
+  const applicationLanguage = useLanguageStore((s) => s.language);
+  const applicationTheme = useThemeStore((s) => s.theme);
   const { login: userDataLogin } = useAuthData();
 
   const migrate = useCallback(
@@ -85,82 +84,25 @@ export function useMigration() {
         bookmarkItems: Record<string, BookmarkMediaItem>,
         groupOrderItems: string[],
       ) => {
-        if (
-          Object.keys(progressItems).length === 0 &&
-          Object.keys(watchHistoryItems).length === 0 &&
-          Object.keys(bookmarkItems).length === 0 &&
-          groupOrderItems.length === 0
-        ) {
-          return;
-        }
-
         const progressInputs = Object.entries(progressItems).flatMap(
           ([tmdbId, item]) => progressMediaItemToInputs(tmdbId, item),
         );
-
         const watchHistoryInputs = watchHistoryItemsToInputs(watchHistoryItems);
-
         const bookmarkInputs = Object.entries(bookmarkItems).map(
           ([tmdbId, item]) => bookmarkMediaToInput(tmdbId, item),
         );
 
-        const importPromises = [
-          importProgress(backendUrlInner, account, progressInputs),
-          importWatchHistory(backendUrlInner, account, watchHistoryInputs),
-          importBookmarks(backendUrlInner, account, bookmarkInputs),
-        ];
-
-        // Import group order if it exists
-        if (groupOrderItems.length > 0) {
-          importPromises.push(
-            importGroupOrder(backendUrlInner, account, groupOrderItems),
-          );
-        }
-
-        // Import settings/preferences
-        importPromises.push(
-          importSettings(backendUrlInner, account, {
+        await importAllUserData(backendUrlInner, account, {
+          progressInputs,
+          watchHistoryInputs,
+          bookmarkInputs,
+          groupOrder: groupOrderItems,
+          settings: buildFullSettingsInput(preferences, {
+            applicationLanguage,
+            applicationTheme: applicationTheme ?? undefined,
             defaultSubtitleLanguage: subtitleLanguage || undefined,
-            febboxKey: preferences.febboxKey,
-            debridToken: preferences.debridToken,
-            debridService: preferences.debridService,
-            enableThumbnails: preferences.enableThumbnails,
-            enableAutoplay: preferences.enableAutoplay,
-            enableSkipCredits: preferences.enableSkipCredits,
-            enableDiscover: preferences.enableDiscover,
-            enableFeatured: preferences.enableFeatured,
-            enableDetailsModal: preferences.enableDetailsModal,
-            enableImageLogos: preferences.enableImageLogos,
-            enableCarouselView: preferences.enableCarouselView,
-            forceCompactEpisodeView: preferences.forceCompactEpisodeView,
-            sourceOrder:
-              preferences.sourceOrder.length > 0
-                ? preferences.sourceOrder
-                : undefined,
-            enableSourceOrder: preferences.enableSourceOrder,
-            lastSuccessfulSource: preferences.lastSuccessfulSource,
-            enableLastSuccessfulSource: preferences.enableLastSuccessfulSource,
-            embedOrder:
-              preferences.embedOrder.length > 0
-                ? preferences.embedOrder
-                : undefined,
-            enableEmbedOrder: preferences.enableEmbedOrder,
-            proxyTmdb: preferences.proxyTmdb,
-            enableLowPerformanceMode: preferences.enableLowPerformanceMode,
-            enableNativeSubtitles: preferences.enableNativeSubtitles,
-            enableHoldToBoost: preferences.enableHoldToBoost,
-            homeSectionOrder:
-              preferences.homeSectionOrder.length > 0
-                ? preferences.homeSectionOrder
-                : undefined,
-            manualSourceSelection: preferences.manualSourceSelection,
-            enableDoubleClickToSeek: preferences.enableDoubleClickToSeek,
-            enableAutoResumeOnPlaybackError:
-              preferences.enableAutoResumeOnPlaybackError,
           }),
-        );
-
-        await Promise.all(importPromises);
+        });
       };
 
       const { challenge } = await getRegisterChallengeToken(
@@ -206,6 +148,8 @@ export function useMigration() {
       groupOrder,
       preferences,
       subtitleLanguage,
+      applicationLanguage,
+      applicationTheme,
     ],
   );
 
