@@ -2,7 +2,6 @@ import { ReactNode } from "react";
 
 import { PageTitle } from "@/pages/parts/util/PageTitle";
 import { conf } from "@/setup/config";
-import { openWindowSafely } from "@/setup/popupGuard";
 
 import { SubPageLayout } from "./layouts/SubPageLayout";
 
@@ -127,7 +126,7 @@ export function AppsPage() {
         "distributed to our community first",
       ],
       cta: "join Discord to download",
-      onClick: () => openWindowSafely(conf().DISCORD_LINK, "_blank"),
+      onClick: () => window.open(conf().DISCORD_LINK, "_blank"),
     },
     {
       key: "android",
@@ -140,7 +139,7 @@ export function AppsPage() {
         "new builds published on GitHub",
       ],
       cta: "view releases",
-      onClick: () => openWindowSafely(ANDROID_RELEASES_URL, "_blank"),
+      onClick: () => window.open(ANDROID_RELEASES_URL, "_blank"),
     },
     {
       key: "ios",

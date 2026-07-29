@@ -1,6 +1,5 @@
 import { Icon, Icons } from "@/components/Icon";
 import { FancyModal } from "@/components/overlays/Modal";
-import { openWindowSafely } from "@/setup/popupGuard";
 import { conf } from "@/setup/config";
 
 interface DownloadOption {
@@ -40,7 +39,7 @@ function DownloadRow({ option }: { option: DownloadOption }) {
   return (
     <button
       type="button"
-      onClick={() => openWindowSafely(option.href, "_blank")}
+      onClick={() => window.open(option.href, "_blank")}
       className="group w-full rounded-2xl bg-modal-background/60 hover:bg-modal-background/80 transition-colors border border-utils-divider/40 hover:border-white/10 p-4 text-left"
     >
       <div className="flex items-center gap-4">
