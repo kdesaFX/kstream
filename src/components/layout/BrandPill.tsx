@@ -2,7 +2,6 @@ import classNames from "classnames";
 import { useTranslation } from "react-i18next";
 
 import { Icon, Icons } from "@/components/Icon";
-import { useIsMobile } from "@/hooks/useIsMobile";
 
 export function BrandPill(props: {
   clickable?: boolean;
@@ -10,7 +9,6 @@ export function BrandPill(props: {
   backgroundClass?: string;
 }) {
   const { t } = useTranslation();
-  const isMobile = useIsMobile();
 
   return (
     <div
@@ -23,14 +21,7 @@ export function BrandPill(props: {
       )}
     >
       <Icon className="text-2xl" icon={Icons.LOGO} />
-      <span
-        className={[
-          "font-semibold text-white",
-          isMobile && props.header ? "hidden sm:block" : "",
-        ].join(" ")}
-      >
-        {t("global.name")}
-      </span>
+      <span className="font-semibold text-white">{t("global.name")}</span>
     </div>
   );
 }

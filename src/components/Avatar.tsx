@@ -1,8 +1,5 @@
 import classNames from "classnames";
-import { useMemo } from "react";
-import { useTranslation } from "react-i18next";
 
-import { base64ToBuffer, decryptData } from "@/backend/accounts/crypto";
 import { Icon, Icons } from "@/components/Icon";
 import { UserIcon } from "@/components/UserIcon";
 import { AccountProfile } from "@/pages/parts/auth/AccountCreatePart";
@@ -49,37 +46,9 @@ export function UserAvatar(props: {
 }) {
   const auth = useAuthStore();
 
-  const bufferSeed = useMemo(
-    () =>
-      auth.account && auth.account.seed
-        ? base64ToBuffer(auth.account.seed)
-        : null,
-    [auth],
-  );
-  const { t } = useTranslation();
-
   if (!auth.account || auth.account === null) return null;
 
-  const deviceName = bufferSeed
-    ? (() => {
-        const parts = auth.account.deviceName?.split(".");
-        if (!parts || parts.length !== 3) {
-          return (
-            auth.account.deviceName ||
-            t("settings.account.devices.unknownDevice")
-          );
-        }
-        try {
-          return decryptData(auth.account.deviceName, bufferSeed);
-        } catch (error) {
-          console.warn(
-            "Failed to decrypt device name in Avatar, using fallback:",
-            error,
-          );
-          return t("settings.account.devices.unknownDevice");
-        }
-      })()
-    : "...";
+  const nickname = auth.account.nickname;
 
   return (
     <>
@@ -91,11 +60,11 @@ export function UserAvatar(props: {
         iconClass={props.iconClass}
         bottom={props.bottom}
       />
-      {props.withName && bufferSeed ? (
-        <span className="hidden md:inline-block">
-          {deviceName.length >= 20
-            ? `${deviceName.slice(0, 20 - 1)}…`
-            : deviceName}
+      {props.withName && nickname ? (
+        <span>
+          {nickname.length >= 20
+            ? `${nickname.slice(0, 20 - 1)}…`
+            : nickname}
         </span>
       ) : null}
     </>

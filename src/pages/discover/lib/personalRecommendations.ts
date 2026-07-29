@@ -202,6 +202,28 @@ export function normalizeGenreIds(ids: number[] | undefined): number[] {
   return Array.from(out);
 }
 
+export type ContentWeight = "light" | "medium" | "heavy";
+
+// TMDB has no "intensity" signal, so this is a genre-based heuristic —
+// easy/comfort genres vs. serious/heavy ones, with everything else falling
+// to "medium". Heavy takes priority when a title carries both a heavy and a
+// light tag (e.g. a war dramedy reads as heavy, not light).
+export const LIGHT_GENRE_IDS = [16, 10751, 35, 10402]; // Animation, Family, Comedy, Music
+export const HEAVY_GENRE_IDS = [10752, 36, 18, 80, 99]; // War, History, Drama, Crime, Documentary
+export const MEDIUM_GENRE_IDS = [
+  28, 12, 14, 27, 9648, 10749, 878, 53, 37, // Action, Adventure, Fantasy, Horror, Mystery, Romance, Sci-Fi, Thriller, Western
+];
+
+export function classifyContentWeight(
+  genreIds: number[] | undefined,
+): ContentWeight {
+  const normalized = normalizeGenreIds(genreIds);
+  if (normalized.length === 0) return "medium";
+  if (normalized.some((id) => HEAVY_GENRE_IDS.includes(id))) return "heavy";
+  if (normalized.some((id) => LIGHT_GENRE_IDS.includes(id))) return "light";
+  return "medium";
+}
+
 function ratingRecencyFactor(ratedAt: number): number {
   const ageDays = Math.max(0, (Date.now() - ratedAt) / (1000 * 60 * 60 * 24));
   return 1 / (1 + ageDays / RATING_HALF_LIFE_DAYS);
@@ -299,6 +321,7 @@ function toDiscoverMedia(
     first_air_date: isTVShow
       ? (item as TMDBShowSearchResult).first_air_date
       : undefined,
+    genre_ids: item.genre_ids,
   };
 }
 
@@ -410,7 +433,11 @@ export async function fetchPersonalRecommendations(
   for (const b of bookmarksFiltered.slice(0, MAX_BOOKMARK_FOR_RELATED))
     addSeed(b.tmdbId, SEED_WEIGHT_BOOKMARK, RELATED_PER_ITEM_LIMIT);
 
-  const profile = buildTasteProfile(ratings, prefs);
+  // Movies and shows are different enough as mediums that a rating in one
+  // shouldn't shape recommendations in the other (loving a horror movie
+  // says little about wanting horror shows, and vice versa) — build the
+  // profile from same-medium ratings only.
+  const profile = buildTasteProfile(ratingsFiltered, prefs);
 
   // Never recommend anything already rated.
   const ratedIds = new Set(ratingsFiltered.map((r) => r.tmdbId));
@@ -522,7 +549,7 @@ export async function fetchPersonalRecommendations(
   const merged = picked
     .concat(overflow)
     .slice(0, MAX_RESULTS)
-    .map((s) => toDiscoverMedia(s.item, isTVShow));
+    .map((s) => ({ ...toDiscoverMedia(s.item, isTVShow), matchScore: s.score }));
   const mergedIds = new Set(merged.map((m) => m.id));
 
   const reminders: DiscoverMedia[] = [];

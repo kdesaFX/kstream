@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { get } from "@/backend/metadata/tmdb";
+import {
+  get,
+  getAllTimeBestMovies,
+  getAllTimeBestShows,
+} from "@/backend/metadata/tmdb";
 import {
   PROVIDER_TO_TRAKT_MAP,
   getAppleMovieReleases,
@@ -367,6 +371,35 @@ export function useDiscoverMedia({
           });
           setSectionTitle(t("discover.carousel.title.popular"));
           break;
+
+        // TMDB's actual "popular" endpoint (this week's trending), as
+        // opposed to the "popular" case above which is a /discover sort.
+        case "popularThisWeek":
+          data = await fetchTMDBMedia(
+            mediaType === "movie" ? "/movie/popular" : "/tv/popular",
+          );
+          setSectionTitle(t("discover.carousel.title.popularThisWeek"));
+          break;
+
+        // A random page from the well-known/quality-filtered pool,
+        // reshuffled — see getAllTimeBestMovies/Shows. Bypasses
+        // fetchTMDBMedia since carousel views force page 1 there, which
+        // would defeat the randomization.
+        case "randomPopular": {
+          const randomItems =
+            mediaType === "movie"
+              ? await getAllTimeBestMovies(20)
+              : await getAllTimeBestShows(20);
+          data = {
+            results: randomItems.map((item) => ({
+              ...item,
+              type: mediaType === "movie" ? "movie" : "show",
+            })),
+            hasMore: true,
+          };
+          setSectionTitle(t("discover.carousel.title.randomPopular"));
+          break;
+        }
 
         case "topRated":
           data = await fetchTMDBMedia(`/discover/${mediaType}`, {

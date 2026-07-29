@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getMediaPoster, multiSearch } from "@/backend/metadata/tmdb";
 import { TMDBContentTypes } from "@/backend/metadata/types/tmdb";
@@ -12,12 +12,14 @@ import { WideContainer } from "@/components/layout/WideContainer";
 import { MediaRatingCapsule } from "@/components/media/MediaRatingCapsule";
 import { Heading1 } from "@/components/utils/Text";
 import { CreateAlgorithmWizard } from "@/pages/algorithm/CreateAlgorithmWizard";
+import { PersonalRecommendationsCarousel } from "@/pages/discover/components/PersonalRecommendationsCarousel";
 import {
   GENRE_LABELS,
   type RatingSource,
   buildTasteProfile,
 } from "@/pages/discover/lib/personalRecommendations";
 import { SubPageLayout } from "@/pages/layouts/SubPageLayout";
+import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { useRatingsStore } from "@/stores/ratings";
 
 // Validated categorical palette for dark surfaces.
@@ -320,6 +322,15 @@ export function MyAlgorithmPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const { showModal } = useOverlayStack();
+  const carouselRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  const handleShowDetails = (media: { id: string; type: "movie" | "show" }) => {
+    showModal("discover-details", {
+      id: Number(media.id),
+      type: media.type,
+    });
+  };
 
   // Debounced search so users can rate titles they've seen elsewhere.
   useEffect(() => {
@@ -365,9 +376,9 @@ export function MyAlgorithmPage() {
       <WideContainer>
         <Heading1>My Algorithm</Heading1>
         <p className="mb-6 text-type-secondary">
-          Everything the recommendation algorithm knows about your taste.
-          Rate more titles to sharpen your For You section — love and hate
-          weigh about twice as much as like and dislike.
+          This is what your ratings have taught the algorithm so far. Love
+          and hate count about twice as much as like and dislike, so rate
+          more to dial it in.
         </p>
 
         <div className="mb-8">
@@ -383,8 +394,8 @@ export function MyAlgorithmPage() {
                 </p>
                 <p className="text-sm text-type-secondary">
                   {completedOnboarding
-                    ? "Retake the quick quiz to refresh your genres, moods, and franchises."
-                    : "Answer a quick quiz — rate popular movies, pick genres, moods, and franchises — to kick-start your suggestions."}
+                    ? "Retake the quiz to update your taste profile."
+                    : "Rate a few movies and shows and we'll start suggesting things you'll like."}
                 </p>
               </div>
               <Button theme="purple" onClick={() => setWizardOpen(true)}>
@@ -396,9 +407,8 @@ export function MyAlgorithmPage() {
 
         {ratingCount === 0 ? (
           <div className="mb-10 rounded-xl bg-white/5 p-6 text-center text-type-secondary">
-            No ratings yet. Take the quiz above or search below for movies
-            or shows you&apos;ve seen and rate them to teach the algorithm
-            what you enjoy.
+            No ratings yet. Take the quiz to get some, or search below to
+            rate something you&apos;ve seen already.
           </div>
         ) : (
           <div className="mb-10 flex flex-col items-center gap-8 md:flex-row md:items-start">
@@ -441,6 +451,26 @@ export function MyAlgorithmPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {ratingCount > 0 && (
+          <div className="mb-10 space-y-6">
+            <h2 className="text-lg font-semibold text-white">
+              We think you&apos;d like...
+            </h2>
+            <PersonalRecommendationsCarousel
+              isTVShow={false}
+              carouselRefs={carouselRefs}
+              onShowDetails={handleShowDetails}
+              title="Movies"
+            />
+            <PersonalRecommendationsCarousel
+              isTVShow
+              carouselRefs={carouselRefs}
+              onShowDetails={handleShowDetails}
+              title="Shows"
+            />
           </div>
         )}
 

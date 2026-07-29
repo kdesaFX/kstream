@@ -28,6 +28,46 @@ export interface UsePersonalRecommendationsOptions {
   enabled?: boolean;
 }
 
+/**
+ * Cheap, non-fetching check for whether there's enough signal (of the given
+ * type) for personalized recommendations to produce anything — mirrors the
+ * `hasAnySource` gate inside usePersonalRecommendations' fetch, so callers
+ * that need to decide "should I even offer a For You view" (e.g. picking a
+ * default tab) get the same answer the hook itself would, without needing to
+ * actually fetch. A rating alone isn't enough: someone who rated a batch of
+ * things "meh"/"didn't like it" during testing has no positive signal and
+ * would otherwise silently fall through to trending, looking unchanged.
+ */
+export function useHasRecommendationSignal(isTVShow: boolean): boolean {
+  const watchHistoryItems = useWatchHistoryStore((s) => s.items);
+  const progressItems = useProgressStore((s) => s.items);
+  const bookmarks = useBookmarkStore((s) => s.bookmarks);
+  const ratingItems = useRatingsStore((s) => s.ratings);
+  const preferences = useRatingsStore((s) => s.preferences);
+
+  const wantedType = isTVShow ? "show" : "movie";
+  const hasHistory = Object.values(watchHistoryItems).some(
+    (item) => item.type === wantedType,
+  );
+  const hasProgress = Object.values(progressItems).some(
+    (item) => item.type === wantedType,
+  );
+  const hasBookmark = Object.values(bookmarks).some(
+    (item) => item.type === wantedType,
+  );
+  const hasPositiveRating = Object.values(ratingItems).some(
+    (r) => r.rating === "liked" || r.rating === "loved",
+  );
+  const hasPrefs =
+    preferences.favoriteGenres.length > 0 ||
+    preferences.moods.length > 0 ||
+    preferences.franchises.length > 0;
+
+  return (
+    hasHistory || hasProgress || hasBookmark || hasPositiveRating || hasPrefs
+  );
+}
+
 export interface UsePersonalRecommendationsReturn {
   media: DiscoverMedia[];
   isLoading: boolean;
@@ -35,6 +75,13 @@ export interface UsePersonalRecommendationsReturn {
   refetch: () => Promise<void>;
   sectionTitle: string;
   hasRecommendations: boolean;
+  // True once the hook has resolved at least one fetch attempt (through any
+  // exit path — success, error, or "no source"). isLoading starts false, so
+  // callers that need to distinguish "hasn't started yet" from "genuinely
+  // has nothing" should gate on this instead — otherwise the empty initial
+  // `media: []` looks identical to a real empty result before the first
+  // fetch even begins.
+  hasSettled: boolean;
 }
 
 function getHistorySources(
@@ -88,6 +135,7 @@ export function usePersonalRecommendations({
   const [media, setMedia] = useState<DiscoverMedia[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasSettled, setHasSettled] = useState(false);
 
   const watchHistoryItems = useWatchHistoryStore((s) => s.items);
   const progressItems = useProgressStore.getState().items;
@@ -147,6 +195,7 @@ export function usePersonalRecommendations({
     if (!hasAnySource) {
       setMedia([]);
       setError(null);
+      setHasSettled(true);
       return;
     }
 
@@ -165,6 +214,7 @@ export function usePersonalRecommendations({
         setMedia(cached.media);
         setError(null);
         setIsLoading(false);
+        setHasSettled(true);
         // Cache is usable but aging - refresh it quietly, no skeleton flash.
         if (cached.freshness === "stale") fetch({ background: true });
         return;
@@ -193,7 +243,10 @@ export function usePersonalRecommendations({
         setMedia([]);
       }
     } finally {
-      if (!background) setIsLoading(false);
+      if (!background) {
+        setIsLoading(false);
+        setHasSettled(true);
+      }
     }
   }, [
     isTVShow,
@@ -233,5 +286,6 @@ export function usePersonalRecommendations({
     refetch: fetch,
     sectionTitle,
     hasRecommendations,
+    hasSettled,
   };
 }
