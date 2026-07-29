@@ -160,17 +160,15 @@ export function decryptData(data: string, secret: Uint8Array) {
 // Passkey/WebAuthn utilities
 
 export function isPasskeySupported(): boolean {
-  // Passkeys require HTTPS
-  const isSecureContext =
-    typeof window !== "undefined" && window.location.protocol === "https:";
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return false;
+  }
 
-  return (
-    isSecureContext &&
-    typeof navigator !== "undefined" &&
-    "credentials" in navigator &&
-    "create" in navigator.credentials &&
-    "get" in navigator.credentials &&
-    typeof PublicKeyCredential !== "undefined"
+  return Boolean(
+    navigator.credentials &&
+      typeof navigator.credentials.create === "function" &&
+      typeof navigator.credentials.get === "function" &&
+      typeof PublicKeyCredential !== "undefined",
   );
 }
 

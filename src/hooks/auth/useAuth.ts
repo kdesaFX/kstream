@@ -3,8 +3,10 @@ import { useCallback } from "react";
 import { SessionResponse } from "@/backend/accounts/auth";
 import { bookmarkMediaToInput } from "@/backend/accounts/bookmarks";
 import {
+  authenticatePasskey,
   bytesToBase64,
   bytesToBase64Url,
+  createPasskey,
   getCredentialId,
   keysFromCredentialId,
   keysFromMnemonic,
@@ -14,11 +16,6 @@ import {
 import { getGroupOrder } from "@/backend/accounts/groupOrder";
 import { importAllUserData } from "@/backend/accounts/import";
 import { getLoginChallengeToken, loginAccount } from "@/backend/accounts/login";
-import {
-  addPasskey as addPasskeyRequest,
-  loginWithPasskey as loginWithPasskeyRequest,
-  registerWithPasskey as registerWithPasskeyRequest,
-} from "@/backend/accounts/passkey";
 import {
   addPassword as addPasswordRequest,
   loginWithPassword as loginWithPasswordRequest,
@@ -31,7 +28,10 @@ import {
   registerAccount,
 } from "@/backend/accounts/register";
 import { removeSession } from "@/backend/accounts/sessions";
-import { buildFullSettingsInput, getSettings } from "@/backend/accounts/settings";
+import {
+  buildFullSettingsInput,
+  getSettings,
+} from "@/backend/accounts/settings";
 import {
   UserResponse,
   getBookmarks,
@@ -268,25 +268,42 @@ export function useAuth() {
       accountProfile: { colorA: string; colorB: string; icon: string },
     ) => {
       if (!backendUrl) return;
-      const result = await registerWithPasskeyRequest(backendUrl, device, accountProfile);
-      return userDataLogin(result, result.user, result.session);
+      const passkey = await createPasskey(
+        `user-${Date.now()}`,
+        "Z-Stream User",
+      );
+      return register({
+        credentialId: passkey.id,
+        userData: {
+          device,
+          profile: accountProfile,
+        },
+      });
     },
-    [backendUrl, userDataLogin],
+    [backendUrl, register],
   );
 
   const loginWithPasskey = useCallback(
     async (device: string) => {
       if (!backendUrl) return;
-      const result = await loginWithPasskeyRequest(backendUrl, device);
-      return userDataLogin(result, result.user, result.session);
+      const assertion = await authenticatePasskey();
+      return login({
+        credentialId: assertion.id,
+        userData: { device },
+      });
     },
-    [backendUrl, userDataLogin],
+    [backendUrl, login],
   );
 
   const migrateToPassword = useCallback(
     async (username: string, password: string) => {
       if (!backendUrl || !currentAccount) return;
-      await migrateToPasswordRequest(backendUrl, currentAccount, username, password);
+      await migrateToPasswordRequest(
+        backendUrl,
+        currentAccount,
+        username,
+        password,
+      );
     },
     [backendUrl, currentAccount],
   );
@@ -300,9 +317,15 @@ export function useAuth() {
   );
 
   const addPasskey = useCallback(
-    async (device: string) => {
+    async (_device: string) => {
       if (!backendUrl || !currentAccount) return;
-      await addPasskeyRequest(backendUrl, currentAccount, device);
+      const passkey = await createPasskey(
+        `user-${Date.now()}`,
+        "Z-Stream User",
+      );
+      const keys = await keysFromCredentialId(passkey.id);
+      const publicKeyBase64Url = bytesToBase64Url(keys.publicKey);
+      storeCredentialMapping(backendUrl, publicKeyBase64Url, passkey.id);
     },
     [backendUrl, currentAccount],
   );
