@@ -49,6 +49,57 @@ import { useLanguageStore } from "@/stores/language";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { detectUserLanguage, detectUserRegion } from "@/utils/locale/userRegion";
 
+const DISCOVER_OPTIONS_LIMIT = 50;
+const TMDB_CACHE_TTL_MS = 2 * 60 * 1000;
+
+const discoverOptionsCache = new Map<string, Genre[]>();
+const discoverOptionsInFlight = new Map<string, Promise<Genre[]>>();
+
+const tmdbResponseCache = new Map<string, { builtAt: number; data: any }>();
+const tmdbInFlight = new Map<string, Promise<any>>();
+
+function serializeParams(params: Record<string, unknown>): string {
+  return Object.keys(params)
+    .sort()
+    .map((key) => `${key}:${String(params[key])}`)
+    .join("|");
+}
+
+function buildTmdbCacheKey(
+  endpoint: string,
+  params: Record<string, unknown>,
+): string {
+  return `${endpoint}?${serializeParams(params)}`;
+}
+
+async function fetchTmdbCached(
+  endpoint: string,
+  params: Record<string, unknown>,
+): Promise<any> {
+  const key = buildTmdbCacheKey(endpoint, params);
+  const now = Date.now();
+  const cached = tmdbResponseCache.get(key);
+
+  if (cached && now - cached.builtAt < TMDB_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  const pending = tmdbInFlight.get(key);
+  if (pending) return pending;
+
+  const request = get<any>(endpoint, params)
+    .then((data) => {
+      tmdbResponseCache.set(key, { builtAt: Date.now(), data });
+      return data;
+    })
+    .finally(() => {
+      tmdbInFlight.delete(key);
+    });
+
+  tmdbInFlight.set(key, request);
+  return request;
+}
+
 // Re-export types for backward compatibility
 export type {
   DiscoverContentType,
@@ -87,24 +138,54 @@ export function useDiscoverOptions(mediaType: MediaType) {
   const providers = mediaType === "movie" ? MOVIE_PROVIDERS : TV_PROVIDERS;
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchGenres = async () => {
+      const cacheKey = `${mediaType}:${formattedLanguage}`;
+      const cached = discoverOptionsCache.get(cacheKey);
+      if (cached) {
+        setGenres(cached);
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
 
       try {
-        const data = await get<any>(`/genre/${mediaType}/list`, {
-          language: formattedLanguage,
-        });
-        setGenres(data.genres.slice(0, 50));
+        let pending = discoverOptionsInFlight.get(cacheKey);
+        if (!pending) {
+          pending = get<any>(`/genre/${mediaType}/list`, {
+            language: formattedLanguage,
+          }).then((data) => data.genres.slice(0, DISCOVER_OPTIONS_LIMIT));
+          discoverOptionsInFlight.set(cacheKey, pending);
+        }
+
+        const nextGenres = await pending;
+        discoverOptionsCache.set(cacheKey, nextGenres);
+
+        if (!cancelled) {
+          setGenres(nextGenres);
+        }
       } catch (err) {
-        console.error(`Error fetching ${mediaType} genres:`, err);
-        setError((err as Error).message);
+        if (!cancelled) {
+          console.error(`Error fetching ${mediaType} genres:`, err);
+          setError((err as Error).message);
+        }
       } finally {
-        setIsLoading(false);
+        discoverOptionsInFlight.delete(`${mediaType}:${formattedLanguage}`);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchGenres();
+
+    return () => {
+      cancelled = true;
+    };
   }, [mediaType, formattedLanguage]);
 
   return {
@@ -132,25 +213,12 @@ export function useDiscoverMedia({
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [sectionTitle, setSectionTitle] = useState<string>("");
-  const [currentContentType, setCurrentContentType] =
-    useState<string>(contentType);
-  const [currentId, setCurrentId] = useState<string | undefined>(id);
-  const [currentMediaType, setCurrentMediaType] = useState<string | undefined>(mediaType);
   const [actualContentType, setActualContentType] =
     useState<DiscoverContentType>(contentType);
 
   const { t } = useTranslation();
   const userLanguage = useLanguageStore((s) => s.language);
   const formattedLanguage = getTmdbLanguageCode(userLanguage);
-
-  // Reset media when content type, media type, or id changes
-  if (contentType !== currentContentType || id !== currentId || mediaType !== currentMediaType) {
-    setMedia([]);
-    setCurrentContentType(contentType);
-    setCurrentId(id);
-    setCurrentMediaType(mediaType);
-    setActualContentType(contentType); // Reset actual content type to original
-  }
 
   const fetchTMDBMedia = useCallback(
     async (endpoint: string, params: Record<string, any> = {}) => {
@@ -164,7 +232,7 @@ export function useDiscoverMedia({
 
         const region = detectUserRegion();
 
-        const data = await get<any>(endpoint, {
+        const data = await fetchTmdbCached(endpoint, {
           language: formattedLanguage,
           region,
           ...params,
@@ -228,7 +296,7 @@ export function useDiscoverMedia({
         const mediaPromises = idsToFetch.map(async (tmdbId: number) => {
           const endpoint = `/${mediaType}/${tmdbId}`;
           try {
-            const data = await get<any>(endpoint, {
+            const data = await fetchTmdbCached(endpoint, {
               language: formattedLanguage,
             });
             return {
@@ -323,7 +391,7 @@ export function useDiscoverMedia({
     try {
       const mediaPromises = picksToFetch.map(async (item) => {
         const endpoint = `/${mediaType}/${item.id}`;
-        const data = await get<any>(endpoint, {
+          const data = await fetchTmdbCached(endpoint, {
           language: formattedLanguage,
           append_to_response: "videos,images",
         });
@@ -597,16 +665,16 @@ export function useDiscoverMedia({
   ]);
 
   useEffect(() => {
-    // Reset media when content type, media type, or id changes
-    if (contentType !== currentContentType || page === 1) {
-      setMedia([]);
-      setCurrentContentType(contentType);
-    }
-    // Only fetch when enabled
+    // Keep resets in an effect to avoid state updates during render.
+    setMedia([]);
+    setActualContentType(contentType);
+  }, [contentType, id, mediaType]);
+
+  useEffect(() => {
     if (enabled) {
       fetchMedia();
     }
-  }, [fetchMedia, contentType, currentContentType, page, id, enabled]);
+  }, [enabled, fetchMedia, page]);
 
   return {
     media,

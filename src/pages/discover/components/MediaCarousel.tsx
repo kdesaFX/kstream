@@ -21,6 +21,8 @@ import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
 
+const SKELETON_COUNT = 10;
+
 interface ContentConfig {
   type: DiscoverContentType;
   fallback?: DiscoverContentType;
@@ -38,6 +40,7 @@ interface MediaCarouselProps {
   showProviders?: boolean;
   showGenres?: boolean;
   showRecommendations?: boolean;
+  enabled?: boolean;
 }
 
 function MoreCard({ link }: { link: string }) {
@@ -82,6 +85,7 @@ export function MediaCarousel({
   showProviders = false,
   showGenres = false,
   showRecommendations = false,
+  enabled = true,
 }: MediaCarouselProps) {
   const { t } = useTranslation();
   const { width: windowWidth } = useWindowSize();
@@ -108,12 +112,21 @@ export function MediaCarousel({
 
   // Get progress items for recommendations
   const progressItems = useProgressStore((state) => state.items);
-  const recommendationSources = Object.entries(progressItems || {})
-    .filter(([_, item]) => item.type === (isTVShow ? "show" : "movie"))
-    .map(([id, item]) => ({
-      id,
-      title: item.title || "",
-    }));
+  const recommendationSources = React.useMemo(
+    () =>
+      Object.entries(progressItems || {})
+        .filter(([_, item]) => item.type === (isTVShow ? "show" : "movie"))
+        .map(([id, item]) => ({
+          id,
+          title: item.title || "",
+        })),
+    [progressItems, isTVShow],
+  );
+
+  const recommendationSourceMap = React.useMemo(
+    () => new Map(recommendationSources.map((source) => [source.id, source])),
+    [recommendationSources],
+  );
 
   // Handle provider/genre selection
   const handleProviderChange = React.useCallback((id: string, name: string) => {
@@ -202,6 +215,7 @@ export function MediaCarousel({
       providerName: selectedProviderName,
       mediaTitle: selectedRecommendationTitle,
       isCarouselView: true,
+      enabled,
     });
 
   // Hide section if there's an error or no content (after loading is complete)
@@ -224,15 +238,53 @@ export function MediaCarousel({
     }));
   }, [dropdownButtons]);
 
+  const visibleButtonIdSet = React.useMemo(
+    () => new Set(visibleButtons.map((btn) => btn.id)),
+    [visibleButtons],
+  );
+
+  const selectedRecommendationItem = React.useMemo(() => {
+    const selected = recommendationSourceMap.get(selectedRecommendationId);
+    if (selected) {
+      return {
+        id: selectedRecommendationId,
+        name: selected.title,
+      };
+    }
+
+    return {
+      id: "",
+      name: recommendationSources[0]?.title || "",
+    };
+  }, [
+    recommendationSourceMap,
+    selectedRecommendationId,
+    recommendationSources,
+  ]);
+
+  const recommendationOptions = React.useMemo(
+    () =>
+      recommendationSources.map((source) => ({
+        id: source.id,
+        name: source.title,
+      })),
+    [recommendationSources],
+  );
+
+  const activeDropdownLabel = React.useMemo(() => {
+    if (activeButton && !visibleButtonIdSet.has(activeButton.id)) {
+      return activeButton.name;
+    }
+
+    return "...";
+  }, [activeButton, visibleButtonIdSet]);
+
   // Set selected genre if active button is in dropdown
   React.useEffect(() => {
-    if (
-      activeButton &&
-      !visibleButtons.find((btn) => btn.id === activeButton.id)
-    ) {
+    if (activeButton && !visibleButtonIdSet.has(activeButton.id)) {
       setSelectedGenre({ id: activeButton.id, name: activeButton.name });
     }
-  }, [activeButton, visibleButtons]);
+  }, [activeButton, visibleButtonIdSet]);
 
   // Set initial recommendation source
   useEffect(() => {
@@ -326,35 +378,15 @@ export function MediaCarousel({
               recommendationSources.length > 0 && (
                 <div className="relative pr-4">
                   <Dropdown
-                    selectedItem={
-                      recommendationSources.find(
-                        (s) => s.id === selectedRecommendationId,
-                      )
-                        ? {
-                            id: selectedRecommendationId || "",
-                            name:
-                              recommendationSources.find(
-                                (s) => s.id === selectedRecommendationId,
-                              )?.title || "",
-                          }
-                        : {
-                            id: "",
-                            name: recommendationSources[0]?.title || "",
-                          }
-                    }
+                    selectedItem={selectedRecommendationItem}
                     setSelectedItem={(item) => {
-                      const source = recommendationSources.find(
-                        (s) => s.id === item.id,
-                      );
+                      const source = recommendationSourceMap.get(item.id);
                       if (source) {
                         setSelectedRecommendationId(item.id);
                         setSelectedRecommendationTitle(source.title);
                       }
                     }}
-                    options={recommendationSources.map((source) => ({
-                      id: source.id,
-                      name: source.title,
-                    }))}
+                    options={recommendationOptions}
                     customButton={
                       <button
                         type="button"
@@ -438,13 +470,7 @@ export function MediaCarousel({
                   selectedItem={
                     selectedGenre || {
                       id: "",
-                      name:
-                        activeButton &&
-                        !visibleButtons.find(
-                          (btn) => btn.id === activeButton.id,
-                        )
-                          ? activeButton.name
-                          : "...",
+                      name: activeDropdownLabel,
                     }
                   }
                   setSelectedItem={(item) => {
@@ -458,12 +484,7 @@ export function MediaCarousel({
                       className="px-3 py-1 text-sm bg-mediaCard-hoverBackground rounded-full hover:bg-mediaCard-background transition-colors flex items-center gap-1"
                     >
                       <span>
-                        {activeButton &&
-                        !visibleButtons.find(
-                          (btn) => btn.id === activeButton.id,
-                        )
-                          ? activeButton.name
-                          : "..."}
+                        {activeDropdownLabel}
                       </span>
                       <Icon
                         icon={Icons.UP_DOWN_ARROW}
@@ -521,11 +542,11 @@ export function MediaCarousel({
                   />
                 </div>
               ))
-            : Array(10)
+            : Array(SKELETON_COUNT)
                 .fill(null)
                 .map((_, index) => (
                   <div
-                    key={`skeleton-${categorySlug}-${Math.random().toString(36).substring(2)}`}
+                    key={`skeleton-${categorySlug}-${index}`}
                     className="relative mt-4 group cursor-default user-select-none rounded-xl p-2 bg-transparent transition-colors duration-300 w-[10rem] md:w-[11.5rem] h-auto"
                   >
                     <MediaCard

@@ -19,6 +19,7 @@ interface ForYouConfidenceCarouselProps {
     [key: string]: HTMLDivElement | null;
   }>;
   onShowDetails?: (media: MediaItem) => void;
+  enabled?: boolean;
 }
 
 function getPosterUrl(posterPath: string): string {
@@ -67,15 +68,16 @@ export function ForYouConfidenceCarousel({
   title,
   carouselRefs,
   onShowDetails,
+  enabled = true,
 }: ForYouConfidenceCarouselProps) {
   const { isMobile } = useIsMobile();
   const isScrollingRef = useRef(false);
   const browser = !!window.chrome;
 
   const { media: personalizedMovies, isLoading: moviesLoading } =
-    usePersonalRecommendations({ isTVShow: false, enabled: true });
+    usePersonalRecommendations({ isTVShow: false, enabled });
   const { media: personalizedShows, isLoading: showsLoading } =
-    usePersonalRecommendations({ isTVShow: true, enabled: true });
+    usePersonalRecommendations({ isTVShow: true, enabled });
 
   const isLoading = moviesLoading || showsLoading;
   const categorySlug = `for-you-confidence-${tier}`;

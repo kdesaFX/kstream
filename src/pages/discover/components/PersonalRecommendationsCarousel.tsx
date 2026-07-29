@@ -16,6 +16,7 @@ interface PersonalRecommendationsCarouselProps {
   onShowDetails?: (media: MediaItem) => void;
   /** Overrides the default "For You" heading. */
   title?: string;
+  enabled?: boolean;
 }
 
 function getPosterUrl(posterPath: string): string {
@@ -48,13 +49,14 @@ export function PersonalRecommendationsCarousel({
   carouselRefs,
   onShowDetails,
   title,
+  enabled = true,
 }: PersonalRecommendationsCarouselProps) {
   const { isMobile } = useIsMobile();
   const isScrollingRef = useRef(false);
   const browser = !!window.chrome;
 
   const { media, isLoading, sectionTitle, hasRecommendations } =
-    usePersonalRecommendations({ isTVShow, enabled: true });
+    usePersonalRecommendations({ isTVShow, enabled });
 
   const categorySlug = `for-you-${isTVShow ? "tv" : "movie"}`;
 

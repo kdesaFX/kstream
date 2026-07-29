@@ -1,6 +1,6 @@
 import classNames from "classnames";
 import { t } from "i18next";
-import { useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/buttons/Button";
@@ -45,24 +45,32 @@ export function DiscoverContent() {
   const isTVShowsTab = effectiveCategory === "tvshows";
   const isEditorPicksTab = effectiveCategory === "editorpicks";
 
-  const handleCategoryChange = (category: string) => {
+  const handleCategoryChange = useCallback((category: string) => {
     setSelectedCategory(
       category as "foryou" | "movies" | "tvshows" | "editorpicks",
     );
-  };
+  }, [setSelectedCategory]);
 
-  const handleShowDetails = async (media: MediaItem | FeaturedMedia) => {
+  const handleShowDetails = useCallback((media: MediaItem | FeaturedMedia) => {
     showModal("discover-details", {
       id: Number(media.id),
       type: media.type === "movie" ? "movie" : "show",
     });
-  };
+  }, [showModal]);
 
-  const movieProgressItems = Object.entries(progressItems || {}).filter(
-    ([_, item]) => item.type === "movie",
+  const movieProgressItems = useMemo(
+    () =>
+      Object.entries(progressItems || {}).filter(
+        ([, item]) => item.type === "movie",
+      ),
+    [progressItems],
   );
-  const tvProgressItems = Object.entries(progressItems || {}).filter(
-    ([_, item]) => item.type === "show",
+  const tvProgressItems = useMemo(
+    () =>
+      Object.entries(progressItems || {}).filter(
+        ([, item]) => item.type === "show",
+      ),
+    [progressItems],
   );
 
   // Render For You content. Order: confidence tiers (how strongly a pick
@@ -78,6 +86,7 @@ export function DiscoverContent() {
         title="Sure Bets"
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
+        enabled={isForYouTab}
       />
       <ForYouConfidenceCarousel
         key="foryou-worth-a-look"
@@ -85,6 +94,7 @@ export function DiscoverContent() {
         title="Worth a Look"
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
+        enabled={isForYouTab}
       />
       <ForYouConfidenceCarousel
         key="foryou-something-new"
@@ -92,6 +102,7 @@ export function DiscoverContent() {
         title="Something New"
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
+        enabled={isForYouTab}
       />
       <ForYouWeightCarousel
         key="foryou-light"
@@ -99,6 +110,7 @@ export function DiscoverContent() {
         title="Easy Watching"
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
+        enabled={isForYouTab}
       />
       <ForYouWeightCarousel
         key="foryou-medium"
@@ -106,6 +118,7 @@ export function DiscoverContent() {
         title="Balanced Picks"
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
+        enabled={isForYouTab}
       />
       <ForYouWeightCarousel
         key="foryou-heavy"
@@ -113,6 +126,7 @@ export function DiscoverContent() {
         title="Heavy Hitters"
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
+        enabled={isForYouTab}
       />
       <PersonalRecommendationsCarousel
         key="foryou-movies"
@@ -120,6 +134,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         title={t("discover.tabs.movies")}
+        enabled={isForYouTab}
       />
       <PersonalRecommendationsCarousel
         key="foryou-shows"
@@ -127,6 +142,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         title={t("discover.tabs.tvshows")}
+        enabled={isForYouTab}
       />
     </>
   );
@@ -142,6 +158,7 @@ export function DiscoverContent() {
         isTVShow={false}
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
+        enabled={isMoviesTab}
       />,
     );
 
@@ -157,6 +174,7 @@ export function DiscoverContent() {
           moreContent
           showRecommendations
           priority={carousels.length < 2} // First 2 carousels load immediately
+          enabled={isMoviesTab}
         />,
       );
     }
@@ -171,6 +189,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         priority={carousels.length < 2}
+        enabled={isMoviesTab}
       />,
     );
 
@@ -184,6 +203,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         priority={carousels.length < 2}
+        enabled={isMoviesTab}
       />,
     );
 
@@ -198,6 +218,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
+        enabled={isMoviesTab}
       />,
     );
 
@@ -211,6 +232,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
+        enabled={isMoviesTab}
       />,
     );
 
@@ -237,6 +259,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         priority={carousels.length < 2}
+        enabled={isMoviesTab}
       />,
     );
 
@@ -250,6 +273,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         showProviders
         moreContent
+        enabled={isMoviesTab}
       />,
     );
 
@@ -263,6 +287,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         showGenres
         moreContent
+        enabled={isMoviesTab}
       />,
     );
 
@@ -280,6 +305,7 @@ export function DiscoverContent() {
         isTVShow
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
+        enabled={isTVShowsTab}
       />,
     );
 
@@ -295,6 +321,7 @@ export function DiscoverContent() {
           moreContent
           showRecommendations
           priority={carousels.length < 2} // First 2 carousels load immediately
+          enabled={isTVShowsTab}
         />,
       );
     }
@@ -309,6 +336,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         priority={carousels.length < 2}
+        enabled={isTVShowsTab}
       />,
     );
 
@@ -322,6 +350,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         priority={carousels.length < 2}
+        enabled={isTVShowsTab}
       />,
     );
 
@@ -335,6 +364,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         priority={carousels.length < 2}
+        enabled={isTVShowsTab}
       />,
     );
 
@@ -348,6 +378,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
+        enabled={isTVShowsTab}
       />,
     );
 
@@ -361,6 +392,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
+        enabled={isTVShowsTab}
       />,
     );
 
@@ -374,6 +406,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         showProviders
         moreContent
+        enabled={isTVShowsTab}
       />,
     );
 
@@ -387,6 +420,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         showGenres
         moreContent
+        enabled={isTVShowsTab}
       />,
     );
 
@@ -404,6 +438,7 @@ export function DiscoverContent() {
           onShowDetails={handleShowDetails}
           moreContent
           priority // Editor picks load immediately since they're the main content
+          enabled={isEditorPicksTab}
         />
         <LazyMediaCarousel
           content={{ type: "editorPicks" }}
@@ -412,6 +447,7 @@ export function DiscoverContent() {
           onShowDetails={handleShowDetails}
           moreContent
           priority // Editor picks load immediately since they're the main content
+          enabled={isEditorPicksTab}
         />
       </>
     );

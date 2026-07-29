@@ -23,6 +23,8 @@ import {
   writeRecommendationsCache,
 } from "../lib/recommendationsCache";
 
+const recommendationsInFlight = new Map<string, Promise<DiscoverMedia[]>>();
+
 export interface UsePersonalRecommendationsOptions {
   isTVShow: boolean;
   enabled?: boolean;
@@ -226,15 +228,27 @@ export function usePersonalRecommendations({
 
     try {
       const excludeIds = buildExcludeSet();
-      const results = await fetchPersonalRecommendations(
-        isTVShow,
-        history,
-        progress,
-        bookmarkList,
-        excludeIds,
-        ratings,
-        preferences,
-      );
+      const inFlightKey = `${cacheKey}:${signature}`;
+      const activeRequest = recommendationsInFlight.get(inFlightKey);
+
+      const results = await (activeRequest ??
+        (() => {
+          const request = fetchPersonalRecommendations(
+            isTVShow,
+            history,
+            progress,
+            bookmarkList,
+            excludeIds,
+            ratings,
+            preferences,
+          ).finally(() => {
+            recommendationsInFlight.delete(inFlightKey);
+          });
+
+          recommendationsInFlight.set(inFlightKey, request);
+          return request;
+        })());
+
       setMedia(results);
       writeRecommendationsCache(cacheKey, signature, results);
     } catch (err) {
