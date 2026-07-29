@@ -13,7 +13,7 @@ import {
   storeCredentialMapping,
 } from "@/backend/accounts/crypto";
 import { getGroupOrder } from "@/backend/accounts/groupOrder";
-import { importBookmarks, importProgress } from "@/backend/accounts/import";
+import { importAllUserData } from "@/backend/accounts/import";
 import { getLoginChallengeToken, loginAccount } from "@/backend/accounts/login";
 import { progressMediaItemToInputs } from "@/backend/accounts/progress";
 import {
@@ -21,7 +21,7 @@ import {
   registerAccount,
 } from "@/backend/accounts/register";
 import { removeSession } from "@/backend/accounts/sessions";
-import { getSettings } from "@/backend/accounts/settings";
+import { buildFullSettingsInput, getSettings } from "@/backend/accounts/settings";
 import {
   UserResponse,
   getBookmarks,
@@ -29,11 +29,18 @@ import {
   getUser,
   getWatchHistory,
 } from "@/backend/accounts/user";
+import { watchHistoryItemsToInputs } from "@/backend/accounts/watchHistory";
 import { useAuthData } from "@/hooks/auth/useAuthData";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { AccountWithToken, useAuthStore } from "@/stores/auth";
 import { BookmarkMediaItem } from "@/stores/bookmarks";
+import { useGroupOrderStore } from "@/stores/groupOrder";
+import { useLanguageStore } from "@/stores/language";
+import { usePreferencesStore } from "@/stores/preferences";
 import { ProgressMediaItem } from "@/stores/progress";
+import { useSubtitleStore } from "@/stores/subtitles";
+import { useThemeStore } from "@/stores/theme";
+import { WatchHistoryItem } from "@/stores/watchHistory";
 import { sleep } from "@/utils/translation/utils";
 
 export interface RegistrationData {
@@ -95,6 +102,11 @@ export function useAuth() {
     login: userDataLogin,
     syncData,
   } = useAuthData();
+  const groupOrder = useGroupOrderStore((s) => s.groupOrder);
+  const preferences = usePreferencesStore.getState();
+  const subtitleLanguage = useSubtitleStore((s) => s.lastSelectedLanguage);
+  const applicationLanguage = useLanguageStore((s) => s.language);
+  const applicationTheme = useThemeStore((s) => s.theme);
 
   const login = useCallback(
     async (loginData: LoginData) => {
@@ -222,29 +234,45 @@ export function useAuth() {
       account: AccountWithToken,
       progressItems: Record<string, ProgressMediaItem>,
       bookmarks: Record<string, BookmarkMediaItem>,
+      watchHistoryItems: Record<string, WatchHistoryItem> = {},
+      // Only seed the account with this device's local preferences when
+      // creating/migrating an account. On a plain login the account may
+      // already have its own configured settings elsewhere -- don't clobber
+      // them with whatever this device happens to have locally.
+      pushSettings = true,
     ) => {
       if (!backendUrl) return;
-      if (
-        Object.keys(progressItems).length === 0 &&
-        Object.keys(bookmarks).length === 0
-      ) {
-        return;
-      }
 
       const progressInputs = Object.entries(progressItems).flatMap(
         ([tmdbId, item]) => progressMediaItemToInputs(tmdbId, item),
       );
-
+      const watchHistoryInputs = watchHistoryItemsToInputs(watchHistoryItems);
       const bookmarkInputs = Object.entries(bookmarks).map(([tmdbId, item]) =>
         bookmarkMediaToInput(tmdbId, item),
       );
 
-      await Promise.all([
-        importProgress(backendUrl, account, progressInputs),
-        importBookmarks(backendUrl, account, bookmarkInputs),
-      ]);
+      await importAllUserData(backendUrl, account, {
+        progressInputs,
+        watchHistoryInputs,
+        bookmarkInputs,
+        groupOrder,
+        settings: pushSettings
+          ? buildFullSettingsInput(preferences, {
+              applicationLanguage,
+              applicationTheme: applicationTheme ?? undefined,
+              defaultSubtitleLanguage: subtitleLanguage || undefined,
+            })
+          : undefined,
+      });
     },
-    [backendUrl],
+    [
+      backendUrl,
+      groupOrder,
+      preferences,
+      subtitleLanguage,
+      applicationLanguage,
+      applicationTheme,
+    ],
   );
 
   const restore = useCallback(
@@ -267,7 +295,7 @@ export function useAuth() {
         return;
       }
 
-      const [bookmarks, progress, watchHistory, settings, groupOrder] =
+      const [bookmarks, progress, watchHistory, settings, remoteGroupOrder] =
         await Promise.all([
           getBookmarks(backendUrl, account),
           getProgress(backendUrl, account),
@@ -293,7 +321,7 @@ export function useAuth() {
         bookmarks,
         watchHistory,
         settings,
-        groupOrder,
+        remoteGroupOrder,
       );
     },
     [backendUrl, syncData, logout],

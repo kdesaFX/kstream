@@ -2,6 +2,7 @@ import { ofetch } from "ofetch";
 
 import { getAuthHeaders } from "@/backend/accounts/auth";
 import { AccountWithToken } from "@/stores/auth";
+import { PreferencesStore } from "@/stores/preferences";
 import { KeyboardShortcuts } from "@/utils/browser/keyboardShortcuts";
 
 export interface CustomThemeSettings {
@@ -32,6 +33,7 @@ export interface SettingsInput {
   debridToken?: string | null;
   debridService?: string;
   tidbKey?: string | null;
+  wyzieKey?: string | null;
   enableThumbnails?: boolean;
   enableAutoplay?: boolean;
   enableSkipCredits?: boolean;
@@ -61,6 +63,10 @@ export interface SettingsInput {
   enableNumberKeySeeking?: boolean;
   keyboardShortcuts?: KeyboardShortcuts;
   customTheme?: CustomThemeSettings;
+  bookmarkRowsToShow?: number;
+  watchingRowsToShow?: number;
+  enableGamepadControls?: boolean;
+  gamepadMapping?: Record<string, string>;
 }
 
 export interface SettingsResponse {
@@ -72,6 +78,7 @@ export interface SettingsResponse {
   debridToken?: string | null;
   debridService?: string;
   tidbKey?: string | null;
+  wyzieKey?: string | null;
   enableThumbnails?: boolean;
   enableAutoplay?: boolean;
   enableSkipCredits?: boolean;
@@ -101,6 +108,10 @@ export interface SettingsResponse {
   enableNumberKeySeeking?: boolean;
   keyboardShortcuts?: KeyboardShortcuts;
   customTheme?: CustomThemeSettings;
+  bookmarkRowsToShow?: number;
+  watchingRowsToShow?: number;
+  enableGamepadControls?: boolean;
+  gamepadMapping?: Record<string, string>;
 }
 
 export function updateSettings(
@@ -122,4 +133,65 @@ export function getSettings(url: string, account: AccountWithToken) {
     baseURL: url,
     headers: getAuthHeaders(account.token),
   });
+}
+
+export interface SettingsImportExtras {
+  applicationLanguage?: string;
+  applicationTheme?: string | null;
+  defaultSubtitleLanguage?: string;
+}
+
+// Single source of truth for turning local preferences into a full settings
+// import payload -- used by both account creation and account migration so
+// the two flows can't drift out of sync with each other again.
+export function buildFullSettingsInput(
+  preferences: PreferencesStore,
+  extras: SettingsImportExtras,
+): SettingsInput {
+  return {
+    ...extras,
+    proxyUrls: undefined,
+    febboxKey: preferences.febboxKey,
+    debridToken: preferences.debridToken,
+    debridService: preferences.debridService,
+    tidbKey: preferences.tidbKey,
+    wyzieKey: preferences.wyzieKey,
+    enableThumbnails: preferences.enableThumbnails,
+    enableAutoplay: preferences.enableAutoplay,
+    enableSkipCredits: preferences.enableSkipCredits,
+    enableAutoSkipSegments: preferences.enableAutoSkipSegments,
+    enableDiscover: preferences.enableDiscover,
+    enableFeatured: preferences.enableFeatured,
+    enableDetailsModal: preferences.enableDetailsModal,
+    enableImageLogos: preferences.enableImageLogos,
+    enableCarouselView: preferences.enableCarouselView,
+    enableMinimalCards: preferences.enableMinimalCards,
+    forceCompactEpisodeView: preferences.forceCompactEpisodeView,
+    sourceOrder:
+      preferences.sourceOrder.length > 0 ? preferences.sourceOrder : undefined,
+    enableSourceOrder: preferences.enableSourceOrder,
+    lastSuccessfulSource: preferences.lastSuccessfulSource,
+    enableLastSuccessfulSource: preferences.enableLastSuccessfulSource,
+    embedOrder:
+      preferences.embedOrder.length > 0 ? preferences.embedOrder : undefined,
+    enableEmbedOrder: preferences.enableEmbedOrder,
+    proxyTmdb: preferences.proxyTmdb,
+    enableLowPerformanceMode: preferences.enableLowPerformanceMode,
+    enableNativeSubtitles: preferences.enableNativeSubtitles,
+    enableHoldToBoost: preferences.enableHoldToBoost,
+    homeSectionOrder:
+      preferences.homeSectionOrder.length > 0
+        ? preferences.homeSectionOrder
+        : undefined,
+    manualSourceSelection: preferences.manualSourceSelection,
+    enableDoubleClickToSeek: preferences.enableDoubleClickToSeek,
+    enableAutoResumeOnPlaybackError: preferences.enableAutoResumeOnPlaybackError,
+    enablePauseOverlay: preferences.enablePauseOverlay,
+    enableNumberKeySeeking: preferences.enableNumberKeySeeking,
+    keyboardShortcuts: preferences.keyboardShortcuts,
+    bookmarkRowsToShow: preferences.bookmarkRowsToShow,
+    watchingRowsToShow: preferences.watchingRowsToShow,
+    enableGamepadControls: preferences.enableGamepadControls,
+    gamepadMapping: preferences.gamepadMapping,
+  };
 }

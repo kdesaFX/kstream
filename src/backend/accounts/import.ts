@@ -72,3 +72,51 @@ export function importSettings(
     headers: getAuthHeaders(account.token),
   });
 }
+
+export interface FullImportPayload {
+  progressInputs: ProgressInput[];
+  watchHistoryInputs: WatchHistoryInput[];
+  bookmarkInputs: BookmarkInput[];
+  groupOrder: string[];
+  // Omit when merging local data into an already-configured existing account
+  // (e.g. logging in from a new device) -- pushing this device's local
+  // preferences would clobber settings the account already has configured
+  // elsewhere. Pass it when seeding a brand-new account (registration/migration).
+  settings?: SettingsInput;
+}
+
+// Single source of truth for pushing all local data to an account -- account
+// creation (VerifyPassphrasePart), login (LoginFormPart), and account
+// migration (useMigration) all call this instead of each hand-rolling their
+// own subset, so they can't disagree about what gets imported again.
+export async function importAllUserData(
+  url: string,
+  account: AccountWithToken,
+  payload: FullImportPayload,
+) {
+  if (
+    payload.progressInputs.length === 0 &&
+    payload.watchHistoryInputs.length === 0 &&
+    payload.bookmarkInputs.length === 0 &&
+    payload.groupOrder.length === 0 &&
+    !payload.settings
+  ) {
+    return;
+  }
+
+  const importPromises = [
+    importProgress(url, account, payload.progressInputs),
+    importWatchHistory(url, account, payload.watchHistoryInputs),
+    importBookmarks(url, account, payload.bookmarkInputs),
+  ];
+
+  if (payload.groupOrder.length > 0) {
+    importPromises.push(importGroupOrder(url, account, payload.groupOrder));
+  }
+
+  if (payload.settings) {
+    importPromises.push(importSettings(url, account, payload.settings));
+  }
+
+  await Promise.all(importPromises);
+}

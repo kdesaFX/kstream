@@ -16,7 +16,6 @@ import { CaptionCue } from "@/components/player/Player";
 import { Heading1 } from "@/components/utils/Text";
 import { Transition } from "@/components/utils/Transition";
 import { usePlayerStore } from "@/stores/player/store";
-import { usePreferencesStore } from "@/stores/preferences";
 import { SubtitleStyling, useSubtitleStore } from "@/stores/subtitles";
 import { isFirefox } from "@/utils/browser/detectFeatures";
 
@@ -262,14 +261,15 @@ export function CaptionPreview(props: {
 export function CaptionsPart(props: {
   styling: SubtitleStyling;
   setStyling: (s: SubtitleStyling) => void;
+  enableNativeSubtitles: boolean;
+  setEnableNativeSubtitles: (v: boolean) => void;
 }) {
   const { t } = useTranslation();
   const [fullscreenPreview, setFullscreenPreview] = useState(false);
 
   const subtitleStore = useSubtitleStore();
-  const preferencesStore = usePreferencesStore();
   const setCaptionAsTrack = usePlayerStore((s) => s.setCaptionAsTrack);
-  const enableNativeSubtitles = preferencesStore.enableNativeSubtitles;
+  const { enableNativeSubtitles } = props;
 
   useEffect(() => {
     subtitleStore.updateStyling(props.styling);
@@ -323,7 +323,7 @@ export function CaptionsPart(props: {
                 "player.menus.subtitles.useNativeSubtitlesDescription",
               )}
               enabled={enableNativeSubtitles}
-              onChange={(v) => preferencesStore.setEnableNativeSubtitles(v)}
+              onChange={(v) => props.setEnableNativeSubtitles(v)}
             />
           </Section>
 
