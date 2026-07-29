@@ -117,6 +117,8 @@ async function loadRemainingProgress(
   cursor: string | null,
 ) {
   let next = cursor;
+  let accumulated = useProgressStore.getState().items;
+  let changed = false;
   while (next) {
     try {
       // eslint-disable-next-line no-await-in-loop
@@ -124,17 +126,23 @@ async function loadRemainingProgress(
         limit: RESTORE_BACKGROUND_PAGE_SIZE,
         cursor: next,
       });
-      const current = useProgressStore.getState().items;
-      useProgressStore
-        .getState()
-        .replaceItems(
-          mergeProgressItems(current, progressResponsesToEntries(page.items)),
-        );
+      accumulated = mergeProgressItems(
+        accumulated,
+        progressResponsesToEntries(page.items),
+      );
+      changed = true;
       next = page.nextCursor;
     } catch (err) {
       console.error("Failed to load remaining progress", err);
-      return;
+      break;
     }
+  }
+  if (changed) {
+    useProgressStore
+      .getState()
+      .replaceItems(
+        mergeProgressItems(useProgressStore.getState().items, accumulated),
+      );
   }
 }
 
@@ -144,6 +152,8 @@ async function loadRemainingBookmarks(
   cursor: string | null,
 ) {
   let next = cursor;
+  let accumulated = useBookmarkStore.getState().bookmarks;
+  let changed = false;
   while (next) {
     try {
       // eslint-disable-next-line no-await-in-loop
@@ -151,16 +161,22 @@ async function loadRemainingBookmarks(
         limit: RESTORE_BACKGROUND_PAGE_SIZE,
         cursor: next,
       });
-      const current = useBookmarkStore.getState().bookmarks;
-      useBookmarkStore.getState().replaceBookmarks({
-        ...current,
+      accumulated = {
+        ...accumulated,
         ...bookmarkResponsesToEntries(page.items),
-      });
+      };
+      changed = true;
       next = page.nextCursor;
     } catch (err) {
       console.error("Failed to load remaining bookmarks", err);
-      return;
+      break;
     }
+  }
+  if (changed) {
+    useBookmarkStore.getState().replaceBookmarks({
+      ...useBookmarkStore.getState().bookmarks,
+      ...accumulated,
+    });
   }
 }
 
