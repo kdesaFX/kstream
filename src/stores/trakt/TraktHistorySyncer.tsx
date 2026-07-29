@@ -14,9 +14,10 @@ import { WatchHistoryItem, useWatchHistoryStore } from "@/stores/watchHistory";
 import { traktService } from "@/utils/services/trakt";
 import { TraktContentData } from "@/utils/services/traktTypes";
 
-const PROGRESS_THRESHOLD = 0.25; // Sync to Trakt if watched >= 25%
-const TRAKT_HISTORY_SYNC_INTERVAL_MS = 15 * 60 * 1000; // 15 min
-const INITIAL_SYNC_DELAY_MS = 2000; // Re-sync after backend restore
+const PROGRESS_THRESHOLD = 0.25;
+const TRAKT_HISTORY_SYNC_INTERVAL_MS = 15 * 60 * 1000;
+const INITIAL_SYNC_DELAY_MS = 2000;
+const MAX_PUSH_PER_CYCLE = 100;
 
 function toTraktContentData(
   id: string,
@@ -92,6 +93,7 @@ export function TraktHistorySyncer() {
               progress: { watched: 0, duration: 1 },
               watchedAt: new Date(hi.watched_at).getTime(),
               completed: false,
+              syncedToTrakt: true,
             };
           }
         } else if (hi.type === "episode" && hi.episode && hi.show) {
@@ -112,6 +114,7 @@ export function TraktHistorySyncer() {
               episodeId: episodeTmdbId,
               seasonNumber: hi.episode.season,
               episodeNumber: hi.episode.number,
+              syncedToTrakt: true,
             };
           }
         }
@@ -148,8 +151,12 @@ export function TraktHistorySyncer() {
 
     try {
       const items = useWatchHistoryStore.getState().items;
+      let pushed = 0;
 
       for (const [id, item] of Object.entries(items)) {
+        if (pushed >= MAX_PUSH_PER_CYCLE) break;
+        if (item.syncedToTrakt) continue;
+
         const contentData = toTraktContentData(id, item);
         if (!contentData) continue;
 
@@ -158,6 +165,8 @@ export function TraktHistorySyncer() {
 
         try {
           await traktService.addToHistory(contentData, watchedAt);
+          useWatchHistoryStore.getState().markSyncedToTrakt(id);
+          pushed += 1;
         } catch (err) {
           console.error(`Failed to sync watch history to Trakt: ${id}`, err);
         }

@@ -19,6 +19,7 @@ export interface WatchHistoryItem {
   seasonId?: string;
   seasonNumber?: number;
   episodeNumber?: number;
+  syncedToTrakt?: boolean;
 }
 
 export interface WatchHistoryUpdateItem {
@@ -59,6 +60,7 @@ export interface WatchHistoryStore {
   clear(): void;
   clearUpdateQueue(): void;
   removeUpdateItem(id: string): void;
+  markSyncedToTrakt(id: string): void;
 }
 
 let updateId = 0;
@@ -191,6 +193,12 @@ export const useWatchHistoryStore = create(
       removeUpdateItem(id: string) {
         set((s) => {
           s.updateQueue = [...s.updateQueue.filter((v) => v.id !== id)];
+        });
+      },
+      markSyncedToTrakt(id: string) {
+        set((s) => {
+          const item = s.items[id];
+          if (item) item.syncedToTrakt = true;
         });
       },
     })),

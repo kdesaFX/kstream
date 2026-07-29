@@ -5,37 +5,16 @@ import { getPosterForMedia } from "@/backend/metadata/tmdb";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useTraktAuthStore } from "@/stores/trakt/store";
 import { traktService } from "@/utils/services/trakt";
-import { TraktContentData } from "@/utils/services/traktTypes";
+import {
+  TraktContentData,
+  TraktWatchlistItem,
+} from "@/utils/services/traktTypes";
 
-const TRAKT_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 min
-const INITIAL_SYNC_DELAY_MS = 2000; // Re-sync after backend restore
-const QUEUE_RETRY_DELAY_MS = 5000; // Retry failed queue items after 5s
+const TRAKT_SYNC_INTERVAL_MS = 5 * 60 * 1000;
+const INITIAL_SYNC_DELAY_MS = 2000;
+const QUEUE_RETRY_DELAY_MS = 5000;
+const MAX_PUSH_PER_CYCLE = 100;
 
-// Collections/groups sync disabled for now - bookmarks only sync to watchlist
-// import { modifyBookmarks } from "@/utils/media/bookmarkModifications";
-// import { TraktList } from "@/utils/services/traktTypes";
-// function listId(list: TraktList): string {
-//   return list.ids.slug ?? String(list.ids.trakt);
-// }
-// async function findListByName(
-//   username: string,
-//   groupName: string,
-// ): Promise<TraktList | null> {
-//   const lists = await traktService.getLists(username);
-//   return lists.find((l) => l.name === groupName) ?? null;
-// }
-// async function ensureListExists(
-//   username: string,
-//   groupName: string,
-// ): Promise<TraktList | null> {
-//   const existing = await findListByName(username, groupName);
-//   if (existing) return existing;
-//   try {
-//     return await traktService.createList(username, groupName);
-//   } catch {
-//     return null;
-//   }
-// }
 
 export function TraktBookmarkSyncer() {
   const { traktUpdateQueue, removeTraktUpdateItem, replaceBookmarks } =
@@ -69,37 +48,7 @@ export function TraktBookmarkSyncer() {
 
           if (item.action === "add") {
             await traktService.addToWatchlist(contentData);
-            // Collections sync disabled - bookmarks only sync to watchlist
-            // if (hasLists) {
-            //   const newGroups = item.group ?? [];
-            //   const prevGroups = item.previousGroup ?? [];
-
-            //   // Remove from Trakt lists that the bookmark no longer belongs to
-            //   const groupsToRemove = prevGroups.filter(
-            //     (g) => !newGroups.includes(g),
-            //   );
-            //   for (const groupName of groupsToRemove) {
-            //     const list = await findListByName(slug!, groupName);
-            //     if (list) {
-            //       await traktService.removeFromList(slug!, listId(list), [
-            //         contentData,
-            //       ]);
-            //     }
-            //   }
-
-            //   // Add to Trakt lists that are new
-            //   const groupsToAdd = newGroups.filter(
-            //     (g) => !prevGroups.includes(g),
-            //   );
-            //   for (const groupName of groupsToAdd) {
-            //     const list = await ensureListExists(slug!, groupName);
-            //     if (list) {
-            //       await traktService.addToList(slug!, listId(list), [
-            //         contentData,
-            //       ]);
-            //     }
-            //   }
-            // }
+           
           } else if (item.action === "delete") {
             await traktService.removeFromWatchlist(contentData);
             // Collections sync disabled - bookmarks only sync to watchlist
@@ -134,19 +83,16 @@ export function TraktBookmarkSyncer() {
     };
   }, [accessToken, traktUpdateQueue, removeTraktUpdateItem, retryTrigger]);
 
-  // Push local bookmarks to Trakt watchlist (TODO implement collections/groups sync)
-  const syncBookmarksToTrakt = useCallback(async () => {
-    if (!accessToken || isSyncingRef.current) return;
-    // const slug = useTraktAuthStore.getState().user?.ids?.slug;
-    // if (!slug) return;
-    isSyncingRef.current = true;
-    try {
-      if (!useTraktAuthStore.getState().user) {
-        await traktService.getUserProfile();
-      }
+  // Push local bookmarks not already on Trakt's watchlist (TODO implement collections/groups sync)
+  const syncBookmarksToTrakt = useCallback(
+    async (remoteTmdbIds: Set<string>) => {
+      if (!accessToken) return;
       const bookmarks = useBookmarkStore.getState().bookmarks;
+      let pushed = 0;
 
       for (const [tmdbId, b] of Object.entries(bookmarks)) {
+        if (pushed >= MAX_PUSH_PER_CYCLE) break;
+        if (remoteTmdbIds.has(tmdbId)) continue;
         try {
           const contentData: TraktContentData = {
             tmdbId,
@@ -155,6 +101,8 @@ export function TraktBookmarkSyncer() {
             type: b.type === "movie" ? "movie" : "show",
           };
           await traktService.addToWatchlist(contentData);
+          remoteTmdbIds.add(tmdbId);
+          pushed += 1;
           // Collections sync disabled - bookmarks only sync to watchlist
           // if (b.group?.length) {
           //   for (const groupName of b.group) {
@@ -168,19 +116,13 @@ export function TraktBookmarkSyncer() {
           console.warn("Failed to push bookmark to Trakt:", tmdbId, err);
         }
       }
-    } finally {
-      isSyncingRef.current = false;
-    }
-  }, [accessToken]);
+    },
+    [accessToken],
+  );
 
-  const syncWatchlistFromTrakt = useCallback(async () => {
-    if (!accessToken || isSyncingRef.current) return;
-    isSyncingRef.current = true;
-    try {
-      if (!useTraktAuthStore.getState().user) {
-        await traktService.getUserProfile();
-      }
-      const watchlist = await traktService.getWatchlist();
+  const syncWatchlistFromTrakt = useCallback(
+    async (watchlist: TraktWatchlistItem[]) => {
+      if (!accessToken) return;
       const store = useBookmarkStore.getState();
       const merged = { ...store.bookmarks };
 
@@ -264,18 +206,33 @@ export function TraktBookmarkSyncer() {
       //     console.warn("Failed to sync Trakt lists (groups)", listError);
       //   }
       // }
+    },
+    [replaceBookmarks],
+  );
+
+
+  const fullSync = useCallback(async () => {
+    if (!accessToken || isSyncingRef.current) return;
+    isSyncingRef.current = true;
+    try {
+      if (!useTraktAuthStore.getState().user) {
+        await traktService.getUserProfile();
+      }
+      const watchlist = await traktService.getWatchlist();
+      const remoteTmdbIds = new Set(
+        watchlist
+          .map((item) => (item.movie || item.show)?.ids?.tmdb?.toString())
+          .filter((id): id is string => !!id),
+      );
+
+      await syncBookmarksToTrakt(remoteTmdbIds);
+      await syncWatchlistFromTrakt(watchlist);
     } catch (error) {
-      console.error("Failed to sync Trakt watchlist to local", error);
+      console.error("Failed to sync Trakt watchlist", error);
     } finally {
       isSyncingRef.current = false;
     }
-  }, [accessToken, replaceBookmarks]);
-
-  const fullSync = useCallback(async () => {
-    // Push local → Trakt first so our changes reach Trakt before we pull
-    await syncBookmarksToTrakt();
-    await syncWatchlistFromTrakt(); // Then pull Trakt → local, merge
-  }, [syncWatchlistFromTrakt, syncBookmarksToTrakt]);
+  }, [accessToken, syncBookmarksToTrakt, syncWatchlistFromTrakt]);
 
   // Wait for Trakt auth store to rehydrate from persist (accessToken may be null on first render)
   useEffect(() => {
