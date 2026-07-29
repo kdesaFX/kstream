@@ -97,6 +97,7 @@ export interface PreferencesStore {
   setVideoSaturation(v: number): void;
   setVideoHueRotate(v: number): void;
   setVolumeBoost(v: number): void;
+  applySync(partial: Partial<PreferencesStore>): void;
 }
 
 export const usePreferencesStore = create(
@@ -369,6 +370,17 @@ export const usePreferencesStore = create(
       setVideoHueRotate(v) {
         set((s) => {
           s.videoHueRotate = v;
+        });
+      },
+      applySync(partial) {
+        set((s) => {
+          Object.assign(s, partial);
+          if (partial.keyboardShortcuts !== undefined) {
+            s.keyboardShortcuts = partial.keyboardShortcuts ?? DEFAULT_KEYBOARD_SHORTCUTS;
+          }
+          if (partial.gamepadMapping !== undefined) {
+            s.gamepadMapping = partial.gamepadMapping ?? {};
+          }
         });
       },
     })),

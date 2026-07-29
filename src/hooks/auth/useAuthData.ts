@@ -15,7 +15,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useGroupOrderStore } from "@/stores/groupOrder";
 import { useLanguageStore } from "@/stores/language";
-import { usePreferencesStore } from "@/stores/preferences";
+import { PreferencesStore, usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
 import { useSubtitleStore } from "@/stores/subtitles";
 import { useThemeStore } from "@/stores/theme";
@@ -39,91 +39,11 @@ export function useAuthData() {
   const saveCustomTheme = useThemeStore((s) => s.saveCustomTheme);
   const hideDefaultTheme = useThemeStore((s) => s.hideDefaultTheme);
   const setFebboxKey = usePreferencesStore((s) => s.setFebboxKey);
-  const setdebridToken = usePreferencesStore((s) => s.setdebridToken);
-  const setdebridService = usePreferencesStore((s) => s.setdebridService);
-  const setTIDBKey = usePreferencesStore((s) => s.setTIDBKey);
-  const setWyzieKey = usePreferencesStore((s) => s.setWyzieKey);
+  const applyPreferencesSync = usePreferencesStore((s) => s.applySync);
 
   const replaceBookmarks = useBookmarkStore((s) => s.replaceBookmarks);
   const replaceItems = useProgressStore((s) => s.replaceItems);
   const replaceWatchHistory = useWatchHistoryStore((s) => s.replaceItems);
-
-  const setEnableThumbnails = usePreferencesStore((s) => s.setEnableThumbnails);
-  const setEnableAutoplay = usePreferencesStore((s) => s.setEnableAutoplay);
-  const setEnableSkipCredits = usePreferencesStore(
-    (s) => s.setEnableSkipCredits,
-  );
-  const setEnableDiscover = usePreferencesStore((s) => s.setEnableDiscover);
-  const setEnableFeatured = usePreferencesStore((s) => s.setEnableFeatured);
-  const setEnableDetailsModal = usePreferencesStore(
-    (s) => s.setEnableDetailsModal,
-  );
-  const setEnableImageLogos = usePreferencesStore((s) => s.setEnableImageLogos);
-  const setEnableCarouselView = usePreferencesStore(
-    (s) => s.setEnableCarouselView,
-  );
-  const setForceCompactEpisodeView = usePreferencesStore(
-    (s) => s.setForceCompactEpisodeView,
-  );
-  const setSourceOrder = usePreferencesStore((s) => s.setSourceOrder);
-  const setEnableSourceOrder = usePreferencesStore(
-    (s) => s.setEnableSourceOrder,
-  );
-  const setLastSuccessfulSource = usePreferencesStore(
-    (s) => s.setLastSuccessfulSource,
-  );
-  const setEnableLastSuccessfulSource = usePreferencesStore(
-    (s) => s.setEnableLastSuccessfulSource,
-  );
-  const setEmbedOrder = usePreferencesStore((s) => s.setEmbedOrder);
-  const setEnableEmbedOrder = usePreferencesStore((s) => s.setEnableEmbedOrder);
-
-  const setProxyTmdb = usePreferencesStore((s) => s.setProxyTmdb);
-
-  const setEnableLowPerformanceMode = usePreferencesStore(
-    (s) => s.setEnableLowPerformanceMode,
-  );
-  const setEnableNativeSubtitles = usePreferencesStore(
-    (s) => s.setEnableNativeSubtitles,
-  );
-  const setEnableHoldToBoost = usePreferencesStore(
-    (s) => s.setEnableHoldToBoost,
-  );
-  const setHomeSectionOrder = usePreferencesStore((s) => s.setHomeSectionOrder);
-  const setEnableDoubleClickToSeek = usePreferencesStore(
-    (s) => s.setEnableDoubleClickToSeek,
-  );
-  const setManualSourceSelection = usePreferencesStore(
-    (s) => s.setManualSourceSelection,
-  );
-  const setEnableAutoResumeOnPlaybackError = usePreferencesStore(
-    (s) => s.setEnableAutoResumeOnPlaybackError,
-  );
-  const setEnableNumberKeySeeking = usePreferencesStore(
-    (s) => s.setEnableNumberKeySeeking,
-  );
-  const setKeyboardShortcuts = usePreferencesStore(
-    (s) => s.setKeyboardShortcuts,
-  );
-  const setEnableMinimalCards = usePreferencesStore(
-    (s) => s.setEnableMinimalCards,
-  );
-  const setEnableAutoSkipSegments = usePreferencesStore(
-    (s) => s.setEnableAutoSkipSegments,
-  );
-  const setEnablePauseOverlay = usePreferencesStore(
-    (s) => s.setEnablePauseOverlay,
-  );
-  const setBookmarkRowsToShow = usePreferencesStore(
-    (s) => s.setBookmarkRowsToShow,
-  );
-  const setWatchingRowsToShow = usePreferencesStore(
-    (s) => s.setWatchingRowsToShow,
-  );
-  const setEnableGamepadControls = usePreferencesStore(
-    (s) => s.setEnableGamepadControls,
-  );
-  const setGamepadMapping = usePreferencesStore((s) => s.setGamepadMapping);
 
   const login = useCallback(
     async (
@@ -225,157 +145,47 @@ export function useAuthData() {
         setProxySet(settings.proxyUrls);
       }
 
-      if (settings.enableThumbnails !== undefined) {
-        setEnableThumbnails(settings.enableThumbnails);
-      }
+      const partial: Partial<PreferencesStore> = {};
 
-      if (settings.enableAutoplay !== undefined) {
-        setEnableAutoplay(settings.enableAutoplay);
-      }
+      if (settings.enableThumbnails !== undefined) partial.enableThumbnails = settings.enableThumbnails;
+      if (settings.enableAutoplay !== undefined) partial.enableAutoplay = settings.enableAutoplay;
+      if (settings.enableSkipCredits !== undefined) partial.enableSkipCredits = settings.enableSkipCredits;
+      if (settings.enableDiscover !== undefined) partial.enableDiscover = settings.enableDiscover;
+      if (settings.enableFeatured !== undefined) partial.enableFeatured = settings.enableFeatured;
+      if (settings.enableDetailsModal !== undefined) partial.enableDetailsModal = settings.enableDetailsModal;
+      if (settings.enableImageLogos !== undefined) partial.enableImageLogos = settings.enableImageLogos;
+      if (settings.enableCarouselView !== undefined) partial.enableCarouselView = settings.enableCarouselView;
+      if (settings.forceCompactEpisodeView !== undefined) partial.forceCompactEpisodeView = settings.forceCompactEpisodeView;
+      if (settings.sourceOrder !== undefined) partial.sourceOrder = settings.sourceOrder ?? [];
+      if (settings.enableSourceOrder !== undefined) partial.enableSourceOrder = settings.enableSourceOrder;
+      if (settings.lastSuccessfulSource !== undefined) partial.lastSuccessfulSource = settings.lastSuccessfulSource;
+      if (settings.enableLastSuccessfulSource !== undefined) partial.enableLastSuccessfulSource = settings.enableLastSuccessfulSource;
+      if (settings.embedOrder !== undefined) partial.embedOrder = settings.embedOrder ?? [];
+      if (settings.enableEmbedOrder !== undefined) partial.enableEmbedOrder = settings.enableEmbedOrder;
+      if (settings.proxyTmdb !== undefined) partial.proxyTmdb = settings.proxyTmdb;
+      if (settings.febboxKey !== undefined) partial.febboxKey = settings.febboxKey;
+      if (settings.debridToken !== undefined) partial.debridToken = settings.debridToken;
+      if (settings.debridService !== undefined) partial.debridService = settings.debridService;
+      if (settings.tidbKey !== undefined) partial.tidbKey = settings.tidbKey;
+      if (settings.wyzieKey !== undefined) partial.wyzieKey = settings.wyzieKey;
+      if (settings.enableLowPerformanceMode !== undefined) partial.enableLowPerformanceMode = settings.enableLowPerformanceMode;
+      if (settings.enableNativeSubtitles !== undefined) partial.enableNativeSubtitles = settings.enableNativeSubtitles;
+      if (settings.enableHoldToBoost !== undefined) partial.enableHoldToBoost = settings.enableHoldToBoost;
+      if (settings.homeSectionOrder !== undefined) partial.homeSectionOrder = settings.homeSectionOrder ?? ["watching", "bookmarks"];
+      if (settings.manualSourceSelection !== undefined) partial.manualSourceSelection = settings.manualSourceSelection;
+      if (settings.enableDoubleClickToSeek !== undefined) partial.enableDoubleClickToSeek = settings.enableDoubleClickToSeek;
+      if (settings.enableAutoResumeOnPlaybackError !== undefined) partial.enableAutoResumeOnPlaybackError = settings.enableAutoResumeOnPlaybackError;
+      if (settings.enableNumberKeySeeking !== undefined) partial.enableNumberKeySeeking = settings.enableNumberKeySeeking;
+      if (settings.keyboardShortcuts) partial.keyboardShortcuts = settings.keyboardShortcuts;
+      if (settings.enableMinimalCards !== undefined) partial.enableMinimalCards = settings.enableMinimalCards;
+      if (settings.enableAutoSkipSegments !== undefined) partial.enableAutoSkipSegments = settings.enableAutoSkipSegments;
+      if (settings.enablePauseOverlay !== undefined) partial.enablePauseOverlay = settings.enablePauseOverlay;
+      if (settings.bookmarkRowsToShow !== undefined) partial.bookmarkRowsToShow = settings.bookmarkRowsToShow;
+      if (settings.watchingRowsToShow !== undefined) partial.watchingRowsToShow = settings.watchingRowsToShow;
+      if (settings.enableGamepadControls !== undefined) partial.enableGamepadControls = settings.enableGamepadControls;
+      if (settings.gamepadMapping) partial.gamepadMapping = settings.gamepadMapping;
 
-      if (settings.enableSkipCredits !== undefined) {
-        setEnableSkipCredits(settings.enableSkipCredits);
-      }
-
-      if (settings.enableDiscover !== undefined) {
-        setEnableDiscover(settings.enableDiscover);
-      }
-
-      if (settings.enableFeatured !== undefined) {
-        setEnableFeatured(settings.enableFeatured);
-      }
-
-      if (settings.enableDetailsModal !== undefined) {
-        setEnableDetailsModal(settings.enableDetailsModal);
-      }
-
-      if (settings.enableImageLogos !== undefined) {
-        setEnableImageLogos(settings.enableImageLogos);
-      }
-
-      if (settings.enableCarouselView !== undefined) {
-        setEnableCarouselView(settings.enableCarouselView);
-      }
-
-      if (settings.forceCompactEpisodeView !== undefined) {
-        setForceCompactEpisodeView(settings.forceCompactEpisodeView);
-      }
-
-      if (settings.sourceOrder !== undefined) {
-        setSourceOrder(settings.sourceOrder ?? []);
-      }
-
-      if (settings.enableSourceOrder !== undefined) {
-        setEnableSourceOrder(settings.enableSourceOrder);
-      }
-
-      if (settings.lastSuccessfulSource !== undefined) {
-        setLastSuccessfulSource(settings.lastSuccessfulSource);
-      }
-
-      if (settings.enableLastSuccessfulSource !== undefined) {
-        setEnableLastSuccessfulSource(settings.enableLastSuccessfulSource);
-      }
-
-      if (settings.embedOrder !== undefined) {
-        setEmbedOrder(settings.embedOrder ?? []);
-      }
-
-      if (settings.enableEmbedOrder !== undefined) {
-        setEnableEmbedOrder(settings.enableEmbedOrder);
-      }
-
-      if (settings.proxyTmdb !== undefined) {
-        setProxyTmdb(settings.proxyTmdb);
-      }
-
-      if (settings.febboxKey !== undefined) {
-        setFebboxKey(settings.febboxKey);
-      }
-
-      if (settings.debridToken !== undefined) {
-        setdebridToken(settings.debridToken);
-      }
-
-      if (settings.debridService !== undefined) {
-        setdebridService(settings.debridService);
-      }
-
-      if (settings.tidbKey !== undefined) {
-        setTIDBKey(settings.tidbKey);
-      }
-
-      if (settings.wyzieKey !== undefined) {
-        setWyzieKey(settings.wyzieKey);
-      }
-
-      if (settings.enableLowPerformanceMode !== undefined) {
-        setEnableLowPerformanceMode(settings.enableLowPerformanceMode);
-      }
-
-      if (settings.enableNativeSubtitles !== undefined) {
-        setEnableNativeSubtitles(settings.enableNativeSubtitles);
-      }
-
-      if (settings.enableHoldToBoost !== undefined) {
-        setEnableHoldToBoost(settings.enableHoldToBoost);
-      }
-
-      if (settings.homeSectionOrder !== undefined) {
-        setHomeSectionOrder(
-          settings.homeSectionOrder ?? ["watching", "bookmarks"],
-        );
-      }
-
-      if (settings.manualSourceSelection !== undefined) {
-        setManualSourceSelection(settings.manualSourceSelection);
-      }
-
-      if (settings.enableDoubleClickToSeek !== undefined) {
-        setEnableDoubleClickToSeek(settings.enableDoubleClickToSeek);
-      }
-
-      if (settings.enableAutoResumeOnPlaybackError !== undefined) {
-        setEnableAutoResumeOnPlaybackError(
-          settings.enableAutoResumeOnPlaybackError,
-        );
-      }
-
-      if (settings.enableNumberKeySeeking !== undefined) {
-        setEnableNumberKeySeeking(settings.enableNumberKeySeeking);
-      }
-
-      if (settings.keyboardShortcuts) {
-        setKeyboardShortcuts(settings.keyboardShortcuts);
-      }
-
-      if (settings.enableMinimalCards !== undefined) {
-        setEnableMinimalCards(settings.enableMinimalCards);
-      }
-
-      if (settings.enableAutoSkipSegments !== undefined) {
-        setEnableAutoSkipSegments(settings.enableAutoSkipSegments);
-      }
-
-      if (settings.enablePauseOverlay !== undefined) {
-        setEnablePauseOverlay(settings.enablePauseOverlay);
-      }
-
-      if (settings.bookmarkRowsToShow !== undefined) {
-        setBookmarkRowsToShow(settings.bookmarkRowsToShow);
-      }
-
-      if (settings.watchingRowsToShow !== undefined) {
-        setWatchingRowsToShow(settings.watchingRowsToShow);
-      }
-
-      if (settings.enableGamepadControls !== undefined) {
-        setEnableGamepadControls(settings.enableGamepadControls);
-      }
-
-      if (settings.gamepadMapping) {
-        setGamepadMapping(settings.gamepadMapping);
-      }
+      applyPreferencesSync(partial);
     },
     [
       replaceBookmarks,
@@ -388,43 +198,7 @@ export function useAuthData() {
       saveCustomTheme,
       hideDefaultTheme,
       setProxySet,
-      setEnableThumbnails,
-      setEnableAutoplay,
-      setEnableSkipCredits,
-      setEnableDiscover,
-      setEnableFeatured,
-      setEnableDetailsModal,
-      setEnableImageLogos,
-      setEnableCarouselView,
-      setForceCompactEpisodeView,
-      setSourceOrder,
-      setEnableSourceOrder,
-      setLastSuccessfulSource,
-      setEnableLastSuccessfulSource,
-      setEmbedOrder,
-      setEnableEmbedOrder,
-      setProxyTmdb,
-      setFebboxKey,
-      setdebridToken,
-      setdebridService,
-      setTIDBKey,
-      setWyzieKey,
-      setEnableLowPerformanceMode,
-      setEnableNativeSubtitles,
-      setEnableHoldToBoost,
-      setHomeSectionOrder,
-      setManualSourceSelection,
-      setEnableDoubleClickToSeek,
-      setEnableAutoResumeOnPlaybackError,
-      setEnableNumberKeySeeking,
-      setKeyboardShortcuts,
-      setEnableMinimalCards,
-      setEnableAutoSkipSegments,
-      setEnablePauseOverlay,
-      setBookmarkRowsToShow,
-      setWatchingRowsToShow,
-      setEnableGamepadControls,
-      setGamepadMapping,
+      applyPreferencesSync,
     ],
   );
 
