@@ -455,7 +455,7 @@ export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
       {step === "movies" && (
         <RatingStep
           heading="Have you seen these movies?"
-          description="Rate the ones you've watched — skip the rest. There's no fixed list, so keep going as long as you like."
+          description="Rate the ones you've watched, skip the rest. There's no fixed list, so keep going as long as you like."
           queue={movieQueue}
           onStop={() => setStep("shows")}
         />
@@ -464,7 +464,7 @@ export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
       {step === "shows" && (
         <RatingStep
           heading="What about these shows?"
-          description="Same idea, but for TV — movies and shows are different enough that we keep the two separate."
+          description="Same idea, but for TV. We keep movies and shows separate since they're different enough."
           queue={showQueue}
           onStop={() => setStep("genres")}
         />

@@ -164,12 +164,7 @@ export function AppsPage() {
 
       <div className="mx-auto max-w-5xl px-6 pb-32 pt-4 sm:px-8">
         <div className="text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-1.5 text-xs font-semibold tracking-wide text-white/60 backdrop-blur-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#8288fe]" />
-            available everywhere
-          </span>
-
-          <h1 className="mx-auto mt-6 max-w-2xl text-4xl font-black leading-[1.1] text-white sm:text-5xl">
+          <h1 className="mx-auto max-w-2xl text-4xl font-black leading-[1.1] text-white sm:text-5xl">
             Z-Stream, on{" "}
             <span className="bg-gradient-to-r from-[#aaafff] via-[#c084fc] to-[#8288fe] bg-clip-text text-transparent">
               every screen
