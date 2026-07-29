@@ -131,6 +131,10 @@ export async function encryptData(data: string, secret: Uint8Array) {
   )}.${stringBufferToBase64(tag)}` as const;
 }
 
+export function isLegacyEncryptedName(name: string): boolean {
+  return name.split(".").length === 3;
+}
+
 export function decryptData(data: string, secret: Uint8Array) {
   if (secret.byteLength !== 32) throw new Error("Secret must be 256-bit");
 

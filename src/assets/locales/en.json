@@ -180,6 +180,21 @@
     "createAccount": "Don't have an account yet? <0>Create an account.</0>",
     "deviceNameLabel": "Device name",
     "deviceNamePlaceholder": "Personal phone",
+    "back": "Back",
+    "chooseMethod": {
+      "title": "How do you want to sign in?",
+      "description": "Pick how you'll log back into this account.",
+      "passkey": "Use a passkey",
+      "password": "Username & password"
+    },
+    "password": {
+      "usernameLabel": "Username",
+      "passwordLabel": "Password",
+      "confirmPasswordLabel": "Confirm password",
+      "mismatch": "Passwords do not match",
+      "registerTitle": "Create your login",
+      "registerDescription": "Pick a username and password for your account."
+    },
     "generate": {
       "description": "Your passphrase acts as your username and password. Make sure to keep it safe as you will need to enter it to login to your account. <bold>Do NOT lose your passphrase!</bold>",
       "next": "I have saved my passphrase",
@@ -203,6 +218,7 @@
       "title": "Login to your account",
       "validationError": "Incorrect or incomplete passphrase /ᐠ. .ᐟ\\",
       "usePasskey": "Use passkey",
+      "usePassphrase": "Log in with a recovery phrase instead",
       "or": "or",
       "noBackendUrl": "No backend URL"
     },
@@ -1244,10 +1260,28 @@
       },
       "devices": {
         "deviceNameLabel": "Device name",
-        "unknownDevice": "Unknown device, error decrypting name",
+        "unknownDevice": "Unknown device",
         "failed": "Failed to load sessions",
         "removeDevice": "Remove",
         "title": "Devices"
+      },
+      "security": {
+        "title": "Account Security",
+        "migrateBanner": "Your account still uses a recovery phrase — switch to a username & password.",
+        "migrateBannerAction": "Switch now",
+        "migrateTitle": "Your account still uses a recovery phrase",
+        "migrateDescription": "Switch to a username and password so you don't have to keep track of a 12-word phrase.",
+        "migrateAction": "Switch to username & password",
+        "migrateSubmit": "Switch to username & password",
+        "passwordTitle": "Username & password",
+        "passwordSet": "Signed in as {{username}}",
+        "addPasswordDescription": "Add a username and password so you can also log in that way.",
+        "addPasswordAction": "Add password",
+        "addPasswordSubmit": "Add password",
+        "passkeyTitle": "Passkey",
+        "passkeySet": "This account has a passkey linked.",
+        "addPasskeyDescription": "Add a passkey for a faster, no-password sign in on this device.",
+        "addPasskeyAction": "Add passkey"
       },
       "profile": {
         "finish": "Finish editing",

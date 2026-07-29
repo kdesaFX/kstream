@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAsyncFn } from "react-use";
 
 import { SessionResponse } from "@/backend/accounts/auth";
+import { isLegacyEncryptedName } from "@/backend/accounts/crypto";
 import { removeSession } from "@/backend/accounts/sessions";
 import { Button } from "@/components/buttons/Button";
 import { Loading } from "@/components/layout/Loading";
@@ -74,7 +75,10 @@ export function DeviceListPart(props: {
     let list = sessions.map((session) => ({
       current: session.id === currentSessionId,
       id: session.id,
-      name: session.device || t("settings.account.devices.unknownDevice"),
+      name:
+        session.device && !isLegacyEncryptedName(session.device)
+          ? session.device
+          : t("settings.account.devices.unknownDevice"),
     }));
     list = list.sort((a, b) => {
       if (a.current) return -1;
