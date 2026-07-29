@@ -10,7 +10,9 @@ export type DiscoverContentType =
   | "genre"
   | "provider"
   | "editorPicks"
-  | "recommendations";
+  | "recommendations"
+  | "popularThisWeek"
+  | "randomPopular";
 
 export type MediaType = "movie" | "tv";
 
@@ -39,6 +41,9 @@ export interface DiscoverMedia {
   vote_average: number;
   vote_count: number;
   type?: "movie" | "show";
+  genre_ids?: number[];
+  /** Raw recommendation score from fetchPersonalRecommendations, higher = stronger match. Only present on personalized results. */
+  matchScore?: number;
 }
 
 export interface UseDiscoverMediaReturn {

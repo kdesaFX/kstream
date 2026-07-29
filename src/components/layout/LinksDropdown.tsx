@@ -1,10 +1,9 @@
 import classNames from "classnames";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAsync } from "react-use";
 
-import { base64ToBuffer, decryptData } from "@/backend/accounts/crypto";
 import { getBackendMeta } from "@/backend/accounts/meta";
 import { getRoomStatuses } from "@/backend/player/status";
 import { UserAvatar } from "@/components/Avatar";
@@ -213,11 +212,7 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const deviceName = useAuthStore((s) => s.account?.deviceName);
-  const seed = useAuthStore((s) => s.account?.seed);
-  const bufferSeed = useMemo(
-    () => (seed ? base64ToBuffer(seed) : null),
-    [seed],
-  );
+  const nickname = useAuthStore((s) => s.account?.nickname);
   const { logout } = useAuth();
   const backendUrl = useBackendUrl();
 
@@ -272,22 +267,10 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
       </div>
       <Transition animation="slide-down" show={open}>
         <div className="rounded-xl absolute w-64 bg-dropdown-altBackground top-full mt-3 right-0">
-          {deviceName && bufferSeed ? (
+          {deviceName ? (
             <DropdownLink className="text-white" href="/settings">
               <UserAvatar />
-              {(() => {
-                const parts = deviceName?.split(".");
-                if (!parts || parts.length !== 3) return deviceName;
-                try {
-                  return decryptData(deviceName, bufferSeed);
-                } catch (error) {
-                  console.warn(
-                    "Failed to decrypt device name in LinksDropdown, using fallback:",
-                    error,
-                  );
-                  return t("settings.account.unknownDevice");
-                }
-              })()}
+              {nickname}
             </DropdownLink>
           ) : (
             <DropdownLink href="/login" icon={Icons.RISING_STAR} highlight>

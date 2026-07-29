@@ -1,46 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { get } from "@/backend/metadata/tmdb";
-import { Movie } from "@/pages/discover/common";
-import { useLanguageStore } from "@/stores/language";
-import { getTmdbLanguageCode } from "@/utils/locale/language";
-import { detectUserLanguage, detectUserRegion } from "@/utils/locale/userRegion";
-
-interface TMDBMovieResponse {
-  results: Movie[];
-}
+import { getAllTimeBestMovies } from "@/backend/metadata/tmdb";
 
 export function RandomMovieButton() {
-  const [randomMovie, setRandomMovie] = useState<Movie | null>(null);
+  const [randomMovie, setRandomMovie] = useState<{
+    id: number;
+    title: string;
+  } | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [countdownTimeout, setCountdownTimeout] =
     useState<NodeJS.Timeout | null>(null);
-  const [movies, setMovies] = useState<Movie[]>([]);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const userLanguage = useLanguageStore((s) => s.language);
-  const formattedLanguage = getTmdbLanguageCode(userLanguage);
-
-  // Fetch popular movies for random selection
-  useEffect(() => {
-    const fetchMovies = async () => {
-      try {
-        const data = await get<TMDBMovieResponse>("/discover/movie", {
-          language: formattedLanguage,
-          region: detectUserRegion(),
-          sort_by: "popularity.desc",
-          with_original_language: detectUserLanguage(),
-          "vote_count.gte": 50,
-          page: 2,
-        });
-        setMovies(data.results);
-      } catch (error) {
-        console.error("Error fetching popular movies:", error);
-      }
-    };
-
-    fetchMovies();
-  }, [formattedLanguage]);
 
   useEffect(() => {
     let countdownInterval: NodeJS.Timeout;
@@ -52,32 +24,37 @@ export function RandomMovieButton() {
     return () => clearInterval(countdownInterval);
   }, [countdown]);
 
-  const handleRandomMovieClick = () => {
-    if (movies.length === 0) return;
-
-    const uniqueTitles = new Set(movies.map((movie) => movie.title));
-    const uniqueTitlesArray = Array.from(uniqueTitles);
-    const randomIndex = Math.floor(Math.random() * uniqueTitlesArray.length);
-    const selectedMovie = movies.find(
-      (movie) => movie.title === uniqueTitlesArray[randomIndex],
-    );
-
-    if (selectedMovie) {
-      if (countdown !== null && countdown > 0) {
-        setCountdown(null);
-        if (countdownTimeout) {
-          clearTimeout(countdownTimeout);
-          setCountdownTimeout(null);
-          setRandomMovie(null);
-        }
-      } else {
-        setRandomMovie(selectedMovie);
-        setCountdown(5);
-        const timeoutId = setTimeout(() => {
-          navigate(`/media/tmdb-movie-${selectedMovie.id}-random`);
-        }, 5000);
-        setCountdownTimeout(timeoutId);
+  const handleRandomMovieClick = async () => {
+    if (countdown !== null && countdown > 0) {
+      setCountdown(null);
+      if (countdownTimeout) {
+        clearTimeout(countdownTimeout);
+        setCountdownTimeout(null);
+        setRandomMovie(null);
       }
+      return;
+    }
+
+    if (loading) return;
+    setLoading(true);
+    try {
+      // A fresh random page from the well-known-movie pool every click, so
+      // this doesn't just cycle the same ~20 movies for the whole session.
+      const movies = await getAllTimeBestMovies(20);
+      if (movies.length === 0) return;
+      const selectedMovie =
+        movies[Math.floor(Math.random() * movies.length)];
+
+      setRandomMovie(selectedMovie);
+      setCountdown(5);
+      const timeoutId = setTimeout(() => {
+        navigate(`/media/tmdb-movie-${selectedMovie.id}-random`);
+      }, 5000);
+      setCountdownTimeout(timeoutId);
+    } catch (error) {
+      console.error("Error fetching a random movie:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -85,12 +62,16 @@ export function RandomMovieButton() {
     <div className="flex justify-center items-center">
       <button
         type="button"
+        disabled={loading}
         className={`
-          relative flex items-center overflow-hidden
-          rounded-full text-white h-10
+          tabbable cursor-pointer relative flex items-center overflow-hidden
+          rounded-full text-white h-12
           bg-pill-background bg-opacity-50 hover:bg-pill-backgroundHover
+          backdrop-blur-lg
           transition-all duration-300 ease-in-out
-          ${countdown !== null && countdown > 0 ? "min-w-[10px] pl-3" : "w-10"}
+          hover:scale-105 active:scale-95
+          ${loading ? "opacity-60" : ""}
+          ${countdown !== null && countdown > 0 ? "min-w-[10px] pl-3" : "w-12"}
         `}
         onClick={handleRandomMovieClick}
       >
@@ -108,7 +89,7 @@ export function RandomMovieButton() {
         </div>
 
         {/* Icon container that stays fixed on the right */}
-        <div className="ml-auto flex items-center justify-center w-10 h-10">
+        <div className="ml-auto flex items-center justify-center w-12 h-12">
           {countdown !== null && countdown > 0 ? (
             <div className="animate-[pulse_1s_ease-in-out_infinite] text-lg font-bold">
               {countdown}

@@ -14,6 +14,7 @@ import DiscoverContent from "@/pages/discover/discoverContent";
 import { HomeLayout } from "@/pages/layouts/HomeLayout";
 import { BookmarksCarousel } from "@/pages/parts/home/BookmarksCarousel";
 import { BookmarksGrid } from "@/pages/parts/home/BookmarksGrid";
+import { GenreChips } from "@/pages/parts/home/GenreChips";
 import { HeroPart } from "@/pages/parts/home/HeroPart";
 import { WatchingCarousel } from "@/pages/parts/home/WatchingCarousel";
 import { WatchingGrid } from "@/pages/parts/home/WatchingGrid";
@@ -181,18 +182,24 @@ export function HomePage() {
           <title>{t("global.name")}</title>
         </Helmet>
         {enableFeatured ? (
-          <FeaturedCarousel
-            forcedCategory="movies"
-            onShowDetails={handleShowDetails}
-            searching={s.searching}
-            shorter
-          >
-            <HeroPart
-              searchParams={searchParams}
-              setIsSticky={setShowBg}
-              isInFeatured
-            />
-          </FeaturedCarousel>
+          <>
+            <FeaturedCarousel
+              onShowDetails={handleShowDetails}
+              searching={s.searching}
+              shorter
+            >
+              <HeroPart
+                searchParams={searchParams}
+                setIsSticky={setShowBg}
+                isInFeatured
+              />
+            </FeaturedCarousel>
+            {(!search || search.length === 0) && (
+              <div className="mt-4 px-8">
+                <GenreChips />
+              </div>
+            )}
+          </>
         ) : (
           <HeroPart
             searchParams={searchParams}

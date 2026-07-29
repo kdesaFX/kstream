@@ -3,19 +3,26 @@ import { useTranslation } from "react-i18next";
 interface DiscoverNavigationProps {
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
+  /** Only offer the "For You" tab once there's a taste profile to draw on. */
+  showForYou?: boolean;
 }
 
 export function DiscoverNavigation({
   selectedCategory,
   onCategoryChange,
+  showForYou,
 }: DiscoverNavigationProps) {
   const { t } = useTranslation();
+
+  const categories = showForYou
+    ? ["foryou", "movies", "tvshows", "editorpicks"]
+    : ["movies", "tvshows", "editorpicks"];
 
   return (
     <div className="pb-4 w-full max-w-screen-xl mx-auto">
       <div className="relative flex justify-center">
         <div className="flex space-x-4">
-          {["movies", "tvshows", "editorpicks"].map((category) => (
+          {categories.map((category) => (
             <button
               key={category}
               type="button"

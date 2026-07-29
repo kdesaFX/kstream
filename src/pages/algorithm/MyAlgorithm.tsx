@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getMediaPoster, multiSearch } from "@/backend/metadata/tmdb";
 import { TMDBContentTypes } from "@/backend/metadata/types/tmdb";
@@ -12,12 +12,14 @@ import { WideContainer } from "@/components/layout/WideContainer";
 import { MediaRatingCapsule } from "@/components/media/MediaRatingCapsule";
 import { Heading1 } from "@/components/utils/Text";
 import { CreateAlgorithmWizard } from "@/pages/algorithm/CreateAlgorithmWizard";
+import { PersonalRecommendationsCarousel } from "@/pages/discover/components/PersonalRecommendationsCarousel";
 import {
   GENRE_LABELS,
   type RatingSource,
   buildTasteProfile,
 } from "@/pages/discover/lib/personalRecommendations";
 import { SubPageLayout } from "@/pages/layouts/SubPageLayout";
+import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { useRatingsStore } from "@/stores/ratings";
 
 // Validated categorical palette for dark surfaces.
@@ -320,6 +322,15 @@ export function MyAlgorithmPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const { showModal } = useOverlayStack();
+  const carouselRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  const handleShowDetails = (media: { id: string; type: "movie" | "show" }) => {
+    showModal("discover-details", {
+      id: Number(media.id),
+      type: media.type,
+    });
+  };
 
   // Debounced search so users can rate titles they've seen elsewhere.
   useEffect(() => {
@@ -384,7 +395,7 @@ export function MyAlgorithmPage() {
                 <p className="text-sm text-type-secondary">
                   {completedOnboarding
                     ? "Retake the quick quiz to refresh your genres, moods, and franchises."
-                    : "Answer a quick quiz — rate popular movies, pick genres, moods, and franchises — to kick-start your suggestions."}
+                    : "Answer a quick quiz — rate popular movies and shows, pick genres, moods, and franchises — to kick-start your suggestions."}
                 </p>
               </div>
               <Button theme="purple" onClick={() => setWizardOpen(true)}>
@@ -441,6 +452,26 @@ export function MyAlgorithmPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {ratingCount > 0 && (
+          <div className="mb-10 space-y-6">
+            <h2 className="text-lg font-semibold text-white">
+              We think you&apos;d like...
+            </h2>
+            <PersonalRecommendationsCarousel
+              isTVShow={false}
+              carouselRefs={carouselRefs}
+              onShowDetails={handleShowDetails}
+              title="Movies"
+            />
+            <PersonalRecommendationsCarousel
+              isTVShow
+              carouselRefs={carouselRefs}
+              onShowDetails={handleShowDetails}
+              title="Shows"
+            />
           </div>
         )}
 

@@ -791,32 +791,6 @@ export function WyzieEdit() {
   );
 }
 
-export function ArtemisVipEdit() {
-  const artemisVipKey = usePreferencesStore((s) => s.artemisVipKey);
-  const setArtemisVipKey = usePreferencesStore((s) => s.setArtemisVipKey);
-  return (
-    <SettingsCard paddingClass="px-5 py-4">
-      <p className="text-white font-bold mb-2">Artemis VIP</p>
-      <p className="font-medium text-sm mb-3 text-type-secondary">
-        Artemis is a high quality source with the fastest load times, 4K
-        content, and a huge content library. Join our{" "}
-        <MwLink url="https://discord.gg/streaming">Discord server</MwLink> to
-        purchase access.
-      </p>
-      <p className="text-white font-bold mb-2 text-sm">API Key</p>
-      <AuthInputBox
-        onChange={(newKey) => {
-          setArtemisVipKey(newKey || null);
-        }}
-        value={artemisVipKey ?? ""}
-        placeholder="avip_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        passwordToggleable
-        className="w-full"
-      />
-    </SettingsCard>
-  );
-}
-
 export function TraktEdit() {
   const { t } = useTranslation();
   const { user, status, logout, error } = useTraktStore();
@@ -990,7 +964,6 @@ export function ConnectionsPart(
         <div className="grid gap-4 md:grid-cols-2">
           <TIDBEdit tidbKey={props.tidbKey} setTIDBKey={props.setTIDBKey} />
           <WyzieEdit />
-          <ArtemisVipEdit />
           <TraktEdit />
           <SimklEdit />
         </div>

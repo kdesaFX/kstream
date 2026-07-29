@@ -787,16 +787,28 @@ export async function getRelatedMedia(
   return data.results.slice(0, limit);
 }
 
-/** Fetches popular, well-voted media matching the given genres. */
+// How many popularity-sorted pages deep genre-filtered results are allowed
+// to range over when no specific page is requested.
+const GENRE_DISCOVER_POOL_PAGES = 10;
+
+/**
+ * Fetches popular, well-voted media matching the given genres. Pass `page`
+ * for a specific page, or omit it for a random page from within the pool
+ * (shuffled before slicing, same reasoning as getAllTimeBestMovies/Shows).
+ */
 export async function getMediaByGenres(
   genreIds: number[],
   type: TMDBContentTypes,
   limit: number = 12,
+  page: number | undefined = undefined,
 ): Promise<TMDBMovieSearchResult[] | TMDBShowSearchResult[]> {
+  const targetPage =
+    page ?? Math.floor(Math.random() * GENRE_DISCOVER_POOL_PAGES) + 1;
   const endpoint = type === TMDBContentTypes.MOVIE ? "movie" : "tv";
   const data = await get<{
     results: TMDBMovieSearchResult[] | TMDBShowSearchResult[];
   }>(`/discover/${endpoint}`, {
+    page: targetPage,
     with_genres: genreIds.join(","),
     sort_by: "popularity.desc",
     "vote_count.gte": 200,
@@ -806,24 +818,128 @@ export async function getMediaByGenres(
   // discover results lack media_type; stamp it back on.
   const mediaType =
     type === TMDBContentTypes.MOVIE ? TMDBContentTypes.MOVIE : TMDBContentTypes.TV;
-  return data.results.slice(0, limit).map((r) => ({
-    ...r,
-    media_type: mediaType,
-  })) as TMDBMovieSearchResult[] | TMDBShowSearchResult[];
+  return shuffleResults<TMDBMovieSearchResult | TMDBShowSearchResult>(
+    data.results ?? [],
+  )
+    .slice(0, limit)
+    .map((r) => ({
+      ...r,
+      media_type: mediaType,
+    })) as TMDBMovieSearchResult[] | TMDBShowSearchResult[];
 }
 
-/** Fetches the current most popular movies (for taste onboarding). */
+/** Fetches the current trending/most-popular-this-week movies (for taste onboarding). */
 export async function getPopularMovies(
   limit: number = 15,
+  page: number = 1,
 ): Promise<TMDBMovieSearchResult[]> {
   const data = await get<{ results: TMDBMovieSearchResult[] }>(
     "/movie/popular",
-    { page: 1 },
+    { page },
   );
   return (data.results ?? []).slice(0, limit).map((r) => ({
     ...r,
     media_type: TMDBContentTypes.MOVIE,
   }));
+}
+
+/** Fetches the current trending/most-popular-this-week TV shows (for taste onboarding). */
+export async function getPopularShows(
+  limit: number = 15,
+  page: number = 1,
+): Promise<TMDBShowSearchResult[]> {
+  const data = await get<{ results: TMDBShowSearchResult[] }>(
+    "/tv/popular",
+    { page },
+  );
+  return (data.results ?? []).slice(0, limit).map((r) => ({
+    ...r,
+    media_type: TMDBContentTypes.TV,
+  }));
+}
+
+// Well-known-media pool tuning: sorted by popularity (not rating) so
+// mainstream staples rank first, with a vote-count/vote-average floor as a
+// quality gate. Widening the page range widens how far into the "everyone's
+// at least heard of this" tail the pool reaches — more page depth surfaces
+// more niche-but-known titles without the floor ever letting through
+// something obscure or poorly received.
+const WELL_KNOWN_MOVIE_VOTE_COUNT = 300;
+const WELL_KNOWN_MOVIE_VOTE_AVERAGE = 6.0;
+const WELL_KNOWN_MOVIE_POOL_PAGES = 50; // ~1000 movies (20/page)
+const WELL_KNOWN_SHOW_VOTE_COUNT = 150;
+const WELL_KNOWN_SHOW_VOTE_AVERAGE = 6.0;
+const WELL_KNOWN_SHOW_POOL_PAGES = 20; // ~400 shows (20/page)
+
+// Picking a random page alone isn't enough entropy: TMDB returns each page
+// pre-sorted by popularity, so always taking the first `limit` results from
+// that page means the same page's top few titles keep winning. Shuffling
+// the page itself before slicing means every item on the fetched page has
+// an equal shot, not just whichever happened to rank highest within it.
+function shuffleResults<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j]!, arr[i]!];
+  }
+  return arr;
+}
+
+/**
+ * Fetches from a wide-but-curated pool of well-known movies (for taste
+ * onboarding and the "random movie" picker). Uses /discover with a
+ * popularity sort and a quality floor rather than /movie/top_rated, since
+ * top_rated is dominated by obscure titles with a handful of 10/10 votes.
+ * Pass `page` for a specific page, or omit it to pull a random page from
+ * within the pool (see WELL_KNOWN_MOVIE_POOL_PAGES).
+ */
+export async function getAllTimeBestMovies(
+  limit: number = 15,
+  page: number | undefined = undefined,
+): Promise<TMDBMovieSearchResult[]> {
+  const targetPage =
+    page ?? Math.floor(Math.random() * WELL_KNOWN_MOVIE_POOL_PAGES) + 1;
+  const data = await get<{ results: TMDBMovieSearchResult[] }>(
+    "/discover/movie",
+    {
+      page: targetPage,
+      sort_by: "popularity.desc",
+      "vote_count.gte": WELL_KNOWN_MOVIE_VOTE_COUNT,
+      "vote_average.gte": WELL_KNOWN_MOVIE_VOTE_AVERAGE,
+      include_adult: false,
+    },
+  );
+  return shuffleResults(data.results ?? [])
+    .slice(0, limit)
+    .map((r) => ({
+      ...r,
+      media_type: TMDBContentTypes.MOVIE,
+    }));
+}
+
+/** Same as getAllTimeBestMovies, for TV shows. */
+export async function getAllTimeBestShows(
+  limit: number = 15,
+  page: number | undefined = undefined,
+): Promise<TMDBShowSearchResult[]> {
+  const targetPage =
+    page ?? Math.floor(Math.random() * WELL_KNOWN_SHOW_POOL_PAGES) + 1;
+  const data = await get<{ results: TMDBShowSearchResult[] }>(
+    "/discover/tv",
+    {
+      page: targetPage,
+      sort_by: "popularity.desc",
+      "vote_count.gte": WELL_KNOWN_SHOW_VOTE_COUNT,
+      "vote_average.gte": WELL_KNOWN_SHOW_VOTE_AVERAGE,
+      include_adult: false,
+    },
+  );
+  return shuffleResults(data.results ?? [])
+    .slice(0, limit)
+    .map((r) => ({
+      ...r,
+      media_type: TMDBContentTypes.TV,
+    }));
 }
 
 /** Fetches popular media from any of the given production companies. */

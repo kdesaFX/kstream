@@ -40,12 +40,10 @@ export function GenreChips() {
   const visible = expanded ? genres : genres.slice(0, TOP_GENRES);
 
   return (
-    <div
-      className="relative left-1/2 -translate-x-1/2 w-screen max-w-screen-xl mt-6 px-6"
-    >
+    <div className="w-full mt-6">
       <div
         className={classNames(
-          "flex gap-2 mx-auto py-2 opacity-0 animate-fade-in",
+          "flex gap-2 py-2 opacity-0 animate-fade-in",
           "transition-[max-height] duration-1000 ease-in-out overflow-hidden",
           expanded
             ? "flex-wrap justify-center max-h-[40rem]"

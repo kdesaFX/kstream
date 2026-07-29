@@ -12,24 +12,43 @@ import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { DiscoverNavigation } from "./components/DiscoverNavigation";
 import type { FeaturedMedia } from "./components/FeaturedCarousel";
+import { ForYouConfidenceCarousel } from "./components/ForYouConfidenceCarousel";
+import { ForYouWeightCarousel } from "./components/ForYouWeightCarousel";
+import { useHasRecommendationSignal } from "./hooks/usePersonalRecommendations";
 import { LazyMediaCarousel } from "./components/LazyMediaCarousel";
 import { PersonalRecommendationsCarousel } from "./components/PersonalRecommendationsCarousel";
 import { ScrollToTopButton } from "./components/ScrollToTopButton";
 
 export function DiscoverContent() {
-  const { selectedCategory, setSelectedCategory } = useDiscoverStore();
+  const { selectedCategory, hasManuallySelected, setSelectedCategory } =
+    useDiscoverStore();
+  // Matches the same "is there real signal" check FeaturedCarousel and
+  // usePersonalRecommendations use — a rating alone isn't enough.
+  const hasMovieSignal = useHasRecommendationSignal(false);
+  const hasShowSignal = useHasRecommendationSignal(true);
   const navigate = useNavigate();
   const { showModal } = useOverlayStack();
   const carouselRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const progressItems = useProgressStore((state) => state.items);
 
+  const showForYou = hasMovieSignal || hasShowSignal;
+  // Mirrors FeaturedCarousel's own default-category cascade, so the tab
+  // row highlights whichever tab the hero is actually showing.
+  const autoDefaultCategory = showForYou ? "foryou" : "movies";
+  const effectiveCategory = hasManuallySelected
+    ? selectedCategory
+    : autoDefaultCategory;
+
   // Only load data for the active tab
-  const isMoviesTab = selectedCategory === "movies";
-  const isTVShowsTab = selectedCategory === "tvshows";
-  const isEditorPicksTab = selectedCategory === "editorpicks";
+  const isForYouTab = effectiveCategory === "foryou";
+  const isMoviesTab = effectiveCategory === "movies";
+  const isTVShowsTab = effectiveCategory === "tvshows";
+  const isEditorPicksTab = effectiveCategory === "editorpicks";
 
   const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category as "movies" | "tvshows" | "editorpicks");
+    setSelectedCategory(
+      category as "foryou" | "movies" | "tvshows" | "editorpicks",
+    );
   };
 
   const handleShowDetails = async (media: MediaItem | FeaturedMedia) => {
@@ -44,6 +63,72 @@ export function DiscoverContent() {
   );
   const tvProgressItems = Object.entries(progressItems || {}).filter(
     ([_, item]) => item.type === "show",
+  );
+
+  // Render For You content. Order: confidence tiers (how strongly a pick
+  // matches your taste, from the recommendation score) and weight tiers
+  // (genre-based intensity — easy/comfort vs. serious/heavy) both sit above
+  // the plain overall Movies/Shows rows, since they're the more specific,
+  // more useful cut of the same underlying recommendations.
+  const renderForYouContent = () => (
+    <>
+      <ForYouConfidenceCarousel
+        key="foryou-sure"
+        tier="sure"
+        title="Sure Bets"
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+      />
+      <ForYouConfidenceCarousel
+        key="foryou-worth-a-look"
+        tier="worthALook"
+        title="Worth a Look"
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+      />
+      <ForYouConfidenceCarousel
+        key="foryou-something-new"
+        tier="somethingNew"
+        title="Something New"
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+      />
+      <ForYouWeightCarousel
+        key="foryou-light"
+        weight="light"
+        title="Easy Watching"
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+      />
+      <ForYouWeightCarousel
+        key="foryou-medium"
+        weight="medium"
+        title="Balanced Picks"
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+      />
+      <ForYouWeightCarousel
+        key="foryou-heavy"
+        weight="heavy"
+        title="Heavy Hitters"
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+      />
+      <PersonalRecommendationsCarousel
+        key="foryou-movies"
+        isTVShow={false}
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+        title={t("discover.tabs.movies")}
+      />
+      <PersonalRecommendationsCarousel
+        key="foryou-shows"
+        isTVShow
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+        title={t("discover.tabs.tvshows")}
+      />
+    </>
   );
 
   // Render Movies content with lazy loading
@@ -99,6 +184,33 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         priority={carousels.length < 2}
+      />,
+    );
+
+    // Popular This Week — TMDB's actual trending endpoint, standalone
+    // (not a Trakt fallback), alongside Latest Releases/Top 10 rather than
+    // replacing anything.
+    carousels.push(
+      <LazyMediaCarousel
+        key="movie-popular-this-week"
+        content={{ type: "popularThisWeek" }}
+        isTVShow={false}
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+        moreContent
+      />,
+    );
+
+    // Popular Picks — random-popular pool (see getAllTimeBestMovies),
+    // standalone alongside the rest.
+    carousels.push(
+      <LazyMediaCarousel
+        key="movie-random-popular"
+        content={{ type: "randomPopular" }}
+        isTVShow={false}
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+        moreContent
       />,
     );
 
@@ -226,6 +338,32 @@ export function DiscoverContent() {
       />,
     );
 
+    // Popular This Week — TMDB's actual trending endpoint, standalone
+    // alongside the rest.
+    carousels.push(
+      <LazyMediaCarousel
+        key="tv-popular-this-week"
+        content={{ type: "popularThisWeek" }}
+        isTVShow
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+        moreContent
+      />,
+    );
+
+    // Popular Picks — random-popular pool (see getAllTimeBestShows),
+    // standalone alongside the rest.
+    carousels.push(
+      <LazyMediaCarousel
+        key="tv-random-popular"
+        content={{ type: "randomPopular" }}
+        isTVShow
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+        moreContent
+      />,
+    );
+
     // Provider TV Shows
     carousels.push(
       <LazyMediaCarousel
@@ -282,11 +420,17 @@ export function DiscoverContent() {
   return (
     <div className="relative min-h-screen">
       <DiscoverNavigation
-        selectedCategory={selectedCategory}
+        selectedCategory={effectiveCategory}
         onCategoryChange={handleCategoryChange}
+        showForYou={showForYou}
       />
 
       <WideContainer ultraWide classNames="!px-0">
+        {/* For You Tab */}
+        <div style={{ display: isForYouTab ? "block" : "none" }}>
+          {renderForYouContent()}
+        </div>
+
         {/* Movies Tab */}
         <div style={{ display: isMoviesTab ? "block" : "none" }}>
           {renderMoviesContent()}

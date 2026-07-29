@@ -1,5 +1,6 @@
 import classNames from "classnames";
 import { useEffect, useState } from "react";
+import { useMeasure } from "react-use";
 import { Link, To, useNavigate } from "react-router-dom";
 
 import { NoUserAvatar, UserAvatar } from "@/components/Avatar";
@@ -10,10 +11,12 @@ import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { useNotifications } from "@/components/overlays/notificationsModal";
 import { useTipJar } from "@/components/overlays/tipJarModal";
 import { Lightbar } from "@/components/utils/Lightbar";
+import { Transition } from "@/components/utils/Transition";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { BlurEllipsis } from "@/pages/layouts/SubPageLayout";
 import { conf } from "@/setup/config";
 import { useBannerSize } from "@/stores/banner";
+import { useNavLayoutStore } from "@/stores/navLayout";
 import { usePreferencesStore } from "@/stores/preferences";
 
 import { HomeSectionCustomizer } from "@/pages/parts/home/HomeSectionCustomizer";
@@ -57,6 +60,123 @@ function HomeLayoutCustomizerToggle() {
   );
 }
 
+function MobileMenuLink(props: {
+  children: React.ReactNode;
+  href?: string;
+  onClick?: () => void;
+  badge?: React.ReactNode;
+}) {
+  const className =
+    "w-full text-left tabbable cursor-pointer flex gap-3 items-center mx-2 my-0.5 p-2 rounded font-medium text-dropdown-text hover:text-white transition-colors duration-100";
+
+  if (props.href) {
+    return (
+      <a
+        href={props.href}
+        target="_blank"
+        rel="noreferrer"
+        className={className}
+        onClick={props.onClick}
+      >
+        {props.children}
+        {props.badge}
+      </a>
+    );
+  }
+
+  return (
+    <button type="button" onClick={props.onClick} className={className}>
+      {props.children}
+      {props.badge}
+    </button>
+  );
+}
+
+function MobileActionsMenu(props: {
+  openDownloadModal: () => void;
+  openNotifications: () => void;
+  openTipJar: () => void;
+  unreadCount: number | string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    function onWindowClick(evt: MouseEvent) {
+      if ((evt.target as HTMLElement).closest(".is-mobile-menu")) return;
+      setOpen(false);
+    }
+    window.addEventListener("click", onWindowClick);
+    return () => window.removeEventListener("click", onWindowClick);
+  }, []);
+
+  const shouldShowBadge =
+    typeof props.unreadCount === "number"
+      ? props.unreadCount > 0
+      : props.unreadCount === "99+";
+
+  return (
+    <div className="relative is-mobile-menu lg:hidden">
+      <a
+        onClick={() => setOpen((v) => !v)}
+        className="text-xl text-white tabbable rounded-full backdrop-blur-lg relative block"
+        title="Menu"
+      >
+        <IconPatch icon={Icons.MENU} clickable downsized navigation />
+        {shouldShowBadge ? (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[16px] aspect-square flex items-center justify-center">
+            {props.unreadCount}
+          </span>
+        ) : null}
+      </a>
+      <Transition animation="slide-down" show={open}>
+        <div className="absolute left-0 top-full mt-3 z-50 w-56 rounded-xl bg-dropdown-altBackground py-2 shadow-lg ring-1 ring-white/10">
+          <MobileMenuLink href={conf().DISCORD_LINK}>
+            <Icon icon={Icons.DISCORD} className="text-xl" />
+            Discord
+          </MobileMenuLink>
+          <MobileMenuLink
+            onClick={() => {
+              setOpen(false);
+              props.openDownloadModal();
+            }}
+          >
+            <Icon icon={Icons.DOWNLOAD} className="text-xl" />
+            Download
+          </MobileMenuLink>
+          <MobileMenuLink
+            onClick={() => {
+              setOpen(false);
+              props.openNotifications();
+            }}
+            badge={
+              shouldShowBadge ? (
+                <span className="ml-auto bg-red-500 text-white text-xs rounded-full min-w-[16px] px-1 aspect-square flex items-center justify-center">
+                  {props.unreadCount}
+                </span>
+              ) : null
+            }
+          >
+            <Icon icon={Icons.BELL} className="text-xl" />
+            Notifications
+          </MobileMenuLink>
+          <MobileMenuLink
+            onClick={() => {
+              setOpen(false);
+              props.openTipJar();
+            }}
+          >
+            <Icon icon={Icons.TIP_JAR} className="text-xl" />
+            Tip Jar
+          </MobileMenuLink>
+          <div className="mx-2 mt-1">
+            <HomeLayoutCustomizerToggle />
+          </div>
+        </div>
+      </Transition>
+    </div>
+  );
+}
+
 export interface NavigationProps {
   bg?: boolean;
   noLightbar?: boolean;
@@ -72,6 +192,18 @@ export function Navigation(props: NavigationProps) {
   const { openNotifications, getUnreadCount } = useNotifications();
   const { openTipJar } = useTipJar();
   const { openDownloadModal } = useDownloadModal();
+  const [leftRef, { width: leftWidth }] = useMeasure<HTMLDivElement>();
+  const [rightRef, { width: rightWidth }] = useMeasure<HTMLDivElement>();
+  const setLeftWidth = useNavLayoutStore((s) => s.setLeftWidth);
+  const setRightWidth = useNavLayoutStore((s) => s.setRightWidth);
+
+  useEffect(() => {
+    setLeftWidth(leftWidth);
+  }, [leftWidth, setLeftWidth]);
+
+  useEffect(() => {
+    setRightWidth(rightWidth);
+  }, [rightWidth, setRightWidth]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -177,7 +309,10 @@ export function Navigation(props: NavigationProps) {
       >
         <div className={classNames("fixed left-0 right-0 flex items-center")}>
           <div className="px-7 py-5 relative z-[60] flex flex-1 items-center justify-between">
-            <div className="flex items-center space-x-1.5 ssm:space-x-3 pointer-events-auto">
+            <div
+              ref={leftRef}
+              className="flex items-center space-x-1.5 ssm:space-x-3 pointer-events-auto"
+            >
               <Link
                 className="block tabbable rounded-full text-xs ssm:text-base"
                 to="/"
@@ -185,62 +320,85 @@ export function Navigation(props: NavigationProps) {
               >
                 <BrandPill clickable header />
               </Link>
-              <a
-                href={conf().DISCORD_LINK}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xl text-white tabbable rounded-full backdrop-blur-lg"
-              >
-                <IconPatch
-                  icon={Icons.DISCORD}
-                  clickable
-                  downsized
-                  navigation
-                />
-              </a>
+              <div className="hidden lg:flex items-center space-x-1.5 ssm:space-x-3">
+                <a
+                  href={conf().DISCORD_LINK}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xl text-white tabbable rounded-full backdrop-blur-lg"
+                >
+                  <IconPatch
+                    icon={Icons.DISCORD}
+                    clickable
+                    downsized
+                    navigation
+                  />
+                </a>
 
-              <a
-                onClick={() => openDownloadModal()}
-                rel="noreferrer"
-                className="text-xl text-white tabbable rounded-full backdrop-blur-lg"
-                title="Download"
-              >
-                <IconPatch
-                  icon={Icons.DOWNLOAD}
-                  clickable
-                  downsized
-                  navigation
-                />
-              </a>
+                <a
+                  onClick={() => openDownloadModal()}
+                  rel="noreferrer"
+                  className="text-xl text-white tabbable rounded-full backdrop-blur-lg"
+                  title="Download"
+                >
+                  <IconPatch
+                    icon={Icons.DOWNLOAD}
+                    clickable
+                    downsized
+                    navigation
+                  />
+                </a>
 
-              <a
-                onClick={() => openNotifications()}
-                rel="noreferrer"
-                className="text-xl text-white tabbable rounded-full backdrop-blur-lg relative"
-              >
-                <IconPatch icon={Icons.BELL} clickable downsized navigation />
-                {(() => {
-                  const count = getUnreadCount();
-                  const shouldShow =
-                    typeof count === "number" ? count > 0 : count === "99+";
-                  return shouldShow ? (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[16px] aspect-square flex items-center justify-center">
-                      {count}
-                    </span>
-                  ) : null;
-                })()}
-              </a>
-              <a
-                onClick={() => openTipJar()}
-                rel="noreferrer"
-                className="text-xl text-white tabbable rounded-full backdrop-blur-lg"
-                title="Tip Jar"
-              >
-                <IconPatch icon={Icons.TIP_JAR} clickable downsized navigation />
-              </a>
+                <a
+                  onClick={() => openNotifications()}
+                  rel="noreferrer"
+                  className="text-xl text-white tabbable rounded-full backdrop-blur-lg relative"
+                >
+                  <IconPatch
+                    icon={Icons.BELL}
+                    clickable
+                    downsized
+                    navigation
+                  />
+                  {(() => {
+                    const count = getUnreadCount();
+                    const shouldShow =
+                      typeof count === "number" ? count > 0 : count === "99+";
+                    return shouldShow ? (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[16px] aspect-square flex items-center justify-center">
+                        {count}
+                      </span>
+                    ) : null;
+                  })()}
+                </a>
+                <a
+                  onClick={() => openTipJar()}
+                  rel="noreferrer"
+                  className="text-xl text-white tabbable rounded-full backdrop-blur-lg"
+                  title="Tip Jar"
+                >
+                  <IconPatch
+                    icon={Icons.TIP_JAR}
+                    clickable
+                    downsized
+                    navigation
+                  />
+                </a>
+              </div>
+              <MobileActionsMenu
+                openDownloadModal={openDownloadModal}
+                openNotifications={openNotifications}
+                openTipJar={openTipJar}
+                unreadCount={getUnreadCount()}
+              />
             </div>
-            <div className="relative pointer-events-auto flex items-center gap-3">
-              <HomeLayoutCustomizerToggle />
+            <div
+              ref={rightRef}
+              className="relative pointer-events-auto flex items-center gap-3"
+            >
+              <div className="hidden lg:block">
+                <HomeLayoutCustomizerToggle />
+              </div>
               <LinksDropdown>
                 {loggedIn ? <UserAvatar withName /> : <NoUserAvatar />}
               </LinksDropdown>
