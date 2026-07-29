@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAsyncFn } from "react-use";
 
+import { isLegacyEncryptedName } from "@/backend/accounts/crypto";
 import { getSessions, updateSession } from "@/backend/accounts/sessions";
 import {
   SettingsInput,
@@ -573,6 +574,9 @@ export function SettingsPage() {
   const updateNickname = useAuthStore((s) => s.setAccountNickname);
   const currentDeviceName = useMemo(() => {
     if (!account) return "";
+    if (account.deviceName && isLegacyEncryptedName(account.deviceName)) {
+      return "";
+    }
     return account.deviceName || t("settings.account.devices.unknownDevice");
   }, [account, t]);
 
