@@ -11,7 +11,6 @@ import {
   bytesToBase64,
   bytesToBase64Url,
   signChallenge,
-  encryptData,
   storeCredentialMapping,
 } from "@/backend/accounts/crypto";
 import { getLoginChallengeToken, loginAccount } from "@/backend/accounts/login";
@@ -55,7 +54,7 @@ export function MigrationPasskeyPage() {
     const result = await loginAccount(backendUrl, {
       challenge: { code: challenge, signature },
       publicKey: publicKeyBase64Url,
-      device: await encryptData("Passkey Recovery", keys.seed),
+      device: "Passkey Recovery",
     });
 
     const user = await getUser(backendUrl, result.token);
@@ -99,7 +98,7 @@ export function MigrationPasskeyPage() {
       oldPublicKey,
       newPublicKey,
       challenge: { code: challenge, oldSignature, newSignature },
-      device: await encryptData("Z-Stream Passkey", newKeys.seed),
+      device: "Z-Stream Passkey",
     });
 
     storeCredentialMapping(backendUrl, newPublicKey, newCredId);
@@ -137,7 +136,7 @@ export function MigrationPasskeyPage() {
       oldPublicKey,
       newPublicKey,
       challenge: { code: challenge, oldSignature, newSignature },
-      device: await encryptData("Z-Stream", newKeys.seed),
+      device: "Z-Stream",
     });
 
     useAuthStore.getState().setAccount({

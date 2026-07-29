@@ -5,7 +5,6 @@ import { bookmarkMediaToInput } from "@/backend/accounts/bookmarks";
 import {
   bytesToBase64,
   bytesToBase64Url,
-  encryptData,
   getCredentialId,
   keysFromCredentialId,
   keysFromMnemonic,
@@ -15,6 +14,17 @@ import {
 import { getGroupOrder } from "@/backend/accounts/groupOrder";
 import { importAllUserData } from "@/backend/accounts/import";
 import { getLoginChallengeToken, loginAccount } from "@/backend/accounts/login";
+import {
+  addPasskey as addPasskeyRequest,
+  loginWithPasskey as loginWithPasskeyRequest,
+  registerWithPasskey as registerWithPasskeyRequest,
+} from "@/backend/accounts/passkey";
+import {
+  addPassword as addPasswordRequest,
+  loginWithPassword as loginWithPasswordRequest,
+  migrateToPassword as migrateToPasswordRequest,
+  registerWithPassword as registerWithPasswordRequest,
+} from "@/backend/accounts/password";
 import { progressMediaItemToInputs } from "@/backend/accounts/progress";
 import {
   getRegisterChallengeToken,
@@ -139,7 +149,7 @@ export function useAuth() {
           signature,
         },
         publicKey: publicKeyBase64Url,
-        device: await encryptData(loginData.userData.device, keys.seed),
+        device: loginData.userData.device,
       });
 
       const user = await getUser(backendUrl, loginResult.token);
@@ -206,7 +216,7 @@ export function useAuth() {
           signature,
         },
         publicKey: publicKeyBase64Url,
-        device: await encryptData(registerData.userData.device, keys.seed),
+        device: registerData.userData.device,
         profile: registerData.userData.profile,
       });
 
@@ -227,6 +237,74 @@ export function useAuth() {
       );
     },
     [backendUrl, userDataLogin],
+  );
+
+  const registerWithPassword = useCallback(
+    async (data: {
+      username: string;
+      password: string;
+      device: string;
+      profile: { colorA: string; colorB: string; icon: string };
+    }) => {
+      if (!backendUrl) return;
+      const result = await registerWithPasswordRequest(backendUrl, data);
+      return userDataLogin(result, result.user, result.session);
+    },
+    [backendUrl, userDataLogin],
+  );
+
+  const loginWithPassword = useCallback(
+    async (data: { username: string; password: string; device: string }) => {
+      if (!backendUrl) return;
+      const result = await loginWithPasswordRequest(backendUrl, data);
+      return userDataLogin(result, result.user, result.session);
+    },
+    [backendUrl, userDataLogin],
+  );
+
+  const registerWithPasskey = useCallback(
+    async (
+      device: string,
+      accountProfile: { colorA: string; colorB: string; icon: string },
+    ) => {
+      if (!backendUrl) return;
+      const result = await registerWithPasskeyRequest(backendUrl, device, accountProfile);
+      return userDataLogin(result, result.user, result.session);
+    },
+    [backendUrl, userDataLogin],
+  );
+
+  const loginWithPasskey = useCallback(
+    async (device: string) => {
+      if (!backendUrl) return;
+      const result = await loginWithPasskeyRequest(backendUrl, device);
+      return userDataLogin(result, result.user, result.session);
+    },
+    [backendUrl, userDataLogin],
+  );
+
+  const migrateToPassword = useCallback(
+    async (username: string, password: string) => {
+      if (!backendUrl || !currentAccount) return;
+      await migrateToPasswordRequest(backendUrl, currentAccount, username, password);
+    },
+    [backendUrl, currentAccount],
+  );
+
+  const addPassword = useCallback(
+    async (username: string, password: string) => {
+      if (!backendUrl || !currentAccount) return;
+      await addPasswordRequest(backendUrl, currentAccount, username, password);
+    },
+    [backendUrl, currentAccount],
+  );
+
+  const addPasskey = useCallback(
+    async (device: string) => {
+      if (!backendUrl || !currentAccount) return;
+      await addPasskeyRequest(backendUrl, currentAccount, device);
+    },
+    [backendUrl, currentAccount],
   );
 
   const importData = useCallback(
@@ -334,6 +412,13 @@ export function useAuth() {
     logout,
     disconnectFromBackend,
     register,
+    registerWithPassword,
+    loginWithPassword,
+    registerWithPasskey,
+    loginWithPasskey,
+    migrateToPassword,
+    addPassword,
+    addPasskey,
     restore,
     importData,
   };

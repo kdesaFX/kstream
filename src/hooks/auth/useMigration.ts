@@ -6,7 +6,6 @@ import {
   base64ToBuffer,
   bytesToBase64,
   bytesToBase64Url,
-  encryptData,
   // keysFromMnemonic,
   keysFromSeed,
   signChallenge,
@@ -74,7 +73,7 @@ export function useMigration() {
 
   const migrate = useCallback(
     async (backendUrl: string, recaptchaToken?: string) => {
-      if (!currentAccount) return;
+      if (!currentAccount?.seed) return;
 
       const importData = async (
         backendUrlInner: string,
@@ -117,7 +116,7 @@ export function useMigration() {
           signature,
         },
         publicKey: bytesToBase64Url(keys.publicKey),
-        device: await encryptData(currentAccount.deviceName, keys.seed),
+        device: currentAccount.deviceName,
         profile: currentAccount.profile,
       });
 

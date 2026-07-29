@@ -33,3 +33,21 @@ export async function accountLogin(
     baseURL: url,
   });
 }
+
+export interface AuthStatusResponse {
+  isLegacyPassphrase: boolean;
+  hasPassword: boolean;
+  username: string | null;
+  hasPasskey: boolean;
+}
+
+export async function getAuthStatus(
+  url: string,
+  token: string,
+): Promise<AuthStatusResponse> {
+  return ofetch<AuthStatusResponse>("/auth/status", {
+    method: "GET",
+    baseURL: url,
+    headers: getAuthHeaders(token),
+  });
+}

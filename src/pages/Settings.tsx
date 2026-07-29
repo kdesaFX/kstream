@@ -3,11 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAsyncFn } from "react-use";
 
-import {
-  base64ToBuffer,
-  decryptData,
-  encryptData,
-} from "@/backend/accounts/crypto";
 import { getSessions, updateSession } from "@/backend/accounts/sessions";
 import {
   SettingsInput,
@@ -31,6 +26,7 @@ import { useIsIOS, useIsMobile, useIsPWA } from "@/hooks/useIsMobile";
 import { SETTINGS_FIELDS, useSettingsState } from "@/hooks/useSettingsState";
 import { AccountActionsPart } from "@/pages/parts/settings/AccountActionsPart";
 import { AccountEditPart } from "@/pages/parts/settings/AccountEditPart";
+import { AccountSecurityPart } from "@/pages/parts/settings/AccountSecurityPart";
 import { AppearancePart } from "@/pages/parts/settings/AppearancePart";
 import { CaptionsPart } from "@/pages/parts/settings/CaptionsPart";
 import { ConnectionsPart } from "@/pages/parts/settings/ConnectionsPart";
@@ -167,6 +163,7 @@ export function AccountSettings(props: {
         sessions={sessionsResult.value ?? []}
         onChange={execSessions}
       />
+      <AccountSecurityPart account={account} />
       <AccountActionsPart />
     </>
   );
@@ -574,18 +571,9 @@ export function SettingsPage() {
   const updateProfile = useAuthStore((s) => s.setAccountProfile);
   const updateDeviceName = useAuthStore((s) => s.updateDeviceName);
   const updateNickname = useAuthStore((s) => s.setAccountNickname);
-  const decryptedName = useMemo(() => {
+  const currentDeviceName = useMemo(() => {
     if (!account) return "";
-    const parts = account.deviceName?.split(".");
-    if (!parts || parts.length !== 3) {
-      return account.deviceName || t("settings.account.devices.unknownDevice");
-    }
-    try {
-      return decryptData(account.deviceName, base64ToBuffer(account.seed));
-    } catch (error) {
-      console.warn("Failed to decrypt device name, using fallback:", error);
-      return t("settings.account.devices.unknownDevice");
-    }
+    return account.deviceName || t("settings.account.devices.unknownDevice");
   }, [account, t]);
 
   const backendUrl = useBackendUrl();
@@ -777,7 +765,7 @@ export function SettingsPage() {
     theme: activeTheme,
     appLanguage,
     subtitleStyling: subStyling,
-    deviceName: decryptedName,
+    deviceName: currentDeviceName,
     nickname: account?.nickname || "",
     proxyUrls: proxySet,
     backendUrl: backendUrlSetting,
@@ -886,10 +874,7 @@ export function SettingsPage() {
         );
       }
       if (state.deviceName.changed) {
-        const newDeviceName = await encryptData(
-          state.deviceName.state,
-          base64ToBuffer(account.seed),
-        );
+        const newDeviceName = state.deviceName.state;
         await updateSession(backendUrl, account, {
           deviceName: newDeviceName,
         });
