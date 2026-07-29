@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useAsyncFn } from "react-use";
 
 import { SessionResponse } from "@/backend/accounts/auth";
-import { base64ToBuffer, decryptData } from "@/backend/accounts/crypto";
 import { removeSession } from "@/backend/accounts/sessions";
 import { Button } from "@/components/buttons/Button";
 import { Loading } from "@/components/layout/Loading";
@@ -69,43 +68,21 @@ export function DeviceListPart(props: {
   onChange?: () => void;
 }) {
   const { t } = useTranslation();
-  const seed = useAuthStore((s) => s.account?.seed);
   const sessions = props.sessions;
   const currentSessionId = useAuthStore((s) => s.account?.sessionId);
   const deviceListSorted = useMemo(() => {
-    if (!seed) return [];
-    let list = sessions.map((session) => {
-      let decryptedName: string;
-      const parts = session.device?.split(".");
-      if (!parts || parts.length !== 3) {
-        // Legacy plaintext device name (stored before encryption was added)
-        decryptedName =
-          session.device || t("settings.account.devices.unknownDevice");
-      } else {
-        try {
-          decryptedName = decryptData(session.device, base64ToBuffer(seed));
-        } catch (error) {
-          console.warn(
-            `Failed to decrypt device name for session ${session.id}:`,
-            error,
-          );
-          decryptedName = t("settings.account.devices.unknownDevice");
-        }
-      }
-      return {
-        current: session.id === currentSessionId,
-        id: session.id,
-        name: decryptedName,
-      };
-    });
+    let list = sessions.map((session) => ({
+      current: session.id === currentSessionId,
+      id: session.id,
+      name: session.device || t("settings.account.devices.unknownDevice"),
+    }));
     list = list.sort((a, b) => {
       if (a.current) return -1;
       if (b.current) return 1;
       return a.name.localeCompare(b.name);
     });
     return list;
-  }, [seed, sessions, currentSessionId, t]);
-  if (!seed) return null;
+  }, [sessions, currentSessionId, t]);
 
   return (
     <div>

@@ -3,11 +3,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { useAsyncFn } from "react-use";
 import type { AsyncReturnType } from "type-fest";
 
-import {
-  authenticatePasskey,
-  isPasskeySupported,
-  verifyValidMnemonic,
-} from "@/backend/accounts/crypto";
+import { isPasskeySupported, verifyValidMnemonic } from "@/backend/accounts/crypto";
 import { Button } from "@/components/buttons/Button";
 import { Icon, Icons } from "@/components/Icon";
 import { BrandPill } from "@/components/layout/BrandPill";
@@ -29,67 +25,87 @@ interface LoginFormPartProps {
 }
 
 export function LoginFormPart(props: LoginFormPartProps) {
+  const [showPassphraseLogin, setShowPassphraseLogin] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [mnemonic, setMnemonic] = useState("");
   const [device, setDevice] = useState("");
-  const { login, restore, importData } = useAuth();
+  const {
+    login,
+    loginWithPassword,
+    loginWithPasskey,
+    restore,
+    importData,
+  } = useAuth();
   const backendUrl = useBackendUrl();
   const progressItems = useProgressStore((store) => store.items);
   const bookmarkItems = useBookmarkStore((store) => store.bookmarks);
   const watchHistoryItems = useWatchHistoryStore((store) => store.items);
   const { t } = useTranslation();
 
-  const [passkeyResult, executePasskey] = useAsyncFn(
-    async (inputDevice: string) => {
+  const finishLogin = async (account: AsyncReturnType<typeof login>) => {
+    if (!account) throw new Error(t("auth.login.validationError") ?? undefined);
+    await importData(account, progressItems, bookmarkItems, watchHistoryItems, false);
+    await restore(account);
+    props.onLogin?.();
+  };
+
+  const [passwordResult, executePassword] = useAsyncFn(
+    async (inputUsername: string, inputPassword: string, inputDevice: string) => {
       if (!backendUrl) {
         throw new Error(t("auth.login.noBackendUrl") ?? "No backend URL");
       }
-
       const validatedDevice = inputDevice.trim();
-      if (validatedDevice.length === 0)
+      if (validatedDevice.length === 0) {
         throw new Error(t("auth.login.deviceLengthError") ?? undefined);
+      }
 
-      // Authenticate with passkey (no credential ID specified, browser will show all available)
-      const assertion = await authenticatePasskey();
-      const credentialId = assertion.id;
-
-      let account: AsyncReturnType<typeof login>;
+      let account: AsyncReturnType<typeof loginWithPassword>;
       try {
-        account = await login({
-          credentialId,
-          userData: {
-            device: validatedDevice,
-          },
+        account = await loginWithPassword({
+          username: inputUsername.trim(),
+          password: inputPassword,
+          device: validatedDevice,
         });
       } catch (err) {
         if ((err as any).status === 401)
           throw new Error(t("auth.login.validationError") ?? undefined);
         throw err;
       }
-
-      if (!account)
-        throw new Error(t("auth.login.validationError") ?? undefined);
-
-      await importData(
-        account,
-        progressItems,
-        bookmarkItems,
-        watchHistoryItems,
-        false,
-      );
-
-      await restore(account);
-
-      props.onLogin?.();
+      await finishLogin(account);
     },
-    [props, login, restore, backendUrl, t],
+    [backendUrl, loginWithPassword, t, progressItems, bookmarkItems, watchHistoryItems],
   );
 
-  const [result, execute] = useAsyncFn(
-    async (inputMnemonic: string, inputdevice: string) => {
+  const [passkeyResult, executePasskey] = useAsyncFn(
+    async (inputDevice: string) => {
+      if (!backendUrl) {
+        throw new Error(t("auth.login.noBackendUrl") ?? "No backend URL");
+      }
+      const validatedDevice = inputDevice.trim();
+      if (validatedDevice.length === 0) {
+        throw new Error(t("auth.login.deviceLengthError") ?? undefined);
+      }
+
+      let account: AsyncReturnType<typeof loginWithPasskey>;
+      try {
+        account = await loginWithPasskey(validatedDevice);
+      } catch (err) {
+        if ((err as any).status === 401)
+          throw new Error(t("auth.login.validationError") ?? undefined);
+        throw err;
+      }
+      await finishLogin(account);
+    },
+    [backendUrl, loginWithPasskey, t, progressItems, bookmarkItems, watchHistoryItems],
+  );
+
+  const [passphraseResult, executePassphrase] = useAsyncFn(
+    async (inputMnemonic: string, inputDevice: string) => {
       if (!verifyValidMnemonic(inputMnemonic))
         throw new Error(t("auth.login.validationError") ?? undefined);
 
-      const validatedDevice = inputdevice.trim();
+      const validatedDevice = inputDevice.trim();
       if (validatedDevice.length === 0)
         throw new Error(t("auth.login.deviceLengthError") ?? undefined);
 
@@ -97,33 +113,61 @@ export function LoginFormPart(props: LoginFormPartProps) {
       try {
         account = await login({
           mnemonic: inputMnemonic,
-          userData: {
-            device: validatedDevice,
-          },
+          userData: { device: validatedDevice },
         });
       } catch (err) {
         if ((err as any).status === 401)
           throw new Error(t("auth.login.validationError") ?? undefined);
         throw err;
       }
-
-      if (!account)
-        throw new Error(t("auth.login.validationError") ?? undefined);
-
-      await importData(
-        account,
-        progressItems,
-        bookmarkItems,
-        watchHistoryItems,
-        false,
-      );
-
-      await restore(account);
-
-      props.onLogin?.();
+      await finishLogin(account);
     },
-    [props, login, restore, t],
+    [login, t, progressItems, bookmarkItems, watchHistoryItems],
   );
+
+  if (showPassphraseLogin) {
+    return (
+      <LargeCard top={<BrandPill backgroundClass="bg-[#161527]" />}>
+        <LargeCardText title={t("auth.login.title")}>
+          {t("auth.login.description")}
+        </LargeCardText>
+        <div className="space-y-4">
+          <AuthInputBox
+            label={t("auth.deviceNameLabel") ?? undefined}
+            value={device}
+            onChange={setDevice}
+            placeholder={t("auth.deviceNamePlaceholder") ?? undefined}
+          />
+          <AuthInputBox
+            label={t("auth.login.passphraseLabel") ?? undefined}
+            value={mnemonic}
+            autoComplete="username"
+            name="username"
+            onChange={setMnemonic}
+            placeholder={t("auth.login.passphrasePlaceholder") ?? undefined}
+            passwordToggleable
+          />
+          {passphraseResult.error && !passphraseResult.loading ? (
+            <p className="text-authentication-errorText">
+              {passphraseResult.error.message}
+            </p>
+          ) : null}
+        </div>
+        <LargeCardButtons>
+          <Button
+            theme="purple"
+            loading={passphraseResult.loading}
+            onClick={() => executePassphrase(mnemonic, device)}
+          >
+            {t("auth.login.submit")}
+          </Button>
+          <Button theme="secondary" onClick={() => setShowPassphraseLogin(false)}>
+            {t("auth.back") ?? "Back"}
+          </Button>
+        </LargeCardButtons>
+      </LargeCard>
+    );
+  }
 
   return (
     <LargeCard top={<BrandPill backgroundClass="bg-[#161527]" />}>
@@ -138,12 +182,18 @@ export function LoginFormPart(props: LoginFormPartProps) {
           placeholder={t("auth.deviceNamePlaceholder") ?? undefined}
         />
         <AuthInputBox
-          label={t("auth.login.passphraseLabel") ?? undefined}
-          value={mnemonic}
+          label={t("auth.password.usernameLabel") ?? "Username"}
+          value={username}
           autoComplete="username"
           name="username"
-          onChange={setMnemonic}
-          placeholder={t("auth.login.passphrasePlaceholder") ?? undefined}
+          onChange={setUsername}
+        />
+        <AuthInputBox
+          label={t("auth.password.passwordLabel") ?? "Password"}
+          value={password}
+          autoComplete="current-password"
+          name="current-password"
+          onChange={setPassword}
           passwordToggleable
         />
         {isPasskeySupported() && (
@@ -164,7 +214,7 @@ export function LoginFormPart(props: LoginFormPartProps) {
               loading={passkeyResult.loading}
               disabled={
                 passkeyResult.loading ||
-                result.loading ||
+                passwordResult.loading ||
                 device.trim().length === 0
               }
               className="w-full"
@@ -174,11 +224,11 @@ export function LoginFormPart(props: LoginFormPartProps) {
             </Button>
           </div>
         )}
-        {(result.error || passkeyResult.error) &&
-        !result.loading &&
+        {(passwordResult.error || passkeyResult.error) &&
+        !passwordResult.loading &&
         !passkeyResult.loading ? (
           <p className="text-authentication-errorText">
-            {result.error?.message || passkeyResult.error?.message}
+            {passwordResult.error?.message || passkeyResult.error?.message}
           </p>
         ) : null}
       </div>
@@ -186,12 +236,21 @@ export function LoginFormPart(props: LoginFormPartProps) {
       <LargeCardButtons>
         <Button
           theme="purple"
-          loading={result.loading}
-          onClick={() => execute(mnemonic, device)}
+          loading={passwordResult.loading}
+          onClick={() => executePassword(username, password, device)}
         >
           {t("auth.login.submit")}
         </Button>
       </LargeCardButtons>
+      <p className="text-center mt-6">
+        <button
+          type="button"
+          className="text-type-secondary hover:text-white transition-colors"
+          onClick={() => setShowPassphraseLogin(true)}
+        >
+          {t("auth.login.usePassphrase") ?? "Log in with a recovery phrase instead"}
+        </button>
+      </p>
       <p className="text-center mt-6">
         <Trans i18nKey="auth.createAccount">
           <MwLink to="/register">.</MwLink>
