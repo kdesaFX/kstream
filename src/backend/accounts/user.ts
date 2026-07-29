@@ -151,6 +151,28 @@ export function progressResponsesToEntries(responses: ProgressResponse[]) {
   return items;
 }
 
+export function mergeProgressItems(
+  base: Record<string, ProgressMediaItem>,
+  incoming: Record<string, ProgressMediaItem>,
+): Record<string, ProgressMediaItem> {
+  const merged = { ...base };
+  Object.entries(incoming).forEach(([tmdbId, item]) => {
+    const existing = merged[tmdbId];
+    if (!existing) {
+      merged[tmdbId] = item;
+      return;
+    }
+    merged[tmdbId] = {
+      ...existing,
+      ...item,
+      episodes: { ...existing.episodes, ...item.episodes },
+      seasons: { ...existing.seasons, ...item.seasons },
+      updatedAt: Math.max(existing.updatedAt, item.updatedAt),
+    };
+  });
+  return merged;
+}
+
 export function watchHistoryResponsesToEntries(
   responses: WatchHistoryResponse[],
 ) {
@@ -232,6 +254,41 @@ export async function getProgress(url: string, account: AccountWithToken) {
     headers: getAuthHeaders(account.token),
     baseURL: url,
   });
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  nextCursor: string | null;
+}
+
+export async function getBookmarksPage(
+  url: string,
+  account: AccountWithToken,
+  opts: { limit: number; cursor?: string },
+) {
+  return ofetch<PaginatedResponse<BookmarkResponse>>(
+    `/users/${account.userId}/bookmarks`,
+    {
+      headers: getAuthHeaders(account.token),
+      baseURL: url,
+      query: { limit: opts.limit, cursor: opts.cursor },
+    },
+  );
+}
+
+export async function getProgressPage(
+  url: string,
+  account: AccountWithToken,
+  opts: { limit: number; cursor?: string },
+) {
+  return ofetch<PaginatedResponse<ProgressResponse>>(
+    `/users/${account.userId}/progress`,
+    {
+      headers: getAuthHeaders(account.token),
+      baseURL: url,
+      query: { limit: opts.limit, cursor: opts.cursor },
+    },
+  );
 }
 
 export async function getWatchHistory(url: string, account: AccountWithToken) {

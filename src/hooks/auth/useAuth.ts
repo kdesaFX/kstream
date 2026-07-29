@@ -34,20 +34,23 @@ import { removeSession } from "@/backend/accounts/sessions";
 import { buildFullSettingsInput, getSettings } from "@/backend/accounts/settings";
 import {
   UserResponse,
-  getBookmarks,
-  getProgress,
+  bookmarkResponsesToEntries,
+  getBookmarksPage,
+  getProgressPage,
   getUser,
   getWatchHistory,
+  mergeProgressItems,
+  progressResponsesToEntries,
 } from "@/backend/accounts/user";
 import { watchHistoryItemsToInputs } from "@/backend/accounts/watchHistory";
 import { useAuthData } from "@/hooks/auth/useAuthData";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { AccountWithToken, useAuthStore } from "@/stores/auth";
-import { BookmarkMediaItem } from "@/stores/bookmarks";
+import { BookmarkMediaItem, useBookmarkStore } from "@/stores/bookmarks";
 import { useGroupOrderStore } from "@/stores/groupOrder";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
-import { ProgressMediaItem } from "@/stores/progress";
+import { ProgressMediaItem, useProgressStore } from "@/stores/progress";
 import { useSubtitleStore } from "@/stores/subtitles";
 import { useThemeStore } from "@/stores/theme";
 import { WatchHistoryItem } from "@/stores/watchHistory";
@@ -100,6 +103,65 @@ async function getUserWithRetry(
     }
   }
   throw lastErr;
+}
+
+const RESTORE_FIRST_PAGE_SIZE = 300;
+const RESTORE_BACKGROUND_PAGE_SIZE = 500;
+
+// Heavy accounts can have thousands of progress/bookmark rows -- fetching all
+// of it before login can finish makes those accounts get slower to log into
+// forever. Login only waits on the first page; the rest streams in after.
+async function loadRemainingProgress(
+  backendUrl: string,
+  account: AccountWithToken,
+  cursor: string | null,
+) {
+  let next = cursor;
+  while (next) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const page = await getProgressPage(backendUrl, account, {
+        limit: RESTORE_BACKGROUND_PAGE_SIZE,
+        cursor: next,
+      });
+      const current = useProgressStore.getState().items;
+      useProgressStore
+        .getState()
+        .replaceItems(
+          mergeProgressItems(current, progressResponsesToEntries(page.items)),
+        );
+      next = page.nextCursor;
+    } catch (err) {
+      console.error("Failed to load remaining progress", err);
+      return;
+    }
+  }
+}
+
+async function loadRemainingBookmarks(
+  backendUrl: string,
+  account: AccountWithToken,
+  cursor: string | null,
+) {
+  let next = cursor;
+  while (next) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const page = await getBookmarksPage(backendUrl, account, {
+        limit: RESTORE_BACKGROUND_PAGE_SIZE,
+        cursor: next,
+      });
+      const current = useBookmarkStore.getState().bookmarks;
+      useBookmarkStore.getState().replaceBookmarks({
+        ...current,
+        ...bookmarkResponsesToEntries(page.items),
+      });
+      next = page.nextCursor;
+    } catch (err) {
+      console.error("Failed to load remaining bookmarks", err);
+      return;
+    }
+  }
 }
 
 export function useAuth() {
@@ -373,10 +435,10 @@ export function useAuth() {
         return;
       }
 
-      const [bookmarks, progress, watchHistory, settings, remoteGroupOrder] =
+      const [bookmarksPage, progressPage, watchHistory, settings, remoteGroupOrder] =
         await Promise.all([
-          getBookmarks(backendUrl, account),
-          getProgress(backendUrl, account),
+          getBookmarksPage(backendUrl, account, { limit: RESTORE_FIRST_PAGE_SIZE }),
+          getProgressPage(backendUrl, account, { limit: RESTORE_FIRST_PAGE_SIZE }),
           getWatchHistory(backendUrl, account),
           getSettings(backendUrl, account),
           getGroupOrder(backendUrl, account),
@@ -395,12 +457,15 @@ export function useAuth() {
       syncData(
         user.user,
         user.session,
-        progress,
-        bookmarks,
+        progressPage.items,
+        bookmarksPage.items,
         watchHistory,
         settings,
         remoteGroupOrder,
       );
+
+      loadRemainingProgress(backendUrl, account, progressPage.nextCursor);
+      loadRemainingBookmarks(backendUrl, account, bookmarksPage.nextCursor);
     },
     [backendUrl, syncData, logout],
   );
