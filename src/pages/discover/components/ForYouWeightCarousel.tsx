@@ -33,6 +33,7 @@ interface ForYouWeightCarouselProps {
     [key: string]: HTMLDivElement | null;
   }>;
   onShowDetails?: (media: MediaItem) => void;
+  enabled?: boolean;
 }
 
 function getPosterUrl(posterPath: string): string {
@@ -79,15 +80,16 @@ export function ForYouWeightCarousel({
   title,
   carouselRefs,
   onShowDetails,
+  enabled = true,
 }: ForYouWeightCarouselProps) {
   const { isMobile } = useIsMobile();
   const isScrollingRef = useRef(false);
   const browser = !!window.chrome;
 
   const { media: personalizedMovies, hasRecommendations: hasMovieRecs } =
-    usePersonalRecommendations({ isTVShow: false, enabled: true });
+    usePersonalRecommendations({ isTVShow: false, enabled });
   const { media: personalizedShows, hasRecommendations: hasShowRecs } =
-    usePersonalRecommendations({ isTVShow: true, enabled: true });
+    usePersonalRecommendations({ isTVShow: true, enabled });
 
   const [media, setMedia] = useState<DiscoverMedia[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,6 +102,12 @@ export function ForYouWeightCarousel({
     let cancelled = false;
 
     (async () => {
+      if (!enabled) {
+        setMedia([]);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
 
       const personalizedPool = shuffle(
@@ -171,7 +179,7 @@ export function ForYouWeightCarousel({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personalizedMovies, personalizedShows, hasProfile, weight]);
+  }, [enabled, personalizedMovies, personalizedShows, hasProfile, weight]);
 
   const handleWheel = React.useCallback(
     (e: React.WheelEvent) => {
