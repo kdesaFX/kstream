@@ -14,6 +14,13 @@ import { usePreferencesStore } from "@/stores/preferences";
 import { useWatchPartyStore } from "@/stores/watchParty";
 import { isAutoplayAllowed } from "@/utils/media/autoplay";
 
+function getBoostTitleKey(
+  meta: ReturnType<typeof usePlayerStore.getState>["meta"],
+): string | null {
+  if (!meta?.tmdbId) return null;
+  return `${meta.type}-${meta.tmdbId}`;
+}
+
 export function Slider(props: {
   label: string;
   value: number;
@@ -24,15 +31,66 @@ export function Slider(props: {
   onReset: () => void;
   defaultValue: number;
   unit?: string;
+  allowDirectInput?: boolean;
 }) {
+  const [isEditingValue, setIsEditingValue] = useState(false);
+  const [draftValue, setDraftValue] = useState(String(props.value));
+
+  useEffect(() => {
+    if (!isEditingValue) setDraftValue(String(props.value));
+  }, [props.value, isEditingValue]);
+
+  const commitDraftValue = useCallback(() => {
+    const parsed = Number(draftValue);
+    if (!Number.isFinite(parsed)) {
+      setIsEditingValue(false);
+      return;
+    }
+
+    const clamped = Math.max(props.min, Math.min(props.max, parsed));
+    props.onChange(clamped);
+    setIsEditingValue(false);
+  }, [draftValue, props]);
+
   return (
     <div className="space-y-1">
       <div className="flex justify-between items-center">
         <span className="text-sm text-type-secondary">{props.label}</span>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-white tabular-nums">
-            {props.value}{props.unit ?? ""}
-          </span>
+          {props.allowDirectInput ? (
+            isEditingValue ? (
+              <input
+                type="number"
+                min={props.min}
+                max={props.max}
+                step={props.step}
+                value={draftValue}
+                onChange={(e) => setDraftValue(e.target.value)}
+                onBlur={commitDraftValue}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitDraftValue();
+                  if (e.key === "Escape") setIsEditingValue(false);
+                }}
+                className="w-16 bg-video-context-light/10 rounded px-1.5 py-0.5 text-sm text-white tabular-nums"
+                aria-label={`${props.label} value`}
+                autoFocus
+              />
+            ) : (
+              <button
+                type="button"
+                className="text-sm text-white tabular-nums tabbable hover:text-video-context-type-accent"
+                onClick={() => setIsEditingValue(true)}
+              >
+                {props.value}
+                {props.unit ?? ""}
+              </button>
+            )
+          ) : (
+            <span className="text-sm text-white tabular-nums">
+              {props.value}
+              {props.unit ?? ""}
+            </span>
+          )}
           {props.value !== props.defaultValue && (
             <button
               type="button"
@@ -235,7 +293,16 @@ export function PlaybackSettingsView({ id }: { id: string }) {
   const setVideoBrightness = usePreferencesStore((s) => s.setVideoBrightness);
   const volumeBoost = usePreferencesStore((s) => s.volumeBoost);
   const setVolumeBoost = usePreferencesStore((s) => s.setVolumeBoost);
-  const [volumeBoostEnabled, setVolumeBoostEnabled] = useState(volumeBoost > 100);
+  const volumeBoostApplyMode = usePreferencesStore((s) => s.volumeBoostApplyMode);
+  const setVolumeBoostApplyMode = usePreferencesStore(
+    (s) => s.setVolumeBoostApplyMode,
+  );
+  const setVolumeBoostForTitle = usePreferencesStore(
+    (s) => s.setVolumeBoostForTitle,
+  );
+  const meta = usePlayerStore((s) => s.meta);
+  const titleBoostKey = useMemo(() => getBoostTitleKey(meta), [meta]);
+  const isEpisode = meta?.type === "show";
 
   const isInWatchParty = useWatchPartyStore((s) => s.enabled);
 
@@ -271,11 +338,26 @@ export function PlaybackSettingsView({ id }: { id: string }) {
     saveAutoplaySetting(newValue);
   }, [enableAutoplay, setEnableAutoplay, saveAutoplaySetting]);
 
-  const handleVolumeBoostToggle = useCallback(() => {
-    const next = !volumeBoostEnabled;
-    setVolumeBoostEnabled(next);
-    if (!next) setVolumeBoost(100);
-  }, [volumeBoostEnabled, setVolumeBoost]);
+  const handleVolumeBoostChange = useCallback(
+    (nextValue: number) => {
+      setVolumeBoost(nextValue);
+      if (volumeBoostApplyMode === "title" && titleBoostKey) {
+        setVolumeBoostForTitle(titleBoostKey, nextValue);
+      }
+    },
+    [setVolumeBoost, setVolumeBoostForTitle, titleBoostKey, volumeBoostApplyMode],
+  );
+
+  const handleSetCurrentPlaybackMode = useCallback(() => {
+    setVolumeBoostApplyMode("current");
+  }, [setVolumeBoostApplyMode]);
+
+  const handleSetTitleMode = useCallback(() => {
+    setVolumeBoostApplyMode("title");
+    if (titleBoostKey) {
+      setVolumeBoostForTitle(titleBoostKey, volumeBoost);
+    }
+  }, [setVolumeBoostApplyMode, setVolumeBoostForTitle, titleBoostKey, volumeBoost]);
 
   useEffect(() => {
     if (isInWatchParty && display && playbackRate !== 1) {
@@ -330,26 +412,50 @@ export function PlaybackSettingsView({ id }: { id: string }) {
             onChange={setVideoBrightness}
             onReset={() => setVideoBrightness(100)}
           />
-          <Menu.Link
-            rightSide={
-              <Toggle enabled={volumeBoostEnabled} onClick={handleVolumeBoostToggle} />
-            }
+          <Menu.FieldTitle>Volume Boost</Menu.FieldTitle>
+          <div className="text-type-secondary leading-tight">
+            <p className="text-xs">
+              Higher boost levels can reduce audio quality and may cause clipping.
+            </p>
+            <p className="text-[10px] mt-0.5">
+              If you have been listening at high volume for a while, consider
+              taking a short break to protect your hearing ♡
+            </p>
+          </div>
+          <Slider
+            label="Boost level"
+            value={volumeBoost}
+            min={100}
+            max={600}
+            step={1}
+            defaultValue={100}
+            unit="%"
+            onChange={handleVolumeBoostChange}
+            onReset={() => handleVolumeBoostChange(100)}
+            allowDirectInput
+          />
+          <button
+            type="button"
+            className="w-full py-2 px-3 rounded-lg bg-video-context-light/10 hover:bg-video-context-light/20 text-sm text-video-context-type-main tabbable"
+            onClick={() => handleVolumeBoostChange(100)}
           >
-            Volume Boost
-          </Menu.Link>
-          {volumeBoostEnabled && (
-            <Slider
-              label="Boost level"
-              value={volumeBoost}
-              min={100}
-              max={300}
-              step={10}
-              defaultValue={100}
-              unit="%"
-              onChange={setVolumeBoost}
-              onReset={() => setVolumeBoost(100)}
-            />
-          )}
+            Reset to 100%
+          </button>
+          <div className="space-y-1">
+            <Menu.SelectableLink
+              selected={volumeBoostApplyMode === "current"}
+              onClick={handleSetCurrentPlaybackMode}
+            >
+              {isEpisode ? "Just this episode" : "Just this movie"}
+            </Menu.SelectableLink>
+            <Menu.SelectableLink
+              selected={volumeBoostApplyMode === "title"}
+              onClick={handleSetTitleMode}
+              disabled={!titleBoostKey}
+            >
+              Always for this title
+            </Menu.SelectableLink>
+          </div>
           <Menu.ChevronLink onClick={() => router.navigate("/playback/advanced")}>
             Advanced color
           </Menu.ChevronLink>

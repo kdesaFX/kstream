@@ -8,6 +8,7 @@ import {
 } from "@/utils/browser/keyboardShortcuts";
 
 export type PreferredMinimumResolution = "none" | "720" | "1080" | "4k";
+export type VolumeBoostApplyMode = "current" | "title";
 
 export interface PreferencesStore {
   enableThumbnails: boolean;
@@ -55,6 +56,8 @@ export interface PreferencesStore {
   videoSaturation: number;
   videoHueRotate: number;
   volumeBoost: number;
+  volumeBoostApplyMode: VolumeBoostApplyMode;
+  volumeBoostByTitle: Record<string, number>;
 
   setEnableThumbnails(v: boolean): void;
   setEnableAutoplay(v: boolean): void;
@@ -101,6 +104,9 @@ export interface PreferencesStore {
   setVideoSaturation(v: number): void;
   setVideoHueRotate(v: number): void;
   setVolumeBoost(v: number): void;
+  setVolumeBoostApplyMode(v: VolumeBoostApplyMode): void;
+  setVolumeBoostForTitle(titleKey: string, boost: number): void;
+  clearVolumeBoostForTitle(titleKey: string): void;
   applySync(partial: Partial<PreferencesStore>): void;
 }
 
@@ -152,6 +158,8 @@ export const usePreferencesStore = create(
       videoSaturation: 100,
       videoHueRotate: 0,
       volumeBoost: 100,
+      volumeBoostApplyMode: "current",
+      volumeBoostByTitle: {},
       setEnableThumbnails(v) {
         set((s) => {
           s.enableThumbnails = v;
@@ -364,7 +372,22 @@ export const usePreferencesStore = create(
       },
       setVolumeBoost(v) {
         set((s) => {
-          s.volumeBoost = v;
+          s.volumeBoost = Math.min(600, Math.max(100, v));
+        });
+      },
+      setVolumeBoostApplyMode(v) {
+        set((s) => {
+          s.volumeBoostApplyMode = v;
+        });
+      },
+      setVolumeBoostForTitle(titleKey, boost) {
+        set((s) => {
+          s.volumeBoostByTitle[titleKey] = Math.min(600, Math.max(100, boost));
+        });
+      },
+      clearVolumeBoostForTitle(titleKey) {
+        set((s) => {
+          delete s.volumeBoostByTitle[titleKey];
         });
       },
       setVideoContrast(v) {
@@ -406,6 +429,9 @@ export const usePreferencesStore = create(
         }
         if (!merged.gamepadMapping) {
           merged.gamepadMapping = {};
+        }
+        if (!merged.volumeBoostByTitle) {
+          merged.volumeBoostByTitle = {};
         }
         return merged;
       },
