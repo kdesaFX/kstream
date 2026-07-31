@@ -17,6 +17,11 @@ export function MediaSession() {
 
   const shouldUpdatePositionState = useRef(false);
   const lastPlaybackPosition = useRef(0);
+  const lastMetadata = useRef<{
+    title?: string;
+    artist?: string;
+    poster?: string;
+  }>({});
 
   const changeEpisode = useCallback(
     (change: number) => {
@@ -152,13 +157,20 @@ export function MediaSession() {
       title = `S${meta.season?.number} E${meta.episode?.number}: ${meta.episode?.title}`;
     }
 
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title,
-      artist,
-      artwork: [
-        { src: meta?.poster ?? "", sizes: "342x513", type: "image/png" },
-      ],
-    });
+
+    const poster = meta?.poster ?? "";
+    if (
+      lastMetadata.current.title !== title ||
+      lastMetadata.current.artist !== artist ||
+      lastMetadata.current.poster !== poster
+    ) {
+      lastMetadata.current = { title, artist, poster };
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title,
+        artist,
+        artwork: [{ src: poster, sizes: "342x513", type: "image/png" }],
+      });
+    }
 
     navigator.mediaSession.setActionHandler("play", () => {
       if (mediaPlaying.isLoading) return;
