@@ -96,6 +96,10 @@ export const SETTINGS_FIELDS = [
   { key: "enableHoldToBoost", backendKey: "enableHoldToBoost" },
   { key: "homeSectionOrder", backendKey: "homeSectionOrder" },
   { key: "manualSourceSelection", backendKey: "manualSourceSelection" },
+  {
+    key: "preferredMinimumResolution",
+    backendKey: "preferredMinimumResolution",
+  },
   { key: "enableDoubleClickToSeek", backendKey: "enableDoubleClickToSeek" },
   {
     key: "enableAutoResumeOnPlaybackError",
@@ -154,6 +158,7 @@ export interface UseSettingsStateInput {
   enableHoldToBoost: boolean;
   homeSectionOrder: string[];
   manualSourceSelection: boolean;
+  preferredMinimumResolution: "none" | "720" | "1080" | "4k";
   enableDoubleClickToSeek: boolean;
   enableAutoResumeOnPlaybackError: boolean;
   enablePauseOverlay: boolean;
@@ -205,6 +210,7 @@ export function useSettingsState(input: UseSettingsStateInput) {
   field("enableHoldToBoost", useDerived(input.enableHoldToBoost), registry, resets);
   field("homeSectionOrder", useDerived(input.homeSectionOrder), registry, resets);
   field("manualSourceSelection", useDerived(input.manualSourceSelection), registry, resets);
+  field("preferredMinimumResolution", useDerived(input.preferredMinimumResolution), registry, resets);
   field("enableDoubleClickToSeek", useDerived(input.enableDoubleClickToSeek), registry, resets);
   field("enableAutoResumeOnPlaybackError", useDerived(input.enableAutoResumeOnPlaybackError), registry, resets);
   field("enablePauseOverlay", useDerived(input.enablePauseOverlay), registry, resets);

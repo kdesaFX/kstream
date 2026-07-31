@@ -173,6 +173,7 @@ export function useAuthData() {
       if (settings.enableHoldToBoost !== undefined) partial.enableHoldToBoost = settings.enableHoldToBoost;
       if (settings.homeSectionOrder !== undefined) partial.homeSectionOrder = settings.homeSectionOrder ?? ["watching", "bookmarks"];
       if (settings.manualSourceSelection !== undefined) partial.manualSourceSelection = settings.manualSourceSelection;
+      if (settings.preferredMinimumResolution !== undefined) partial.preferredMinimumResolution = settings.preferredMinimumResolution;
       if (settings.enableDoubleClickToSeek !== undefined) partial.enableDoubleClickToSeek = settings.enableDoubleClickToSeek;
       if (settings.enableAutoResumeOnPlaybackError !== undefined) partial.enableAutoResumeOnPlaybackError = settings.enableAutoResumeOnPlaybackError;
       if (settings.enableNumberKeySeeking !== undefined) partial.enableNumberKeySeeking = settings.enableNumberKeySeeking;

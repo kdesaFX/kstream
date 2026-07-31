@@ -488,6 +488,11 @@ export function MigrationUploadPage() {
             uploadedData.settings.manualSourceSelection,
           );
         }
+        if (uploadedData.settings.preferredMinimumResolution !== undefined) {
+          preferencesStore.setPreferredMinimumResolution(
+            uploadedData.settings.preferredMinimumResolution,
+          );
+        }
         if (uploadedData.settings.enableDoubleClickToSeek !== undefined) {
           preferencesStore.setEnableDoubleClickToSeek(
             uploadedData.settings.enableDoubleClickToSeek,

@@ -7,6 +7,8 @@ import {
   KeyboardShortcuts,
 } from "@/utils/browser/keyboardShortcuts";
 
+export type PreferredMinimumResolution = "none" | "720" | "1080" | "4k";
+
 export interface PreferencesStore {
   enableThumbnails: boolean;
   enableAutoplay: boolean;
@@ -40,6 +42,7 @@ export interface PreferencesStore {
   bookmarkRowsToShow: number;
   watchingRowsToShow: number;
   manualSourceSelection: boolean;
+  preferredMinimumResolution: PreferredMinimumResolution;
   enableDoubleClickToSeek: boolean;
   enableAutoResumeOnPlaybackError: boolean;
   enableNumberKeySeeking: boolean;
@@ -85,6 +88,7 @@ export interface PreferencesStore {
   setBookmarkRowsToShow(v: number): void;
   setWatchingRowsToShow(v: number): void;
   setManualSourceSelection(v: boolean): void;
+  setPreferredMinimumResolution(v: PreferredMinimumResolution): void;
   setEnableDoubleClickToSeek(v: boolean): void;
   setEnableAutoResumeOnPlaybackError(v: boolean): void;
   setEnableNumberKeySeeking(v: boolean): void;
@@ -135,6 +139,7 @@ export const usePreferencesStore = create(
       bookmarkRowsToShow: 1,
       watchingRowsToShow: 1,
       manualSourceSelection: false,
+      preferredMinimumResolution: "none",
       enableDoubleClickToSeek: false,
       enableAutoResumeOnPlaybackError: true,
       enableNumberKeySeeking: true,
@@ -310,6 +315,11 @@ export const usePreferencesStore = create(
       setManualSourceSelection(v) {
         set((s) => {
           s.manualSourceSelection = v;
+        });
+      },
+      setPreferredMinimumResolution(v) {
+        set((s) => {
+          s.preferredMinimumResolution = v;
         });
       },
       setEnableDoubleClickToSeek(v) {

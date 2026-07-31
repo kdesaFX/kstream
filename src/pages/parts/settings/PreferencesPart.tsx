@@ -116,6 +116,8 @@ export function PreferencesPart(props: {
   setEnableHoldToBoost: (v: boolean) => void;
   manualSourceSelection: boolean;
   setManualSourceSelection: (v: boolean) => void;
+  preferredMinimumResolution: "none" | "720" | "1080" | "4k";
+  setPreferredMinimumResolution: (v: "none" | "720" | "1080" | "4k") => void;
   enableDoubleClickToSeek: boolean;
   setEnableDoubleClickToSeek: (v: boolean) => void;
   enableAutoResumeOnPlaybackError: boolean;
@@ -169,6 +171,45 @@ export function PreferencesPart(props: {
       disabled: !currentDeviceSources.find((s) => s.id === id),
     }));
   }, [props.sourceOrder, allSources]);
+
+  const minimumResolutionOptions = useMemo(
+    () => [
+      {
+        id: "none",
+        name: t(
+          "settings.preferences.preferredMinimumResolutionNone",
+          "No minimum (first working source)",
+        ),
+      },
+      {
+        id: "720",
+        name: t(
+          "settings.preferences.preferredMinimumResolution720",
+          "720p",
+        ),
+      },
+      {
+        id: "1080",
+        name: t(
+          "settings.preferences.preferredMinimumResolution1080",
+          "1080p",
+        ),
+      },
+      {
+        id: "4k",
+        name: t(
+          "settings.preferences.preferredMinimumResolution4k",
+          "4K",
+        ),
+      },
+    ],
+    [t],
+  );
+
+  const selectedMinimumResolution =
+    minimumResolutionOptions.find(
+      (item) => item.id === props.preferredMinimumResolution,
+    ) ?? minimumResolutionOptions[0];
 
   return (
     <div className="space-y-10">
@@ -294,6 +335,32 @@ export function PreferencesPart(props: {
               enabled={props.manualSourceSelection}
               onChange={(v) => props.setManualSourceSelection(v)}
             />
+            <div className="px-4 py-3">
+              <p className="text-white font-semibold leading-snug">
+                {t(
+                  "settings.preferences.preferredMinimumResolutionLabel",
+                  "Preferred minimum resolution",
+                )}
+              </p>
+              <p className="text-sm text-type-secondary mt-1 leading-snug max-w-[28rem]">
+                {t(
+                  "settings.preferences.preferredMinimumResolutionDescription",
+                  "When auto-selecting sources, keep checking working sources until this quality is met. If unavailable, the best working source is used.",
+                )}
+              </p>
+              <div className="mt-3 max-w-[24rem]">
+                <Dropdown
+                  className="w-full"
+                  options={minimumResolutionOptions}
+                  selectedItem={selectedMinimumResolution}
+                  setSelectedItem={(opt) =>
+                    props.setPreferredMinimumResolution(
+                      opt.id as "none" | "720" | "1080" | "4k",
+                    )
+                  }
+                />
+              </div>
+            </div>
             <ToggleRow
               title={t("settings.preferences.autoResumeOnPlaybackErrorLabel")}
               description={t(

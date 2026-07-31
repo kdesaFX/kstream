@@ -545,6 +545,12 @@ export function SettingsPage() {
   const setManualSourceSelection = usePreferencesStore(
     (s) => s.setManualSourceSelection,
   );
+  const preferredMinimumResolution = usePreferencesStore(
+    (s) => s.preferredMinimumResolution,
+  );
+  const setPreferredMinimumResolution = usePreferencesStore(
+    (s) => s.setPreferredMinimumResolution,
+  );
 
   const enableDoubleClickToSeek = usePreferencesStore(
     (s) => s.enableDoubleClickToSeek,
@@ -673,6 +679,9 @@ export function SettingsPage() {
         if (settings.manualSourceSelection !== undefined) {
           setManualSourceSelection(settings.manualSourceSelection);
         }
+        if (settings.preferredMinimumResolution !== undefined) {
+          setPreferredMinimumResolution(settings.preferredMinimumResolution);
+        }
         if (settings.enableDoubleClickToSeek !== undefined) {
           setEnableDoubleClickToSeek(settings.enableDoubleClickToSeek);
         }
@@ -758,6 +767,7 @@ export function SettingsPage() {
     setEnableHoldToBoost,
     setHomeSectionOrder,
     setManualSourceSelection,
+    setPreferredMinimumResolution,
     setEnableDoubleClickToSeek,
     setEnableAutoResumeOnPlaybackError,
     setEnablePauseOverlay,
@@ -802,6 +812,7 @@ export function SettingsPage() {
     enableHoldToBoost,
     homeSectionOrder,
     manualSourceSelection,
+    preferredMinimumResolution,
     enableDoubleClickToSeek,
     enableAutoResumeOnPlaybackError,
     enablePauseOverlay,
@@ -933,6 +944,7 @@ export function SettingsPage() {
     setGamepadMapping(state.gamepadMapping.state);
     setHomeSectionOrder(state.homeSectionOrder.state);
     setManualSourceSelection(state.manualSourceSelection.state);
+    setPreferredMinimumResolution(state.preferredMinimumResolution.state);
     setEnableDoubleClickToSeek(state.enableDoubleClickToSeek.state);
     setEnableAutoResumeOnPlaybackError(
       state.enableAutoResumeOnPlaybackError.state,
@@ -1002,6 +1014,7 @@ export function SettingsPage() {
     setEnableHoldToBoost,
     setHomeSectionOrder,
     setManualSourceSelection,
+    setPreferredMinimumResolution,
     setEnableDoubleClickToSeek,
     setEnableAutoResumeOnPlaybackError,
     setEnablePauseOverlay,
@@ -1086,6 +1099,12 @@ export function SettingsPage() {
               setEnableHoldToBoost={state.enableHoldToBoost.set}
               manualSourceSelection={state.manualSourceSelection.state}
               setManualSourceSelection={state.manualSourceSelection.set}
+              preferredMinimumResolution={
+                state.preferredMinimumResolution.state
+              }
+              setPreferredMinimumResolution={
+                state.preferredMinimumResolution.set
+              }
               enableDoubleClickToSeek={state.enableDoubleClickToSeek.state}
               setEnableDoubleClickToSeek={state.enableDoubleClickToSeek.set}
               enableAutoResumeOnPlaybackError={
