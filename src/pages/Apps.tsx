@@ -1,12 +1,12 @@
 import { ReactNode } from "react";
 
 import { PageTitle } from "@/pages/parts/util/PageTitle";
-import { conf } from "@/setup/config";
 
 import { SubPageLayout } from "./layouts/SubPageLayout";
 
 const ANDROID_RELEASES_URL =
   "https://github.com/alturyxx-gif/ZStream-Android/releases";
+const WINDOWS_APP_DOWNLOAD_URL = "https://apps.fontaine.lol/zstream-windows.exe";
 
 function WindowsGlyph(props: { className?: string }) {
   return (
@@ -122,11 +122,11 @@ export function AppsPage() {
       tagline: "the native desktop app, built for comfort.",
       bullets: [
         "native player, better sources, extra features",
-        "auto-updates pushed through Discord",
+        "auto-updates built right in",
         "distributed to our community first",
       ],
-      cta: "join Discord to download",
-      onClick: () => window.open(conf().DISCORD_LINK, "_blank"),
+      cta: "download for Windows",
+      onClick: () => window.open(WINDOWS_APP_DOWNLOAD_URL, "_blank"),
     },
     {
       key: "android",

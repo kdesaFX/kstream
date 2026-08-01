@@ -1,6 +1,7 @@
 import { Icon, Icons } from "@/components/Icon";
 import { FancyModal } from "@/components/overlays/Modal";
-import { conf } from "@/setup/config";
+
+const WINDOWS_APP_DOWNLOAD_URL = "https://apps.fontaine.lol/zstream-windows.exe";
 
 interface DownloadOption {
   key: string;
@@ -16,11 +17,11 @@ function optionsFor(): DownloadOption[] {
   return [
     {
       key: "windows",
-      icon: Icons.DISCORD,
+      icon: Icons.DOWNLOAD,
       title: "Windows App",
-      subtitle: "Native desktop app, distributed through our Discord.",
-      cta: "Join & Get It",
-      href: conf().DISCORD_LINK,
+      subtitle: "Native desktop app, with built-in auto-updates.",
+      cta: "Download",
+      href: WINDOWS_APP_DOWNLOAD_URL,
       iconClass: "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30",
     },
     {
