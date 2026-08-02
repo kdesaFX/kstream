@@ -75,11 +75,6 @@ function hlsLevelsToQualities(levels: Level[]): SourceQuality[] {
 }
 
 
-const disguisedMp4UrlRe = /\/mp4-proxy\.(html|xml|svg)(?:\?|$)/;
-function isDisguisedMp4Url(url: string): boolean {
-  return disguisedMp4UrlRe.test(url);
-}
-
 // Sort levels by quality (height) to ensure we can select the best one
 function sortLevelsByQuality(levels: Level[]): Level[] {
   return [...levels].sort((a, b) => (b.height || 0) - (a.height || 0));
@@ -89,7 +84,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   const { emit, on, off } = makeEmitter<DisplayInterfaceEvents>();
   let source: LoadableSource | null = null;
   let hls: Hls | null = null;
-  let mp4BlobUrl: string | null = null;
   let videoElement: HTMLVideoElement | null = null;
   let containerElement: HTMLElement | null = null;
   let isFullscreen = false;
@@ -371,46 +365,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       return;
     }
 
-    const resolvedUrl = processCdnLink(src.url);
-    if (isDisguisedMp4Url(resolvedUrl)) {
-      loadDisguisedMp4(vid, resolvedUrl, {
-        ...src.preferredHeaders,
-        ...src.headers,
-      });
-      return;
-    }
-    vid.src = resolvedUrl;
+    vid.src = processCdnLink(src.url);
     vid.currentTime = startAt;
-  }
-
-  // Fetches a disguised mp4-proxy URL manually and hands the video element a
-  // blob: URL with the correct type forced on it, instead of letting the
-  // browser do a native src= GET (which would see the fake Content-Type and
-  // abort). Falls back to a plain src= assignment if the fetch itself fails,
-  // so a network error still surfaces the normal way rather than silently
-  // leaving the player stuck.
-  async function loadDisguisedMp4(
-    vid: HTMLVideoElement,
-    url: string,
-    headers?: Record<string, string>,
-  ) {
-    try {
-      const resp = await fetch(url, { headers });
-      if (!resp.ok) throw new Error(`disguised mp4 fetch failed: ${resp.status}`);
-      const rawBlob = await resp.blob();
-      const blob =
-        rawBlob.type === "video/mp4"
-          ? rawBlob
-          : new Blob([rawBlob], { type: "video/mp4" });
-      if (mp4BlobUrl) URL.revokeObjectURL(mp4BlobUrl);
-      mp4BlobUrl = URL.createObjectURL(blob);
-      vid.src = mp4BlobUrl;
-      vid.currentTime = startAt;
-    } catch (err) {
-      console.error("disguised mp4 load failed, falling back to direct src", err);
-      vid.src = url;
-      vid.currentTime = startAt;
-    }
   }
 
   function webkitPresentationModeChange() {
@@ -707,10 +663,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     if (hls) {
       hls.destroy();
       hls = null;
-    }
-    if (mp4BlobUrl) {
-      URL.revokeObjectURL(mp4BlobUrl);
-      mp4BlobUrl = null;
     }
     // Reset the last valid duration and time when unloading source
     lastValidDuration = 0;
