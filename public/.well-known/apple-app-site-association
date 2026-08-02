@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "details": [{
+      "appID": "QH7N9KJY6K.com.z-stream.app",
+      "paths": ["/media/*"]
+    }]
+  },
+  "webcredentials": {
+    "apps": ["QH7N9KJY6K.com.z-stream.app"]
+  }
+}
