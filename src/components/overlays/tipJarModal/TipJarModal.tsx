@@ -111,7 +111,7 @@ export function TipJarModal({ id }: { id: string }) {
     <FancyModal id={id} title="Tip Jar" size="md">
       <div className="space-y-4">
         <p className="text-type-secondary text-base leading-relaxed">
-          zstream is free and %99 ad-free. If you'd like to support hosting + the
+          zstream is free and maintained by very few people. If you'd like to support hosting + the
           server bill, we would love your support on any amount to one of the addresses below. Tap an
           address to copy it.
         </p>
