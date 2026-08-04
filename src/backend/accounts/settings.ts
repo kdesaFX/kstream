@@ -57,6 +57,7 @@ export interface SettingsInput {
   enableHoldToBoost?: boolean;
   homeSectionOrder?: string[] | null;
   manualSourceSelection?: boolean;
+  preferredMinimumResolution?: "none" | "720" | "1080" | "4k";
   enableDoubleClickToSeek?: boolean;
   enableAutoResumeOnPlaybackError?: boolean;
   enablePauseOverlay?: boolean;
@@ -102,6 +103,7 @@ export interface SettingsResponse {
   enableHoldToBoost?: boolean;
   homeSectionOrder?: string[] | null;
   manualSourceSelection?: boolean;
+  preferredMinimumResolution?: "none" | "720" | "1080" | "4k";
   enableDoubleClickToSeek?: boolean;
   enableAutoResumeOnPlaybackError?: boolean;
   enablePauseOverlay?: boolean;
@@ -184,6 +186,7 @@ export function buildFullSettingsInput(
         ? preferences.homeSectionOrder
         : undefined,
     manualSourceSelection: preferences.manualSourceSelection,
+    preferredMinimumResolution: preferences.preferredMinimumResolution,
     enableDoubleClickToSeek: preferences.enableDoubleClickToSeek,
     enableAutoResumeOnPlaybackError: preferences.enableAutoResumeOnPlaybackError,
     enablePauseOverlay: preferences.enablePauseOverlay,

@@ -24,6 +24,34 @@ export interface ScrapingSegment {
   percentage: number;
 }
 
+const sourceQualityScore: Record<string, number> = {
+  unknown: 0,
+  "360": 360,
+  "480": 480,
+  "720": 720,
+  "1080": 1080,
+  "4k": 2160,
+};
+
+const minimumResolutionThreshold: Record<
+  "none" | "720" | "1080" | "4k",
+  number
+> = {
+  none: 0,
+  "720": 720,
+  "1080": 1080,
+  "4k": 2160,
+};
+
+function getRunOutputBestResolutionScore(output: RunOutput): number {
+  if (output.stream.type !== "file") return 0;
+
+  return Object.entries(output.stream.qualities).reduce((best, [quality, stream]) => {
+    if (!stream?.url) return best;
+    return Math.max(best, sourceQualityScore[quality] ?? 0);
+  }, 0);
+}
+
 type ScraperEvent<Event extends keyof FullScraperEvents> = Parameters<
   NonNullable<FullScraperEvents[Event]>
 >[0];
@@ -160,6 +188,9 @@ export function useScrape() {
   );
   const preferredEmbedOrder = usePreferencesStore((s) => s.embedOrder);
   const enableEmbedOrder = usePreferencesStore((s) => s.enableEmbedOrder);
+  const preferredMinimumResolution = usePreferencesStore(
+    (s) => s.preferredMinimumResolution,
+  );
 
   const startScraping = useCallback(
     async (media: ScrapeMedia, startFromSourceId?: string) => {
@@ -249,22 +280,68 @@ export function useScrape() {
           )
         : undefined;
 
+      const minimumResolutionScore =
+        minimumResolutionThreshold[preferredMinimumResolution] ?? 0;
+
       startScrape();
       const providers = getProviders();
-      const output = await providers.runAll({
-        media,
-        sourceOrder: filteredSourceOrder,
-        embedOrder: filteredEmbedOrder,
-        events: {
-          init: initEvent,
-          start: startEvent,
-          update: updateEvent,
-          discoverEmbeds: discoverEmbedsEvent,
-        },
-      });
-      if (output && isExtensionActiveCached())
-        await prepareStream(output.stream);
-      return getResult(output);
+
+      if (minimumResolutionScore <= 0) {
+        const output = await providers.runAll({
+          media,
+          sourceOrder: filteredSourceOrder,
+          embedOrder: filteredEmbedOrder,
+          events: {
+            init: initEvent,
+            start: startEvent,
+            update: updateEvent,
+            discoverEmbeds: discoverEmbedsEvent,
+          },
+        });
+        if (output && isExtensionActiveCached())
+          await prepareStream(output.stream);
+        return getResult(output);
+      }
+
+      let remainingSourceOrder = [...filteredSourceOrder];
+      let bestFallbackOutput: RunOutput | null = null;
+      let bestFallbackScore = -1;
+
+      while (remainingSourceOrder.length > 0) {
+        const output = await providers.runAll({
+          media,
+          sourceOrder: remainingSourceOrder,
+          embedOrder: filteredEmbedOrder,
+          events: {
+            init: initEvent,
+            start: startEvent,
+            update: updateEvent,
+            discoverEmbeds: discoverEmbedsEvent,
+          },
+        });
+
+        if (!output) break;
+
+        const sourceScore = getRunOutputBestResolutionScore(output);
+        if (sourceScore > bestFallbackScore) {
+          bestFallbackScore = sourceScore;
+          bestFallbackOutput = output;
+        }
+
+        if (sourceScore >= minimumResolutionScore) {
+          if (isExtensionActiveCached()) await prepareStream(output.stream);
+          return getResult(output);
+        }
+
+        const currentSourceIndex = remainingSourceOrder.indexOf(output.sourceId);
+        if (currentSourceIndex === -1) break;
+        remainingSourceOrder = remainingSourceOrder.slice(currentSourceIndex + 1);
+      }
+
+      if (bestFallbackOutput && isExtensionActiveCached()) {
+        await prepareStream(bestFallbackOutput.stream);
+      }
+      return getResult(bestFallbackOutput);
     },
     [
       initEvent,
@@ -279,6 +356,7 @@ export function useScrape() {
       enableLastSuccessfulSource,
       preferredEmbedOrder,
       enableEmbedOrder,
+      preferredMinimumResolution,
     ],
   );
 
