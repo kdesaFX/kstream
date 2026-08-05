@@ -1,19 +1,31 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 
 import { Icon, Icons } from "@/components/Icon";
 import { useAppUpdateCheck } from "@/hooks/useAppUpdateCheck";
+import { useBannerSize } from "@/stores/banner";
 
 export function UpdateNotice() {
   const { t } = useTranslation();
+  const location = useLocation();
   const { updateAvailable, dismiss } = useAppUpdateCheck();
   const [entered, setEntered] = useState(false);
+  const bannerHeight = useBannerSize();
+
+  // While watching, drop in from the top so it stays clear of player chrome.
+  // Everywhere else, slide out under the top-right menu.
+  const isWatching = location.pathname.startsWith("/media/");
 
   useEffect(() => {
-    if (!updateAvailable) return;
+    if (!updateAvailable) {
+      setEntered(false);
+      return;
+    }
+    setEntered(false);
     const raf = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(raf);
-  }, [updateAvailable]);
+  }, [updateAvailable, isWatching]);
 
   const handleDismiss = () => {
     setEntered(false);
@@ -21,7 +33,6 @@ export function UpdateNotice() {
   };
 
   const refresh = () => {
-   
     const url = new URL(window.location.href);
     url.searchParams.set("_v", Date.now().toString());
     window.location.href = url.toString();
@@ -29,15 +40,36 @@ export function UpdateNotice() {
 
   if (!updateAvailable) return null;
 
+  const shellClass = isWatching
+    ? "pointer-events-none fixed inset-x-0 z-[200] flex justify-center px-4"
+    : "pointer-events-none fixed right-0 z-[200] flex justify-end pr-[max(0.75rem,env(safe-area-inset-right))] pl-4";
+
+  const shellStyle = isWatching
+    ? {
+        top: `max(1.25rem, calc(${bannerHeight}px + env(safe-area-inset-top)))`,
+      }
+    : {
+        // Sit just under the header menu pill (py-5 + control height).
+        top: `calc(${bannerHeight}px + env(safe-area-inset-top) + 4.75rem)`,
+      };
+
+  const cardMotion = isWatching
+    ? entered
+      ? "translate-y-0 opacity-100"
+      : "-translate-y-4 opacity-0"
+    : entered
+      ? "translate-x-0 opacity-100"
+      : "translate-x-full opacity-0";
+
   return (
-    <div className="pointer-events-none fixed inset-y-0 left-0 z-[200] flex items-center pl-[max(1rem,env(safe-area-inset-left))] pr-4">
+    <div className={shellClass} style={shellStyle}>
       <div
         className={[
           "pointer-events-auto group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-white/10",
           "bg-[#12141c]/85 px-4 py-3 pr-2 shadow-soft-lg backdrop-blur-xl ring-1 ring-white/5",
           "transition-[transform,opacity] duration-300 ease-out-quint",
           "max-w-[min(30rem,calc(100vw-2rem))]",
-          entered ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0",
+          cardMotion,
         ].join(" ")}
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_100%_at_0%_0%,rgba(139,92,246,0.18),transparent_70%)]" />
