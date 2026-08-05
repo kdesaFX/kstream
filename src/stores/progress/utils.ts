@@ -17,16 +17,19 @@ const defaultProgress = {
   watched: 0,
 };
 
-function progressIsCompleted(duration: number, watched: number): boolean {
-  // 90% completion or higher
-  if (duration > 0 && watched / duration > 0.9) return true;
-
-  const timeFromEnd = duration - watched;
-
-  // too close to the end, is completed
-  if (timeFromEnd < 60 * 2) return true;
-
-  // satisfies all constraints, not completed
+/**
+ * Treat as finished for Continue Watching + algorithm history.
+ * People often bail during credits, so we accept ~80% OR (for titles
+ * longer than 10 minutes) within 5 minutes of the end.
+ */
+export function progressIsCompleted(
+  duration: number,
+  watched: number,
+): boolean {
+  if (duration <= 0 || watched <= 0) return false;
+  if (watched / duration >= 0.8) return true;
+  // Avoid marking short clips complete just because remaining < 5 min
+  if (duration > 60 * 10 && duration - watched <= 60 * 5) return true;
   return false;
 }
 

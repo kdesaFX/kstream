@@ -9,8 +9,11 @@ import {
   ProgressModificationResult,
   modifyProgressItems,
 } from "@/utils/media/progressModifications";
+import { hydrateHistoryItemGenres } from "@/pages/discover/lib/watchHistoryGenres";
 
-export { getProgressPercentage } from "./utils";
+import { progressIsCompleted } from "./utils";
+
+export { getProgressPercentage, progressIsCompleted } from "./utils";
 
 export interface ProgressItem {
   watched: number;
@@ -142,17 +145,25 @@ export const useProgressStore = create(
                 watched: 0,
               };
 
-            const wasCompleted =
-              item.progress.duration > 0 &&
-              item.progress.watched / item.progress.duration > 0.9;
+            const wasCompleted = progressIsCompleted(
+              item.progress.duration,
+              item.progress.watched,
+            );
             item.progress = { ...progress };
 
             // Update watch history only if becoming completed
-            const isCompleted =
-              progress.duration > 0 &&
-              progress.watched / progress.duration > 0.9;
+            const isCompleted = progressIsCompleted(
+              progress.duration,
+              progress.watched,
+            );
             if (isCompleted && !wasCompleted) {
               useWatchHistoryStore.getState().addItem(meta, progress, true);
+              const historyKey = meta.tmdbId;
+              void hydrateHistoryItemGenres(
+                historyKey,
+                meta.tmdbId,
+                meta.type,
+              );
             }
             return;
           }
@@ -180,16 +191,25 @@ export const useProgressStore = create(
             };
 
           const episodeItem = item.episodes[meta.episode.tmdbId];
-          const wasCompleted =
-            episodeItem.progress.duration > 0 &&
-            episodeItem.progress.watched / episodeItem.progress.duration > 0.9;
+          const wasCompleted = progressIsCompleted(
+            episodeItem.progress.duration,
+            episodeItem.progress.watched,
+          );
           episodeItem.progress = { ...progress };
 
           // Update watch history only if becoming completed
-          const isCompleted =
-            progress.duration > 0 && progress.watched / progress.duration > 0.9;
+          const isCompleted = progressIsCompleted(
+            progress.duration,
+            progress.watched,
+          );
           if (isCompleted && !wasCompleted) {
             useWatchHistoryStore.getState().addItem(meta, progress, true);
+            const historyKey = `${meta.tmdbId}-${meta.episode.tmdbId}`;
+            void hydrateHistoryItemGenres(
+              historyKey,
+              meta.tmdbId,
+              meta.type,
+            );
           }
         });
       },

@@ -12,8 +12,16 @@ import {
   FRANCHISES,
   GENRE_LABELS,
   MOODS,
+  inferPrefsFromCompletedWatches,
+  type HistorySource,
+  type RatingSource,
 } from "@/pages/discover/lib/personalRecommendations";
+import {
+  hydrateHistoryItemGenres,
+  hydrateMissingCompletedGenres,
+} from "@/pages/discover/lib/watchHistoryGenres";
 import { MediaRating, useRatingsStore } from "@/stores/ratings";
+import { useWatchHistoryStore } from "@/stores/watchHistory";
 
 const RATE_CHOICES: Array<{ label: string; rating: MediaRating | null }> = [
   { label: "Loved it!", rating: "loved" },
@@ -37,19 +45,17 @@ interface QuizItem {
   id: number;
   title: string;
   poster_path: string;
+  /** Full poster URL when history already stored one. */
+  posterUrl?: string;
   release_date?: string;
   genre_ids?: number[];
 }
 
-// Batch composition: the first batch has no ratings to work from yet, so
-// it's pure variety (a fresh random page from the well-known pool each
-// time, not a sequential crawl — otherwise consecutive batches end up
-// showing largely the same popular titles just reshuffled). Every batch
-// after that is half personalized (adapts live as ratings come in during
-// the quiz, not just on a retake) and half random-popular, topping up with
-// more random-popular if personalized signal falls short.
+// Batch composition: prefer unrated completed watches first, then
+// personalized + random popular. Later batches stay half personalized.
 const BATCH_SIZE = 10;
 const BATCH_PERSONALIZED_SHARE = 5;
+const BATCH_HISTORY_SHARE = 6;
 // Start fetching the next batch once the queue is this close to running out,
 // so rating never has to pause waiting on a network request.
 const REFILL_THRESHOLD = 5;
@@ -116,8 +122,7 @@ interface RatingQueueResult {
 
 /**
  * Drives the "have you seen these?" queue for one medium (movies or shows):
- * fetches a trending+all-time+personalized mix, keeps it topped up as the
- * user rates through it, and tracks the periodic "you can stop now" nudge.
+ * prefers unrated completed watches, then trending+personalized mix.
  * `active` gates all fetching so the step that isn't currently shown doesn't
  * do background work.
  */
@@ -174,6 +179,74 @@ function useRatingQueue(
     genre_ids: r.genre_ids,
   });
 
+  const fetchUnratedCompletedWatches = async (
+    count: number,
+  ): Promise<QuizItem[]> => {
+    await hydrateMissingCompletedGenres(count + 5);
+    const freshItems = useWatchHistoryStore.getState().items;
+
+    const byTmdb = new Map<
+      number,
+      {
+        title: string;
+        year?: number;
+        poster?: string;
+        genreIds?: number[];
+        watchedAt: number;
+        historyKey: string;
+      }
+    >();
+
+    for (const [key, item] of Object.entries(freshItems)) {
+      if (!item.completed || item.type !== mediaType) continue;
+      const tmdbId = Number(key.includes("-") ? key.split("-")[0]! : key);
+      if (!Number.isFinite(tmdbId) || getRating(String(tmdbId))) continue;
+      const existing = byTmdb.get(tmdbId);
+      if (!existing || item.watchedAt > existing.watchedAt) {
+        byTmdb.set(tmdbId, {
+          title: item.title,
+          year: item.year,
+          poster: item.poster,
+          genreIds: item.genreIds,
+          watchedAt: item.watchedAt,
+          historyKey: key,
+        });
+      }
+    }
+
+    const sorted = Array.from(byTmdb.entries()).sort(
+      (a, b) => b[1].watchedAt - a[1].watchedAt,
+    );
+
+    const picks: QuizItem[] = [];
+    for (const [id, item] of sorted) {
+      if (picks.length >= count) break;
+      if (seenIdsRef.current.has(id) || getRating(String(id))) continue;
+
+      let genreIds = item.genreIds;
+      if (!genreIds || genreIds.length === 0) {
+        genreIds = await hydrateHistoryItemGenres(
+          item.historyKey,
+          String(id),
+          mediaType,
+        );
+      }
+
+      seenIdsRef.current.add(id);
+      const posterIsUrl = Boolean(item.poster?.startsWith("http"));
+      picks.push({
+        id,
+        title: item.title,
+        poster_path: posterIsUrl ? "" : (item.poster ?? ""),
+        posterUrl: posterIsUrl ? item.poster : undefined,
+        release_date: item.year ? `${item.year}-01-01` : undefined,
+        genre_ids: genreIds,
+      });
+    }
+
+    return picks;
+  };
+
   // A fresh random page every call (getAllTimeBestMovies/Shows pick a
   // random page from the well-known pool when no page is given), so
   // consecutive batches don't just crawl the same popularity ranking in
@@ -189,22 +262,26 @@ function useRatingQueue(
     const batchNumber = batchCountRef.current;
     batchCountRef.current += 1;
 
-    // First batch: no ratings yet to personalize from, so it's pure
-    // variety from the well-known pool.
+    const historyShare =
+      batchNumber === 0 ? BATCH_SIZE : BATCH_HISTORY_SHARE;
+    const fromHistory = await fetchUnratedCompletedWatches(historyShare);
+
     if (batchNumber === 0) {
-      return shuffle(await fetchRandomPopular(BATCH_SIZE));
+      const stillNeeded = BATCH_SIZE - fromHistory.length;
+      const randomPicks =
+        stillNeeded > 0 ? await fetchRandomPopular(stillNeeded) : [];
+      return shuffle([...fromHistory, ...randomPicks]);
     }
 
-    // Every batch after that: half personalized (best matches first, so
-    // it visibly tracks what's been rated so far), half random-popular —
-    // topping up with more random-popular if personalized signal is thin.
     const personalizedPicks = dedupe(
       personalizedMedia.map(toQuizItem),
     ).slice(0, BATCH_PERSONALIZED_SHARE) as QuizItem[];
-    const stillNeeded = BATCH_SIZE - personalizedPicks.length;
-    const randomPicks = await fetchRandomPopular(stillNeeded);
+    const stillNeeded =
+      BATCH_SIZE - fromHistory.length - personalizedPicks.length;
+    const randomPicks =
+      stillNeeded > 0 ? await fetchRandomPopular(stillNeeded) : [];
 
-    return shuffle([...personalizedPicks, ...randomPicks]);
+    return shuffle([...fromHistory, ...personalizedPicks, ...randomPicks]);
   };
 
   // Initial load, once this step becomes the active one. Relies on the
@@ -269,9 +346,11 @@ function useRatingQueue(
           year: currentItem.release_date
             ? new Date(currentItem.release_date).getFullYear()
             : undefined,
-          poster: currentItem.poster_path
-            ? getMediaPoster(currentItem.poster_path)
-            : undefined,
+          poster: currentItem.posterUrl
+            ? currentItem.posterUrl
+            : currentItem.poster_path
+              ? getMediaPoster(currentItem.poster_path)
+              : undefined,
           genreIds: currentItem.genre_ids,
         },
         rating,
@@ -325,9 +404,12 @@ function RatingStep({
       )}
       {currentItem ? (
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-          {currentItem.poster_path ? (
+          {currentItem.posterUrl || currentItem.poster_path ? (
             <img
-              src={getMediaPoster(currentItem.poster_path)}
+              src={
+                currentItem.posterUrl ||
+                getMediaPoster(currentItem.poster_path)
+              }
               alt=""
               className="w-36 shrink-0 rounded-lg"
             />
@@ -407,8 +489,10 @@ function RatingStep({
 export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
   const preferences = useRatingsStore((s) => s.preferences);
   const setPreferences = useRatingsStore((s) => s.setPreferences);
+  const ratings = useRatingsStore((s) => s.ratings);
 
   const [step, setStep] = useState<WizardStep>("movies");
+  const historyPrefillDone = useRef(false);
 
   const [genres, setGenres] = useState<Set<string>>(
     () => new Set(preferences.favoriteGenres.map(String)),
@@ -419,6 +503,70 @@ export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
   const [franchises, setFranchises] = useState<Set<string>>(
     () => new Set(preferences.franchises),
   );
+
+  // When entering genre/mood steps, pre-fill from completed-watch patterns
+  // if the user hasn't already chosen chips (and only once per wizard open).
+  useEffect(() => {
+    if (step !== "genres" && step !== "moods") return;
+    if (historyPrefillDone.current) return;
+
+    let cancelled = false;
+    (async () => {
+      await hydrateMissingCompletedGenres(25);
+      if (cancelled) return;
+
+      const items = useWatchHistoryStore.getState().items;
+      const completed: HistorySource[] = [];
+      const seen = new Set<string>();
+      for (const [key, item] of Object.entries(items)) {
+        if (!item.completed) continue;
+        const tmdbId = key.includes("-") ? key.split("-")[0]! : key;
+        if (seen.has(tmdbId)) continue;
+        seen.add(tmdbId);
+        completed.push({
+          tmdbId,
+          type: item.type,
+          watchedAt: item.watchedAt,
+          completed: true,
+          genreIds: item.genreIds,
+        });
+      }
+
+      const ratingSources: RatingSource[] = Object.entries(ratings).map(
+        ([tmdbId, r]) => ({
+          tmdbId,
+          type: r.type,
+          rating: r.rating,
+          genreIds: r.genreIds,
+          ratedAt: r.ratedAt,
+        }),
+      );
+
+      const inferred = inferPrefsFromCompletedWatches(
+        completed,
+        ratingSources,
+      );
+      historyPrefillDone.current = true;
+
+      if (genres.size === 0 && inferred.favoriteGenres.length > 0) {
+        setGenres(
+          new Set(
+            inferred.favoriteGenres
+              .filter((id) => PICKABLE_GENRES.includes(id))
+              .map(String),
+          ),
+        );
+      }
+      if (moods.size === 0 && inferred.moods.length > 0) {
+        setMoods(new Set(inferred.moods));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   const movieQueue = useRatingQueue("movie", step === "movies");
   const showQueue = useRatingQueue("show", step === "shows");
@@ -455,7 +603,7 @@ export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
       {step === "movies" && (
         <RatingStep
           heading="Have you seen these movies?"
-          description="Rate the ones you've watched, skip the rest. There's no fixed list, so keep going as long as you like."
+          description="We'll start with titles you've already finished when we can, then fill in with more to rate. Skip anything you haven't seen."
           queue={movieQueue}
           onStop={() => setStep("shows")}
         />
@@ -464,7 +612,7 @@ export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
       {step === "shows" && (
         <RatingStep
           heading="What about these shows?"
-          description="Same idea, but for TV. We keep movies and shows separate since they're different enough."
+          description="Same idea for TV — finished watches first when available. Movies and shows stay separate."
           queue={showQueue}
           onStop={() => setStep("genres")}
         />
@@ -476,7 +624,8 @@ export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
             Which genres do you enjoy?
           </h2>
           <p className="mb-4 text-sm text-type-secondary">
-            Pick as many as you like.
+            Pick as many as you like. We pre-select genres from what you&apos;ve
+            finished watching when we can — change anything you want.
           </p>
           <ChipGrid
             options={genreOptions}
@@ -500,7 +649,8 @@ export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
             What are you usually in the mood for?
           </h2>
           <p className="mb-4 text-sm text-type-secondary">
-            Pick as many as you like.
+            Pick as many as you like. We may pre-select moods from what you
+            finish watching — tweak freely.
           </p>
           <ChipGrid
             options={MOODS.map((m) => ({ id: m.id, label: m.label }))}

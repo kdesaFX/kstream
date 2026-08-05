@@ -15,12 +15,15 @@ import { CreateAlgorithmWizard } from "@/pages/algorithm/CreateAlgorithmWizard";
 import { PersonalRecommendationsCarousel } from "@/pages/discover/components/PersonalRecommendationsCarousel";
 import {
   GENRE_LABELS,
+  type HistorySource,
   type RatingSource,
   buildTasteProfile,
 } from "@/pages/discover/lib/personalRecommendations";
+import { hydrateMissingCompletedGenres } from "@/pages/discover/lib/watchHistoryGenres";
 import { SubPageLayout } from "@/pages/layouts/SubPageLayout";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { useRatingsStore } from "@/stores/ratings";
+import { useWatchHistoryStore } from "@/stores/watchHistory";
 
 // Validated categorical palette for dark surfaces.
 const GENRE_COLORS = [
@@ -72,6 +75,11 @@ interface GenreShare {
 function useTasteData() {
   const ratings = useRatingsStore((s) => s.ratings);
   const preferences = useRatingsStore((s) => s.preferences);
+  const watchHistoryItems = useWatchHistoryStore((s) => s.items);
+
+  useEffect(() => {
+    void hydrateMissingCompletedGenres(20);
+  }, [watchHistoryItems]);
 
   return useMemo(() => {
     const sources: RatingSource[] = Object.entries(ratings).map(
@@ -83,7 +91,24 @@ function useTasteData() {
         ratedAt: r.ratedAt,
       }),
     );
-    const profile = buildTasteProfile(sources, preferences);
+
+    const completedWatches: HistorySource[] = [];
+    const seen = new Set<string>();
+    for (const [key, item] of Object.entries(watchHistoryItems)) {
+      if (!item.completed) continue;
+      const tmdbId = key.includes("-") ? key.split("-")[0]! : key;
+      if (seen.has(tmdbId)) continue;
+      seen.add(tmdbId);
+      completedWatches.push({
+        tmdbId,
+        type: item.type,
+        watchedAt: item.watchedAt,
+        completed: true,
+        genreIds: item.genreIds,
+      });
+    }
+
+    const profile = buildTasteProfile(sources, preferences, completedWatches);
 
     const positive = Array.from(profile.entries())
       .filter(([, w]) => w > 0)
@@ -108,17 +133,25 @@ function useTasteData() {
       strength: Math.abs(w) * 100,
     }));
 
-    return { shares, avoided, ratingCount: Object.keys(ratings).length };
-  }, [ratings, preferences]);
+    const completedCount = completedWatches.length;
+    return {
+      shares,
+      avoided,
+      ratingCount: Object.keys(ratings).length,
+      completedCount,
+    };
+  }, [ratings, preferences, watchHistoryItems]);
 }
 
 /** Donut built from a conic-gradient with soft fades between slices. */
 function TasteDonut({
   shares,
   ratingCount,
+  completedCount,
 }: {
   shares: GenreShare[];
   ratingCount: number;
+  completedCount: number;
 }) {
   const gradient = useMemo(() => {
     if (shares.length === 0) return "";
@@ -167,6 +200,11 @@ function TasteDonut({
         <span className="text-sm text-type-secondary">
           {ratingCount === 1 ? "rating" : "ratings"}
         </span>
+        {completedCount > 0 && (
+          <span className="mt-1 text-xs text-type-secondary">
+            +{completedCount} finished
+          </span>
+        )}
       </div>
     </div>
   );
@@ -313,7 +351,7 @@ function RatedItemRow({ tmdbId }: { tmdbId: string }) {
 }
 
 export function MyAlgorithmPage() {
-  const { shares, avoided, ratingCount } = useTasteData();
+  const { shares, avoided, ratingCount, completedCount } = useTasteData();
   const ratings = useRatingsStore((s) => s.ratings);
   const completedOnboarding = useRatingsStore(
     (s) => s.preferences.completedOnboarding,
@@ -376,9 +414,9 @@ export function MyAlgorithmPage() {
       <WideContainer>
         <Heading1>My Algorithm</Heading1>
         <p className="mb-6 text-type-secondary">
-          This is what your ratings have taught the algorithm so far. Love
-          and hate count about twice as much as like and dislike, so rate
-          more to dial it in.
+          This is what your ratings and finished watches have taught the
+          algorithm so far. Love and hate count about twice as much as like and
+          dislike; finishing titles also nudges genres you return to.
         </p>
 
         <div className="mb-8">
@@ -405,14 +443,23 @@ export function MyAlgorithmPage() {
           )}
         </div>
 
-        {ratingCount === 0 ? (
+        {ratingCount === 0 && completedCount === 0 ? (
           <div className="mb-10 rounded-xl bg-white/5 p-6 text-center text-type-secondary">
             No ratings yet. Take the quiz to get some, or search below to
             rate something you&apos;ve seen already.
           </div>
+        ) : shares.length === 0 ? (
+          <div className="mb-10 rounded-xl bg-white/5 p-6 text-center text-type-secondary">
+            Keep finishing titles or add a few ratings — we&apos;ll shape your
+            genre taste from that.
+          </div>
         ) : (
           <div className="mb-10 flex flex-col items-center gap-8 md:flex-row md:items-start">
-            <TasteDonut shares={shares} ratingCount={ratingCount} />
+            <TasteDonut
+              shares={shares}
+              ratingCount={ratingCount}
+              completedCount={completedCount}
+            />
             <div className="w-full flex-1 space-y-6">
               {shares.length > 0 && (
                 <div>
@@ -454,7 +501,7 @@ export function MyAlgorithmPage() {
           </div>
         )}
 
-        {ratingCount > 0 && (
+        {(ratingCount > 0 || completedCount > 0) && (
           <div className="mb-10 space-y-6">
             <h2 className="text-lg font-semibold text-white">
               We think you&apos;d like...

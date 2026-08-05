@@ -22,6 +22,8 @@ import {
   readRecommendationsCache,
   writeRecommendationsCache,
 } from "../lib/recommendationsCache";
+import { hydrateMissingCompletedGenres } from "../lib/watchHistoryGenres";
+import type { WatchHistoryItem } from "@/stores/watchHistory";
 
 const recommendationsInFlight = new Map<string, Promise<DiscoverMedia[]>>();
 
@@ -87,7 +89,7 @@ export interface UsePersonalRecommendationsReturn {
 }
 
 function getHistorySources(
-  items: Record<string, { type: "movie" | "show"; watchedAt: number }>,
+  items: Record<string, WatchHistoryItem>,
 ): HistorySource[] {
   const byKey: Map<string, HistorySource> = new Map();
 
@@ -96,8 +98,42 @@ function getHistorySources(
     const tmdbId = isEpisode ? key.split("-")[0]! : key;
     const existing = byKey.get(tmdbId);
     const watchedAt = item.watchedAt;
-    if (!existing || watchedAt > existing.watchedAt) {
-      byKey.set(tmdbId, { tmdbId, type: item.type, watchedAt });
+
+    if (!existing) {
+      byKey.set(tmdbId, {
+        tmdbId,
+        type: item.type,
+        watchedAt,
+        completed: item.completed,
+        genreIds: item.genreIds,
+      });
+      continue;
+    }
+
+    // Prefer any completed show/movie entry; among equals, take most recent.
+    // Carry over genreIds if the preferred entry lacks them.
+    const takeThis =
+      (item.completed && !existing.completed) ||
+      (item.completed === existing.completed &&
+        watchedAt > existing.watchedAt);
+
+    if (takeThis) {
+      byKey.set(tmdbId, {
+        tmdbId,
+        type: item.type,
+        watchedAt,
+        completed: item.completed,
+        genreIds:
+          item.genreIds && item.genreIds.length > 0
+            ? item.genreIds
+            : existing.genreIds,
+      });
+    } else if (
+      (!existing.genreIds || existing.genreIds.length === 0) &&
+      item.genreIds &&
+      item.genreIds.length > 0
+    ) {
+      existing.genreIds = item.genreIds;
     }
   }
 
@@ -227,6 +263,11 @@ export function usePersonalRecommendations({
     setError(null);
 
     try {
+      // Backfill genres on older completed watches so taste can use them.
+      await hydrateMissingCompletedGenres(15);
+      const historyAfterHydrate: HistorySource[] =
+        getHistorySources(useWatchHistoryStore.getState().items);
+
       const excludeIds = buildExcludeSet();
       const inFlightKey = `${cacheKey}:${signature}`;
       const activeRequest = recommendationsInFlight.get(inFlightKey);
@@ -235,7 +276,7 @@ export function usePersonalRecommendations({
         (() => {
           const request = fetchPersonalRecommendations(
             isTVShow,
-            history,
+            historyAfterHydrate,
             progress,
             bookmarkList,
             excludeIds,

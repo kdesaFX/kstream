@@ -15,6 +15,8 @@ export interface WatchHistoryItem {
   };
   watchedAt: number; // timestamp when last watched
   completed: boolean; // whether the item was completed
+  /** TMDB genre ids (show-level for episodes); optional for older entries. */
+  genreIds?: number[];
   episodeId?: string;
   seasonId?: string;
   seasonNumber?: number;
@@ -33,6 +35,7 @@ export interface WatchHistoryUpdateItem {
   };
   watchedAt?: number;
   completed?: boolean;
+  genreIds?: number[];
   tmdbId: string;
   id: string;
   episodeId?: string;
@@ -49,12 +52,14 @@ export interface WatchHistoryStore {
     meta: PlayerMeta,
     progress: { watched: number; duration: number },
     completed: boolean,
+    genreIds?: number[],
   ): void;
   updateItem(
     id: string,
     progress: { watched: number; duration: number },
     completed: boolean,
   ): void;
+  setItemGenres(id: string, genreIds: number[]): void;
   removeItem(id: string): void;
   replaceItems(items: Record<string, WatchHistoryItem>): void;
   clear(): void;
@@ -70,7 +75,7 @@ export const useWatchHistoryStore = create(
     immer<WatchHistoryStore>((set) => ({
       items: {},
       updateQueue: [],
-      addItem(meta, progress, completed) {
+      addItem(meta, progress, completed, genreIds) {
         set((s) => {
           const key = meta.episode
             ? `${meta.tmdbId}-${meta.episode.tmdbId}`
@@ -81,7 +86,23 @@ export const useWatchHistoryStore = create(
           const shouldUpdate =
             !existingItem || (completed && !existingItem.completed);
 
-          if (!shouldUpdate) return;
+          if (!shouldUpdate) {
+            // Still allow attaching genres to an existing completed entry.
+            if (
+              existingItem &&
+              genreIds &&
+              genreIds.length > 0 &&
+              (!existingItem.genreIds || existingItem.genreIds.length === 0)
+            ) {
+              existingItem.genreIds = genreIds;
+            }
+            return;
+          }
+
+          const resolvedGenres =
+            genreIds && genreIds.length > 0
+              ? genreIds
+              : existingItem?.genreIds;
 
           // add to updateQueue
           updateId += 1;
@@ -94,6 +115,7 @@ export const useWatchHistoryStore = create(
             progress: { ...progress },
             watchedAt: Date.now(),
             completed,
+            genreIds: resolvedGenres,
             id: updateId.toString(),
             episodeId: meta.episode?.tmdbId,
             seasonId: meta.season?.tmdbId,
@@ -111,6 +133,7 @@ export const useWatchHistoryStore = create(
             progress: { ...progress },
             watchedAt: Date.now(),
             completed,
+            genreIds: resolvedGenres,
             episodeId: meta.episode?.tmdbId,
             seasonId: meta.season?.tmdbId,
             seasonNumber: meta.season?.number,
@@ -141,6 +164,7 @@ export const useWatchHistoryStore = create(
             progress: { ...progress },
             watchedAt: Date.now(),
             completed,
+            genreIds: existingItem.genreIds,
             id: updateId.toString(),
             episodeId: existingItem.episodeId,
             seasonId: existingItem.seasonId,
@@ -152,6 +176,13 @@ export const useWatchHistoryStore = create(
           existingItem.progress = { ...progress };
           existingItem.watchedAt = Date.now();
           existingItem.completed = completed;
+        });
+      },
+      setItemGenres(id, genreIds) {
+        set((s) => {
+          const item = s.items[id];
+          if (!item || genreIds.length === 0) return;
+          item.genreIds = genreIds;
         });
       },
       removeItem(id) {

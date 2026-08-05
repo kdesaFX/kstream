@@ -3,7 +3,11 @@ import { useInterval } from "react-use";
 
 import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
-import { ProgressItem, useProgressStore } from "@/stores/progress";
+import {
+  ProgressItem,
+  progressIsCompleted,
+  useProgressStore,
+} from "@/stores/progress";
 
 function progressIsNotStarted(duration: number, watched: number): boolean {
   // too short watch time
@@ -11,17 +15,13 @@ function progressIsNotStarted(duration: number, watched: number): boolean {
   return false;
 }
 
-function progressIsCompleted(duration: number, watched: number): boolean {
-  const timeFromEnd = duration - watched;
-  // too close to the end, is completed
-  if (timeFromEnd < 60 * 2) return true;
-  return false;
-}
-
 function shouldSaveProgress(
-  meta: any,
+  meta: { type: string; tmdbId: string; season?: { tmdbId: string } },
   progress: ProgressItem,
-  existingItems: Record<string, any>,
+  existingItems: Record<string, {
+    episodes: Record<string, { seasonId: string; progress: ProgressItem }>;
+  }>,
+  lastSaved: ProgressItem | null,
 ): boolean {
   const { duration, watched } = progress;
 
@@ -29,6 +29,14 @@ function shouldSaveProgress(
   const isNotStarted = progressIsNotStarted(duration, watched);
   const isCompleted = progressIsCompleted(duration, watched);
   const isAcceptable = !isNotStarted && !isCompleted;
+
+  // Always allow one save when crossing into completed so watch history
+  // (and the algorithm) still get the "finished" signal when people bail
+  // during credits.
+  const wasCompleted = lastSaved
+    ? progressIsCompleted(lastSaved.duration, lastSaved.watched)
+    : false;
+  if (isCompleted && !wasCompleted) return true;
 
   // For movies, only save if acceptable
   if (meta.type === "movie") {
@@ -43,11 +51,11 @@ function shouldSaveProgress(
   if (!showItem || !meta.season) return false;
 
   const seasonEpisodes = Object.values(showItem.episodes).filter(
-    (episode: any) => episode.seasonId === meta.season.tmdbId,
+    (episode) => episode.seasonId === meta.season!.tmdbId,
   );
 
   // Check if any other episode in this season has acceptable progress
-  return seasonEpisodes.some((episode: any) => {
+  return seasonEpisodes.some((episode) => {
     const epProgress = episode.progress;
     return (
       !progressIsNotStarted(epProgress.duration, epProgress.watched) &&
@@ -89,25 +97,33 @@ export function ProgressSaver() {
     if (d.status !== playerStatus.PLAYING) return;
     if (!hasPlayedOnce) return;
 
+    const previousSaved = lastSavedRef.current;
     let isDifferent = false;
-    if (!lastSavedRef.current) isDifferent = true;
+    if (!previousSaved) isDifferent = true;
     else if (
-      lastSavedRef.current?.duration !== progress.duration ||
-      lastSavedRef.current?.watched !== progress.time
+      previousSaved.duration !== progress.duration ||
+      previousSaved.watched !== progress.time
     )
       isDifferent = true;
 
-    lastSavedRef.current = {
+    const nextProgress: ProgressItem = {
       duration: progress.duration,
       watched: progress.time,
     };
+    lastSavedRef.current = nextProgress;
+
     if (
       isDifferent &&
-      shouldSaveProgress(d.meta, lastSavedRef.current, d.progressItems)
+      shouldSaveProgress(
+        d.meta,
+        nextProgress,
+        d.progressItems,
+        previousSaved,
+      )
     )
       d.updateItem({
         meta: d.meta,
-        progress: lastSavedRef.current,
+        progress: nextProgress,
       });
   }, 3000);
 

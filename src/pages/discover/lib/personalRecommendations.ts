@@ -27,6 +27,7 @@ export const MAX_RESULTS = 40;
 const SEED_WEIGHT_LOVED = 4.0;
 const SEED_WEIGHT_LIKED = 3.0;
 const SEED_WEIGHT_HISTORY = 1.5;
+const SEED_WEIGHT_HISTORY_COMPLETED = 1.85;
 const SEED_WEIGHT_PROGRESS = 1.2;
 const SEED_WEIGHT_BOOKMARK = 1.0;
 const SEED_WEIGHT_GENRE_DISCOVER = 1.6;
@@ -43,6 +44,11 @@ const RATING_GENRE_DELTAS: Record<MediaRating, number> = {
   disliked: -1.25,
   hated: -2.25,
 };
+
+/** Per completed full watch; stacks with repeats but stays below Loved. */
+const COMPLETED_WATCH_GENRE_DELTA = 0.35;
+/** Soft cap per genre from watches alone (pre-normalize), below Loved. */
+const COMPLETED_WATCH_GENRE_CAP = 1.5;
 
 // Onboarding preference weights: enough to shape a fresh profile, weak
 // enough that real ratings take over.
@@ -68,6 +74,8 @@ export interface HistorySource {
   tmdbId: string;
   type: "movie" | "show";
   watchedAt: number;
+  completed?: boolean;
+  genreIds?: number[];
 }
 
 export interface ProgressSource {
@@ -229,10 +237,11 @@ function ratingRecencyFactor(ratedAt: number): number {
   return 1 / (1 + ageDays / RATING_HALF_LIFE_DAYS);
 }
 
-/** Builds a genre affinity map from ratings (movies + shows) and onboarding prefs. */
+/** Builds a genre affinity map from ratings, completed watches, and prefs. */
 export function buildTasteProfile(
   ratings: RatingSource[],
   prefs?: TastePreferences,
+  completedWatches: HistorySource[] = [],
 ): TasteProfile {
   const profile: TasteProfile = new Map();
 
@@ -244,6 +253,23 @@ export function buildTasteProfile(
     for (const genreId of genreIds) {
       profile.set(genreId, (profile.get(genreId) ?? 0) + delta);
     }
+  }
+
+  // Full watches only — early quits / mid-progress never land here.
+  const watchAccrual = new Map<number, number>();
+  for (const h of completedWatches) {
+    if (h.completed === false) continue;
+    const genreIds = normalizeGenreIds(h.genreIds);
+    if (genreIds.length === 0) continue;
+    const recency = 0.5 + 0.5 * ratingRecencyFactor(h.watchedAt);
+    const delta = COMPLETED_WATCH_GENRE_DELTA * recency;
+    for (const genreId of genreIds) {
+      const next = (watchAccrual.get(genreId) ?? 0) + delta;
+      watchAccrual.set(genreId, Math.min(COMPLETED_WATCH_GENRE_CAP, next));
+    }
+  }
+  for (const [genreId, delta] of watchAccrual) {
+    profile.set(genreId, (profile.get(genreId) ?? 0) + delta);
   }
 
   // Onboarding genres/moods give a fresh profile some shape.
@@ -269,6 +295,32 @@ export function buildTasteProfile(
   }
 
   return profile;
+}
+
+/**
+ * Infers top favorite genre ids and matching mood ids from completed watches
+ * (and optional ratings), for pre-filling the algorithm wizard chips.
+ */
+export function inferPrefsFromCompletedWatches(
+  completedWatches: HistorySource[],
+  ratings: RatingSource[] = [],
+  maxGenres = 6,
+): { favoriteGenres: number[]; moods: string[] } {
+  const profile = buildTasteProfile(ratings, undefined, completedWatches);
+  const favoriteGenres = topPositiveGenres(profile, maxGenres);
+  const genreSet = new Set(favoriteGenres);
+  const moods = MOODS.filter(
+    (m) => m.genres.filter((g) => genreSet.has(g)).length >= 1,
+  )
+    .sort((a, b) => {
+      const score = (m: (typeof MOODS)[number]) =>
+        m.genres.reduce((acc, g) => acc + (profile.get(g) ?? 0), 0);
+      return score(b) - score(a);
+    })
+    .slice(0, 4)
+    .map((m) => m.id);
+
+  return { favoriteGenres, moods };
 }
 
 function genreAffinity(
@@ -427,7 +479,11 @@ export async function fetchPersonalRecommendations(
       RELATED_PER_LIKED_LIMIT,
     );
   for (const h of historyFiltered)
-    addSeed(h.tmdbId, SEED_WEIGHT_HISTORY, RELATED_PER_ITEM_LIMIT);
+    addSeed(
+      h.tmdbId,
+      h.completed ? SEED_WEIGHT_HISTORY_COMPLETED : SEED_WEIGHT_HISTORY,
+      RELATED_PER_ITEM_LIMIT,
+    );
   for (const p of progressFiltered)
     addSeed(p.tmdbId, SEED_WEIGHT_PROGRESS, RELATED_PER_ITEM_LIMIT);
   for (const b of bookmarksFiltered.slice(0, MAX_BOOKMARK_FOR_RELATED))
@@ -436,8 +492,15 @@ export async function fetchPersonalRecommendations(
   // Movies and shows are different enough as mediums that a rating in one
   // shouldn't shape recommendations in the other (loving a horror movie
   // says little about wanting horror shows, and vice versa) — build the
-  // profile from same-medium ratings only.
-  const profile = buildTasteProfile(ratingsFiltered, prefs);
+  // profile from same-medium ratings and completed watches only.
+  const completedForProfile = historyFiltered.filter(
+    (h) => h.completed !== false,
+  );
+  const profile = buildTasteProfile(
+    ratingsFiltered,
+    prefs,
+    completedForProfile,
+  );
 
   // Never recommend anything already rated.
   const ratedIds = new Set(ratingsFiltered.map((r) => r.tmdbId));
