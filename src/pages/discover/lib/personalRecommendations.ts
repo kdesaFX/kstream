@@ -16,8 +16,6 @@ import type { MediaRating } from "@/stores/ratings";
 export const MAX_LIKED_FOR_RELATED = 6;
 export const MAX_HISTORY_FOR_RELATED = 5;
 export const MAX_CURRENT_FOR_RELATED = 2;
-export const MAX_BOOKMARK_FOR_RELATED = 1;
-export const MAX_BOOKMARK_REMINDERS = 2;
 export const RELATED_PER_ITEM_LIMIT = 10;
 export const RELATED_PER_LIKED_LIMIT = 14;
 export const MAX_RESULTS = 40;
@@ -29,7 +27,6 @@ const SEED_WEIGHT_LIKED = 3.0;
 const SEED_WEIGHT_HISTORY = 1.5;
 const SEED_WEIGHT_HISTORY_COMPLETED = 1.85;
 const SEED_WEIGHT_PROGRESS = 1.2;
-const SEED_WEIGHT_BOOKMARK = 1.0;
 const SEED_WEIGHT_GENRE_DISCOVER = 1.6;
 const GENRE_DISCOVER_LIMIT = 14;
 // Max results in the feed attributable to one seed.
@@ -81,14 +78,6 @@ export interface HistorySource {
 export interface ProgressSource {
   tmdbId: string;
   type: "movie" | "show";
-}
-
-export interface BookmarkSource {
-  tmdbId: string;
-  type: "movie" | "show";
-  title: string;
-  year?: number;
-  poster?: string;
 }
 
 export interface RatingSource {
@@ -377,21 +366,6 @@ function toDiscoverMedia(
   };
 }
 
-function bookmarkToDiscoverMedia(b: BookmarkSource): DiscoverMedia {
-  return {
-    id: Number(b.tmdbId),
-    title: b.title,
-    poster_path: b.poster ?? "",
-    backdrop_path: "",
-    overview: "",
-    vote_average: 0,
-    vote_count: 0,
-    type: b.type,
-    release_date: b.year ? `${b.year}-01-01` : undefined,
-    first_air_date: b.year ? `${b.year}-01-01` : undefined,
-  };
-}
-
 interface Seed {
   tmdbId: string;
   weight: number;
@@ -427,14 +401,16 @@ function genresForType(genreIds: number[], isTVShow: boolean): number[] {
 
 /**
  * Fetches personal recommendations: builds a cross-type taste profile,
- * seeds candidates from ratings/history/bookmarks/genres/franchises,
+ * seeds candidates from ratings/history/genres/franchises,
  * scores them, and returns the top results with a per-seed diversity cap.
+ *
+ * Bookmarks are intentionally ignored — saving a title only affects the
+ * Saved Titles list, never this feed.
  */
 export async function fetchPersonalRecommendations(
   isTVShow: boolean,
   history: HistorySource[],
   progress: ProgressSource[],
-  bookmarks: BookmarkSource[],
   excludeIds: Set<string>,
   ratings: RatingSource[] = [],
   prefs: TastePreferences = {},
@@ -461,8 +437,6 @@ export async function fetchPersonalRecommendations(
     .filter((p) => p.type === wantedType)
     .slice(0, MAX_CURRENT_FOR_RELATED);
 
-  const bookmarksFiltered = bookmarks.filter((b) => b.type === wantedType);
-
   // Each media item seeds once, at its highest weight.
   const seeds: Seed[] = [];
   const seenSources = new Set<string>();
@@ -486,11 +460,6 @@ export async function fetchPersonalRecommendations(
     );
   for (const p of progressFiltered)
     addSeed(p.tmdbId, SEED_WEIGHT_PROGRESS, RELATED_PER_ITEM_LIMIT);
-  // Bookmarks may seed related picks at fetch time, but the recommendations
-  // hook never refetches when bookmarks change — so saving cannot reshape
-  // an already-visible For You feed.
-  for (const b of bookmarksFiltered.slice(0, MAX_BOOKMARK_FOR_RELATED))
-    addSeed(b.tmdbId, SEED_WEIGHT_BOOKMARK, RELATED_PER_ITEM_LIMIT);
 
   // Movies and shows are different enough as mediums that a rating in one
   // shouldn't shape recommendations in the other (loving a horror movie
@@ -612,22 +581,8 @@ export async function fetchPersonalRecommendations(
     }
   }
 
-  const merged = picked
+  return picked
     .concat(overflow)
     .slice(0, MAX_RESULTS)
     .map((s) => ({ ...toDiscoverMedia(s.item, isTVShow), matchScore: s.score }));
-  const mergedIds = new Set(merged.map((m) => m.id));
-
-  // Reminders only appear on a fresh fetch — never mid-session after a save.
-  const reminders: DiscoverMedia[] = [];
-  for (const b of bookmarksFiltered) {
-    const idNum = Number(b.tmdbId);
-    if (excludeIds.has(b.tmdbId) || ratedIds.has(b.tmdbId)) continue;
-    if (mergedIds.has(idNum)) continue;
-    if (reminders.length >= MAX_BOOKMARK_REMINDERS) break;
-    mergedIds.add(idNum);
-    reminders.push(bookmarkToDiscoverMedia(b));
-  }
-
-  return [...reminders, ...merged];
 }
