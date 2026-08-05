@@ -226,13 +226,26 @@ export function MediaCarousel({
     });
 
   // Drop titles already claimed by an earlier row; under a genre chip,
-  // backfill unique discover titles so the row stays full without doubles.
+  // backfill unique discover titles so the row stays full without doubles
+  // — except time-sensitive rows (In Cinemas, etc.) which must stay honest.
+  const timeSensitive = new Set([
+    "nowPlaying",
+    "onTheAir",
+    "latest",
+    "latesttv",
+    "latest4k",
+    "popularThisWeek",
+  ]);
+  const allowDiscoverBackfill =
+    !timeSensitive.has(content.type) && !timeSensitive.has(actualContentType);
+
   const media = useDedupedCarouselMedia(dedupePriority, rawMedia, {
     genreId,
     mediaType,
     enabled,
     isLoading,
     resetKey: `${contentType}:${selectedProviderId}:${selectedRecommendationId}`,
+    allowDiscoverBackfill,
   });
 
   // Hide section if there's an error or no content (after loading is complete)

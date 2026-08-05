@@ -591,15 +591,8 @@ export function useDiscoverMedia({
 
         case "onTheAir":
           if (mediaType === "tv") {
-            // On-the-air is a short list; under a genre chip prefer discover
-            // so the row can actually fill.
-            data = genreId
-              ? await fetchTMDBMedia(`/discover/tv`, {
-                  sort_by: "popularity.desc",
-                  "vote_count.gte": 20,
-                  include_adult: false,
-                })
-              : await fetchTMDBMedia("/tv/on_the_air");
+            // Real currently-airing shows only — never pad with generic discover.
+            data = await fetchTMDBMedia("/tv/on_the_air");
             setSectionTitle(t("discover.carousel.title.onTheAir"));
           } else {
             throw new Error("onTheAir is only available for TV shows");
@@ -608,15 +601,18 @@ export function useDiscoverMedia({
 
         case "nowPlaying":
           if (mediaType === "movie") {
-            // Now-playing + genre is tiny. Discover theatrical by release date
-            // (not popularity) so it doesn't clone "Most Popular" under a genre.
-            data = genreId
-              ? await fetchTMDBMedia(`/discover/movie`, {
-                  with_release_type: "2|3",
-                  sort_by: "primary_release_date.desc",
-                  include_adult: false,
-                })
-              : await fetchTMDBMedia("/movie/now_playing");
+            // TMDB's curated "in theatres" list (region-aware). Do not swap to
+            // unbounded discover — that surfaces unreleased Avatar 5 / etc.
+            data = await fetchTMDBMedia("/movie/now_playing");
+            const today = new Date().toISOString().slice(0, 10);
+            data = {
+              ...data,
+              results: data.results.filter((item: DiscoverMedia) => {
+                if (!item.poster_path) return false;
+                const released = item.release_date || "";
+                return released.length >= 10 && released <= today;
+              }),
+            };
             setSectionTitle(t("discover.carousel.title.inCinemas"));
           } else {
             throw new Error("nowPlaying is only available for movies");
@@ -729,15 +725,27 @@ export function useDiscoverMedia({
       return data;
     };
 
-    const ensureFullGenreCarousel = async (data: {
-      results: DiscoverMedia[];
-      hasMore: boolean;
-    }) => {
-      // Under a genre chip, sparse list endpoints (now playing, trending,
-      // recommendations) can still undershoot — top up from discover.
+    const ensureFullGenreCarousel = async (
+      data: {
+        results: DiscoverMedia[];
+        hasMore: boolean;
+      },
+      fetchedType: DiscoverContentType,
+    ) => {
+      // Never pad time-sensitive rows with generic discover — that dumped
+      // unreleased titles into "In Cinemas". Those rows stay honest/short.
+      const noDiscoverPad = new Set<DiscoverContentType>([
+        "nowPlaying",
+        "onTheAir",
+        "latest",
+        "latesttv",
+        "latest4k",
+        "popularThisWeek",
+      ]);
       if (
         !isCarouselView ||
         !genreId ||
+        noDiscoverPad.has(fetchedType) ||
         data.results.length >= CAROUSEL_POOL_SIZE
       ) {
         return data;
@@ -764,6 +772,7 @@ export function useDiscoverMedia({
     try {
       const data = await ensureFullGenreCarousel(
         await attemptFetch(contentType),
+        contentType,
       );
       setMedia((prevMedia) => {
         const valid = data.results.filter(
@@ -784,6 +793,7 @@ export function useDiscoverMedia({
         try {
           const fallbackData = await ensureFullGenreCarousel(
             await attemptFetch(fallbackType),
+            fallbackType,
           );
           setActualContentType(fallbackType); // Set actual content type to fallback
           setMedia((prevMedia) => {

@@ -26,6 +26,11 @@ export function useDedupedCarouselMedia(
     isLoading?: boolean;
     /** Bump when the carousel's primary query identity changes. */
     resetKey?: string;
+    /**
+     * When false, never top up from generic discover (In Cinemas / On Air /
+     * trending must stay honest even if the row is shorter).
+     */
+    allowDiscoverBackfill?: boolean;
   },
 ): DiscoverMedia[] {
   const {
@@ -34,6 +39,7 @@ export function useDedupedCarouselMedia(
     enabled = true,
     isLoading = false,
     resetKey = "",
+    allowDiscoverBackfill = true,
   } = options;
 
   const [backfill, setBackfill] = useState<DiscoverMedia[]>([]);
@@ -57,6 +63,7 @@ export function useDedupedCarouselMedia(
 
   useEffect(() => {
     if (!enabled || isLoading || !genreId || priority === undefined) return;
+    if (!allowDiscoverBackfill) return;
     if (media.length >= CAROUSEL_DISPLAY_TARGET) return;
     // A couple of rounds in case concurrent rows claim the same fill batch.
     if (attemptsRef.current >= 2) return;
@@ -130,6 +137,7 @@ export function useDedupedCarouselMedia(
     mediaType,
     priority,
     resetKey,
+    allowDiscoverBackfill,
     media.length,
     formattedLanguage,
   ]);
