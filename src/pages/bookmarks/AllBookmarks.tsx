@@ -288,7 +288,7 @@ export function AllBookmarks({ onShowDetails }: AllBookmarksProps) {
       <WideContainer>
         <div className="flex items-center justify-between gap-8">
           <Heading1 className="text-2xl font-bold text-white">
-            {t("home.bookmarks.sectionTitle")}
+            {t("navigation.menu.savedTitles")}
           </Heading1>
           <div className="flex items-center gap-2">
             <Popover className="relative">

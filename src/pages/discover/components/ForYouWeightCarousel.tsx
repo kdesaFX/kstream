@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { getMediaByGenres } from "@/backend/metadata/tmdb";
 import { TMDBContentTypes } from "@/backend/metadata/types/tmdb";
@@ -59,21 +59,15 @@ function toCardMedia(item: DiscoverMedia): MediaItem {
   };
 }
 
-function shuffle<T>(items: T[]): T[] {
-  const arr = [...items];
-  for (let i = arr.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j]!, arr[i]!];
-  }
-  return arr;
-}
-
 /**
  * A "For You" row filtered by content weight (light/medium/heavy, a
  * genre-based intensity heuristic — see classifyContentWeight). 70%
- * personalized picks matching that weight, 30% random-popular within the
- * same weight's genre set for variety. Falls back to 100% random-popular
+ * personalized picks matching that weight, 30% popular within the
+ * same weight's genre set for variety. Falls back to 100% popular
  * when there's no taste profile at all to draw personalized picks from.
+ *
+ * Order is score/vote stable — no random shuffle — so saving a title
+ * only removes that card instead of reshuffling the whole row.
  */
 export function ForYouWeightCarousel({
   weight,
@@ -91,39 +85,44 @@ export function ForYouWeightCarousel({
   const { media: personalizedShows, hasRecommendations: hasShowRecs } =
     usePersonalRecommendations({ isTVShow: true, enabled });
 
-  const [media, setMedia] = useState<DiscoverMedia[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [fallbackPicks, setFallbackPicks] = useState<DiscoverMedia[]>([]);
+  const [fallbackLoading, setFallbackLoading] = useState(true);
 
   const hasProfile = hasMovieRecs || hasShowRecs;
   const genreIds = WEIGHT_GENRES[weight];
   const categorySlug = `for-you-weight-${weight}`;
+
+  const personalizedPicks = useMemo(() => {
+    const pool = [...personalizedMovies, ...personalizedShows]
+      .filter((m) => classifyContentWeight(m.genre_ids) === weight)
+      .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
+    const target = hasProfile ? Math.round(ROW_SIZE * PERSONALIZED_SHARE) : 0;
+    return pool.slice(0, target);
+  }, [personalizedMovies, personalizedShows, weight, hasProfile]);
+
+  const need = Math.max(0, ROW_SIZE - personalizedPicks.length);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       if (!enabled) {
-        setMedia([]);
-        setIsLoading(false);
+        setFallbackPicks([]);
+        setFallbackLoading(false);
         return;
       }
 
-      setIsLoading(true);
+      // Keep existing fallbacks on screen while topping up — bookmarking
+      // must not flash skeletons across the For You weight rows.
+      if (fallbackPicks.length === 0) setFallbackLoading(true);
 
-      const personalizedPool = shuffle(
-        [...personalizedMovies, ...personalizedShows].filter(
-          (m) => classifyContentWeight(m.genre_ids) === weight,
-        ),
-      );
-      // No profile at all: skip personalization entirely rather than
-      // padding the row with an empty-pool slice.
-      const personalizedTarget = hasProfile
-        ? Math.round(ROW_SIZE * PERSONALIZED_SHARE)
-        : 0;
-      const personalizedPicks = personalizedPool.slice(0, personalizedTarget);
-
-      const usedIds = new Set(personalizedPicks.map((m) => m.id));
-      const need = ROW_SIZE - personalizedPicks.length;
+      if (need === 0) {
+        if (!cancelled) {
+          setFallbackPicks([]);
+          setFallbackLoading(false);
+        }
+        return;
+      }
 
       const [movieFallback, showFallback] = await Promise.all([
         getMediaByGenres(genreIds, TMDBContentTypes.MOVIE, need).catch(
@@ -158,28 +157,33 @@ export function ForYouWeightCarousel({
             vote_average: s.vote_average,
             vote_count: s.vote_count,
             type: "show",
-            first_air_date: (s as { first_air_date?: string })
-              .first_air_date,
+            first_air_date: (s as { first_air_date?: string }).first_air_date,
             genre_ids: s.genre_ids,
           }),
         ),
-      ];
-
-      const fallbackPicks = shuffle(fallbackMedia)
-        .filter((m) => !usedIds.has(m.id))
-        .slice(0, need);
+      ].sort((a, b) => (b.vote_average ?? 0) - (a.vote_average ?? 0));
 
       if (!cancelled) {
-        setMedia(shuffle([...personalizedPicks, ...fallbackPicks]));
-        setIsLoading(false);
+        setFallbackPicks(fallbackMedia);
+        setFallbackLoading(false);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, personalizedMovies, personalizedShows, hasProfile, weight]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fallbackPicks.length only gates quiet load
+  }, [enabled, need, genreIds, weight]);
+
+  const media = useMemo(() => {
+    const usedIds = new Set(personalizedPicks.map((m) => m.id));
+    const extras = fallbackPicks
+      .filter((m) => !usedIds.has(m.id))
+      .slice(0, need);
+    return [...personalizedPicks, ...extras];
+  }, [personalizedPicks, fallbackPicks, need]);
+
+  const isLoading = fallbackLoading && media.length === 0;
 
   const handleWheel = React.useCallback(
     (e: React.WheelEvent) => {

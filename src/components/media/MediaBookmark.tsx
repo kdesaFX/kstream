@@ -18,7 +18,6 @@ export function MediaBookmarkButton({ media, group }: MediaBookmarkProps) {
     (s) => s.addBookmarkWithGroups,
   );
   const removeBookmark = useBookmarkStore((s) => s.removeBookmark);
-  const bookmarks = useBookmarkStore((s) => s.bookmarks);
   const meta: PlayerMeta | undefined = useMemo(() => {
     return media.year !== undefined
       ? {
@@ -30,7 +29,11 @@ export function MediaBookmarkButton({ media, group }: MediaBookmarkProps) {
         }
       : undefined;
   }, [media]);
-  const isBookmarked = !!bookmarks[meta?.tmdbId ?? ""];
+  // Subscribe to this card only — a full `bookmarks` subscription re-rendered
+  // every poster in every carousel on each save.
+  const isBookmarked = useBookmarkStore(
+    (s) => !!s.bookmarks[meta?.tmdbId ?? ""],
+  );
 
   const toggleBookmark = useCallback(() => {
     if (!meta) return;

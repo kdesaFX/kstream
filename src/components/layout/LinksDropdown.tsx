@@ -299,6 +299,9 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
           <DropdownLink href="/watch-history" icon={Icons.CLOCK}>
             {t("home.watchHistory.sectionTitle")}
           </DropdownLink>
+          <DropdownLink href="/bookmarks" icon={Icons.BOOKMARK}>
+            {t("navigation.menu.savedTitles")}
+          </DropdownLink>
           <DropdownLink href="/algorithm" icon={Icons.WAND}>
             {t("navigation.menu.algorithm")}
           </DropdownLink>
@@ -309,9 +312,6 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
           ) : null}
           <DropdownLink href="/about" icon={Icons.CIRCLE_QUESTION}>
             {t("navigation.menu.about")}
-          </DropdownLink>
-          <DropdownLink href="https://vidcodin.net" icon={Icons.LINK}>
-            {t("navigation.menu.freeEmbed")}
           </DropdownLink>
           {backendSupportsWatchParty && <WatchPartyInputLink />}
           {deviceName ? (

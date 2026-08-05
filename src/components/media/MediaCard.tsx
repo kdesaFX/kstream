@@ -28,6 +28,7 @@ import { MediaBookmarkButton } from "./MediaBookmark";
 import { IconPatch } from "../buttons/IconPatch";
 import { Icon, Icons } from "../Icon";
 
+const EMPTY_GROUPS: string[] = [];
 // Simple Intersection Observer Hook
 function useIntersectionObserver(options: IntersectionObserverInit = {}) {
   const [isIntersecting, setIsIntersecting] = useState(false);
@@ -397,24 +398,31 @@ export function MediaCard(props: MediaCardProps) {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
 
-  const bookmarks = useBookmarkStore((s) => s.bookmarks);
   const modifyBookmarks = useBookmarkStore((s) => s.modifyBookmarks);
   const addBookmarkWithGroups = useBookmarkStore(
     (s) => s.addBookmarkWithGroups,
   );
 
-  const isBookmarked = !!bookmarks[media.id];
-  const currentGroups = bookmarks[media.id]?.group || [];
+  const isBookmarked = useBookmarkStore((s) => !!s.bookmarks[media.id]);
+  const currentGroups = useBookmarkStore(
+    (s) => s.bookmarks[media.id]?.group ?? EMPTY_GROUPS,
+  );
 
+  // Only pull the full bookmark map while the folder menu is open so saving
+  // a title elsewhere doesn't re-render every card on the page.
+  const bookmarksForMenu = useBookmarkStore((s) =>
+    contextMenuPos ? s.bookmarks : null,
+  );
   const allGroups = useMemo(() => {
+    if (!bookmarksForMenu) return EMPTY_GROUPS;
     const groupSet = new Set<string>();
-    Object.values(bookmarks).forEach((bookmark) => {
+    Object.values(bookmarksForMenu).forEach((bookmark) => {
       if (bookmark.group) {
         bookmark.group.forEach((group) => groupSet.add(group));
       }
     });
     return Array.from(groupSet);
-  }, [bookmarks]);
+  }, [bookmarksForMenu]);
 
   const meta: PlayerMeta | undefined = useMemo(() => {
     return media.year !== undefined

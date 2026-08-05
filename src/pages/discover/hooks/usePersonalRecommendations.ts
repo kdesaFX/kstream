@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { DiscoverMedia } from "@/pages/discover/types/discover";
@@ -142,12 +142,14 @@ function getHistorySources(
 
 // Compact fingerprint of everything the algorithm reacts to, so the cache
 // invalidates itself the moment a rating, watch, or preference changes.
+// Bookmarks are intentionally omitted — saving a title must not wipe and
+// refetch every For You carousel (that was collapsing rows to a handful
+// of posters). Bookmarked IDs are filtered client-side instead.
 function buildSignature(
   ratingItems: Record<string, RatedMediaItem>,
   preferences: AlgorithmPreferences,
   watchHistoryItems: Record<string, unknown>,
   progressItems: Record<string, unknown>,
-  bookmarks: Record<string, unknown>,
 ): string {
   const ratingsKey = Object.entries(ratingItems)
     .map(([id, r]) => `${id}:${r.rating}`)
@@ -155,14 +157,9 @@ function buildSignature(
     .join(",");
   const historyKey = Object.keys(watchHistoryItems).sort().join(",");
   const progressKey = Object.keys(progressItems).sort().join(",");
-  const bookmarksKey = Object.keys(bookmarks).sort().join(",");
-  return [
-    ratingsKey,
-    historyKey,
-    progressKey,
-    bookmarksKey,
-    JSON.stringify(preferences),
-  ].join("|");
+  return [ratingsKey, historyKey, progressKey, JSON.stringify(preferences)].join(
+    "|",
+  );
 }
 
 export function usePersonalRecommendations({
@@ -174,10 +171,15 @@ export function usePersonalRecommendations({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSettled, setHasSettled] = useState(false);
+  const mediaLengthRef = useRef(0);
+  mediaLengthRef.current = media.length;
 
   const watchHistoryItems = useWatchHistoryStore((s) => s.items);
-  const progressItems = useProgressStore.getState().items;
-  const bookmarks = useBookmarkStore((s) => s.bookmarks);
+  const progressItems = useProgressStore((s) => s.items);
+  // Only the id set — used to hide already-saved titles without refetching.
+  const bookmarkIdKey = useBookmarkStore((s) =>
+    Object.keys(s.bookmarks).sort().join(","),
+  );
   const ratingItems = useRatingsStore((s) => s.ratings);
   const preferences = useRatingsStore((s) => s.preferences);
 
@@ -188,12 +190,14 @@ export function usePersonalRecommendations({
       else exclude.add(key);
     }
     for (const id of Object.keys(progressItems)) exclude.add(id);
-    for (const id of Object.keys(bookmarks)) exclude.add(id);
+    for (const id of Object.keys(useBookmarkStore.getState().bookmarks))
+      exclude.add(id);
     return exclude;
-  }, [watchHistoryItems, progressItems, bookmarks]);
+  }, [watchHistoryItems, progressItems]);
 
   const fetch = useCallback(async (options?: { background?: boolean }) => {
     const background = options?.background ?? false;
+    const bookmarks = useBookmarkStore.getState().bookmarks;
 
     const history: HistorySource[] = getHistorySources(watchHistoryItems);
     const progress: ProgressSource[] = Object.entries(progressItems).map(
@@ -243,7 +247,6 @@ export function usePersonalRecommendations({
       preferences,
       watchHistoryItems,
       progressItems,
-      bookmarks,
     );
 
     if (!background) {
@@ -259,7 +262,10 @@ export function usePersonalRecommendations({
       }
     }
 
-    if (!background) setIsLoading(true);
+    // Never flash skeletons when we already have rows on screen (e.g. user
+    // just saved a title) — refresh quietly in the background instead.
+    const quiet = background || mediaLengthRef.current > 0;
+    if (!quiet) setIsLoading(true);
     setError(null);
 
     try {
@@ -293,21 +299,20 @@ export function usePersonalRecommendations({
       setMedia(results);
       writeRecommendationsCache(cacheKey, signature, results);
     } catch (err) {
-      if (!background) {
+      if (!quiet) {
         setError((err as Error).message);
         setMedia([]);
       }
     } finally {
-      if (!background) {
+      if (!quiet) {
         setIsLoading(false);
-        setHasSettled(true);
       }
+      setHasSettled(true);
     }
   }, [
     isTVShow,
     watchHistoryItems,
     progressItems,
-    bookmarks,
     ratingItems,
     preferences,
     buildExcludeSet,
@@ -323,9 +328,9 @@ export function usePersonalRecommendations({
   const progressCount = Object.values(progressItems).filter(
     (p) => p.type === (isTVShow ? "show" : "movie"),
   ).length;
-  const bookmarkCount = Object.values(bookmarks).filter(
-    (b) => b.type === (isTVShow ? "show" : "movie"),
-  ).length;
+  const bookmarkCount = bookmarkIdKey
+    ? bookmarkIdKey.split(",").filter(Boolean).length
+    : 0;
   const likedCount = Object.values(ratingItems).filter(
     (r) => r.rating === "liked" || r.rating === "loved",
   ).length;
@@ -334,8 +339,15 @@ export function usePersonalRecommendations({
 
   const sectionTitle = t("discover.carousel.title.forYou");
 
+  // Hide titles the user already saved without refetching the whole feed.
+  const visibleMedia = useMemo(() => {
+    if (!bookmarkIdKey) return media;
+    const bookmarked = new Set(bookmarkIdKey.split(",").filter(Boolean));
+    return media.filter((m) => !bookmarked.has(String(m.id)));
+  }, [media, bookmarkIdKey]);
+
   return {
-    media,
+    media: visibleMedia,
     isLoading,
     error,
     refetch: fetch,

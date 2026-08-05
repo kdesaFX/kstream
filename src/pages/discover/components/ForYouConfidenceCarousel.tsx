@@ -45,15 +45,6 @@ function toCardMedia(item: DiscoverMedia): MediaItem {
   };
 }
 
-function shuffle<T>(items: T[]): T[] {
-  const arr = [...items];
-  for (let i = arr.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j]!, arr[i]!];
-  }
-  return arr;
-}
-
 /**
  * A "For You" row bucketed by how strongly a personalized pick actually
  * matches your taste (fetchPersonalRecommendations' scoring), rather than
@@ -95,7 +86,9 @@ export function ForYouConfidenceCarousel({
           ? ranked.slice(third, third * 2)
           : ranked.slice(third * 2);
 
-    return shuffle(bucket).slice(0, ROW_SIZE);
+    // Keep score order stable — random reshuffles on every bookmark made
+    // rows look like they "broke" and emptied out.
+    return bucket.slice(0, ROW_SIZE);
   }, [personalizedMovies, personalizedShows, tier]);
 
   const handleWheel = React.useCallback(
