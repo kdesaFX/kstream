@@ -868,7 +868,7 @@ export function FeaturedCarousel({
                 {mediaTitle}
               </h1>
             )}
-            {/* Rating (IMDb when available, else TMDB) and year/seasons */}
+            {/* Rating (IMDb) and year/seasons */}
             <div className="flex items-center gap-2 text-sm text-white/80 mb-4">
               {/* Quality Indicator */}
               {getQualityIndicator() && (
@@ -893,25 +893,11 @@ export function FeaturedCarousel({
                     </div>
                   );
                 }
-                if (currentMedia?.vote_average) {
-                  return (
-                    <div className="flex items-center gap-1">
-                      <Icon icon={Icons.TMDB} />
-                      <span>{currentMedia.vote_average.toFixed(1)}</span>
-                      {currentMedia.vote_count ? (
-                        <span className="text-white/60">
-                          ({currentMedia.vote_count.toLocaleString()})
-                        </span>
-                      ) : null}
-                    </div>
-                  );
-                }
                 return null;
               })()}
               {currentMedia?.release_date && (
                 <>
                   {(getQualityIndicator() ||
-                    currentMedia?.vote_average ||
                     (currentMedia?.external_ids?.imdb_id &&
                       imdbRatings[currentMedia.external_ids.imdb_id])) && (
                     <span className="text-white/60">•</span>

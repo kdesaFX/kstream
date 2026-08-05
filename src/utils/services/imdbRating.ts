@@ -4,12 +4,12 @@ import { scrapeIMDb } from "@/utils/services/imdbScraper";
 export interface ImdbRatingResult {
   rating: number;
   votes: number;
-  source: "imdb" | "omdb";
+  source: "imdb" | "omdb" | "dataset";
 }
 
 /**
- * Resolve an IMDb score without requiring the page to stay blank.
- * Order: OMDb (CORS-friendly API key) → page scrape (extension/proxy).
+ * Resolve an IMDb score in the browser.
+ * Order: OMDb (optional key) → Agregarr IMDb dataset → page scrape (extension/proxy).
  */
 export async function fetchImdbRating(
   imdbId: string,
@@ -17,6 +17,9 @@ export async function fetchImdbRating(
 ): Promise<ImdbRatingResult | null> {
   const omdb = await fetchViaOmdb(imdbId);
   if (omdb) return omdb;
+
+  const dataset = await fetchViaImdbDataset(imdbId);
+  if (dataset) return dataset;
 
   try {
     const scraped = await scrapeIMDb(
@@ -37,7 +40,7 @@ export async function fetchImdbRating(
       };
     }
   } catch {
-    // No proxy/extension — caller may fall back to TMDB display
+    // No proxy/extension — score unavailable
   }
 
   return null;
@@ -67,6 +70,34 @@ async function fetchViaOmdb(imdbId: string): Promise<ImdbRatingResult | null> {
       rating,
       votes: Number.isFinite(votes) ? votes : 0,
       source: "omdb",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Official IMDb non-commercial ratings dump, proxied by Agregarr (no API key).
+ * https://github.com/agregarr/imdb-ratings-api
+ */
+async function fetchViaImdbDataset(
+  imdbId: string,
+): Promise<ImdbRatingResult | null> {
+  try {
+    const url = `https://api.agregarr.org/api/ratings?id=${encodeURIComponent(imdbId)}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = (await res.json()) as Array<{
+      imdbId?: string;
+      rating?: number | null;
+      votes?: number | null;
+    }>;
+    const row = Array.isArray(data) ? data[0] : null;
+    if (!row || typeof row.rating !== "number" || row.rating <= 0) return null;
+    return {
+      rating: row.rating,
+      votes: typeof row.votes === "number" ? row.votes : 0,
+      source: "dataset",
     };
   } catch {
     return null;

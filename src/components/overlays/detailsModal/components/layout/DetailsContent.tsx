@@ -178,10 +178,16 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
         const userLanguage = useLanguageStore.getState().language;
         const formattedLanguage = getTmdbLanguageCode(userLanguage);
 
-        // Prefer OMDb / scrape for IMDb score; keep scrape for trailer too.
+        // Prefer dataset/OMDb for IMDb score; scrape is for trailer (needs proxy).
         let rating: number | null | undefined;
         let votes: number | null | undefined;
         let trailerUrl: string | undefined;
+
+        const omdbOrDataset = await fetchImdbRating(data.imdbId, data.type);
+        if (omdbOrDataset) {
+          rating = omdbOrDataset.rating;
+          votes = omdbOrDataset.votes;
+        }
 
         try {
           const imdbMetadata = await scrapeIMDb(
@@ -191,19 +197,13 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
             formattedLanguage,
             data.type,
           );
-          rating = imdbMetadata.imdb_rating;
-          votes = imdbMetadata.votes;
+          if (typeof rating !== "number" && typeof imdbMetadata.imdb_rating === "number") {
+            rating = imdbMetadata.imdb_rating;
+            votes = imdbMetadata.votes;
+          }
           trailerUrl = imdbMetadata.trailer_url;
         } catch {
-          // Extension/proxy missing — try OMDb for the score only
-        }
-
-        if (typeof rating !== "number") {
-          const omdb = await fetchImdbRating(data.imdbId, data.type);
-          if (omdb) {
-            rating = omdb.rating;
-            votes = omdb.votes;
-          }
+          // Extension/proxy missing — score may already come from dataset/OMDb
         }
 
         if (typeof rating === "number" || trailerUrl) {

@@ -2,9 +2,8 @@
 import { isExtensionActive } from "@/backend/extension/messaging";
 import { proxiedFetch } from "@/backend/helpers/fetch";
 import { makeExtensionFetcher } from "@/backend/providers/fetchers";
-import { useAuthStore } from "@/stores/auth";
 import { useLanguageStore } from "@/stores/language";
-
+import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 
 // IMDb language code mapping (differs from TMDB format)
@@ -108,7 +107,8 @@ export async function scrapeIMDb(
 ): Promise<IMDbMetadata> {
   // Check if we have a proxy or extension
   const hasExtension = await isExtensionActive();
-  const hasProxy = Boolean(useAuthStore.getState().proxySet);
+  // User-set proxies OR built-in VITE_CORS_PROXY_URL from config
+  const hasProxy = getProxyUrls().length > 0;
 
   if (!hasExtension && !hasProxy) {
     // Custom API for trailers:

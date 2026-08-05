@@ -19,8 +19,8 @@ export function DetailsBody({
   onPlayClick,
   onShareClick,
   showProgress,
-  voteAverage,
-  voteCount,
+  voteAverage: _voteAverage,
+  voteCount: _voteCount,
   releaseDate,
   seasons,
   imdbData,
@@ -149,7 +149,7 @@ export function DetailsBody({
           </>
         )}
 
-        {/* Ratings — IMDb preferred, TMDB as fallback so a score always shows */}
+        {/* Ratings — IMDb only */}
         <div className="flex items-center gap-2">
           {imdbData?.rating ? (
             <div className="flex items-center gap-1">
@@ -158,16 +158,6 @@ export function DetailsBody({
               {imdbData.votes && (
                 <span className="text-white/60">
                   ({imdbData.votes.toLocaleString()})
-                </span>
-              )}
-            </div>
-          ) : voteAverage ? (
-            <div className="flex items-center gap-1">
-              <Icon icon={Icons.TMDB} />
-              <span>{voteAverage.toFixed(1)}</span>
-              {voteCount && (
-                <span className="text-white/60">
-                  ({voteCount.toLocaleString()})
                 </span>
               )}
             </div>
