@@ -152,6 +152,10 @@ function filterResultsByGenre(
   });
 }
 
+/** Enough items for a full carousel after genre filter + cross-row dedupe. */
+const CAROUSEL_POOL_SIZE = 60;
+const CAROUSEL_MAX_PAGES = 5;
+
 export function useDiscoverOptions(mediaType: MediaType) {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -249,13 +253,6 @@ export function useDiscoverMedia({
   const fetchTMDBMedia = useCallback(
     async (endpoint: string, params: Record<string, any> = {}) => {
       try {
-        // For carousel views, we only need one page of results
-        if (isCarouselView) {
-          params.page = "1"; // Always use first page for carousels
-        } else {
-          params.page = page.toString(); // Use the requested page for "view more" pages
-        }
-
         // Discover endpoints accept with_genres; list endpoints get filtered after.
         const isDiscover = endpoint.includes("/discover/");
         if (genreId && isDiscover && !params.with_genres) {
@@ -263,35 +260,80 @@ export function useDiscoverMedia({
         }
 
         const region = detectUserRegion();
+        const mapResults = (items: any[]) =>
+          items.map((item: any) => ({
+            ...item,
+            type: mediaType === "movie" ? "movie" : "show",
+          }));
 
-        const data = await fetchTmdbCached(endpoint, {
-          language: formattedLanguage,
-          region,
-          ...params,
-        });
+        // Non-carousel: single requested page (view-more / detail grids).
+        if (!isCarouselView) {
+          const data = await fetchTmdbCached(endpoint, {
+            language: formattedLanguage,
+            region,
+            ...params,
+            page: page.toString(),
+          });
 
-        // For carousel views, we might want to limit the number of results
-        let results = isCarouselView
-          ? data.results.slice(0, 20)
-          : data.results;
+          let results = data.results ?? [];
+          if (genreId && !isDiscover) {
+            const genreNum = Number(genreId);
+            results = results.filter(
+              (item: any) =>
+                Array.isArray(item.genre_ids) &&
+                item.genre_ids.includes(genreNum),
+            );
+          }
 
-        // Client-side genre filter for non-discover list endpoints that
-        // still return genre_ids (trending, now_playing, on_the_air, etc.).
-        if (genreId && !isDiscover) {
-          const genreNum = Number(genreId);
-          results = results.filter(
-            (item: any) =>
-              Array.isArray(item.genre_ids) &&
-              item.genre_ids.includes(genreNum),
-          );
+          return {
+            results: mapResults(results),
+            hasMore: page < data.total_pages,
+          };
+        }
+
+        // Carousel: keep paging until we have a full pool. Earlier rows
+        // claim titles via dedupe, and genre chips client-filter list
+        // endpoints — a single page of 20 often shrinks to 2–4 posters.
+        const accumulated: any[] = [];
+        const seen = new Set<number>();
+        let totalPages = 1;
+
+        for (
+          let p = 1;
+          p <= CAROUSEL_MAX_PAGES && accumulated.length < CAROUSEL_POOL_SIZE;
+          p += 1
+        ) {
+          const data = await fetchTmdbCached(endpoint, {
+            language: formattedLanguage,
+            region,
+            ...params,
+            page: String(p),
+          });
+          totalPages = data.total_pages ?? 1;
+
+          let batch = data.results ?? [];
+          if (genreId && !isDiscover) {
+            const genreNum = Number(genreId);
+            batch = batch.filter(
+              (item: any) =>
+                Array.isArray(item.genre_ids) &&
+                item.genre_ids.includes(genreNum),
+            );
+          }
+
+          for (const item of batch) {
+            if (item?.id == null || seen.has(item.id)) continue;
+            seen.add(item.id);
+            accumulated.push(item);
+            if (accumulated.length >= CAROUSEL_POOL_SIZE) break;
+          }
+
+          if (p >= totalPages) break;
         }
 
         return {
-          results: results.map((item: any) => ({
-            ...item,
-            type: mediaType === "movie" ? "movie" : "show",
-          })),
-          hasMore: page < data.total_pages,
+          results: mapResults(accumulated.slice(0, CAROUSEL_POOL_SIZE)),
+          hasMore: false,
         };
       } catch (err) {
         console.error("Error fetching TMDB media:", err);
@@ -323,8 +365,9 @@ export function useDiscoverMedia({
           throw new Error("Trakt API returned null response");
         }
 
-        // Paginate the results
-        const pageSize = isCarouselView ? 20 : 100; // Limit to 20 items for carousels, get more for detailed views
+        // Paginate the results — carousels need a surplus so genre filter
+        // and cross-row dedupe don't leave a half-empty strip.
+        const pageSize = isCarouselView ? CAROUSEL_POOL_SIZE : 100;
         const { tmdb_ids: tmdbIds, hasMore: hasMoreResults } = paginateResults(
           response,
           page,
@@ -332,8 +375,10 @@ export function useDiscoverMedia({
           mediaType === "movie" ? "movie" : mediaType === "tv" ? "tv" : "both",
         );
 
-        // For carousel views, we only need to fetch details for displayed items
-        const idsToFetch = isCarouselView ? tmdbIds.slice(0, 20) : tmdbIds;
+        // For carousel views, fetch details for the full pool (not just 20).
+        const idsToFetch = isCarouselView
+          ? tmdbIds.slice(0, CAROUSEL_POOL_SIZE)
+          : tmdbIds;
 
         // Fetch details for each TMDB ID
         const mediaPromises = idsToFetch.map(async (tmdbId: number) => {
@@ -472,21 +517,35 @@ export function useDiscoverMedia({
         // fetchTMDBMedia since carousel views force page 1 there, which
         // would defeat the randomization.
         case "randomPopular": {
-          const randomItems =
-            mediaType === "movie"
-              ? await getAllTimeBestMovies(40)
-              : await getAllTimeBestShows(40);
-          const mapped = randomItems.map((item) => ({
-            ...item,
-            type: mediaType === "movie" ? "movie" : "show",
-          }));
-          data = {
-            results: filterResultsByGenre(
-              mapped as DiscoverMedia[],
-              genreId,
-            ).slice(0, 20),
-            hasMore: true,
-          };
+          // Over-fetch so genre filter + cross-carousel dedupe still leave
+          // a full row (one discover page is only ~20 titles).
+          if (genreId) {
+            // Server-side genre match — client-filtering random pages is sparse.
+            data = await fetchTMDBMedia(`/discover/${mediaType}`, {
+              sort_by: "popularity.desc",
+              "vote_count.gte": mediaType === "movie" ? 300 : 150,
+              "vote_average.gte": 6,
+              include_adult: false,
+            });
+            // Shuffle so it still feels like "picks", not a ranked list.
+            data = {
+              ...data,
+              results: [...data.results].sort(() => Math.random() - 0.5),
+            };
+          } else {
+            const randomItems =
+              mediaType === "movie"
+                ? await getAllTimeBestMovies(CAROUSEL_POOL_SIZE)
+                : await getAllTimeBestShows(CAROUSEL_POOL_SIZE);
+            const mapped = randomItems.map((item) => ({
+              ...item,
+              type: mediaType === "movie" ? "movie" : "show",
+            }));
+            data = {
+              results: mapped as DiscoverMedia[],
+              hasMore: true,
+            };
+          }
           setSectionTitle(t("discover.carousel.title.randomPopular"));
           break;
         }

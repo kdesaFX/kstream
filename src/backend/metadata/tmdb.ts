@@ -885,36 +885,68 @@ function shuffleResults<T>(items: T[]): T[] {
   return arr;
 }
 
+/** Pick `count` distinct random page numbers in 1..maxPage. */
+function pickRandomPages(count: number, maxPage: number): number[] {
+  const pages = new Set<number>();
+  const capped = Math.min(count, maxPage);
+  while (pages.size < capped) {
+    pages.add(Math.floor(Math.random() * maxPage) + 1);
+  }
+  return [...pages];
+}
+
 /**
  * Fetches from a wide-but-curated pool of well-known movies (for taste
  * onboarding and the "random movie" picker). Uses /discover with a
  * popularity sort and a quality floor rather than /movie/top_rated, since
  * top_rated is dominated by obscure titles with a handful of 10/10 votes.
- * Pass `page` for a specific page, or omit it to pull a random page from
- * within the pool (see WELL_KNOWN_MOVIE_POOL_PAGES).
+ * Pass `page` for a specific page, or omit it to pull enough random pages
+ * from within the pool to satisfy `limit` (TMDB returns 20 per page).
  */
 export async function getAllTimeBestMovies(
   limit: number = 15,
   page: number | undefined = undefined,
 ): Promise<TMDBMovieSearchResult[]> {
-  const targetPage =
-    page ?? Math.floor(Math.random() * WELL_KNOWN_MOVIE_POOL_PAGES) + 1;
-  const data = await get<{ results: TMDBMovieSearchResult[] }>(
-    "/discover/movie",
-    {
-      page: targetPage,
-      sort_by: "popularity.desc",
-      "vote_count.gte": WELL_KNOWN_MOVIE_VOTE_COUNT,
-      "vote_average.gte": WELL_KNOWN_MOVIE_VOTE_AVERAGE,
-      include_adult: false,
-    },
-  );
-  return shuffleResults(data.results ?? [])
-    .slice(0, limit)
-    .map((r) => ({
-      ...r,
-      media_type: TMDBContentTypes.MOVIE,
-    }));
+  const mapItem = (r: TMDBMovieSearchResult) => ({
+    ...r,
+    media_type: TMDBContentTypes.MOVIE,
+  });
+
+  const fetchPage = async (targetPage: number) => {
+    const data = await get<{ results: TMDBMovieSearchResult[] }>(
+      "/discover/movie",
+      {
+        page: targetPage,
+        sort_by: "popularity.desc",
+        "vote_count.gte": WELL_KNOWN_MOVIE_VOTE_COUNT,
+        "vote_average.gte": WELL_KNOWN_MOVIE_VOTE_AVERAGE,
+        include_adult: false,
+      },
+    );
+    return data.results ?? [];
+  };
+
+  if (page !== undefined) {
+    return shuffleResults(await fetchPage(page))
+      .slice(0, limit)
+      .map(mapItem);
+  }
+
+  // One discover page is only ~20 titles — pull several random pages when
+  // callers ask for a fuller carousel pool (after genre/dedupe thinning).
+  const pagesNeeded = Math.max(1, Math.ceil(limit / 20));
+  const pages = pickRandomPages(pagesNeeded, WELL_KNOWN_MOVIE_POOL_PAGES);
+  const batches = await Promise.all(pages.map(fetchPage));
+  const seen = new Set<number>();
+  const merged: TMDBMovieSearchResult[] = [];
+  for (const batch of batches) {
+    for (const item of batch) {
+      if (item?.id == null || seen.has(item.id)) continue;
+      seen.add(item.id);
+      merged.push(item);
+    }
+  }
+  return shuffleResults(merged).slice(0, limit).map(mapItem);
 }
 
 /** Same as getAllTimeBestMovies, for TV shows. */
@@ -922,24 +954,44 @@ export async function getAllTimeBestShows(
   limit: number = 15,
   page: number | undefined = undefined,
 ): Promise<TMDBShowSearchResult[]> {
-  const targetPage =
-    page ?? Math.floor(Math.random() * WELL_KNOWN_SHOW_POOL_PAGES) + 1;
-  const data = await get<{ results: TMDBShowSearchResult[] }>(
-    "/discover/tv",
-    {
-      page: targetPage,
-      sort_by: "popularity.desc",
-      "vote_count.gte": WELL_KNOWN_SHOW_VOTE_COUNT,
-      "vote_average.gte": WELL_KNOWN_SHOW_VOTE_AVERAGE,
-      include_adult: false,
-    },
-  );
-  return shuffleResults(data.results ?? [])
-    .slice(0, limit)
-    .map((r) => ({
-      ...r,
-      media_type: TMDBContentTypes.TV,
-    }));
+  const mapItem = (r: TMDBShowSearchResult) => ({
+    ...r,
+    media_type: TMDBContentTypes.TV,
+  });
+
+  const fetchPage = async (targetPage: number) => {
+    const data = await get<{ results: TMDBShowSearchResult[] }>(
+      "/discover/tv",
+      {
+        page: targetPage,
+        sort_by: "popularity.desc",
+        "vote_count.gte": WELL_KNOWN_SHOW_VOTE_COUNT,
+        "vote_average.gte": WELL_KNOWN_SHOW_VOTE_AVERAGE,
+        include_adult: false,
+      },
+    );
+    return data.results ?? [];
+  };
+
+  if (page !== undefined) {
+    return shuffleResults(await fetchPage(page))
+      .slice(0, limit)
+      .map(mapItem);
+  }
+
+  const pagesNeeded = Math.max(1, Math.ceil(limit / 20));
+  const pages = pickRandomPages(pagesNeeded, WELL_KNOWN_SHOW_POOL_PAGES);
+  const batches = await Promise.all(pages.map(fetchPage));
+  const seen = new Set<number>();
+  const merged: TMDBShowSearchResult[] = [];
+  for (const batch of batches) {
+    for (const item of batch) {
+      if (item?.id == null || seen.has(item.id)) continue;
+      seen.add(item.id);
+      merged.push(item);
+    }
+  }
+  return shuffleResults(merged).slice(0, limit).map(mapItem);
 }
 
 /** Fetches popular media from any of the given production companies. */

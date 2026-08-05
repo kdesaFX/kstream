@@ -3,11 +3,11 @@
   "short_name": "kstream",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#062830",
+  "background_color": "#000000",
   "lang": "en",
   "scope": "/",
   "description": "Watch your favorite shows and movies for free! (っ'ヮ'c)",
-  "theme_color": "#062830",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -16,7 +16,7 @@
       "purpose": "any"
     },
     {
-      "src": "public/android-chrome-512x512.png",
+      "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
@@ -28,7 +28,7 @@
       "purpose": "maskable"
     },
     {
-      "src": "public/android-chrome-512x512.png",
+      "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

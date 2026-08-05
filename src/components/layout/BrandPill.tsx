@@ -1,8 +1,6 @@
 import classNames from "classnames";
 import { useTranslation } from "react-i18next";
 
-import { Icon, Icons } from "@/components/Icon";
-
 export function BrandPill(props: {
   clickable?: boolean;
   header?: boolean;
@@ -20,7 +18,14 @@ export function BrandPill(props: {
           : "",
       )}
     >
-      <Icon className="text-2xl" icon={Icons.LOGO} />
+      <img
+        src="/logo.png"
+        alt=""
+        width={24}
+        height={24}
+        className="h-6 w-6 rounded-md object-cover"
+        draggable={false}
+      />
       <span className="font-semibold text-white">{t("global.name")}</span>
     </div>
   );
