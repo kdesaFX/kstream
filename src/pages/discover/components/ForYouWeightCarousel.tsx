@@ -66,8 +66,7 @@ function toCardMedia(item: DiscoverMedia): MediaItem {
  * same weight's genre set for variety. Falls back to 100% popular
  * when there's no taste profile at all to draw personalized picks from.
  *
- * Order is score/vote stable — no random shuffle — so saving a title
- * only removes that card instead of reshuffling the whole row.
+ * Order is score/vote stable — no random shuffle on re-renders.
  */
 export function ForYouWeightCarousel({
   weight,
