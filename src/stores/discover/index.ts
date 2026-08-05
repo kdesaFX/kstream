@@ -15,8 +15,11 @@ interface DiscoverState {
   // adapting for users who haven't stated a preference, without ever
   // overriding one they've deliberately chosen.
   hasManuallySelected: boolean;
+  /** null = All genres (unfiltered). Cleared when switching tabs. */
+  selectedGenreId: string | null;
   lastView: DiscoverView | null;
   setSelectedCategory: (category: Category) => void;
+  setSelectedGenreId: (id: string | null) => void;
   setLastView: (view: DiscoverView) => void;
   clearLastView: () => void;
 }
@@ -34,12 +37,15 @@ export const useDiscoverStore = create<DiscoverState>()(
     (set) => ({
       selectedCategory: "movies",
       hasManuallySelected: false,
+      selectedGenreId: null,
       lastView: null,
       setSelectedCategory: (category) =>
         set({
           selectedCategory: normalizeCategory(category),
           hasManuallySelected: true,
+          selectedGenreId: null,
         }),
+      setSelectedGenreId: (id) => set({ selectedGenreId: id }),
       setLastView: (view) => set({ lastView: view }),
       clearLastView: () => set({ lastView: null }),
     }),
@@ -51,6 +57,8 @@ export const useDiscoverStore = create<DiscoverState>()(
           ...current,
           ...p,
           selectedCategory: normalizeCategory(p.selectedCategory),
+          // Genre filter is session-local — don't restore a stale chip.
+          selectedGenreId: null,
         };
       },
     },

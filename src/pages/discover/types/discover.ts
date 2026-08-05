@@ -26,6 +26,8 @@ export interface UseDiscoverMediaProps {
   mediaTitle?: string;
   isCarouselView?: boolean;
   enabled?: boolean;
+  /** Global genre chip filter (All = undefined). Applied via with_genres or genre_ids. */
+  genreId?: string | null;
 }
 
 export interface DiscoverMedia {

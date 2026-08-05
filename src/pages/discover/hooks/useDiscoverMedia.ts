@@ -127,6 +127,31 @@ class TraktDisabledError extends Error {
   }
 }
 
+function normalizeGenreIds(item: any): number[] {
+  if (Array.isArray(item.genre_ids) && item.genre_ids.length > 0) {
+    return item.genre_ids;
+  }
+  if (Array.isArray(item.genres)) {
+    return item.genres
+      .map((g: { id?: number }) => g?.id)
+      .filter((id: number | undefined): id is number => typeof id === "number");
+  }
+  return [];
+}
+
+function filterResultsByGenre(
+  results: DiscoverMedia[],
+  genreId: string | null | undefined,
+): DiscoverMedia[] {
+  if (!genreId) return results;
+  const genreNum = Number(genreId);
+  if (!Number.isFinite(genreNum)) return results;
+  return results.filter((item) => {
+    const ids = normalizeGenreIds(item);
+    return ids.includes(genreNum);
+  });
+}
+
 export function useDiscoverOptions(mediaType: MediaType) {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -207,6 +232,7 @@ export function useDiscoverMedia({
   mediaTitle,
   isCarouselView = false,
   enabled = true,
+  genreId = null,
 }: UseDiscoverMediaProps): UseDiscoverMediaReturn {
   const [media, setMedia] = useState<DiscoverMedia[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -230,6 +256,12 @@ export function useDiscoverMedia({
           params.page = page.toString(); // Use the requested page for "view more" pages
         }
 
+        // Discover endpoints accept with_genres; list endpoints get filtered after.
+        const isDiscover = endpoint.includes("/discover/");
+        if (genreId && isDiscover && !params.with_genres) {
+          params.with_genres = genreId;
+        }
+
         const region = detectUserRegion();
 
         const data = await fetchTmdbCached(endpoint, {
@@ -239,9 +271,20 @@ export function useDiscoverMedia({
         });
 
         // For carousel views, we might want to limit the number of results
-        const results = isCarouselView
+        let results = isCarouselView
           ? data.results.slice(0, 20)
           : data.results;
+
+        // Client-side genre filter for non-discover list endpoints that
+        // still return genre_ids (trending, now_playing, on_the_air, etc.).
+        if (genreId && !isDiscover) {
+          const genreNum = Number(genreId);
+          results = results.filter(
+            (item: any) =>
+              Array.isArray(item.genre_ids) &&
+              item.genre_ids.includes(genreNum),
+          );
+        }
 
         return {
           results: results.map((item: any) => ({
@@ -255,7 +298,7 @@ export function useDiscoverMedia({
         throw err;
       }
     },
-    [formattedLanguage, page, mediaType, isCarouselView],
+    [formattedLanguage, page, mediaType, isCarouselView, genreId],
   );
 
   const fetchTraktMedia = useCallback(
@@ -301,6 +344,7 @@ export function useDiscoverMedia({
             });
             return {
               ...data,
+              genre_ids: normalizeGenreIds(data),
               type: mediaType === "movie" ? "movie" : "show",
             };
           } catch (err) {
@@ -313,12 +357,14 @@ export function useDiscoverMedia({
         const settledResults = await Promise.allSettled(mediaPromises);
 
         // Filter out failed requests and nulls
-        const results = settledResults
+        let results = settledResults
           .filter(
             (result): result is PromiseFulfilledResult<any> =>
               result.status === "fulfilled" && result.value !== null,
           )
           .map((result) => result.value);
+
+        results = filterResultsByGenre(results, genreId);
 
         return {
           results,
@@ -331,7 +377,7 @@ export function useDiscoverMedia({
         throw err;
       }
     },
-    [mediaType, formattedLanguage, page, isCarouselView],
+    [mediaType, formattedLanguage, page, isCarouselView, genreId],
   );
 
   // Get Trakt function for provider
@@ -428,13 +474,17 @@ export function useDiscoverMedia({
         case "randomPopular": {
           const randomItems =
             mediaType === "movie"
-              ? await getAllTimeBestMovies(20)
-              : await getAllTimeBestShows(20);
+              ? await getAllTimeBestMovies(40)
+              : await getAllTimeBestShows(40);
+          const mapped = randomItems.map((item) => ({
+            ...item,
+            type: mediaType === "movie" ? "movie" : "show",
+          }));
           data = {
-            results: randomItems.map((item) => ({
-              ...item,
-              type: mediaType === "movie" ? "movie" : "show",
-            })),
+            results: filterResultsByGenre(
+              mapped as DiscoverMedia[],
+              genreId,
+            ).slice(0, 20),
             hasMore: true,
           };
           setSectionTitle(t("discover.carousel.title.randomPopular"));
@@ -619,6 +669,7 @@ export function useDiscoverMedia({
     genreName,
     providerName,
     mediaTitle,
+    genreId,
     fetchTMDBMedia,
     fetchTraktMedia,
     t,
@@ -630,7 +681,7 @@ export function useDiscoverMedia({
     // Keep resets in an effect to avoid state updates during render.
     setMedia([]);
     setActualContentType(contentType);
-  }, [contentType, id, mediaType]);
+  }, [contentType, id, mediaType, genreId]);
 
   useEffect(() => {
     if (enabled) {

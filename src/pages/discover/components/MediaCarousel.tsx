@@ -44,6 +44,7 @@ interface MediaCarouselProps {
   enabled?: boolean;
   /** Lower = keeps overlapping titles (earlier rows on the page). */
   dedupePriority?: number;
+  genreId?: string | null;
 }
 
 function MoreCard({ link }: { link: string }) {
@@ -90,6 +91,7 @@ export function MediaCarousel({
   showRecommendations = false,
   enabled = true,
   dedupePriority,
+  genreId = null,
 }: MediaCarouselProps) {
   const { t } = useTranslation();
   const { width: windowWidth } = useWindowSize();
@@ -220,6 +222,7 @@ export function MediaCarousel({
       mediaTitle: selectedRecommendationTitle,
       isCarouselView: true,
       enabled,
+      genreId,
     });
 
   // Drop titles already claimed by an earlier row on this tab

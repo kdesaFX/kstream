@@ -20,8 +20,12 @@ import { PersonalRecommendationsCarousel } from "./components/PersonalRecommenda
 import { ScrollToTopButton } from "./components/ScrollToTopButton";
 
 export function DiscoverContent() {
-  const { selectedCategory, hasManuallySelected, setSelectedCategory } =
-    useDiscoverStore();
+  const {
+    selectedCategory,
+    hasManuallySelected,
+    setSelectedCategory,
+    selectedGenreId,
+  } = useDiscoverStore();
   // Matches the same "is there real signal" check FeaturedCarousel and
   // usePersonalRecommendations use — a rating alone isn't enough.
   const hasMovieSignal = useHasRecommendationSignal(false);
@@ -158,6 +162,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -175,6 +180,7 @@ export function DiscoverContent() {
           priority={carousels.length < 2} // First 2 carousels load immediately
           enabled={isMoviesTab}
           dedupePriority={dedupe++}
+          genreId={selectedGenreId}
         />,
       );
     }
@@ -191,6 +197,7 @@ export function DiscoverContent() {
         priority={carousels.length < 2}
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -206,6 +213,7 @@ export function DiscoverContent() {
         priority={carousels.length < 2}
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -221,6 +229,7 @@ export function DiscoverContent() {
         moreContent
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -236,6 +245,7 @@ export function DiscoverContent() {
         moreContent
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -251,6 +261,7 @@ export function DiscoverContent() {
         priority={carousels.length < 2}
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -266,21 +277,7 @@ export function DiscoverContent() {
         moreContent
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
-      />,
-    );
-
-    // Genre Movies
-    carousels.push(
-      <LazyMediaCarousel
-        key="movie-genres"
-        content={{ type: "genre" }}
-        isTVShow={false}
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        showGenres
-        moreContent
-        enabled={isMoviesTab}
-        dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -305,6 +302,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -322,6 +320,7 @@ export function DiscoverContent() {
           priority={carousels.length < 2} // First 2 carousels load immediately
           enabled={isTVShowsTab}
           dedupePriority={dedupe++}
+          genreId={selectedGenreId}
         />,
       );
     }
@@ -338,6 +337,7 @@ export function DiscoverContent() {
         priority={carousels.length < 2}
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -353,6 +353,7 @@ export function DiscoverContent() {
         priority={carousels.length < 2}
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -368,6 +369,7 @@ export function DiscoverContent() {
         priority={carousels.length < 2}
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -383,6 +385,7 @@ export function DiscoverContent() {
         moreContent
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -398,6 +401,7 @@ export function DiscoverContent() {
         moreContent
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 
@@ -413,21 +417,7 @@ export function DiscoverContent() {
         moreContent
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
-      />,
-    );
-
-    // Genre TV Shows
-    carousels.push(
-      <LazyMediaCarousel
-        key="tv-genres"
-        content={{ type: "genre" }}
-        isTVShow
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        showGenres
-        moreContent
-        enabled={isTVShowsTab}
-        dedupePriority={dedupe++}
+        genreId={selectedGenreId}
       />,
     );
 

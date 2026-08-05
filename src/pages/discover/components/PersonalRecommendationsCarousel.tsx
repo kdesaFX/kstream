@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useMemo, useRef } from "react";
 
 import { MediaCard } from "@/components/media/MediaCard";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -19,6 +19,7 @@ interface PersonalRecommendationsCarouselProps {
   title?: string;
   enabled?: boolean;
   dedupePriority?: number;
+  genreId?: string | null;
 }
 
 function getPosterUrl(posterPath: string): string {
@@ -53,6 +54,7 @@ export function PersonalRecommendationsCarousel({
   title,
   enabled = true,
   dedupePriority,
+  genreId = null,
 }: PersonalRecommendationsCarouselProps) {
   const { isMobile } = useIsMobile();
   const isScrollingRef = useRef(false);
@@ -60,7 +62,18 @@ export function PersonalRecommendationsCarousel({
 
   const { media: rawMedia, isLoading, sectionTitle, hasRecommendations } =
     useSharedPersonalRecommendations(isTVShow, enabled);
-  const media = useDedupedMedia(dedupePriority, rawMedia);
+
+  const genreFiltered = useMemo(() => {
+    if (!genreId) return rawMedia;
+    const genreNum = Number(genreId);
+    if (!Number.isFinite(genreNum)) return rawMedia;
+    return rawMedia.filter(
+      (m) =>
+        Array.isArray(m.genre_ids) && m.genre_ids.includes(genreNum),
+    );
+  }, [rawMedia, genreId]);
+
+  const media = useDedupedMedia(dedupePriority, genreFiltered);
 
   const categorySlug = `for-you-${isTVShow ? "tv" : "movie"}`;
 

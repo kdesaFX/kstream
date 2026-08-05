@@ -1551,6 +1551,9 @@
       "tvshows": "TV Shows",
       "editorpicks": "Editor Picks"
     },
+    "genres": {
+      "all": "All"
+    },
     "carousel": {
       "title": {
         "loading": "Loading...",
