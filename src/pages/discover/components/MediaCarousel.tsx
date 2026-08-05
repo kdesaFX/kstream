@@ -226,18 +226,23 @@ export function MediaCarousel({
     });
 
   // Drop titles already claimed by an earlier row; under a genre chip,
-  // backfill unique discover titles so the row stays full without doubles
-  // — except time-sensitive rows (In Cinemas, etc.) which must stay honest.
-  const timeSensitive = new Set([
-    "nowPlaying",
-    "onTheAir",
-    "latest",
-    "latesttv",
-    "latest4k",
-    "popularThisWeek",
-  ]);
-  const allowDiscoverBackfill =
-    !timeSensitive.has(content.type) && !timeSensitive.has(actualContentType);
+  // backfill unique discover titles so the row stays full without doubles.
+  // In Cinemas / trending stay date-honest (recent theatrical or none).
+  const backfillMode = (() => {
+    const type = actualContentType || content.type;
+    if (
+      type === "popularThisWeek" ||
+      type === "onTheAir" ||
+      type === "latesttv" ||
+      type === "latest4k"
+    ) {
+      return "none" as const;
+    }
+    if (type === "nowPlaying" || type === "latest") {
+      return genreId ? ("recent" as const) : ("none" as const);
+    }
+    return "popular" as const;
+  })();
 
   const media = useDedupedCarouselMedia(dedupePriority, rawMedia, {
     genreId,
@@ -245,7 +250,7 @@ export function MediaCarousel({
     enabled,
     isLoading,
     resetKey: `${contentType}:${selectedProviderId}:${selectedRecommendationId}`,
-    allowDiscoverBackfill,
+    backfillMode,
   });
 
   // Hide section if there's an error or no content (after loading is complete)

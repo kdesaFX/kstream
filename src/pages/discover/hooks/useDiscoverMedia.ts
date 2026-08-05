@@ -601,10 +601,26 @@ export function useDiscoverMedia({
 
         case "nowPlaying":
           if (mediaType === "movie") {
-            // TMDB's curated "in theatres" list (region-aware). Do not swap to
-            // unbounded discover — that surfaces unreleased Avatar 5 / etc.
-            data = await fetchTMDBMedia("/movie/now_playing");
             const today = new Date().toISOString().slice(0, 10);
+            if (genreId) {
+              // Genre × true now_playing is often only a handful of titles.
+              // Use recent theatrical releases in that genre (already out,
+              // date-bounded) so the row can fill without unreleased junk.
+              const from = new Date();
+              from.setMonth(from.getMonth() - 24);
+              data = await fetchTMDBMedia("/discover/movie", {
+                with_release_type: "2|3",
+                "primary_release_date.gte": from.toISOString().slice(0, 10),
+                "primary_release_date.lte": today,
+                sort_by: "popularity.desc",
+                "vote_count.gte": 20,
+                include_adult: false,
+              });
+              setSectionTitle(t("discover.carousel.title.recentReleases"));
+            } else {
+              data = await fetchTMDBMedia("/movie/now_playing");
+              setSectionTitle(t("discover.carousel.title.inCinemas"));
+            }
             data = {
               ...data,
               results: data.results.filter((item: DiscoverMedia) => {
@@ -613,7 +629,6 @@ export function useDiscoverMedia({
                 return released.length >= 10 && released <= today;
               }),
             };
-            setSectionTitle(t("discover.carousel.title.inCinemas"));
           } else {
             throw new Error("nowPlaying is only available for movies");
           }
@@ -732,10 +747,9 @@ export function useDiscoverMedia({
       },
       fetchedType: DiscoverContentType,
     ) => {
-      // Never pad time-sensitive rows with generic discover — that dumped
-      // unreleased titles into "In Cinemas". Those rows stay honest/short.
+      // Never pad trending with unbounded discover. nowPlaying under a genre
+      // already uses a date-bounded recent-theatrical query — may widen once.
       const noDiscoverPad = new Set<DiscoverContentType>([
-        "nowPlaying",
         "onTheAir",
         "latest",
         "latesttv",
@@ -750,11 +764,29 @@ export function useDiscoverMedia({
       ) {
         return data;
       }
-      const fill = await fetchTMDBMedia(`/discover/${mediaType}`, {
-        sort_by: "popularity.desc",
-        include_adult: false,
-        "vote_count.gte": 20,
-      });
+
+      const today = new Date().toISOString().slice(0, 10);
+      const fillParams: Record<string, any> =
+        fetchedType === "nowPlaying"
+          ? (() => {
+              const from = new Date();
+              from.setMonth(from.getMonth() - 48);
+              return {
+                with_release_type: "2|3",
+                "primary_release_date.gte": from.toISOString().slice(0, 10),
+                "primary_release_date.lte": today,
+                sort_by: "popularity.desc",
+                "vote_count.gte": 20,
+                include_adult: false,
+              };
+            })()
+          : {
+              sort_by: "popularity.desc",
+              include_adult: false,
+              "vote_count.gte": 20,
+            };
+
+      const fill = await fetchTMDBMedia(`/discover/${mediaType}`, fillParams);
       const seen = new Set<number>();
       for (const item of data.results) {
         if (item?.id != null) seen.add(item.id);
@@ -762,6 +794,11 @@ export function useDiscoverMedia({
       const merged = [...data.results];
       for (const item of fill.results) {
         if (item?.id == null || seen.has(item.id)) continue;
+        if (fetchedType === "nowPlaying") {
+          if (!item.poster_path) continue;
+          const released = item.release_date || "";
+          if (released.length < 10 || released > today) continue;
+        }
         seen.add(item.id);
         merged.push(item);
         if (merged.length >= CAROUSEL_POOL_SIZE) break;
