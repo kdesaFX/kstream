@@ -36,7 +36,7 @@ function SearchSuffix(props: { failed?: boolean; results?: number }) {
               <p>{t("home.search.allResults")}</p>
               <Button
                 className="px-py p-[0.3em] mt-3 rounded-xl text-type-dimmed box-content text-[17px] bg-largeCard-background justify-center items-center"
-                onClick={() => navigate("/discover")}
+                onClick={() => navigate("/")}
               >
                 {t("home.search.discoverMore")}
               </Button>

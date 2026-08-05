@@ -167,14 +167,6 @@ export function ScrapeErrorPart(props: ScrapeErrorPartProps) {
             {t("player.scraping.notFound.detailsButton")}
           </Button>
         </div>
-        {/* <Button
-          onClick={() => navigate("/discover")}
-          theme="secondary"
-          padding="md:px-12 p-2.5"
-          className="mt-6"
-        >
-          {t("player.scraping.notFound.discoverButton")}
-        </Button> */}
         {(!isExtensionActiveCached() || !febboxKey) && conf().HAS_ONBOARDING ? (
           <div className="flex flex-col max-w-md gap-3 items-center py-3">
             <Paragraph>{t("player.scraping.notFound.onboarding")}</Paragraph>

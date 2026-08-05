@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
-import { To, useNavigate } from "react-router-dom";
 
 import { WideContainer } from "@/components/layout/WideContainer";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -11,11 +10,10 @@ import { useSearchQuery } from "@/hooks/useSearchQuery";
 import { FeaturedCarousel } from "@/pages/discover/components/FeaturedCarousel";
 import type { FeaturedMedia } from "@/pages/discover/components/FeaturedCarousel";
 import DiscoverContent from "@/pages/discover/discoverContent";
+import { useHasRecommendationSignal } from "@/pages/discover/hooks/usePersonalRecommendations";
 import { HomeLayout } from "@/pages/layouts/HomeLayout";
 import { BookmarksCarousel } from "@/pages/parts/home/BookmarksCarousel";
 import { BookmarksGrid } from "@/pages/parts/home/BookmarksGrid";
-import { GenreChips } from "@/pages/parts/home/GenreChips";
-import { HeroPart } from "@/pages/parts/home/HeroPart";
 import { WatchingCarousel } from "@/pages/parts/home/WatchingCarousel";
 import { WatchingGrid } from "@/pages/parts/home/WatchingGrid";
 import { SearchListPart } from "@/pages/parts/search/SearchListPart";
@@ -25,7 +23,6 @@ import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { usePreferencesStore } from "@/stores/preferences";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
-import { Button } from "./About";
 import { AdsPart } from "./parts/home/AdsPart";
 import { HomeAd } from "./parts/home/HomeAd";
 import { SupportBar } from "./parts/home/SupportBar";
@@ -52,16 +49,11 @@ function useSearch(search: string) {
   };
 }
 
-// What the sigma?
-
 export function HomePage() {
   const { t } = useTranslation();
   const { t: randomT } = useRandomTranslation();
   const emptyText = randomT(`home.search.empty`);
-  const navigate = useNavigate();
-  const [showBg, setShowBg] = useState<boolean>(false);
-  const searchParams = useSearchQuery();
-  const [search] = searchParams;
+  const [search] = useSearchQuery();
   const s = useSearch(search);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showWatching, setShowWatching] = useState(false);
@@ -81,7 +73,6 @@ export function HomePage() {
   }, []);
   const { showModal } = useOverlayStack();
   const enableDiscover = usePreferencesStore((state) => state.enableDiscover);
-  const enableFeatured = usePreferencesStore((state) => state.enableFeatured);
   const carouselRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const enableCarouselView = usePreferencesStore(
     (state) => state.enableCarouselView,
@@ -93,13 +84,13 @@ export function HomePage() {
     (state) => state.homeSectionOrder,
   );
 
+  const hasMovieSignal = useHasRecommendationSignal(false);
+  const hasShowSignal = useHasRecommendationSignal(true);
+  const forcedFeaturedCategory =
+    hasMovieSignal || hasShowSignal ? ("foryou" as const) : undefined;
+
   const [carouselContainerRef] = useAutoAnimate<HTMLDivElement>();
   const [listContainerRef] = useAutoAnimate<HTMLDivElement>();
-
-  const handleClick = (path: To) => {
-    window.scrollTo(0, 0);
-    navigate(path);
-  };
 
   const handleShowDetails = async (media: MediaItem | FeaturedMedia) => {
     showModal("details", {
@@ -155,18 +146,17 @@ export function HomePage() {
     }
     return (
       <WideContainer>
-        <div ref={listContainerRef} className="flex flex-col gap-8">{sections}</div>
+        <div ref={listContainerRef} className="flex flex-col gap-8">
+          {sections}
+        </div>
       </WideContainer>
     );
   };
 
   return (
-    <HomeLayout showBg={showBg}>
+    <HomeLayout showBg={s.searching}>
       <div className="relative mb-2">
         {hasWideMargins && (
-          // Scoped to this hero container (not the viewport), so it scrolls
-          // away with the hero instead of chasing the page down like
-          // position:fixed would.
           <div className="absolute right-6 top-2 z-10">
             <HomeAd slot="secondary" />
           </div>
@@ -179,35 +169,14 @@ export function HomePage() {
           `}</style>
           <title>{t("global.name")}</title>
         </Helmet>
-        {enableFeatured ? (
-          <>
-            <FeaturedCarousel
-              onShowDetails={handleShowDetails}
-              searching={s.searching}
-              shorter
-            >
-              <HeroPart
-                searchParams={searchParams}
-                setIsSticky={setShowBg}
-                isInFeatured
-              />
-            </FeaturedCarousel>
-            {(!search || search.length === 0) && (
-              <div className="mt-4 px-8">
-                <GenreChips />
-              </div>
-            )}
-          </>
-        ) : (
-          <HeroPart
-            searchParams={searchParams}
-            setIsSticky={setShowBg}
-            showTitle
-          />
-        )}
+
+        <FeaturedCarousel
+          onShowDetails={handleShowDetails}
+          searching={s.searching}
+          forcedCategory={forcedFeaturedCategory}
+        />
 
         {conf().SHOW_SUPPORT_BAR ? <SupportBar /> : null}
-
         {conf().SHOW_AD ? <AdsPart /> : null}
       </div>
 
@@ -217,7 +186,6 @@ export function HomePage() {
         </div>
       )}
 
-      {/* Search */}
       {search && (
         <WideContainer>
           {s.loading ? (
@@ -233,7 +201,6 @@ export function HomePage() {
         </WideContainer>
       )}
 
-      {/* User Content */}
       {!search && (
         <div>
           {renderHomeSections()}
@@ -245,9 +212,7 @@ export function HomePage() {
         </div>
       )}
 
-      {/* Under user content */}
       <WideContainer ultraWide classNames="!px-3 md:!px-9">
-        {/* Empty text */}
         {!(showBookmarks || showWatching) &&
         (!enableDiscover || enableLowPerformanceMode) ? (
           <div className="flex flex-col translate-y-[-30px] items-center justify-center pt-20">
@@ -255,34 +220,11 @@ export function HomePage() {
           </div>
         ) : null}
 
-        {/* Discover Spacing */}
-        {enableDiscover &&
-          (enableFeatured ? (
-            <div className="pb-4" />
-          ) : showBookmarks || showWatching ? (
-            <div className="pb-10" />
-          ) : (
-            <div className="pb-20" />
-          ))}
-        {/* there... perfect. */}
+        {enableDiscover && <div className="pb-4" />}
 
-        {/* Discover section or discover button */}
         {enableDiscover && !search && !enableLowPerformanceMode ? (
           <DiscoverContent />
-        ) : (
-          <div className="flex flex-col justify-center items-center h-40 space-y-4">
-            <div className="flex flex-col items-center justify-center">
-              {!search && !enableLowPerformanceMode && (
-                <Button
-                  className="px-py p-[0.35em] mt-3 rounded-xl text-type-dimmed box-content text-[18px] bg-largeCard-background justify-center items-center"
-                  onClick={() => handleClick("/discover")}
-                >
-                  {t("home.search.discover")}
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
+        ) : null}
       </WideContainer>
     </HomeLayout>
   );

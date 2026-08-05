@@ -333,32 +333,11 @@ export function MediaCarousel({
     });
   }, [setLastView]);
 
-  // Generate more link
+  // "More" list pages were removed with /discover; only honor an explicit moreLink.
   const generatedMoreLink = React.useMemo(() => {
     if (moreLink) return moreLink;
-
-    const baseLink = `/discover/more`;
-    if (showProviders && selectedProviderId) {
-      return `${baseLink}/provider/${selectedProviderId}/${mediaType}`;
-    }
-    if (showGenres && selectedGenreId) {
-      return `${baseLink}/genre/${selectedGenreId}/${mediaType}`;
-    }
-    if (showRecommendations && selectedRecommendationId) {
-      return `${baseLink}/recommendations/${selectedRecommendationId}/${mediaType}`;
-    }
-    return `${baseLink}/${actualContentType}/${mediaType}`;
-  }, [
-    moreLink,
-    showProviders,
-    selectedProviderId,
-    showGenres,
-    selectedGenreId,
-    showRecommendations,
-    selectedRecommendationId,
-    mediaType,
-    actualContentType,
-  ]);
+    return null;
+  }, [moreLink]);
 
   // Hide the entire section if there's an error or no content
   if (shouldHide) {
@@ -437,7 +416,7 @@ export function MediaCarousel({
                 </div>
               )}
           </div>
-          {moreContent && (
+          {moreContent && generatedMoreLink && (
             <Link
               to={generatedMoreLink}
               onClick={handleMoreClick}

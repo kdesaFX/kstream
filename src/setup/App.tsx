@@ -29,9 +29,6 @@ import { AppsPage } from "@/pages/Apps";
 import { AdminPage } from "@/pages/admin/AdminPage";
 import { AllBookmarks } from "@/pages/bookmarks/AllBookmarks";
 import VideoTesterView from "@/pages/developer/VideoTesterView";
-import { DiscoverMore } from "@/pages/discover/AllMovieLists";
-import { Discover } from "@/pages/discover/Discover";
-import { MoreContent } from "@/pages/discover/MoreContent";
 import MaintenancePage from "@/pages/errors/MaintenancePage";
 import { NotFoundPage } from "@/pages/errors/NotFoundPage";
 import { HomePage } from "@/pages/HomePage";
@@ -246,18 +243,9 @@ function App() {
           <Route path="/support" element={<SupportPage />} />
           <Route path="/cel" element={<CelPage />} />
           <Route path="/pas" element={<PasPage />} />
-          {/* Discover pages */}
-          <Route path="/discover" element={<Discover />} />
-          <Route
-            path="/discover/more/:contentType/:mediaType"
-            element={<MoreContent />}
-          />
-          <Route
-            path="/discover/more/:contentType/:id/:mediaType"
-            element={<MoreContent />}
-          />
-          <Route path="/discover/more/:category" element={<MoreContent />} />
-          <Route path="/discover/all" element={<DiscoverMore />} />
+          {/* Legacy discover URLs → home */}
+          <Route path="/discover/*" element={<Navigate to="/" replace />} />
+          <Route path="/discover" element={<Navigate to="/" replace />} />
           {/* Bookmarks page */}
           <Route path="/bookmarks" element={<AllBookmarks />} />
           <Route path="/person/:id" element={<PersonView />} />

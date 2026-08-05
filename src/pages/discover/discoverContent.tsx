@@ -1,9 +1,7 @@
 import classNames from "classnames";
 import { t } from "i18next";
 import { useCallback, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/buttons/Button";
 import { WideContainer } from "@/components/layout/WideContainer";
 import { useDiscoverStore } from "@/stores/discover";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
@@ -26,7 +24,6 @@ export function DiscoverContent() {
   // usePersonalRecommendations use — a rating alone isn't enough.
   const hasMovieSignal = useHasRecommendationSignal(false);
   const hasShowSignal = useHasRecommendationSignal(true);
-  const navigate = useNavigate();
   const { showModal } = useOverlayStack();
   const carouselRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const progressItems = useProgressStore((state) => state.items);
@@ -482,18 +479,6 @@ export function DiscoverContent() {
           {renderEditorPicksContent()}
         </div>
       </WideContainer>
-
-      {/* View All Button */}
-      <div
-        className={classNames(
-          "flex justify-center mt-8 mb-12",
-          isMoviesTab ? "block" : "hidden",
-        )}
-      >
-        <Button theme="purple" onClick={() => navigate("/discover/all")}>
-          {t("discover.viewLists")}
-        </Button>
-      </div>
 
       <ScrollToTopButton />
 

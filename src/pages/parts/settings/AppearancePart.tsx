@@ -509,21 +509,9 @@ export function AppearancePart(props: {
               enabled={props.enableDiscover}
               onChange={(v) => {
                 props.setEnableDiscover(v);
-                if (!v) props.setEnableFeatured(false);
               }}
               disabled={props.enableLowPerformanceMode}
             />
-            {props.enableDiscover && !props.enableLowPerformanceMode && (
-              <ToggleRow
-                indent
-                title={t("settings.appearance.options.featuredLabel")}
-                description={t(
-                  "settings.appearance.options.featuredDescription",
-                )}
-                enabled={props.enableFeatured}
-                onChange={(v) => props.setEnableFeatured(v)}
-              />
-            )}
             <ToggleRow
               title={t("settings.appearance.options.modalLabel")}
               description={t("settings.appearance.options.modalDescription")}

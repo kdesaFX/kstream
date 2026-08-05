@@ -1,16 +1,21 @@
 import classNames from "classnames";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMeasure } from "react-use";
 import { Link } from "react-router-dom";
 
 import { NoUserAvatar, UserAvatar } from "@/components/Avatar";
 import { IconPatch } from "@/components/buttons/IconPatch";
+import { SearchBarInput } from "@/components/form/SearchBar";
 import { Icon, Icons } from "@/components/Icon";
 import { LinksDropdown } from "@/components/layout/LinksDropdown";
 import { useNotifications } from "@/components/overlays/notificationsModal";
+import { useSlashFocus } from "@/components/player/hooks/useSlashFocus";
 import { Lightbar } from "@/components/utils/Lightbar";
 import { Transition } from "@/components/utils/Transition";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { useRandomTranslation } from "@/hooks/useRandomTranslation";
+import { useSearchQuery } from "@/hooks/useSearchQuery";
 import { BlurEllipsis } from "@/pages/layouts/SubPageLayout";
 import { useBannerSize } from "@/stores/banner";
 import { useNavLayoutStore } from "@/stores/navLayout";
@@ -22,9 +27,10 @@ import { BrandPill } from "./BrandPill";
 
 function HomeLayoutCustomizerToggle() {
   const [isOpen, setIsOpen] = useState(false);
+  const path = window.location.pathname;
 
-  // Only show on the exact home page path
-  if (window.location.pathname !== "/") return null;
+  // Home + browse (search results) share the home layout customizer
+  if (path !== "/" && !path.startsWith("/browse")) return null;
 
   return (
     <div className="relative">
@@ -54,6 +60,31 @@ function HomeLayoutCustomizerToggle() {
       <HomeSectionCustomizer
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
+      />
+    </div>
+  );
+}
+
+function NavSearchBar(props: { lightOverHero?: boolean }) {
+  const { t: randomT } = useRandomTranslation();
+  const [search, setSearch, setSearchUnFocus] = useSearchQuery();
+  const { isMobile } = useIsMobile();
+  const inputRef = useRef<HTMLInputElement>(null);
+  useSlashFocus(inputRef);
+  const placeholder = randomT(`home.search.placeholder`);
+
+  return (
+    <div className="pointer-events-auto w-full max-w-xl mx-2 ssm:mx-4">
+      <SearchBarInput
+        ref={inputRef}
+        onChange={setSearch}
+        value={search}
+        onUnFocus={setSearchUnFocus}
+        placeholder={placeholder ?? ""}
+        isSticky={!props.lightOverHero}
+        isInFeatured={props.lightOverHero}
+        compact={isMobile}
+        hideTooltip={isMobile}
       />
     </div>
   );
@@ -157,6 +188,7 @@ export interface NavigationProps {
   noLightbar?: boolean;
   doBackground?: boolean;
   clearBackground?: boolean;
+  showSearch?: boolean;
 }
 
 export function Navigation(props: NavigationProps) {
@@ -273,10 +305,10 @@ export function Navigation(props: NavigationProps) {
         }}
       >
         <div className={classNames("fixed left-0 right-0 flex items-center")}>
-          <div className="px-7 py-5 relative z-[60] flex flex-1 items-center justify-between">
+          <div className="px-3 ssm:px-7 py-5 relative z-[60] flex flex-1 items-center gap-2 ssm:gap-3">
             <div
               ref={leftRef}
-              className="flex items-center space-x-1.5 ssm:space-x-3 pointer-events-auto"
+              className="flex items-center space-x-1.5 ssm:space-x-3 pointer-events-auto shrink-0"
             >
               <Link
                 className="block tabbable rounded-full text-xs ssm:text-base"
@@ -314,9 +346,18 @@ export function Navigation(props: NavigationProps) {
                 unreadCount={getUnreadCount()}
               />
             </div>
+
+            {props.showSearch ? (
+              <div className="flex-1 flex justify-center min-w-0">
+                <NavSearchBar lightOverHero={Boolean(props.clearBackground)} />
+              </div>
+            ) : (
+              <div className="flex-1" />
+            )}
+
             <div
               ref={rightRef}
-              className="relative pointer-events-auto flex items-center gap-3"
+              className="relative pointer-events-auto flex items-center gap-3 shrink-0"
             >
               <div className="hidden lg:block">
                 <HomeLayoutCustomizerToggle />

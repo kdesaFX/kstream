@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import { Icon, Icons } from "@/components/Icon";
 import { useDiscoverOptions } from "@/pages/discover/hooks/useDiscoverMedia";
+import { useDiscoverStore } from "@/stores/discover";
 
 const TOP_GENRES = 5;
 
@@ -32,6 +33,7 @@ const getGenreIcon = (name?: string | null): Icons => {
 
 export function GenreChips() {
   const { genres, isLoading } = useDiscoverOptions("movie");
+  const setSelectedCategory = useDiscoverStore((s) => s.setSelectedCategory);
   const [expanded, setExpanded] = useState(false);
 
   if (isLoading || genres.length === 0) return null;
@@ -54,7 +56,8 @@ export function GenreChips() {
         {visible.map((genre) => (
           <Link
             key={genre.id}
-            to={`/discover/more/genre/${genre.id}/movie`}
+            to="/"
+            onClick={() => setSelectedCategory("movies")}
             className={classNames(
               "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide whitespace-nowrap shrink-0",
               "bg-search-background/40 backdrop-blur-md hover:bg-search-hoverBackground/80",
@@ -75,7 +78,6 @@ export function GenreChips() {
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            
             className={classNames(
               "flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide whitespace-nowrap shrink-0",
               "min-w-[5.5rem]",

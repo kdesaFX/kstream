@@ -15,7 +15,6 @@ import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 import { conf } from "@/setup/config";
 import { useAuthStore } from "@/stores/auth";
-import { usePreferencesStore } from "@/stores/preferences";
 
 function Divider() {
   return <hr className="border-0 w-full h-px bg-dropdown-border" />;
@@ -239,9 +238,6 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
     setOpen((s) => !s);
   }, []);
 
-  const enableLowPerformanceMode = usePreferencesStore(
-    (s) => s.enableLowPerformanceMode,
-  );
   const isDesktopApp = useIsDesktopApp();
 
   return (
@@ -314,11 +310,6 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
           <DropdownLink href="/about" icon={Icons.CIRCLE_QUESTION}>
             {t("navigation.menu.about")}
           </DropdownLink>
-          {!enableLowPerformanceMode && (
-            <DropdownLink href="/discover" icon={Icons.RISING_STAR}>
-              {t("navigation.menu.discover")}
-            </DropdownLink>
-          )}
           <DropdownLink href="https://vidcodin.net" icon={Icons.LINK}>
             {t("navigation.menu.freeEmbed")}
           </DropdownLink>
