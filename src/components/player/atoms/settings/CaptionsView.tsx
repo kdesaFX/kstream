@@ -217,7 +217,7 @@ export function CaptionOption(props: CaptionOptionProps) {
                     "bg-pink-500": props.subtitleSource.includes("natsuki"),
                     "bg-blue-500": props.subtitleSource.includes("wyzie"),
                     "bg-orange-500": props.subtitleSource === "opensubs",
-                    "bg-purple-500": props.subtitleSource === "febbox",
+                    "bg-teal-500": props.subtitleSource === "febbox",
                     "bg-green-500": props.subtitleSource === "granite",
                   },
                 )}

@@ -1,20 +1,17 @@
 import classNames from "classnames";
 import { useEffect, useState } from "react";
 import { useMeasure } from "react-use";
-import { Link, To, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import { NoUserAvatar, UserAvatar } from "@/components/Avatar";
 import { IconPatch } from "@/components/buttons/IconPatch";
 import { Icon, Icons } from "@/components/Icon";
 import { LinksDropdown } from "@/components/layout/LinksDropdown";
-import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { useNotifications } from "@/components/overlays/notificationsModal";
-import { useTipJar } from "@/components/overlays/tipJarModal";
 import { Lightbar } from "@/components/utils/Lightbar";
 import { Transition } from "@/components/utils/Transition";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { BlurEllipsis } from "@/pages/layouts/SubPageLayout";
-import { conf } from "@/setup/config";
 import { useBannerSize } from "@/stores/banner";
 import { useNavLayoutStore } from "@/stores/navLayout";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -25,13 +22,13 @@ import { BrandPill } from "./BrandPill";
 
 function HomeLayoutCustomizerToggle() {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   // Only show on the exact home page path
   if (window.location.pathname !== "/") return null;
-  
+
   return (
     <div className="relative">
-      <button 
+      <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`group flex items-center h-10 rounded-full transition-all duration-300 ease-out overflow-hidden ${
@@ -44,17 +41,19 @@ function HomeLayoutCustomizerToggle() {
         <div className="flex items-center justify-center w-10 h-10 shrink-0">
           <Icon icon={Icons.LAYOUT} className="text-xl" />
         </div>
-        <span className={`font-medium text-sm whitespace-nowrap transition-all duration-300 ease-out ${
-          isOpen
-            ? "max-w-[100px] opacity-100"
-            : "max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100"
-        }`}>
+        <span
+          className={`font-medium text-sm whitespace-nowrap transition-all duration-300 ease-out ${
+            isOpen
+              ? "max-w-[100px] opacity-100"
+              : "max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100"
+          }`}
+        >
           Layout
         </span>
       </button>
-      <HomeSectionCustomizer 
-        isOpen={isOpen} 
-        onClose={() => setIsOpen(false)} 
+      <HomeSectionCustomizer
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
       />
     </div>
   );
@@ -93,9 +92,7 @@ function MobileMenuLink(props: {
 }
 
 function MobileActionsMenu(props: {
-  openDownloadModal: () => void;
   openNotifications: () => void;
-  openTipJar: () => void;
   unreadCount: number | string;
 }) {
   const [open, setOpen] = useState(false);
@@ -130,19 +127,6 @@ function MobileActionsMenu(props: {
       </a>
       <Transition animation="slide-down" show={open}>
         <div className="absolute left-0 top-full mt-3 z-50 w-56 rounded-xl bg-dropdown-altBackground py-2 shadow-lg ring-1 ring-white/10">
-          <MobileMenuLink href={conf().DISCORD_LINK}>
-            <Icon icon={Icons.DISCORD} className="text-xl" />
-            Discord
-          </MobileMenuLink>
-          <MobileMenuLink
-            onClick={() => {
-              setOpen(false);
-              props.openDownloadModal();
-            }}
-          >
-            <Icon icon={Icons.DOWNLOAD} className="text-xl" />
-            Download
-          </MobileMenuLink>
           <MobileMenuLink
             onClick={() => {
               setOpen(false);
@@ -158,15 +142,6 @@ function MobileActionsMenu(props: {
           >
             <Icon icon={Icons.BELL} className="text-xl" />
             Notifications
-          </MobileMenuLink>
-          <MobileMenuLink
-            onClick={() => {
-              setOpen(false);
-              props.openTipJar();
-            }}
-          >
-            <Icon icon={Icons.TIP_JAR} className="text-xl" />
-            Tip Jar
           </MobileMenuLink>
           <div className="mx-2 mt-1">
             <HomeLayoutCustomizerToggle />
@@ -186,12 +161,9 @@ export interface NavigationProps {
 
 export function Navigation(props: NavigationProps) {
   const bannerHeight = useBannerSize();
-  const navigate = useNavigate();
   const { loggedIn } = useAuth();
   const [scrollPosition, setScrollPosition] = useState(0);
   const { openNotifications, getUnreadCount } = useNotifications();
-  const { openTipJar } = useTipJar();
-  const { openDownloadModal } = useDownloadModal();
   const [leftRef, { width: leftWidth }] = useMeasure<HTMLDivElement>();
   const [rightRef, { width: rightWidth }] = useMeasure<HTMLDivElement>();
   const setLeftWidth = useNavLayoutStore((s) => s.setLeftWidth);
@@ -214,14 +186,7 @@ export function Navigation(props: NavigationProps) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleClick = (path: To) => {
-    window.scrollTo(0, 0);
-    navigate(path);
-  };
-
-
   const getMaskLength = () => {
-    
     const maxScroll = 300;
     const minLength = 100;
     const maxLength = 180;
@@ -258,7 +223,7 @@ export function Navigation(props: NavigationProps) {
       >
         <div
           className={classNames(
-            "fixed left-0 right-0 top-0 flex items-center", // border-b border-utils-divider border-opacity-50
+            "fixed left-0 right-0 top-0 flex items-center",
             "transition-[background-color,backdrop-filter] duration-300 ease-in-out",
             props.doBackground
               ? props.clearBackground
@@ -322,34 +287,6 @@ export function Navigation(props: NavigationProps) {
               </Link>
               <div className="hidden lg:flex items-center space-x-1.5 ssm:space-x-3">
                 <a
-                  href={conf().DISCORD_LINK}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xl text-white tabbable rounded-full backdrop-blur-lg"
-                >
-                  <IconPatch
-                    icon={Icons.DISCORD}
-                    clickable
-                    downsized
-                    navigation
-                  />
-                </a>
-
-                <a
-                  onClick={() => openDownloadModal()}
-                  rel="noreferrer"
-                  className="text-xl text-white tabbable rounded-full backdrop-blur-lg"
-                  title="Download"
-                >
-                  <IconPatch
-                    icon={Icons.DOWNLOAD}
-                    clickable
-                    downsized
-                    navigation
-                  />
-                </a>
-
-                <a
                   onClick={() => openNotifications()}
                   rel="noreferrer"
                   className="text-xl text-white tabbable rounded-full backdrop-blur-lg relative"
@@ -371,24 +308,9 @@ export function Navigation(props: NavigationProps) {
                     ) : null;
                   })()}
                 </a>
-                <a
-                  onClick={() => openTipJar()}
-                  rel="noreferrer"
-                  className="text-xl text-white tabbable rounded-full backdrop-blur-lg"
-                  title="Tip Jar"
-                >
-                  <IconPatch
-                    icon={Icons.TIP_JAR}
-                    clickable
-                    downsized
-                    navigation
-                  />
-                </a>
               </div>
               <MobileActionsMenu
-                openDownloadModal={openDownloadModal}
                 openNotifications={openNotifications}
-                openTipJar={openTipJar}
                 unreadCount={getUnreadCount()}
               />
             </div>

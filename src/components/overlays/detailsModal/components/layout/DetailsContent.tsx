@@ -244,7 +244,7 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
     if (/iPad|iPhone|iPod/i.test(navigator.userAgent) && navigator.share) {
       navigator
         .share({
-          title: "Z-Stream",
+          title: "kstream",
           text: data.title,
           url: shareUrl,
         })

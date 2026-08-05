@@ -1,14 +1,14 @@
 {
   "about": {
-    "description": "Z-Stream internette akışlar için tarama yapan bir web uygulamasıdır. Ekip, içerik tüketmeye karşı ekseriyetle minimalist bir yaklaşım sergilemektedir.",
+    "description": "kstream internette akışlar için tarama yapan bir web uygulamasıdır. Ekip, içerik tüketmeye karşı ekseriyetle minimalist bir yaklaşım sergilemektedir.",
     "faqTitle": "Sıkça sorulan sorular",
     "q1": {
-      "body": "Z-Stream herhangi bir içerik barındırmaz. İzlemek için bir şeye tıkladığınızda, seçilen medya için internette arama yapılır (Yükleme ekranında ve ‘video kaynakları’ sekmesinde hangi kaynağı kullandığınızı görebilirsiniz). Medya asla Z-Stream tarafından yüklenmez, her şey bu arama mekanizması aracılığıyla gerçekleşir.",
+      "body": "kstream herhangi bir içerik barındırmaz. İzlemek için bir şeye tıkladığınızda, seçilen medya için internette arama yapılır (Yükleme ekranında ve ‘video kaynakları’ sekmesinde hangi kaynağı kullandığınızı görebilirsiniz). Medya asla kstream tarafından yüklenmez, her şey bu arama mekanizması aracılığıyla gerçekleşir.",
       "title": "İçerik nereden geliyor?",
       "section": "genel"
     },
     "q2": {
-      "body": "Bir dizi veya film talep etmek mümkün değildir, Z-Stream herhangi bir içeriği yönetmez. Tüm içerikler internet üzerindeki kaynaklar aracılığıyla görüntülenir.",
+      "body": "Bir dizi veya film talep etmek mümkün değildir, kstream herhangi bir içeriği yönetmez. Tüm içerikler internet üzerindeki kaynaklar aracılığıyla görüntülenir.",
       "title": "Bir dizi veya filmi nereden talep edebilirim?",
       "section": "arama"
     },
@@ -17,14 +17,14 @@
       "title": "Arama sonuçları diziyi veya filmi gösteriyor, neden oynatamıyorum?",
       "section": "arama"
     },
-    "title": "Z-Stream hakkında",
+    "title": "kstream hakkında",
     "q4": {
       "body": "Tüm veriler topluluk sunucusuyla senkronize edilir, isteyen herkes bunu kullanmakta özgürdür.",
       "title": "Peki ya benim verileri ve bilgilerim?",
       "section": "genel"
     },
     "q5": {
-      "body": "Z-Stream’in bir Fluxer sunucusu var, sayfanın en üst kısmına bak!",
+      "body": "kstream’in bir Fluxer sunucusu var, sayfanın en üst kısmına bak!",
       "title": "Daha fazlasını nasıl bulabilirim?"
     },
     "help": "Bir cevap bulamıyor musunuz? <0>Buradan destek alın.</0>",
@@ -103,7 +103,7 @@
   "footer": {
     "legal": {
       "disclaimer": "Sorumluluk Reddi",
-      "disclaimerText": "Z-Stream herhangi bir dosya barındırmaz, yalnızca 3. parti hizmetlere bağlantı verir. Yasal meseleler, dosya barındırıcıları ve sağlayıcıları ile görüşülmelidir. Z-Stream, video sağlayıcıları tarafından gösterilen hiçbir medya dosyasından sorumlu değildir."
+      "disclaimerText": "kstream herhangi bir dosya barındırmaz, yalnızca 3. parti hizmetlere bağlantı verir. Yasal meseleler, dosya barındırıcıları ve sağlayıcıları ile görüşülmelidir. kstream, video sağlayıcıları tarafından gösterilen hiçbir medya dosyasından sorumlu değildir."
     },
     "links": {
       "fluxer": "Fluxer",
@@ -115,13 +115,13 @@
     "tagline": "Bu açık kaynaklı akış uygulamasıyla en sevdiğiniz dizileri ve filmleri izleyin."
   },
   "global": {
-    "name": "Z-Stream",
+    "name": "kstream",
     "pages": {
       "about": "Hakkında",
       "legal": "Legal / DMCA",
       "login": "Giriş yap",
       "onboarding": "Kur",
-      "pagetitle": "{{title}} - Z-Stream",
+      "pagetitle": "{{title}} - kstream",
       "register": "Kayıt ol",
       "settings": "Ayarlar",
       "discover": "Keşfet",
@@ -155,7 +155,7 @@
           "Bugün izleme listende neler var?",
           "Günün nasıldı?",
           "Benim hatam, site hiç çalışmıyor zaten...",
-          "Z-Stream en iyisi değil mi ya?",
+          "kstream en iyisi değil mi ya?",
           ">ᴗ<"
         ]
       },
@@ -290,7 +290,7 @@
           "title": "Özel Proxy"
         }
       },
-      "title": "Z-Stream ile sizi hazır hale getirelim"
+      "title": "kstream ile sizi hazır hale getirelim"
     }
   },
   "overlays": {
@@ -307,10 +307,10 @@
     "menus": {
       "downloads": {
         "copyHlsPlaylist": "HLS oynatma listesi bağlantısını kopyala",
-        "disclaimer": "İndirme bağlantıları doğrudan sağlayıcının kendisinden alınır. Z-Stream'in sağlanan indirme bağlantıları üzerinde hiçbir konrolü yoktur.",
+        "disclaimer": "İndirme bağlantıları doğrudan sağlayıcının kendisinden alınır. kstream'in sağlanan indirme bağlantıları üzerinde hiçbir konrolü yoktur.",
         "downloadSubtitle": "Geçerli altyazıyı indir",
         "downloadVideo": "Videoyu indir",
-        "hlsDisclaimer": "İndirmeler doğrudan sağlayıcıdan alınır. Z-Stream, indirmelerin nasıl sağlanacağı üzerinde kontrole sahip değildir.<br /><br />Lütfen bir HLS oynatma listesi indirdiğinizi unutmayın; <bold>ileri seviye bilginiz yoksa indirmeniz önerilmez. akış biçimleri</bold>. Farklı formatlar için farklı kaynakları deneyin.",
+        "hlsDisclaimer": "İndirmeler doğrudan sağlayıcıdan alınır. kstream, indirmelerin nasıl sağlanacağı üzerinde kontrole sahip değildir.<br /><br />Lütfen bir HLS oynatma listesi indirdiğinizi unutmayın; <bold>ileri seviye bilginiz yoksa indirmeniz önerilmez. akış biçimleri</bold>. Farklı formatlar için farklı kaynakları deneyin.",
         "onAndroid": {
           "1": "Android'e indirmek için önce indir butonuna basın, sonra açılan yeni sayfada video üzerine <bold>basılı tutun</bold>, ardından <bold>Videoyu indir</bold> seçeneğini seçin.",
           "shortTitle": "İndir / Android",
@@ -438,7 +438,7 @@
         "badge": "Eklenti devre dışı",
         "enableExtension": "Eklentiyi etkinleştir",
         "homeButton": "Eve git",
-        "text": "Z-Stream uzantısını kurdunuz. Kullanmaya başlamak için, uzantıyı bu site için etkinleştirmeniz gerekiyor.",
+        "text": "kstream uzantısını kurdunuz. Kullanmaya başlamak için, uzantıyı bu site için etkinleştirmeniz gerekiyor.",
         "title": "Lütfen eklentiyi etkinleştirin"
       },
       "items": {
@@ -461,7 +461,7 @@
       "shortRemaining": "-{{timeLeft}}"
     },
     "turnstile": {
-      "description": "Lütfen sağ taraftaki Captcha'yı çözerek insan olduğunuzu doğrulayın. Bu, Z-Stream'i güvende tutmak içindir!",
+      "description": "Lütfen sağ taraftaki Captcha'yı çözerek insan olduğunuzu doğrulayın. Bu, kstream'i güvende tutmak içindir!",
       "error": "İnsan olduğunuz doğrulanamadı. Lütfen tekrar deneyin.",
       "title": "İnsan olduğunuzu doğrulamamız gerekiyor.",
       "verifyingHumanity": "İnsan olduğunuz doğrulanıyor..."

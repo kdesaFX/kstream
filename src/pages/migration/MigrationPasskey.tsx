@@ -84,7 +84,7 @@ export function MigrationPasskeyPage() {
 
     const credential = await createPasskey(
       `user-${Date.now()}`,
-      "Z-Stream User",
+      "kstream User",
     );
     const newCredId = credential.id;
     const newKeys = await keysFromCredentialId(newCredId);
@@ -98,7 +98,7 @@ export function MigrationPasskeyPage() {
       oldPublicKey,
       newPublicKey,
       challenge: { code: challenge, oldSignature, newSignature },
-      device: "Z-Stream Passkey",
+      device: "kstream Passkey",
     });
 
     storeCredentialMapping(backendUrl, newPublicKey, newCredId);
@@ -110,7 +110,7 @@ export function MigrationPasskeyPage() {
       seed: bytesToBase64(newKeys.seed),
       nickname: result.user.nickname,
       profile: result.user.profile,
-      deviceName: "Z-Stream Passkey",
+      deviceName: "kstream Passkey",
     });
 
     setStep("done");
@@ -136,7 +136,7 @@ export function MigrationPasskeyPage() {
       oldPublicKey,
       newPublicKey,
       challenge: { code: challenge, oldSignature, newSignature },
-      device: "Z-Stream",
+      device: "kstream",
     });
 
     useAuthStore.getState().setAccount({
@@ -146,7 +146,7 @@ export function MigrationPasskeyPage() {
       seed: bytesToBase64(newKeys.seed),
       nickname: result.user.nickname,
       profile: result.user.profile,
-      deviceName: "Z-Stream",
+      deviceName: "kstream",
     });
 
     setStep("done");

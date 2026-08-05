@@ -48,7 +48,7 @@ export function ErrorPart(props: { error: any; errorInfo: any }) {
                   href="https://solutionbay.com/solutions/how-to-whitelist-websites-in-ad-blockers"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-purple-400 underline hover:text-purple-300"
+                  className="text-teal-400 underline hover:text-teal-300"
                 >
                   {t("errors.adBlockerLink")}
                 </a>

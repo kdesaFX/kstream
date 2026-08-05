@@ -1,13 +1,13 @@
 {
-  "name": "Z-Stream",
-  "short_name": "Z-Stream",
+  "name": "kstream",
+  "short_name": "kstream",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#120f1d",
+  "background_color": "#062830",
   "lang": "en",
   "scope": "/",
-  "description": "Watch your favorite shows and movies for free with no ads ever! (っ'ヮ'c)",
-  "theme_color": "#120f1d",
+  "description": "Watch your favorite shows and movies for free! (っ'ヮ'c)",
+  "theme_color": "#062830",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

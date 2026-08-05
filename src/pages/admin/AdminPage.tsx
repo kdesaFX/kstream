@@ -35,7 +35,7 @@ export function AdminPage() {
     <SubPageLayout>
       <ThinContainer>
         <Heading1>Admin tools</Heading1>
-        <Paragraph>Silly tools used test Z-Stream! ૮₍´˶• . • ⑅ ₎ა</Paragraph>
+        <Paragraph>Silly tools used test kstream! ૮₍´˶• . • ⑅ ₎ა</Paragraph>
 
         <ConfigValuesPart />
         <BackendTestPart />

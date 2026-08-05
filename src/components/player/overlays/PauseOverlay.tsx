@@ -198,8 +198,8 @@ export function PauseOverlay() {
             style={staggerStyle(0)}
           >
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-60" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-300" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-60" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-300" />
             </span>
             <span className="text-[11px] font-semibold tracking-[0.3em] uppercase text-white/80">
               {t("player.pauseOverlay.youAreWatching", "Now Playing")}
@@ -228,7 +228,7 @@ export function PauseOverlay() {
               className={`flex flex-wrap items-center gap-2 mb-3 ${stagger()}`}
               style={staggerStyle(2)}
             >
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wider uppercase text-purple-100 bg-purple-500/20 ring-1 ring-purple-400/30 backdrop-blur-sm">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wider uppercase text-teal-100 bg-teal-500/20 ring-1 ring-teal-400/30 backdrop-blur-sm">
                 S{meta.season.number} Â· E{meta.episode.number}
               </span>
             </div>
@@ -339,7 +339,7 @@ export function PauseOverlay() {
             {t("player.pauseOverlay.paused", "Paused")}
           </span>
         </div>
-        <div className="h-[1.5px] w-32 rounded-full bg-gradient-to-r from-transparent via-purple-400/60 to-transparent" />
+        <div className="h-[1.5px] w-32 rounded-full bg-gradient-to-r from-transparent via-teal-400/60 to-transparent" />
       </div>
     </div>
   );

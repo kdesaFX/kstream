@@ -70,7 +70,7 @@ export function LegalPage() {
             description={
               <>
                 <Paragraph>
-                  Z-Stream functions as a search engine and content aggregator
+                  kstream functions as a search engine and content aggregator
                   that indexes publicly available media from across the
                   internet.
                   <br />
@@ -84,7 +84,7 @@ export function LegalPage() {
                   that&apos;s already available online, without bypassing any
                   security measures.
                 </Paragraph>
-                <Link to="/about">Learn more about how Z-Stream works</Link>
+                <Link to="/about">Learn more about how kstream works</Link>
               </>
             }
           />
@@ -124,7 +124,7 @@ export function LegalPage() {
             icon={Icons.EYE_SLASH}
             subtitle="Data Protection"
             title="Privacy & Data"
-            colorClass="text-purple-400"
+            colorClass="text-teal-400"
             description={
               <Paragraph>
                 User privacy is important to us. We don&apos;t collect, store,
@@ -136,7 +136,7 @@ export function LegalPage() {
                 information or identifying data.
                 <br />
                 <br />
-                Z-Stream is entirely self hostable, and can be run on any
+                kstream is entirely self hostable, and can be run on any
                 server. Even by yourself.
               </Paragraph>
             }
@@ -170,7 +170,7 @@ export function LegalPage() {
             colorClass="text-red-400"
             description={
               <Paragraph>
-                Z-Stream is licensed under the MIT license.
+                kstream is licensed under the MIT license.
                 <br />
                 <br />
                 By using our platform, you acknowledge these terms and agree

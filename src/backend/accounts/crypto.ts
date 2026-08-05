@@ -223,7 +223,7 @@ export async function createPasskey(
     {
       challenge,
       rp: {
-        name: "Z-Stream",
+        name: "kstream",
         id: window.location.hostname,
       },
       user: {

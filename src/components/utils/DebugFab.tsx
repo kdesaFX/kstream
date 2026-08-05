@@ -100,7 +100,7 @@ export function DebugFab() {
         type="button"
         title="Debug tools"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-600 text-white shadow-lg transition-transform hover:scale-110"
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg transition-transform hover:scale-110"
       >
         <Icon icon={Icons.GEAR} />
       </button>

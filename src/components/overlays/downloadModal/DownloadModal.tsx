@@ -69,10 +69,10 @@ function DownloadRow({ option }: { option: DownloadOption }) {
 
 export function DownloadModal({ id }: { id: string }) {
   return (
-    <FancyModal id={id} title="Download Z-Stream" size="md">
+    <FancyModal id={id} title="Download kstream" size="md">
       <div className="space-y-4">
         <p className="text-type-secondary text-base leading-relaxed">
-          Take Z-Stream with you. Pick your platform below.
+          Take kstream with you. Pick your platform below.
         </p>
 
         <div className="space-y-3">

@@ -221,7 +221,7 @@ function VideoElement() {
     subtitleTrack = (
       <track
         ref={trackEl}
-        label="Z-Stream Captions"
+        label="kstream Captions"
         kind="subtitles"
         srcLang={language}
         src={trackObjectUrl}

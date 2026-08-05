@@ -164,7 +164,7 @@ export function AppsPage() {
       <div className="mx-auto max-w-5xl px-6 pb-32 pt-4 sm:px-8">
         <div className="text-center">
           <h1 className="mx-auto max-w-2xl text-4xl font-black leading-[1.1] text-white sm:text-5xl">
-            Z-Stream, on{" "}
+            kstream, on{" "}
             <span className="bg-gradient-to-r from-[#aaafff] via-[#c084fc] to-[#8288fe] bg-clip-text text-transparent">
               every screen
             </span>{" "}

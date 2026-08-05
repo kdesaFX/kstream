@@ -348,7 +348,7 @@ export function useAuth() {
       if (!backendUrl) return;
       const passkey = await createPasskey(
         `user-${Date.now()}`,
-        "Z-Stream User",
+        "kstream User",
       );
       return register({
         credentialId: passkey.id,
@@ -399,7 +399,7 @@ export function useAuth() {
       if (!backendUrl || !currentAccount) return;
       const passkey = await createPasskey(
         `user-${Date.now()}`,
-        "Z-Stream User",
+        "kstream User",
       );
       const keys = await keysFromCredentialId(passkey.id);
       const publicKeyBase64Url = bytesToBase64Url(keys.publicKey);
