@@ -30,14 +30,14 @@ export function UpdateNotice() {
   if (!updateAvailable) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-[max(1.25rem,env(safe-area-inset-top))] z-[200] flex justify-center px-4">
+    <div className="pointer-events-none fixed inset-y-0 left-0 z-[200] flex items-center pl-[max(1rem,env(safe-area-inset-left))] pr-4">
       <div
         className={[
           "pointer-events-auto group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-white/10",
           "bg-[#12141c]/85 px-4 py-3 pr-2 shadow-soft-lg backdrop-blur-xl ring-1 ring-white/5",
           "transition-[transform,opacity] duration-300 ease-out-quint",
           "max-w-[min(30rem,calc(100vw-2rem))]",
-          entered ? "translate-y-0 opacity-100" : "-translate-y-4 opacity-0",
+          entered ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0",
         ].join(" ")}
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_100%_at_0%_0%,rgba(139,92,246,0.18),transparent_70%)]" />
