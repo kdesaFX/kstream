@@ -7,7 +7,7 @@ import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
 import { useDedupedMedia } from "./CarouselDedupeContext";
-import { usePersonalRecommendations } from "../hooks/usePersonalRecommendations";
+import { useSharedPersonalRecommendations } from "./PersonalRecommendationsProvider";
 
 interface PersonalRecommendationsCarouselProps {
   isTVShow: boolean;
@@ -59,7 +59,7 @@ export function PersonalRecommendationsCarousel({
   const browser = !!window.chrome;
 
   const { media: rawMedia, isLoading, sectionTitle, hasRecommendations } =
-    usePersonalRecommendations({ isTVShow, enabled });
+    useSharedPersonalRecommendations(isTVShow, enabled);
   const media = useDedupedMedia(dedupePriority, rawMedia);
 
   const categorySlug = `for-you-${isTVShow ? "tv" : "movie"}`;

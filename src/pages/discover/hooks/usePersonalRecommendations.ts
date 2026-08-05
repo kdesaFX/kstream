@@ -12,7 +12,6 @@ import {
 import { useWatchHistoryStore } from "@/stores/watchHistory";
 
 import {
-  type BookmarkSource,
   type HistorySource,
   type ProgressSource,
   type RatingSource,
@@ -41,11 +40,13 @@ export interface UsePersonalRecommendationsOptions {
  * actually fetch. A rating alone isn't enough: someone who rated a batch of
  * things "meh"/"didn't like it" during testing has no positive signal and
  * would otherwise silently fall through to trending, looking unchanged.
+ *
+ * Bookmarks count only as "you have some taste signal" for tab visibility —
+ * they do not feed the algorithm itself.
  */
 export function useHasRecommendationSignal(isTVShow: boolean): boolean {
   const watchHistoryItems = useWatchHistoryStore((s) => s.items);
   const progressItems = useProgressStore((s) => s.items);
-  // Boolean only — a full bookmarks subscription re-rendered Discover on every save.
   const hasBookmark = useBookmarkStore((s) =>
     Object.values(s.bookmarks).some(
       (item) => item.type === (isTVShow ? "show" : "movie"),
@@ -144,8 +145,7 @@ function getHistorySources(
 
 // Compact fingerprint of everything the algorithm reacts to, so the cache
 // invalidates itself the moment a rating, watch, or preference changes.
-// Bookmarks are intentionally omitted — saving a title must not recompute
-// or reshape any For You carousel.
+// Bookmarks are omitted — saving must not recompute For You.
 function buildSignature(
   ratingItems: Record<string, RatedMediaItem>,
   preferences: AlgorithmPreferences,
@@ -177,17 +177,10 @@ export function usePersonalRecommendations({
 
   const watchHistoryItems = useWatchHistoryStore((s) => s.items);
   const progressItems = useProgressStore((s) => s.items);
-  // Boolean only so saving another title does not re-render this hook.
-  const hasBookmarkSignal = useBookmarkStore((s) =>
-    Object.values(s.bookmarks).some(
-      (item) => item.type === (isTVShow ? "show" : "movie"),
-    ),
-  );
   const ratingItems = useRatingsStore((s) => s.ratings);
   const preferences = useRatingsStore((s) => s.preferences);
 
-  // Exclude watched/in-progress only — never bookmarks. Saving must not
-  // remove a title from the feed on the next refresh either.
+  // Exclude watched/in-progress only — never bookmarks.
   const buildExcludeSet = useCallback(() => {
     const exclude = new Set<string>();
     for (const key of Object.keys(watchHistoryItems)) {
@@ -200,22 +193,21 @@ export function usePersonalRecommendations({
 
   const fetch = useCallback(async (options?: { background?: boolean }) => {
     const background = options?.background ?? false;
-    // Snapshot bookmarks at fetch time only (seeds). Not a reactive dep.
+    // Snapshot only — bookmarks are not a reactive dependency, so saving
+    // never retriggers this fetch or reshapes on-screen rows.
     const bookmarks = useBookmarkStore.getState().bookmarks;
 
     const history: HistorySource[] = getHistorySources(watchHistoryItems);
     const progress: ProgressSource[] = Object.entries(progressItems).map(
       ([tmdbId, item]) => ({ tmdbId, type: item.type }),
     );
-    const bookmarkList: BookmarkSource[] = Object.entries(bookmarks).map(
-      ([tmdbId, item]) => ({
-        tmdbId,
-        type: item.type,
-        title: item.title,
-        year: item.year,
-        poster: item.poster,
-      }),
-    );
+    const bookmarkList = Object.entries(bookmarks).map(([tmdbId, item]) => ({
+      tmdbId,
+      type: item.type,
+      title: item.title,
+      year: item.year,
+      poster: item.poster,
+    }));
 
     const ratings: RatingSource[] = Object.entries(ratingItems).map(
       ([tmdbId, item]) => ({
@@ -335,10 +327,7 @@ export function usePersonalRecommendations({
     (r) => r.rating === "liked" || r.rating === "loved",
   ).length;
   const hasRecommendations =
-    historyCount > 0 ||
-    progressCount > 0 ||
-    hasBookmarkSignal ||
-    likedCount > 0;
+    historyCount > 0 || progressCount > 0 || likedCount > 0;
 
   const sectionTitle = t("discover.carousel.title.forYou");
 

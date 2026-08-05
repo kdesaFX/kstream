@@ -13,6 +13,7 @@ import type { FeaturedMedia } from "./components/FeaturedCarousel";
 import { CarouselDedupeProvider } from "./components/CarouselDedupeContext";
 import { ForYouConfidenceCarousel } from "./components/ForYouConfidenceCarousel";
 import { ForYouWeightCarousel } from "./components/ForYouWeightCarousel";
+import { PersonalRecommendationsProvider } from "./components/PersonalRecommendationsProvider";
 import { useHasRecommendationSignal } from "./hooks/usePersonalRecommendations";
 import { LazyMediaCarousel } from "./components/LazyMediaCarousel";
 import { PersonalRecommendationsCarousel } from "./components/PersonalRecommendationsCarousel";
@@ -74,7 +75,7 @@ export function DiscoverContent() {
   // the plain overall Movies/Shows rows, since they're the more specific,
   // more useful cut of the same underlying recommendations.
   const renderForYouContent = () => (
-    <>
+    <PersonalRecommendationsProvider enabled={isForYouTab}>
       <ForYouConfidenceCarousel
         key="foryou-sure"
         tier="sure"
@@ -139,7 +140,7 @@ export function DiscoverContent() {
         title={t("discover.tabs.tvshows")}
         enabled={isForYouTab}
       />
-    </>
+    </PersonalRecommendationsProvider>
   );
 
   // Render Movies content with lazy loading. Earlier rows keep overlapping

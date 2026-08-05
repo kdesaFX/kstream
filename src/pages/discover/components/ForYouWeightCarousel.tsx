@@ -15,7 +15,7 @@ import type { DiscoverMedia } from "@/pages/discover/types/discover";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
-import { usePersonalRecommendations } from "../hooks/usePersonalRecommendations";
+import { useSharedPersonalRecommendations } from "./PersonalRecommendationsProvider";
 
 const ROW_SIZE = 12;
 const PERSONALIZED_SHARE = 0.7;
@@ -80,9 +80,9 @@ export function ForYouWeightCarousel({
   const browser = !!window.chrome;
 
   const { media: personalizedMovies, hasRecommendations: hasMovieRecs } =
-    usePersonalRecommendations({ isTVShow: false, enabled });
+    useSharedPersonalRecommendations(false, enabled);
   const { media: personalizedShows, hasRecommendations: hasShowRecs } =
-    usePersonalRecommendations({ isTVShow: true, enabled });
+    useSharedPersonalRecommendations(true, enabled);
 
   const [fallbackPicks, setFallbackPicks] = useState<DiscoverMedia[]>([]);
   const [fallbackLoading, setFallbackLoading] = useState(true);

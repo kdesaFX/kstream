@@ -486,6 +486,9 @@ export async function fetchPersonalRecommendations(
     );
   for (const p of progressFiltered)
     addSeed(p.tmdbId, SEED_WEIGHT_PROGRESS, RELATED_PER_ITEM_LIMIT);
+  // Bookmarks may seed related picks at fetch time, but the recommendations
+  // hook never refetches when bookmarks change — so saving cannot reshape
+  // an already-visible For You feed.
   for (const b of bookmarksFiltered.slice(0, MAX_BOOKMARK_FOR_RELATED))
     addSeed(b.tmdbId, SEED_WEIGHT_BOOKMARK, RELATED_PER_ITEM_LIMIT);
 
@@ -615,6 +618,7 @@ export async function fetchPersonalRecommendations(
     .map((s) => ({ ...toDiscoverMedia(s.item, isTVShow), matchScore: s.score }));
   const mergedIds = new Set(merged.map((m) => m.id));
 
+  // Reminders only appear on a fresh fetch — never mid-session after a save.
   const reminders: DiscoverMedia[] = [];
   for (const b of bookmarksFiltered) {
     const idNum = Number(b.tmdbId);

@@ -6,7 +6,7 @@ import type { DiscoverMedia } from "@/pages/discover/types/discover";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
-import { usePersonalRecommendations } from "../hooks/usePersonalRecommendations";
+import { useSharedPersonalRecommendations } from "./PersonalRecommendationsProvider";
 
 const ROW_SIZE = 12;
 
@@ -46,13 +46,9 @@ function toCardMedia(item: DiscoverMedia): MediaItem {
 }
 
 /**
- * A "For You" row bucketed by how strongly a personalized pick actually
- * matches your taste (fetchPersonalRecommendations' scoring), rather than
- * genre/weight — "Sure Bets" (top third by score), "Worth a Look" (middle
- * third), "Something New" (bottom third — still personalized, just the
- * loosest, most exploratory matches). No random-popular fallback here: with
- * no taste profile there's nothing to rank by confidence, so the row is
- * simply empty and renders nothing.
+ * A "For You" row bucketed by match score. Uses sequential ROW_SIZE windows
+ * (not thirds of a tiny list) so a 12-item feed fills Sure Bets instead of
+ * leaving three half-empty rows that look "broken".
  */
 export function ForYouConfidenceCarousel({
   tier,
@@ -66,30 +62,23 @@ export function ForYouConfidenceCarousel({
   const browser = !!window.chrome;
 
   const { media: personalizedMovies, isLoading: moviesLoading } =
-    usePersonalRecommendations({ isTVShow: false, enabled });
+    useSharedPersonalRecommendations(false, enabled);
   const { media: personalizedShows, isLoading: showsLoading } =
-    usePersonalRecommendations({ isTVShow: true, enabled });
+    useSharedPersonalRecommendations(true, enabled);
 
-  const isLoading = moviesLoading || showsLoading;
+  const isLoading = enabled && (moviesLoading || showsLoading);
   const categorySlug = `for-you-confidence-${tier}`;
 
   const media = useMemo(() => {
+    if (!enabled) return [];
     const ranked = [...personalizedMovies, ...personalizedShows]
       .filter((m) => typeof m.matchScore === "number")
       .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
 
-    const third = Math.ceil(ranked.length / 3);
-    const bucket =
-      tier === "sure"
-        ? ranked.slice(0, third)
-        : tier === "worthALook"
-          ? ranked.slice(third, third * 2)
-          : ranked.slice(third * 2);
-
-    // Keep score order stable — random reshuffles on every bookmark made
-    // rows look like they "broke" and emptied out.
-    return bucket.slice(0, ROW_SIZE);
-  }, [personalizedMovies, personalizedShows, tier]);
+    const offset =
+      tier === "sure" ? 0 : tier === "worthALook" ? ROW_SIZE : ROW_SIZE * 2;
+    return ranked.slice(offset, offset + ROW_SIZE);
+  }, [personalizedMovies, personalizedShows, tier, enabled]);
 
   const handleWheel = React.useCallback(
     (e: React.WheelEvent) => {
