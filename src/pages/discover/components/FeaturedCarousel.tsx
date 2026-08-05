@@ -4,7 +4,6 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWindowSize } from "react-use";
 
-import { isExtensionActive } from "@/backend/extension/messaging";
 import {
   get,
   getAllTimeBestMovies,
@@ -60,7 +59,7 @@ interface FeaturedCarouselProps {
   children?: ReactNode;
   searching?: boolean;
   shorter?: boolean;
-  forcedCategory?: "foryou" | "movies" | "tvshows" | "editorpicks";
+  forcedCategory?: "foryou" | "movies" | "tvshows";
 }
 
 interface IMDbRatingData {
@@ -156,7 +155,6 @@ export function FeaturedCarousel({
   const [imdbRatings, setImdbRatings] = useState<
     Record<string, IMDbRatingData>
   >({});
-  const hasExtension = useRef<boolean>(false);
   const logoFetchController = useRef<AbortController | null>(null);
   const autoPlayInterval = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
@@ -197,20 +195,16 @@ export function FeaturedCarousel({
   const SLIDE_DURATION = 8000;
 
   // Check for extension on mount
-  useEffect(() => {
-    isExtensionActive().then((active) => {
-      hasExtension.current = active;
-    });
-  }, []);
-
-  // Fetch IMDb ratings when media changes
+  // Fetch IMDb ratings when media changes (extension or CORS proxy)
   useEffect(() => {
     const fetchImdbRatings = async () => {
-      if (!hasExtension.current || !currentMedia?.external_ids?.imdb_id) return;
+      const imdbId = currentMedia?.external_ids?.imdb_id;
+      if (!imdbId) return;
+      if (imdbRatings[imdbId]) return;
 
       try {
         const imdbData = await scrapeIMDb(
-          currentMedia.external_ids.imdb_id,
+          imdbId,
           undefined,
           undefined,
           undefined,
@@ -227,17 +221,20 @@ export function FeaturedCarousel({
           };
           setImdbRatings((prev) => ({
             ...prev,
-            [currentMedia.external_ids!.imdb_id!]: ratingData,
+            [imdbId]: ratingData,
           }));
         }
       } catch (error) {
+        // No proxy/extension or scrape failed — leave rating empty rather
+        // than falling back to TMDB user scores.
         console.error("Error fetching IMDb ratings:", error);
       }
     };
 
     if (currentMedia) {
-      fetchImdbRatings();
+      void fetchImdbRatings();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- skip re-fetch when cache already has this id
   }, [currentMedia]);
 
   useEffect(() => {
@@ -523,60 +520,6 @@ export function FeaturedCarousel({
               setMedia(shuffledShows.slice(0, SLIDE_QUANTITY));
             }
           }
-        } else if (effectiveCategory === "editorpicks") {
-          // Shuffle editor picks Ids
-          const allMovieIds = EDITOR_PICKS_MOVIES.map((item) => ({
-            id: item.id,
-            type: "movie" as const,
-          }));
-          const allShowIds = EDITOR_PICKS_TV_SHOWS.map((item) => ({
-            id: item.id,
-            type: "show" as const,
-          }));
-
-          // Combine and shuffle
-          const combinedIds = [...allMovieIds, ...allShowIds].sort(
-            () => 0.5 - Math.random(),
-          );
-
-          // Select the quantity
-          const selectedMovieIds = combinedIds
-            .filter((item) => item.type === "movie")
-            .slice(0, SLIDE_QUANTITY_EDITOR_PICKS_MOVIES);
-          const selectedShowIds = combinedIds
-            .filter((item) => item.type === "show")
-            .slice(0, SLIDE_QUANTITY_EDITOR_PICKS_TV_SHOWS);
-
-          // Fetch items
-          const moviePromises = selectedMovieIds.map(({ id }) =>
-            get<any>(`/movie/${id}`, {
-              language: formattedLanguage,
-              append_to_response: "external_ids",
-            }),
-          );
-
-          const showPromises = selectedShowIds.map(({ id }) =>
-            get<any>(`/tv/${id}`, {
-              language: formattedLanguage,
-              append_to_response: "external_ids",
-            }),
-          );
-
-          const [movieResults, showResults] = await Promise.all([
-            Promise.all(moviePromises),
-            Promise.all(showPromises),
-          ]);
-
-          const movies = movieResults.map((movie) => ({
-            ...movie,
-            type: "movie" as const,
-          }));
-          const shows = showResults.map((show) => ({
-            ...show,
-            type: "show" as const,
-          }));
-
-          setMedia([...movies, ...shows]);
         }
       } catch (error) {
         console.error("Error fetching featured media:", error);
@@ -945,7 +888,7 @@ export function FeaturedCarousel({
                 {mediaTitle}
               </h1>
             )}
-            {/* TMDB Rating and Year/Seasons */}
+            {/* IMDb rating and year/seasons */}
             <div className="flex items-center gap-2 text-sm text-white/80 mb-4">
               {/* Quality Indicator */}
               {getQualityIndicator() && (
@@ -954,41 +897,31 @@ export function FeaturedCarousel({
                   <span className="text-white/60">•</span>
                 </>
               )}
-              {currentMedia?.vote_average && (
-                <div className="flex items-center gap-1">
-                  <Icon icon={Icons.TMDB} />
-                  <span>{currentMedia.vote_average.toFixed(1)}</span>
-                  {currentMedia.vote_count && (
-                    <span className="text-white/60">
-                      ({currentMedia.vote_count.toLocaleString()})
-                    </span>
-                  )}
-                </div>
-              )}
               {currentMedia?.external_ids?.imdb_id &&
                 imdbRatings[currentMedia.external_ids.imdb_id] && (
-                  <>
-                    <span className="text-white/60">•</span>
-                    <div className="flex items-center gap-1">
-                      <Icon icon={Icons.IMDB} className="text-yellow-400" />
-                      <span>
-                        {imdbRatings[
-                          currentMedia.external_ids.imdb_id
-                        ].rating.toFixed(1)}
-                      </span>
-                      <span className="text-white/60">
-                        (
-                        {imdbRatings[
-                          currentMedia.external_ids.imdb_id
-                        ].votes.toLocaleString()}
-                        )
-                      </span>
-                    </div>
-                  </>
+                  <div className="flex items-center gap-1">
+                    <Icon icon={Icons.IMDB} className="text-yellow-400" />
+                    <span>
+                      {imdbRatings[
+                        currentMedia.external_ids.imdb_id
+                      ].rating.toFixed(1)}
+                    </span>
+                    <span className="text-white/60">
+                      (
+                      {imdbRatings[
+                        currentMedia.external_ids.imdb_id
+                      ].votes.toLocaleString()}
+                      )
+                    </span>
+                  </div>
                 )}
               {currentMedia?.release_date && (
                 <>
-                  <span className="text-white/60">•</span>
+                  {(getQualityIndicator() ||
+                    (currentMedia?.external_ids?.imdb_id &&
+                      imdbRatings[currentMedia.external_ids.imdb_id])) && (
+                    <span className="text-white/60">•</span>
+                  )}
                   <span>
                     {new Date(currentMedia.release_date).getFullYear()}
                   </span>

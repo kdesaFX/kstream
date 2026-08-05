@@ -9,7 +9,6 @@ export type DiscoverContentType =
   | "top10"
   | "genre"
   | "provider"
-  | "editorPicks"
   | "recommendations"
   | "popularThisWeek"
   | "randomPopular";

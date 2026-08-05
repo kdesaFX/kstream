@@ -6,6 +6,7 @@ import type { DiscoverMedia } from "@/pages/discover/types/discover";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
+import { useDedupedMedia } from "./CarouselDedupeContext";
 import { usePersonalRecommendations } from "../hooks/usePersonalRecommendations";
 
 interface PersonalRecommendationsCarouselProps {
@@ -17,6 +18,7 @@ interface PersonalRecommendationsCarouselProps {
   /** Overrides the default "For You" heading. */
   title?: string;
   enabled?: boolean;
+  dedupePriority?: number;
 }
 
 function getPosterUrl(posterPath: string): string {
@@ -50,13 +52,15 @@ export function PersonalRecommendationsCarousel({
   onShowDetails,
   title,
   enabled = true,
+  dedupePriority,
 }: PersonalRecommendationsCarouselProps) {
   const { isMobile } = useIsMobile();
   const isScrollingRef = useRef(false);
   const browser = !!window.chrome;
 
-  const { media, isLoading, sectionTitle, hasRecommendations } =
+  const { media: rawMedia, isLoading, sectionTitle, hasRecommendations } =
     usePersonalRecommendations({ isTVShow, enabled });
+  const media = useDedupedMedia(dedupePriority, rawMedia);
 
   const categorySlug = `for-you-${isTVShow ? "tv" : "movie"}`;
 
@@ -80,6 +84,7 @@ export function PersonalRecommendationsCarousel({
   );
 
   if (!hasRecommendations) return null;
+  if (!isLoading && media.length === 0) return null;
 
   return (
     <div>

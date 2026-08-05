@@ -25,6 +25,7 @@ interface LazyMediaCarouselProps {
   showRecommendations?: boolean;
   priority?: boolean; // For carousels that should load immediately (e.g., first few)
   enabled?: boolean;
+  dedupePriority?: number;
 }
 
 export function LazyMediaCarousel({
@@ -39,6 +40,7 @@ export function LazyMediaCarousel({
   showRecommendations = false,
   priority = false,
   enabled = true,
+  dedupePriority,
 }: LazyMediaCarouselProps) {
   const { ref, hasIntersected } = useIntersectionObserver<HTMLDivElement>({
     threshold: 0.1,
@@ -63,6 +65,7 @@ export function LazyMediaCarousel({
           showGenres={showGenres}
           showRecommendations={showRecommendations}
           enabled={enabled}
+          dedupePriority={dedupePriority}
         />
       ) : (
         // Placeholder with similar height to prevent layout shift

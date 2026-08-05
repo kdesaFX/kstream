@@ -19,8 +19,6 @@ export function DetailsBody({
   onPlayClick,
   onShareClick,
   showProgress,
-  voteAverage,
-  voteCount,
   releaseDate,
   seasons,
   imdbData,
@@ -149,32 +147,18 @@ export function DetailsBody({
           </>
         )}
 
-        {/* Ratings Group */}
+        {/* Ratings Group — IMDb only (TMDB user scores are not shown) */}
         <div className="flex items-center gap-2">
-          {voteAverage && (
+          {imdbData?.rating && (
             <div className="flex items-center gap-1">
-              <Icon icon={Icons.TMDB} />
-              <span>{voteAverage.toFixed(1)}</span>
-              {voteCount && (
+              <Icon icon={Icons.IMDB} className="text-yellow-400" />
+              <span>{imdbData.rating.toFixed(1)}</span>
+              {imdbData.votes && (
                 <span className="text-white/60">
-                  ({voteCount.toLocaleString()})
+                  ({imdbData.votes.toLocaleString()})
                 </span>
               )}
             </div>
-          )}
-          {imdbData?.rating && (
-            <>
-              <span className="text-white/60">•</span>
-              <div className="flex items-center gap-1">
-                <Icon icon={Icons.IMDB} className="text-yellow-400" />
-                <span>{imdbData.rating.toFixed(1)}</span>
-                {imdbData.votes && (
-                  <span className="text-white/60">
-                    ({imdbData.votes.toLocaleString()})
-                  </span>
-                )}
-              </div>
-            </>
           )}
         </div>
 

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-type Category = "foryou" | "movies" | "tvshows" | "editorpicks";
+type Category = "foryou" | "movies" | "tvshows";
 
 interface DiscoverView {
   url: string;
@@ -21,6 +21,14 @@ interface DiscoverState {
   clearLastView: () => void;
 }
 
+function normalizeCategory(category: unknown): Category {
+  if (category === "foryou" || category === "movies" || category === "tvshows") {
+    return category;
+  }
+  // Drop legacy "editorpicks" (and anything else) onto movies
+  return "movies";
+}
+
 export const useDiscoverStore = create<DiscoverState>()(
   persist(
     (set) => ({
@@ -28,12 +36,23 @@ export const useDiscoverStore = create<DiscoverState>()(
       hasManuallySelected: false,
       lastView: null,
       setSelectedCategory: (category) =>
-        set({ selectedCategory: category, hasManuallySelected: true }),
+        set({
+          selectedCategory: normalizeCategory(category),
+          hasManuallySelected: true,
+        }),
       setLastView: (view) => set({ lastView: view }),
       clearLastView: () => set({ lastView: null }),
     }),
     {
       name: "__MW::discover",
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<DiscoverState>;
+        return {
+          ...current,
+          ...p,
+          selectedCategory: normalizeCategory(p.selectedCategory),
+        };
+      },
     },
   ),
 );

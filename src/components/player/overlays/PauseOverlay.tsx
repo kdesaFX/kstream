@@ -256,20 +256,6 @@ export function PauseOverlay() {
             className={`flex flex-wrap items-center gap-2 ${stagger()}`}
             style={staggerStyle(5)}
           >
-            {details.voteAverage !== null && details.voteAverage > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium text-white/90 bg-white/10 ring-1 ring-white/15 backdrop-blur-sm">
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="text-amber-300"
-                >
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
-                <span>{details.voteAverage.toFixed(1)}</span>
-              </span>
-            )}
             {(details.runtime ?? 0) > 0 && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium text-white/90 bg-white/10 ring-1 ring-white/15 backdrop-blur-sm">
                 <svg

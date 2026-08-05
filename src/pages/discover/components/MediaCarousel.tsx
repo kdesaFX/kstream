@@ -20,6 +20,7 @@ import { useProgressStore } from "@/stores/progress";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
+import { useDedupedMedia } from "./CarouselDedupeContext";
 
 const SKELETON_COUNT = 10;
 
@@ -41,6 +42,8 @@ interface MediaCarouselProps {
   showGenres?: boolean;
   showRecommendations?: boolean;
   enabled?: boolean;
+  /** Lower = keeps overlapping titles (earlier rows on the page). */
+  dedupePriority?: number;
 }
 
 function MoreCard({ link }: { link: string }) {
@@ -86,6 +89,7 @@ export function MediaCarousel({
   showGenres = false,
   showRecommendations = false,
   enabled = true,
+  dedupePriority,
 }: MediaCarouselProps) {
   const { t } = useTranslation();
   const { width: windowWidth } = useWindowSize();
@@ -205,7 +209,7 @@ export function MediaCarousel({
   ]);
 
   // Fetch media using our hook
-  const { media, sectionTitle, actualContentType, error, isLoading } =
+  const { media: rawMedia, sectionTitle, actualContentType, error, isLoading } =
     useDiscoverMedia({
       contentType,
       mediaType,
@@ -217,6 +221,9 @@ export function MediaCarousel({
       isCarouselView: true,
       enabled,
     });
+
+  // Drop titles already claimed by an earlier row on this tab
+  const media = useDedupedMedia(dedupePriority, rawMedia);
 
   // Hide section if there's an error or no content (after loading is complete)
   const shouldHide = !isLoading && (error || media.length === 0);

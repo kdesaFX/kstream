@@ -10,6 +10,7 @@ import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { DiscoverNavigation } from "./components/DiscoverNavigation";
 import type { FeaturedMedia } from "./components/FeaturedCarousel";
+import { CarouselDedupeProvider } from "./components/CarouselDedupeContext";
 import { ForYouConfidenceCarousel } from "./components/ForYouConfidenceCarousel";
 import { ForYouWeightCarousel } from "./components/ForYouWeightCarousel";
 import { useHasRecommendationSignal } from "./hooks/usePersonalRecommendations";
@@ -40,12 +41,9 @@ export function DiscoverContent() {
   const isForYouTab = effectiveCategory === "foryou";
   const isMoviesTab = effectiveCategory === "movies";
   const isTVShowsTab = effectiveCategory === "tvshows";
-  const isEditorPicksTab = effectiveCategory === "editorpicks";
 
   const handleCategoryChange = useCallback((category: string) => {
-    setSelectedCategory(
-      category as "foryou" | "movies" | "tvshows" | "editorpicks",
-    );
+    setSelectedCategory(category as "foryou" | "movies" | "tvshows");
   }, [setSelectedCategory]);
 
   const handleShowDetails = useCallback((media: MediaItem | FeaturedMedia) => {
@@ -144,9 +142,11 @@ export function DiscoverContent() {
     </>
   );
 
-  // Render Movies content with lazy loading
+  // Render Movies content with lazy loading. Earlier rows keep overlapping
+  // titles; later rows drop them so each poster shows once.
   const renderMoviesContent = () => {
     const carousels = [];
+    let dedupe = 0;
 
     // For You - personal recommendations from watch history, progress, and bookmarks
     carousels.push(
@@ -156,6 +156,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         enabled={isMoviesTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -172,6 +173,7 @@ export function DiscoverContent() {
           showRecommendations
           priority={carousels.length < 2} // First 2 carousels load immediately
           enabled={isMoviesTab}
+          dedupePriority={dedupe++}
         />,
       );
     }
@@ -187,6 +189,7 @@ export function DiscoverContent() {
         moreContent
         priority={carousels.length < 2}
         enabled={isMoviesTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -201,6 +204,7 @@ export function DiscoverContent() {
         moreContent
         priority={carousels.length < 2}
         enabled={isMoviesTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -216,6 +220,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         enabled={isMoviesTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -230,21 +235,9 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         enabled={isMoviesTab}
+        dedupePriority={dedupe++}
       />,
     );
-
-    // 4K Releases
-    // carousels.push(
-    //   <LazyMediaCarousel
-    //     key="movie-4k"
-    //     content={{ type: "latest4k", fallback: "popular" }}
-    //     isTVShow={false}
-    //     carouselRefs={carouselRefs}
-    //     onShowDetails={handleShowDetails}
-    //     moreContent
-    //     priority={carousels.length < 2}
-    //   />,
-    // );
 
     // Top Rated
     carousels.push(
@@ -257,6 +250,7 @@ export function DiscoverContent() {
         moreContent
         priority={carousels.length < 2}
         enabled={isMoviesTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -271,6 +265,7 @@ export function DiscoverContent() {
         showProviders
         moreContent
         enabled={isMoviesTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -285,15 +280,21 @@ export function DiscoverContent() {
         showGenres
         moreContent
         enabled={isMoviesTab}
+        dedupePriority={dedupe++}
       />,
     );
 
-    return carousels;
+    return (
+      <CarouselDedupeProvider key="movies-dedupe">
+        {carousels}
+      </CarouselDedupeProvider>
+    );
   };
 
   // Render TV Shows content with lazy loading
   const renderTVShowsContent = () => {
     const carousels = [];
+    let dedupe = 0;
 
     // For You - personal recommendations from watch history, progress, and bookmarks
     carousels.push(
@@ -303,6 +304,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         enabled={isTVShowsTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -319,6 +321,7 @@ export function DiscoverContent() {
           showRecommendations
           priority={carousels.length < 2} // First 2 carousels load immediately
           enabled={isTVShowsTab}
+          dedupePriority={dedupe++}
         />,
       );
     }
@@ -334,6 +337,7 @@ export function DiscoverContent() {
         moreContent
         priority={carousels.length < 2}
         enabled={isTVShowsTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -348,6 +352,7 @@ export function DiscoverContent() {
         moreContent
         priority={carousels.length < 2}
         enabled={isTVShowsTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -362,6 +367,7 @@ export function DiscoverContent() {
         moreContent
         priority={carousels.length < 2}
         enabled={isTVShowsTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -376,6 +382,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         enabled={isTVShowsTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -390,6 +397,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         enabled={isTVShowsTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -404,6 +412,7 @@ export function DiscoverContent() {
         showProviders
         moreContent
         enabled={isTVShowsTab}
+        dedupePriority={dedupe++}
       />,
     );
 
@@ -418,35 +427,14 @@ export function DiscoverContent() {
         showGenres
         moreContent
         enabled={isTVShowsTab}
+        dedupePriority={dedupe++}
       />,
     );
 
-    return carousels;
-  };
-
-  // Render Editor Picks content
-  const renderEditorPicksContent = () => {
     return (
-      <>
-        <LazyMediaCarousel
-          content={{ type: "editorPicks" }}
-          isTVShow={false}
-          carouselRefs={carouselRefs}
-          onShowDetails={handleShowDetails}
-          moreContent
-          priority // Editor picks load immediately since they're the main content
-          enabled={isEditorPicksTab}
-        />
-        <LazyMediaCarousel
-          content={{ type: "editorPicks" }}
-          isTVShow
-          carouselRefs={carouselRefs}
-          onShowDetails={handleShowDetails}
-          moreContent
-          priority // Editor picks load immediately since they're the main content
-          enabled={isEditorPicksTab}
-        />
-      </>
+      <CarouselDedupeProvider key="tv-dedupe">
+        {carousels}
+      </CarouselDedupeProvider>
     );
   };
 
@@ -472,11 +460,6 @@ export function DiscoverContent() {
         {/* TV Shows Tab */}
         <div style={{ display: isTVShowsTab ? "block" : "none" }}>
           {renderTVShowsContent()}
-        </div>
-
-        {/* Editor Picks Tab */}
-        <div style={{ display: isEditorPicksTab ? "block" : "none" }}>
-          {renderEditorPicksContent()}
         </div>
       </WideContainer>
 

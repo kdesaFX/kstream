@@ -381,37 +381,6 @@ export function useDiscoverMedia({
     [mediaType],
   );
 
-  const fetchEditorPicks = useCallback(async () => {
-    const picks =
-      mediaType === "movie" ? EDITOR_PICKS_MOVIES : EDITOR_PICKS_TV_SHOWS;
-
-    // For carousel views, limit the number of picks to fetch
-    const picksToFetch = isCarouselView ? picks.slice(0, 20) : picks;
-
-    try {
-      const mediaPromises = picksToFetch.map(async (item) => {
-        const endpoint = `/${mediaType}/${item.id}`;
-          const data = await fetchTmdbCached(endpoint, {
-          language: formattedLanguage,
-          append_to_response: "videos,images",
-        });
-        return {
-          ...data,
-          type: item.type,
-        };
-      });
-
-      const results = await Promise.all(mediaPromises);
-      return {
-        results,
-        hasMore: picks.length > picksToFetch.length,
-      };
-    } catch (err) {
-      console.error("Error fetching editor picks:", err);
-      throw err;
-    }
-  }, [mediaType, formattedLanguage, isCarouselView]);
-
   const fetchMedia = useCallback(async () => {
     // Skip fetching recommendations if no ID is provided
     if (contentType === "recommendations" && !id) {
@@ -595,15 +564,6 @@ export function useDiscoverMedia({
           );
           break;
 
-        case "editorPicks":
-          data = await fetchEditorPicks();
-          setSectionTitle(
-            mediaType === "movie"
-              ? t("discover.carousel.title.editorPicksMovies")
-              : t("discover.carousel.title.editorPicksShows"),
-          );
-          break;
-
         default:
           throw new Error(`Unsupported content type: ${type}`);
       }
@@ -658,7 +618,6 @@ export function useDiscoverMedia({
     mediaTitle,
     fetchTMDBMedia,
     fetchTraktMedia,
-    fetchEditorPicks,
     t,
     page,
     getTraktProviderFunction,

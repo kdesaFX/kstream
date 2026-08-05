@@ -15,8 +15,8 @@ export function DiscoverNavigation({
   const { t } = useTranslation();
 
   const categories = showForYou
-    ? ["foryou", "movies", "tvshows", "editorpicks"]
-    : ["movies", "tvshows", "editorpicks"];
+    ? ["foryou", "movies", "tvshows"]
+    : ["movies", "tvshows"];
 
   return (
     <div className="pb-4 w-full max-w-screen-xl mx-auto">
