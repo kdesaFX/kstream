@@ -153,8 +153,8 @@ function filterResultsByGenre(
 }
 
 /** Enough items for a full carousel after genre filter + cross-row dedupe. */
-const CAROUSEL_POOL_SIZE = 60;
-const CAROUSEL_MAX_PAGES = 5;
+const CAROUSEL_POOL_SIZE = 100;
+const CAROUSEL_MAX_PAGES = 8;
 
 export function useDiscoverOptions(mediaType: MediaType) {
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -608,12 +608,12 @@ export function useDiscoverMedia({
 
         case "nowPlaying":
           if (mediaType === "movie") {
-            // Now-playing + genre often has only a handful of titles after
-            // filtering. Discover with theatrical release types fills the row.
+            // Now-playing + genre is tiny. Discover theatrical by release date
+            // (not popularity) so it doesn't clone "Most Popular" under a genre.
             data = genreId
               ? await fetchTMDBMedia(`/discover/movie`, {
                   with_release_type: "2|3",
-                  sort_by: "popularity.desc",
+                  sort_by: "primary_release_date.desc",
                   include_adult: false,
                 })
               : await fetchTMDBMedia("/movie/now_playing");

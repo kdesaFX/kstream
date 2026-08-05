@@ -20,7 +20,7 @@ import { useProgressStore } from "@/stores/progress";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
-import { useDedupedMedia } from "./CarouselDedupeContext";
+import { useDedupedCarouselMedia } from "./useDedupedCarouselMedia";
 
 const SKELETON_COUNT = 10;
 
@@ -225,8 +225,15 @@ export function MediaCarousel({
       genreId,
     });
 
-  // Drop titles already claimed by an earlier row on this tab
-  const media = useDedupedMedia(dedupePriority, rawMedia);
+  // Drop titles already claimed by an earlier row; under a genre chip,
+  // backfill unique discover titles so the row stays full without doubles.
+  const media = useDedupedCarouselMedia(dedupePriority, rawMedia, {
+    genreId,
+    mediaType,
+    enabled,
+    isLoading,
+    resetKey: `${contentType}:${selectedProviderId}:${selectedRecommendationId}`,
+  });
 
   // Hide section if there's an error or no content (after loading is complete)
   const shouldHide = !isLoading && (error || media.length === 0);

@@ -6,7 +6,7 @@ import type { DiscoverMedia } from "@/pages/discover/types/discover";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
-import { useDedupedMedia } from "./CarouselDedupeContext";
+import { useDedupedCarouselMedia } from "./useDedupedCarouselMedia";
 import { useSharedPersonalRecommendations } from "./PersonalRecommendationsProvider";
 
 interface PersonalRecommendationsCarouselProps {
@@ -73,7 +73,13 @@ export function PersonalRecommendationsCarousel({
     );
   }, [rawMedia, genreId]);
 
-  const media = useDedupedMedia(dedupePriority, genreFiltered);
+  const media = useDedupedCarouselMedia(dedupePriority, genreFiltered, {
+    genreId,
+    mediaType: isTVShow ? "tv" : "movie",
+    enabled,
+    isLoading,
+    resetKey: `for-you-${isTVShow ? "tv" : "movie"}`,
+  });
 
   const categorySlug = `for-you-${isTVShow ? "tv" : "movie"}`;
 
