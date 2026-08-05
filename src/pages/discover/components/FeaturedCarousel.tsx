@@ -27,7 +27,7 @@ import {
 import { useDiscoverStore } from "@/stores/discover";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
-import { scrapeIMDb } from "@/utils/services/imdbScraper";
+import { fetchImdbRating } from "@/utils/services/imdbRating";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { detectUserLanguage, detectUserRegion } from "@/utils/locale/userRegion";
 
@@ -195,40 +195,20 @@ export function FeaturedCarousel({
   const SLIDE_DURATION = 8000;
 
   // Check for extension on mount
-  // Fetch IMDb ratings when media changes (extension or CORS proxy)
+  // Fetch IMDb ratings when media changes (OMDb key, extension, or proxy)
   useEffect(() => {
     const fetchImdbRatings = async () => {
       const imdbId = currentMedia?.external_ids?.imdb_id;
       if (!imdbId) return;
       if (imdbRatings[imdbId]) return;
 
-      try {
-        const imdbData = await scrapeIMDb(
-          imdbId,
-          undefined,
-          undefined,
-          undefined,
-          currentMedia.type,
-        );
-        // Only update if we have both rating and votes as non-null numbers
-        if (
-          typeof imdbData.imdb_rating === "number" &&
-          typeof imdbData.votes === "number"
-        ) {
-          const ratingData: IMDbRatingData = {
-            rating: imdbData.imdb_rating,
-            votes: imdbData.votes,
-          };
-          setImdbRatings((prev) => ({
-            ...prev,
-            [imdbId]: ratingData,
-          }));
-        }
-      } catch (error) {
-        // No proxy/extension or scrape failed — leave rating empty rather
-        // than falling back to TMDB user scores.
-        console.error("Error fetching IMDb ratings:", error);
-      }
+      const result = await fetchImdbRating(imdbId, currentMedia.type);
+      if (!result) return;
+
+      setImdbRatings((prev) => ({
+        ...prev,
+        [imdbId]: { rating: result.rating, votes: result.votes },
+      }));
     };
 
     if (currentMedia) {
@@ -888,7 +868,7 @@ export function FeaturedCarousel({
                 {mediaTitle}
               </h1>
             )}
-            {/* IMDb rating and year/seasons */}
+            {/* Rating (IMDb when available, else TMDB) and year/seasons */}
             <div className="flex items-center gap-2 text-sm text-white/80 mb-4">
               {/* Quality Indicator */}
               {getQualityIndicator() && (
@@ -897,27 +877,41 @@ export function FeaturedCarousel({
                   <span className="text-white/60">•</span>
                 </>
               )}
-              {currentMedia?.external_ids?.imdb_id &&
-                imdbRatings[currentMedia.external_ids.imdb_id] && (
-                  <div className="flex items-center gap-1">
-                    <Icon icon={Icons.IMDB} className="text-yellow-400" />
-                    <span>
-                      {imdbRatings[
-                        currentMedia.external_ids.imdb_id
-                      ].rating.toFixed(1)}
-                    </span>
-                    <span className="text-white/60">
-                      (
-                      {imdbRatings[
-                        currentMedia.external_ids.imdb_id
-                      ].votes.toLocaleString()}
-                      )
-                    </span>
-                  </div>
-                )}
+              {(() => {
+                const imdbId = currentMedia?.external_ids?.imdb_id;
+                const imdb = imdbId ? imdbRatings[imdbId] : undefined;
+                if (imdb) {
+                  return (
+                    <div className="flex items-center gap-1">
+                      <Icon icon={Icons.IMDB} className="text-yellow-400" />
+                      <span>{imdb.rating.toFixed(1)}</span>
+                      {imdb.votes > 0 && (
+                        <span className="text-white/60">
+                          ({imdb.votes.toLocaleString()})
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+                if (currentMedia?.vote_average) {
+                  return (
+                    <div className="flex items-center gap-1">
+                      <Icon icon={Icons.TMDB} />
+                      <span>{currentMedia.vote_average.toFixed(1)}</span>
+                      {currentMedia.vote_count ? (
+                        <span className="text-white/60">
+                          ({currentMedia.vote_count.toLocaleString()})
+                        </span>
+                      ) : null}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               {currentMedia?.release_date && (
                 <>
                   {(getQualityIndicator() ||
+                    currentMedia?.vote_average ||
                     (currentMedia?.external_ids?.imdb_id &&
                       imdbRatings[currentMedia.external_ids.imdb_id])) && (
                     <span className="text-white/60">•</span>

@@ -11,6 +11,7 @@ import { usePreferencesStore } from "@/stores/preferences";
 import { getProgressPercentage, useProgressStore } from "@/stores/progress";
 import { shouldShowProgress } from "@/stores/progress/utils";
 import { scrapeIMDb } from "@/utils/services/imdbScraper";
+import { fetchImdbRating } from "@/utils/services/imdbRating";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { scrapeRottenTomatoes } from "@/utils/services/rottenTomatoesScraper";
 
@@ -177,24 +178,39 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
         const userLanguage = useLanguageStore.getState().language;
         const formattedLanguage = getTmdbLanguageCode(userLanguage);
 
-        // Fetch IMDb data
-        const imdbMetadata = await scrapeIMDb(
-          data.imdbId,
-          undefined,
-          undefined,
-          formattedLanguage,
-          data.type,
-        );
-        // Transform the data to match the expected format
-        if (
-          (typeof imdbMetadata.imdb_rating === "number" &&
-            typeof imdbMetadata.votes === "number") ||
-          imdbMetadata.trailer_url
-        ) {
+        // Prefer OMDb / scrape for IMDb score; keep scrape for trailer too.
+        let rating: number | null | undefined;
+        let votes: number | null | undefined;
+        let trailerUrl: string | undefined;
+
+        try {
+          const imdbMetadata = await scrapeIMDb(
+            data.imdbId,
+            undefined,
+            undefined,
+            formattedLanguage,
+            data.type,
+          );
+          rating = imdbMetadata.imdb_rating;
+          votes = imdbMetadata.votes;
+          trailerUrl = imdbMetadata.trailer_url;
+        } catch {
+          // Extension/proxy missing — try OMDb for the score only
+        }
+
+        if (typeof rating !== "number") {
+          const omdb = await fetchImdbRating(data.imdbId, data.type);
+          if (omdb) {
+            rating = omdb.rating;
+            votes = omdb.votes;
+          }
+        }
+
+        if (typeof rating === "number" || trailerUrl) {
           setImdbData({
-            rating: imdbMetadata.imdb_rating,
-            votes: imdbMetadata.votes,
-            trailer_url: imdbMetadata.trailer_url,
+            rating,
+            votes,
+            trailer_url: trailerUrl,
           });
         } else {
           setImdbData(null);

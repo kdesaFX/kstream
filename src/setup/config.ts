@@ -61,6 +61,7 @@ interface Config {
   ENABLE_POPUNDER: boolean;
   POPUNDER_SCRIPT_URL: string;
   POPUNDER_ZONE_ID: string;
+  OMDB_API_KEY: string;
 }
 
 export interface RuntimeConfig {
@@ -119,6 +120,8 @@ export interface RuntimeConfig {
   ENABLE_POPUNDER: boolean;
   POPUNDER_SCRIPT_URL: string | null;
   POPUNDER_ZONE_ID: string | null;
+  /** Optional OMDb key — enables IMDb scores in-browser without extension/proxy. */
+  OMDB_API_KEY: string | null;
 }
 
 const env: Record<keyof Config, undefined | string> = {
@@ -179,6 +182,7 @@ const env: Record<keyof Config, undefined | string> = {
   ENABLE_POPUNDER: import.meta.env.VITE_ENABLE_POPUNDER,
   POPUNDER_SCRIPT_URL: import.meta.env.VITE_POPUNDER_SCRIPT_URL,
   POPUNDER_ZONE_ID: import.meta.env.VITE_POPUNDER_ZONE_ID,
+  OMDB_API_KEY: import.meta.env.VITE_OMDB_API_KEY,
 };
 
 function coerceUndefined(value: string | null | undefined): string | undefined {
@@ -299,5 +303,6 @@ export function conf(): RuntimeConfig {
     ENABLE_POPUNDER: getKey("ENABLE_POPUNDER", "false") === "true",
     POPUNDER_SCRIPT_URL: getKey("POPUNDER_SCRIPT_URL"),
     POPUNDER_ZONE_ID: getKey("POPUNDER_ZONE_ID"),
+    OMDB_API_KEY: getKey("OMDB_API_KEY"),
   };
 }
