@@ -907,7 +907,7 @@ export async function getAllTimeBestMovies(
   limit: number = 15,
   page: number | undefined = undefined,
 ): Promise<TMDBMovieSearchResult[]> {
-  const mapItem = (r: TMDBMovieSearchResult) => ({
+  const mapItem = (r: TMDBMovieSearchResult): TMDBMovieSearchResult => ({
     ...r,
     media_type: TMDBContentTypes.MOVIE,
   });
@@ -954,7 +954,7 @@ export async function getAllTimeBestShows(
   limit: number = 15,
   page: number | undefined = undefined,
 ): Promise<TMDBShowSearchResult[]> {
-  const mapItem = (r: TMDBShowSearchResult) => ({
+  const mapItem = (r: TMDBShowSearchResult): TMDBShowSearchResult => ({
     ...r,
     media_type: TMDBContentTypes.TV,
   });
