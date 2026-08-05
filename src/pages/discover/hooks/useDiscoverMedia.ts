@@ -517,20 +517,50 @@ export function useDiscoverMedia({
         // fetchTMDBMedia since carousel views force page 1 there, which
         // would defeat the randomization.
         case "randomPopular": {
-          // Over-fetch so genre filter + cross-carousel dedupe still leave
-          // a full row (one discover page is only ~20 titles).
+          // Over-fetch so genre filter still leaves a full row.
           if (genreId) {
-            // Server-side genre match — client-filtering random pages is sparse.
-            data = await fetchTMDBMedia(`/discover/${mediaType}`, {
-              sort_by: "popularity.desc",
-              "vote_count.gte": mediaType === "movie" ? 300 : 150,
-              "vote_average.gte": 6,
-              include_adult: false,
-            });
-            // Shuffle so it still feels like "picks", not a ranked list.
+            // Random deep pages (not page 1–N popularity) so this isn't a
+            // shuffled clone of "Most Popular" under the same genre.
+            const pagesNeeded = Math.max(1, Math.ceil(CAROUSEL_POOL_SIZE / 20));
+            const maxPage = mediaType === "movie" ? 40 : 20;
+            const pageSet = new Set<number>();
+            while (pageSet.size < pagesNeeded) {
+              pageSet.add(Math.floor(Math.random() * maxPage) + 1);
+            }
+            const batches = await Promise.all(
+              [...pageSet].map((p) =>
+                fetchTmdbCached(`/discover/${mediaType}`, {
+                  language: formattedLanguage,
+                  region: detectUserRegion(),
+                  page: String(p),
+                  sort_by: "popularity.desc",
+                  "vote_count.gte": mediaType === "movie" ? 300 : 150,
+                  "vote_average.gte": 6,
+                  include_adult: false,
+                  with_genres: genreId,
+                }),
+              ),
+            );
+            const seen = new Set<number>();
+            const merged: DiscoverMedia[] = [];
+            for (const batch of batches) {
+              for (const item of batch.results ?? []) {
+                if (item?.id == null || seen.has(item.id)) continue;
+                seen.add(item.id);
+                merged.push({
+                  ...item,
+                  type: mediaType === "movie" ? "movie" : "show",
+                });
+              }
+            }
+            // Fisher–Yates shuffle
+            for (let i = merged.length - 1; i > 0; i -= 1) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [merged[i], merged[j]] = [merged[j]!, merged[i]!];
+            }
             data = {
-              ...data,
-              results: [...data.results].sort(() => Math.random() - 0.5),
+              results: merged.slice(0, CAROUSEL_POOL_SIZE),
+              hasMore: true,
             };
           } else {
             const randomItems =
@@ -561,7 +591,15 @@ export function useDiscoverMedia({
 
         case "onTheAir":
           if (mediaType === "tv") {
-            data = await fetchTMDBMedia("/tv/on_the_air");
+            // On-the-air is a short list; under a genre chip prefer discover
+            // so the row can actually fill.
+            data = genreId
+              ? await fetchTMDBMedia(`/discover/tv`, {
+                  sort_by: "popularity.desc",
+                  "vote_count.gte": 20,
+                  include_adult: false,
+                })
+              : await fetchTMDBMedia("/tv/on_the_air");
             setSectionTitle(t("discover.carousel.title.onTheAir"));
           } else {
             throw new Error("onTheAir is only available for TV shows");
@@ -570,7 +608,15 @@ export function useDiscoverMedia({
 
         case "nowPlaying":
           if (mediaType === "movie") {
-            data = await fetchTMDBMedia("/movie/now_playing");
+            // Now-playing + genre often has only a handful of titles after
+            // filtering. Discover with theatrical release types fills the row.
+            data = genreId
+              ? await fetchTMDBMedia(`/discover/movie`, {
+                  with_release_type: "2|3",
+                  sort_by: "popularity.desc",
+                  include_adult: false,
+                })
+              : await fetchTMDBMedia("/movie/now_playing");
             setSectionTitle(t("discover.carousel.title.inCinemas"));
           } else {
             throw new Error("nowPlaying is only available for movies");
@@ -683,8 +729,42 @@ export function useDiscoverMedia({
       return data;
     };
 
+    const ensureFullGenreCarousel = async (data: {
+      results: DiscoverMedia[];
+      hasMore: boolean;
+    }) => {
+      // Under a genre chip, sparse list endpoints (now playing, trending,
+      // recommendations) can still undershoot — top up from discover.
+      if (
+        !isCarouselView ||
+        !genreId ||
+        data.results.length >= CAROUSEL_POOL_SIZE
+      ) {
+        return data;
+      }
+      const fill = await fetchTMDBMedia(`/discover/${mediaType}`, {
+        sort_by: "popularity.desc",
+        include_adult: false,
+        "vote_count.gte": 20,
+      });
+      const seen = new Set<number>();
+      for (const item of data.results) {
+        if (item?.id != null) seen.add(item.id);
+      }
+      const merged = [...data.results];
+      for (const item of fill.results) {
+        if (item?.id == null || seen.has(item.id)) continue;
+        seen.add(item.id);
+        merged.push(item);
+        if (merged.length >= CAROUSEL_POOL_SIZE) break;
+      }
+      return { ...data, results: merged };
+    };
+
     try {
-      const data = await attemptFetch(contentType);
+      const data = await ensureFullGenreCarousel(
+        await attemptFetch(contentType),
+      );
       setMedia((prevMedia) => {
         const valid = data.results.filter(
           (item: DiscoverMedia) => item.id != null,
@@ -702,7 +782,9 @@ export function useDiscoverMedia({
       // Try fallback content type if available
       if (fallbackType && fallbackType !== contentType) {
         try {
-          const fallbackData = await attemptFetch(fallbackType);
+          const fallbackData = await ensureFullGenreCarousel(
+            await attemptFetch(fallbackType),
+          );
           setActualContentType(fallbackType); // Set actual content type to fallback
           setMedia((prevMedia) => {
             const valid = fallbackData.results.filter(
@@ -729,6 +811,8 @@ export function useDiscoverMedia({
     providerName,
     mediaTitle,
     genreId,
+    isCarouselView,
+    formattedLanguage,
     fetchTMDBMedia,
     fetchTraktMedia,
     t,

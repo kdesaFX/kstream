@@ -148,10 +148,13 @@ export function DiscoverContent() {
   );
 
   // Render Movies content with lazy loading. Earlier rows keep overlapping
-  // titles; later rows drop them so each poster shows once.
+  // titles; later rows drop them so the page shows unique posters — except
+  // under an active genre chip, where every row draws from the same narrow
+  // pool and dedupe leaves In Cinemas / Popular Picks almost empty.
   const renderMoviesContent = () => {
     const carousels = [];
     let dedupe = 0;
+    const rowDedupe = () => (selectedGenreId ? undefined : dedupe++);
 
     // For You - personal recommendations from watch history, progress, and bookmarks
     carousels.push(
@@ -161,7 +164,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         enabled={isMoviesTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -179,7 +182,7 @@ export function DiscoverContent() {
           showRecommendations
           priority={carousels.length < 2} // First 2 carousels load immediately
           enabled={isMoviesTab}
-          dedupePriority={dedupe++}
+          dedupePriority={rowDedupe()}
           genreId={selectedGenreId}
         />,
       );
@@ -196,7 +199,7 @@ export function DiscoverContent() {
         moreContent
         priority={carousels.length < 2}
         enabled={isMoviesTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -212,7 +215,7 @@ export function DiscoverContent() {
         moreContent
         priority={carousels.length < 2}
         enabled={isMoviesTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -228,7 +231,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         enabled={isMoviesTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -244,7 +247,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         enabled={isMoviesTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -260,7 +263,7 @@ export function DiscoverContent() {
         moreContent
         priority={carousels.length < 2}
         enabled={isMoviesTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -276,7 +279,7 @@ export function DiscoverContent() {
         showProviders
         moreContent
         enabled={isMoviesTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -292,6 +295,7 @@ export function DiscoverContent() {
   const renderTVShowsContent = () => {
     const carousels = [];
     let dedupe = 0;
+    const rowDedupe = () => (selectedGenreId ? undefined : dedupe++);
 
     // For You - personal recommendations from watch history, progress, and bookmarks
     carousels.push(
@@ -301,7 +305,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         enabled={isTVShowsTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -319,7 +323,7 @@ export function DiscoverContent() {
           showRecommendations
           priority={carousels.length < 2} // First 2 carousels load immediately
           enabled={isTVShowsTab}
-          dedupePriority={dedupe++}
+          dedupePriority={rowDedupe()}
           genreId={selectedGenreId}
         />,
       );
@@ -336,7 +340,7 @@ export function DiscoverContent() {
         moreContent
         priority={carousels.length < 2}
         enabled={isTVShowsTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -352,7 +356,7 @@ export function DiscoverContent() {
         moreContent
         priority={carousels.length < 2}
         enabled={isTVShowsTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -368,7 +372,7 @@ export function DiscoverContent() {
         moreContent
         priority={carousels.length < 2}
         enabled={isTVShowsTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -384,7 +388,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         enabled={isTVShowsTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -400,7 +404,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         moreContent
         enabled={isTVShowsTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
@@ -416,7 +420,7 @@ export function DiscoverContent() {
         showProviders
         moreContent
         enabled={isTVShowsTab}
-        dedupePriority={dedupe++}
+        dedupePriority={rowDedupe()}
         genreId={selectedGenreId}
       />,
     );
