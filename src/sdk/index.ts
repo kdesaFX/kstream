@@ -6,5 +6,22 @@ export * from "@p-stream/providers";
 // export * from "./mock";
 
 // Not yet in the installed @p-stream/providers build — re-export mocks until upstream ships them.
-export { fetchGridData } from "./mock";
-export type { GridData, GridDownload, GridDownloadSource } from "./mock";
+export {
+  fetchGridData,
+  getArtemisVariantMeta,
+  getVariantMeta,
+  resolveArtemisVariant,
+  resolveVariant,
+} from "./mock";
+export type {
+  ArtemisFileVariant,
+  ArtemisVariantMeta,
+  FileVariant,
+  GridData,
+  GridDownload,
+  GridDownloadSource,
+  ResolveVariantResult,
+  VariantMeta,
+  VariantStream,
+  VariantSubtitle,
+} from "./mock";
