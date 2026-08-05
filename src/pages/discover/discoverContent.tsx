@@ -149,9 +149,13 @@ export function DiscoverContent() {
 
   // Render Movies content with lazy loading. Earlier rows keep overlapping
   // titles; later rows drop them so each poster shows once (All and genre).
+  // Under a genre chip, eager-load every row so claim order is stable
+  // (lazy mount races were leaving duplicates and starving later carousels).
   const renderMoviesContent = () => {
     const carousels = [];
     let dedupe = 0;
+    const eager = Boolean(selectedGenreId);
+    const rowPriority = () => eager || carousels.length < 2;
 
     // For You - personal recommendations from watch history, progress, and bookmarks
     carousels.push(
@@ -177,7 +181,7 @@ export function DiscoverContent() {
           onShowDetails={handleShowDetails}
           moreContent
           showRecommendations
-          priority={carousels.length < 2} // First 2 carousels load immediately
+          priority={rowPriority()}
           enabled={isMoviesTab}
           dedupePriority={dedupe++}
           genreId={selectedGenreId}
@@ -194,7 +198,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
-        priority={carousels.length < 2}
+        priority={rowPriority()}
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
         genreId={selectedGenreId}
@@ -210,7 +214,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
-        priority={carousels.length < 2}
+        priority={rowPriority()}
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
         genreId={selectedGenreId}
@@ -227,6 +231,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
+        priority={rowPriority()}
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
         genreId={selectedGenreId}
@@ -243,6 +248,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
+        priority={rowPriority()}
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
         genreId={selectedGenreId}
@@ -258,7 +264,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
-        priority={carousels.length < 2}
+        priority={rowPriority()}
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
         genreId={selectedGenreId}
@@ -275,6 +281,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         showProviders
         moreContent
+        priority={rowPriority()}
         enabled={isMoviesTab}
         dedupePriority={dedupe++}
         genreId={selectedGenreId}
@@ -282,7 +289,7 @@ export function DiscoverContent() {
     );
 
     return (
-      <CarouselDedupeProvider key="movies-dedupe">
+      <CarouselDedupeProvider key={`movies-dedupe-${selectedGenreId ?? "all"}`}>
         {carousels}
       </CarouselDedupeProvider>
     );
@@ -292,6 +299,8 @@ export function DiscoverContent() {
   const renderTVShowsContent = () => {
     const carousels = [];
     let dedupe = 0;
+    const eager = Boolean(selectedGenreId);
+    const rowPriority = () => eager || carousels.length < 2;
 
     // For You - personal recommendations from watch history, progress, and bookmarks
     carousels.push(
@@ -317,7 +326,7 @@ export function DiscoverContent() {
           onShowDetails={handleShowDetails}
           moreContent
           showRecommendations
-          priority={carousels.length < 2} // First 2 carousels load immediately
+          priority={rowPriority()}
           enabled={isTVShowsTab}
           dedupePriority={dedupe++}
           genreId={selectedGenreId}
@@ -334,7 +343,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
-        priority={carousels.length < 2}
+        priority={rowPriority()}
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
         genreId={selectedGenreId}
@@ -350,7 +359,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
-        priority={carousels.length < 2}
+        priority={rowPriority()}
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
         genreId={selectedGenreId}
@@ -366,7 +375,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
-        priority={carousels.length < 2}
+        priority={rowPriority()}
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
         genreId={selectedGenreId}
@@ -383,6 +392,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
+        priority={rowPriority()}
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
         genreId={selectedGenreId}
@@ -399,6 +409,7 @@ export function DiscoverContent() {
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
         moreContent
+        priority={rowPriority()}
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
         genreId={selectedGenreId}
@@ -415,6 +426,7 @@ export function DiscoverContent() {
         onShowDetails={handleShowDetails}
         showProviders
         moreContent
+        priority={rowPriority()}
         enabled={isTVShowsTab}
         dedupePriority={dedupe++}
         genreId={selectedGenreId}
@@ -422,7 +434,7 @@ export function DiscoverContent() {
     );
 
     return (
-      <CarouselDedupeProvider key="tv-dedupe">
+      <CarouselDedupeProvider key={`tv-dedupe-${selectedGenreId ?? "all"}`}>
         {carousels}
       </CarouselDedupeProvider>
     );

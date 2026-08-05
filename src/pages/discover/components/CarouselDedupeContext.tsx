@@ -3,6 +3,7 @@ import {
   useContext,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 
@@ -17,11 +18,12 @@ interface ClaimableMedia {
 
 interface CarouselDedupeContextValue {
   /**
-   * Claim media for a carousel by TMDB id and by title+year. Lower priority
-   * wins. Returns the IDs this carousel may display. Filtering is
-   * synchronous — no version bump / re-render storms.
+   * Claim media for a carousel by TMDB id and by title(+year). Lower
+   * priority wins. When the map changes, `version` bumps so siblings
+   * re-filter (fixes lazy-load / async backfill races).
    */
   claim: (priority: number, items: ClaimableMedia[]) => string[];
+  version: number;
 }
 
 const CarouselDedupeContext = createContext<CarouselDedupeContextValue | null>(
@@ -33,14 +35,20 @@ function yearFromDate(date?: string): string {
   return date.slice(0, 4);
 }
 
-/** Normalize "The Odyssey" / "the  odyssey" → stable collision key with year. */
-export function mediaTitleKey(item: ClaimableMedia): string | null {
+function normalizeTitle(item: ClaimableMedia): string | null {
   const raw = (item.title || item.name || "").trim().toLowerCase();
   if (!raw) return null;
+  return raw.replace(/\s+/g, " ");
+}
+
+/** Normalize "The Odyssey" / "the  odyssey" → stable collision key with year. */
+export function mediaTitleKey(item: ClaimableMedia): string | null {
+  const title = normalizeTitle(item);
+  if (!title) return null;
   const year =
     yearFromDate(item.release_date) || yearFromDate(item.first_air_date);
-  if (!year) return null;
-  return `${raw.replace(/\s+/g, " ")}|${year}`;
+  // Always key by title; year disambiguates remakes when present.
+  return year ? `${title}|${year}` : `${title}|`;
 }
 
 /**
@@ -76,15 +84,17 @@ export function collapseTitleYearDuplicates<T extends ClaimableMedia>(
 
 /**
  * First-come (by priority) wins: earlier rows keep a title, later rows drop
- * it so the page shows more unique posters. Claims both TMDB id and
- * title+year so duplicate stubs of the same film cannot reappear.
+ * it so the page shows more unique posters.
  */
 export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
   const claimedIdsRef = useRef(new Map<string, number>());
   const claimedTitlesRef = useRef(new Map<string, number>());
+  const [version, setVersion] = useState(0);
+  const notifyScheduledRef = useRef(false);
 
   const value = useMemo<CarouselDedupeContextValue>(
     () => ({
+      version,
       claim(priority, items) {
         const claimedIds = claimedIdsRef.current;
         const claimedTitles = claimedTitlesRef.current;
@@ -93,13 +103,20 @@ export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
           items.map(mediaTitleKey).filter((k): k is string => Boolean(k)),
         );
 
+        let changed = false;
+
         if (items.length > 0) {
-          for (const [id, owner] of claimedIds) {
-            if (owner === priority && !idSet.has(id)) claimedIds.delete(id);
+          for (const [id, owner] of [...claimedIds]) {
+            if (owner === priority && !idSet.has(id)) {
+              claimedIds.delete(id);
+              changed = true;
+            }
           }
-          for (const [title, owner] of claimedTitles) {
-            if (owner === priority && !titleSet.has(title))
+          for (const [title, owner] of [...claimedTitles]) {
+            if (owner === priority && !titleSet.has(title)) {
               claimedTitles.delete(title);
+              changed = true;
+            }
           }
         }
 
@@ -122,14 +139,27 @@ export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
 
           if (idTaken || titleTaken) continue;
 
+          if (claimedIds.get(id) !== priority) changed = true;
           claimedIds.set(id, priority);
-          if (titleKey) claimedTitles.set(titleKey, priority);
+          if (titleKey) {
+            if (claimedTitles.get(titleKey) !== priority) changed = true;
+            claimedTitles.set(titleKey, priority);
+          }
           kept.push(id);
         }
+
+        if (changed && !notifyScheduledRef.current) {
+          notifyScheduledRef.current = true;
+          queueMicrotask(() => {
+            notifyScheduledRef.current = false;
+            setVersion((v) => v + 1);
+          });
+        }
+
         return kept;
       },
     }),
-    [],
+    [version],
   );
 
   return (
@@ -142,7 +172,7 @@ export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
 /**
  * Filter a media list so titles already claimed by an earlier carousel are
  * removed. Collapses same-title stubs inside the list first. No-ops outside
- * a provider.
+ * a provider. Re-runs when `version` bumps after other rows claim.
  */
 export function useDedupedMedia<T extends ClaimableMedia>(
   priority: number | undefined,
@@ -156,5 +186,7 @@ export function useDedupedMedia<T extends ClaimableMedia>(
     if (collapsed.length === 0) return collapsed;
     const kept = new Set(ctx.claim(priority, collapsed));
     return collapsed.filter((m) => kept.has(String(m.id)));
-  }, [media, priority, ctx]);
+    // version is required so siblings re-filter after another row claims.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [media, priority, ctx, ctx?.version]);
 }

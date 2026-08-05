@@ -69,7 +69,7 @@ export function useDedupedCarouselMedia(
     if (!enabled || isLoading || !genreId || priority === undefined) return;
     if (backfillMode === "none") return;
     if (media.length >= CAROUSEL_DISPLAY_TARGET) return;
-    if (attemptsRef.current >= 2) return;
+    if (attemptsRef.current >= 3) return;
 
     const round = attemptsRef.current + 1;
     attemptsRef.current = round;

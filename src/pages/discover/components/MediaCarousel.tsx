@@ -226,21 +226,12 @@ export function MediaCarousel({
     });
 
   // Drop titles already claimed by an earlier row; under a genre chip,
-  // backfill unique discover titles so the row stays full without doubles.
-  // In Cinemas / trending stay date-honest (recent theatrical or none).
+  // backfill unique titles so every row can stay full without doubles.
   const backfillMode = (() => {
+    if (!genreId) return "none" as const;
     const type = actualContentType || content.type;
-    if (
-      type === "popularThisWeek" ||
-      type === "onTheAir" ||
-      type === "latesttv" ||
-      type === "latest4k"
-    ) {
-      return "none" as const;
-    }
-    if (type === "nowPlaying" || type === "latest") {
-      return genreId ? ("recent" as const) : ("none" as const);
-    }
+    if (type === "nowPlaying" || type === "latest") return "recent" as const;
+    // popularThisWeek / onTheAir / everything else under genre: popularity pool
     return "popular" as const;
   })();
 

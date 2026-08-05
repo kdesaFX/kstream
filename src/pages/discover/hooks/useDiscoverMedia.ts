@@ -504,11 +504,45 @@ export function useDiscoverMedia({
         // and discover popularity, which heavily overlap and used to leave this
         // row with almost nothing after cross-carousel dedupe).
         case "popularThisWeek":
-          data = await fetchTMDBMedia(
-            mediaType === "movie"
-              ? "/trending/movie/week"
-              : "/trending/tv/week",
-          );
+          if (genreId) {
+            // Trending/week ∩ genre is often tiny after dedupe. Use discover
+            // with a fresh-release window so the row can fill uniquely.
+            const today = new Date().toISOString().slice(0, 10);
+            const from = new Date();
+            from.setMonth(from.getMonth() - 6);
+            const fromStr = from.toISOString().slice(0, 10);
+            const dateParams =
+              mediaType === "movie"
+                ? {
+                    "primary_release_date.gte": fromStr,
+                    "primary_release_date.lte": today,
+                  }
+                : {
+                    "first_air_date.gte": fromStr,
+                    "first_air_date.lte": today,
+                  };
+            data = await fetchTMDBMedia(`/discover/${mediaType}`, {
+              sort_by: "popularity.desc",
+              ...dateParams,
+              "vote_count.gte": 10,
+              include_adult: false,
+            });
+            data = {
+              ...data,
+              results: data.results.filter((item: DiscoverMedia) => {
+                if (!item.poster_path) return false;
+                const date =
+                  item.release_date || item.first_air_date || "";
+                return date.length >= 10 && date <= today;
+              }),
+            };
+          } else {
+            data = await fetchTMDBMedia(
+              mediaType === "movie"
+                ? "/trending/movie/week"
+                : "/trending/tv/week",
+            );
+          }
           setSectionTitle(t("discover.carousel.title.popularThisWeek"));
           break;
 
@@ -591,8 +625,26 @@ export function useDiscoverMedia({
 
         case "onTheAir":
           if (mediaType === "tv") {
-            // Real currently-airing shows only — never pad with generic discover.
-            data = await fetchTMDBMedia("/tv/on_the_air");
+            if (genreId) {
+              const today = new Date().toISOString().slice(0, 10);
+              const from = new Date();
+              from.setMonth(from.getMonth() - 24);
+              data = await fetchTMDBMedia("/discover/tv", {
+                sort_by: "popularity.desc",
+                "first_air_date.gte": from.toISOString().slice(0, 10),
+                "first_air_date.lte": today,
+                "vote_count.gte": 10,
+                include_adult: false,
+              });
+              data = {
+                ...data,
+                results: data.results.filter(
+                  (item: DiscoverMedia) => Boolean(item.poster_path),
+                ),
+              };
+            } else {
+              data = await fetchTMDBMedia("/tv/on_the_air");
+            }
             setSectionTitle(t("discover.carousel.title.onTheAir"));
           } else {
             throw new Error("onTheAir is only available for TV shows");
@@ -747,14 +799,11 @@ export function useDiscoverMedia({
       },
       fetchedType: DiscoverContentType,
     ) => {
-      // Never pad trending with unbounded discover. nowPlaying under a genre
-      // already uses a date-bounded recent-theatrical query — may widen once.
+      // Never pad trending with unbounded future junk. nowPlaying under a
+      // genre already uses a date-bounded recent-theatrical query — may widen.
       const noDiscoverPad = new Set<DiscoverContentType>([
-        "onTheAir",
-        "latest",
         "latesttv",
         "latest4k",
-        "popularThisWeek",
       ]);
       if (
         !isCarouselView ||
