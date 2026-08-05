@@ -409,11 +409,14 @@ export function useDiscoverMedia({
           setSectionTitle(t("discover.carousel.title.popular"));
           break;
 
-        // TMDB's actual "popular" endpoint (this week's trending), as
-        // opposed to the "popular" case above which is a /discover sort.
+        // "Popular This Week" — TMDB trending/week (distinct from /movie/popular
+        // and discover popularity, which heavily overlap and used to leave this
+        // row with almost nothing after cross-carousel dedupe).
         case "popularThisWeek":
           data = await fetchTMDBMedia(
-            mediaType === "movie" ? "/movie/popular" : "/tv/popular",
+            mediaType === "movie"
+              ? "/trending/movie/week"
+              : "/trending/tv/week",
           );
           setSectionTitle(t("discover.carousel.title.popularThisWeek"));
           break;

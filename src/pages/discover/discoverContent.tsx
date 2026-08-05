@@ -209,9 +209,8 @@ export function DiscoverContent() {
       />,
     );
 
-    // Popular This Week — TMDB's actual trending endpoint, standalone
-    // (not a Trakt fallback), alongside Latest Releases/Top 10 rather than
-    // replacing anything.
+    // Popular This Week — TMDB trending/week (not /movie/popular; that
+    // overlaps Most Popular and used to leave this row nearly empty).
     carousels.push(
       <LazyMediaCarousel
         key="movie-popular-this-week"
