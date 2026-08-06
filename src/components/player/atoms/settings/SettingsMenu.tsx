@@ -135,12 +135,20 @@ export function SettingsMenu({ id }: { id: string }) {
         </Menu.ChevronLink>
         <Menu.ChevronLink
           box
-          onClick={() => router.navigate("/captions")}
-          rightText={sourceName}
+          disabled={awaitingSource}
+          onClick={() => {
+            if (awaitingSource) return;
+            router.navigate("/captions");
+          }}
+          rightText={awaitingSource ? undefined : sourceName}
         >
           {t("player.menus.settings.subtitleItem")}
-          <span className="text-type-secondary text-sm">
-            {selectedLanguagePretty ?? t("player.menus.subtitles.offChoice")}
+          <span className="text-type-secondary text-sm leading-5 h-5 flex items-center justify-center">
+            {awaitingSource ? (
+              <Spinner className="text-sm" />
+            ) : (
+              (selectedLanguagePretty ?? t("player.menus.subtitles.offChoice"))
+            )}
           </span>
         </Menu.ChevronLink>
         {awaitingSource ? (
