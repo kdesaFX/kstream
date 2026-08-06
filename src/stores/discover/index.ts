@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-type Category = "foryou" | "movies" | "tvshows";
+type Category = "movies" | "tvshows";
 
 interface DiscoverView {
   url: string;
@@ -11,9 +11,8 @@ interface DiscoverView {
 interface DiscoverState {
   selectedCategory: Category;
   // Tracks whether the user has ever explicitly picked a tab, so an
-  // automatic default (e.g. "foryou" once a taste profile exists) can keep
-  // adapting for users who haven't stated a preference, without ever
-  // overriding one they've deliberately chosen.
+  // automatic default can keep adapting for users who haven't stated a
+  // preference, without ever overriding one they've deliberately chosen.
   hasManuallySelected: boolean;
   /** null = All genres (unfiltered). Cleared when switching tabs. */
   selectedGenreId: string | null;
@@ -25,10 +24,10 @@ interface DiscoverState {
 }
 
 function normalizeCategory(category: unknown): Category {
-  if (category === "foryou" || category === "movies" || category === "tvshows") {
+  if (category === "movies" || category === "tvshows") {
     return category;
   }
-  // Drop legacy "editorpicks" (and anything else) onto movies
+  // Drop legacy "foryou" / "editorpicks" (and anything else) onto movies
   return "movies";
 }
 

@@ -4,13 +4,7 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWindowSize } from "react-use";
 
-import {
-  get,
-  getAllTimeBestMovies,
-  getAllTimeBestShows,
-  getMediaLogo,
-  getPopularMovies,
-} from "@/backend/metadata/tmdb";
+import { get, getMediaLogo } from "@/backend/metadata/tmdb";
 import {
   getDiscoverContent,
   getReleaseDetails,
@@ -20,10 +14,6 @@ import { TMDBContentTypes } from "@/backend/metadata/types/tmdb";
 import type { TraktReleaseResponse } from "@/backend/metadata/types/trakt";
 import { Icon, Icons } from "@/components/Icon";
 import { Movie, TVShow } from "@/pages/discover/common";
-import {
-  useHasRecommendationSignal,
-  usePersonalRecommendations,
-} from "@/pages/discover/hooks/usePersonalRecommendations";
 import { useDiscoverStore } from "@/stores/discover";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -32,10 +22,6 @@ import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { detectUserLanguage, detectUserRegion } from "@/utils/locale/userRegion";
 
 import { RandomMovieButton } from "./RandomMovieButton";
-import {
-  EDITOR_PICKS_MOVIES,
-  EDITOR_PICKS_TV_SHOWS,
-} from "../hooks/useDiscoverMedia";
 
 export interface FeaturedMedia extends Partial<Movie & TVShow> {
   children?: ReactNode;
@@ -59,7 +45,6 @@ interface FeaturedCarouselProps {
   children?: ReactNode;
   searching?: boolean;
   shorter?: boolean;
-  forcedCategory?: "foryou" | "movies" | "tvshows";
 }
 
 interface IMDbRatingData {
@@ -130,21 +115,9 @@ export function FeaturedCarousel({
   children,
   searching,
   shorter,
-  forcedCategory,
 }: FeaturedCarouselProps) {
-  const { selectedCategory, hasManuallySelected } = useDiscoverStore();
-  // Matches the same "is there real signal" check usePersonalRecommendations
-  // uses internally — a rating alone isn't enough (someone could have rated
-  // everything "meh"), it needs positive signal of some kind.
-  const hasMovieSignal = useHasRecommendationSignal(false);
-  const hasShowSignal = useHasRecommendationSignal(true);
-  // Once someone has a taste profile, default to "foryou" everywhere this
-  // carousel appears — but never override a tab the user actually clicked.
-  const autoDefaultCategory =
-    hasMovieSignal || hasShowSignal ? "foryou" : "movies";
-  const effectiveCategory =
-    forcedCategory ||
-    (hasManuallySelected ? selectedCategory : autoDefaultCategory);
+  // Store normalizes legacy "foryou" → "movies" on load.
+  const { selectedCategory: effectiveCategory } = useDiscoverStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [media, setMedia] = useState<FeaturedMedia[]>([]);
@@ -169,29 +142,10 @@ export function FeaturedCarousel({
   );
   const [contentOpacity, setContentOpacity] = useState(1);
 
-  const isForYou = effectiveCategory === "foryou";
-  const { media: personalizedMovies, hasSettled: personalizedMoviesSettled } =
-    usePersonalRecommendations({ isTVShow: false, enabled: isForYou });
-  const { media: personalizedShows, hasSettled: personalizedShowsSettled } =
-    usePersonalRecommendations({ isTVShow: true, enabled: isForYou });
-
   const currentMedia = media[currentIndex];
 
   const SLIDE_QUANTITY = 10;
   const FETCH_QUANTITY = 20;
-  const SLIDE_QUANTITY_EDITOR_PICKS_MOVIES = 6;
-  const SLIDE_QUANTITY_EDITOR_PICKS_TV_SHOWS = 4;
-  // "For You" hero mix: a handful of guaranteed-recognizable current-popular
-  // movies, a bigger batch of personalized movies/shows on top, and a
-  // smaller batch of "random popular" (well-known but not necessarily
-  // matched to taste) for variety. Personalized slots fall back to random
-  // popular when there isn't enough signal to fill them.
-  const FOR_YOU_TOP_MOVIES_POOL = 6;
-  const FOR_YOU_TOP_MOVIES_COUNT = 4;
-  const FOR_YOU_PERSONALIZED_MOVIES_COUNT = 6;
-  const FOR_YOU_PERSONALIZED_SHOWS_COUNT = 2;
-  const FOR_YOU_RANDOM_MOVIES_COUNT = 4;
-  const FOR_YOU_RANDOM_SHOWS_COUNT = 2;
   const SLIDE_DURATION = 8000;
 
   // Check for extension on mount
@@ -230,168 +184,7 @@ export function FeaturedCarousel({
         logoFetchController.current.abort(); // Cancel any in-progress logo fetches
       }
       try {
-        if (effectiveCategory === "foryou") {
-          // The recommendation hooks fetch independently of this effect; if
-          // they haven't settled yet, bail out and let the effect re-run
-          // once they have (they're in the dependency array below).
-          // isLoading alone can't tell "hasn't started" from "genuinely
-          // empty" since it starts false before the first fetch — hence
-          // hasSettled instead.
-          if (!personalizedMoviesSettled || !personalizedShowsSettled) {
-            return;
-          }
-
-          type Slot = { id: number; kind: "movie" | "show" };
-          const usedIds = new Set<number>();
-          const takeUnused = <T extends { id: number }>(
-            items: T[],
-            count: number,
-          ): T[] => {
-            const picked: T[] = [];
-            for (const item of items) {
-              if (picked.length >= count) break;
-              if (usedIds.has(item.id)) continue;
-              usedIds.add(item.id);
-              picked.push(item);
-            }
-            return picked;
-          };
-
-          // 4 guaranteed-recognizable slides from the current most popular
-          // movies (varies which 4 each load).
-          const topPool = await getPopularMovies(
-            FOR_YOU_TOP_MOVIES_POOL,
-          ).catch(() => []);
-          const topMovies = takeUnused(
-            [...topPool].sort(() => 0.5 - Math.random()),
-            FOR_YOU_TOP_MOVIES_COUNT,
-          );
-          // First slide is always pinned to one of these, so the hero
-          // never opens on something obscure; the rest get scattered
-          // through the deck below rather than sitting as one block.
-          const anchor: Slot | undefined = topMovies[0]
-            ? { id: topMovies[0].id, kind: "movie" }
-            : undefined;
-
-          // 6 personalized movies, 2 personalized shows — best matches
-          // first. Falls back to "random popular" (well-known, not
-          // necessarily taste-matched) for whichever slots the profile
-          // doesn't have enough signal to fill.
-          const personalizedMoviesSelected = takeUnused(
-            personalizedMovies,
-            FOR_YOU_PERSONALIZED_MOVIES_COUNT,
-          );
-          const personalizedShowsSelected = takeUnused(
-            personalizedShows,
-            FOR_YOU_PERSONALIZED_SHOWS_COUNT,
-          );
-
-          const movieShortfall =
-            FOR_YOU_PERSONALIZED_MOVIES_COUNT - personalizedMoviesSelected.length;
-          const randomFillMovies = movieShortfall > 0
-            ? takeUnused(
-                await getAllTimeBestMovies(movieShortfall + usedIds.size).catch(
-                  () => [],
-                ),
-                movieShortfall,
-              )
-            : [];
-
-          const showShortfall =
-            FOR_YOU_PERSONALIZED_SHOWS_COUNT - personalizedShowsSelected.length;
-          const randomFillShows = showShortfall > 0
-            ? takeUnused(
-                await getAllTimeBestShows(showShortfall + usedIds.size).catch(
-                  () => [],
-                ),
-                showShortfall,
-              )
-            : [];
-
-          // 4 more random-popular movies, 2 more random-popular shows —
-          // variety beyond the taste-matched picks.
-          const randomMovies = takeUnused(
-            await getAllTimeBestMovies(
-              FOR_YOU_RANDOM_MOVIES_COUNT + usedIds.size,
-            ).catch(() => []),
-            FOR_YOU_RANDOM_MOVIES_COUNT,
-          );
-          const randomShows = takeUnused(
-            await getAllTimeBestShows(
-              FOR_YOU_RANDOM_SHOWS_COUNT + usedIds.size,
-            ).catch(() => []),
-            FOR_YOU_RANDOM_SHOWS_COUNT,
-          );
-
-          const rest: Slot[] = [
-            ...topMovies.slice(1).map((m): Slot => ({ id: m.id, kind: "movie" })),
-            ...personalizedMoviesSelected.map(
-              (m): Slot => ({ id: m.id, kind: "movie" }),
-            ),
-            ...personalizedShowsSelected.map(
-              (s): Slot => ({ id: s.id, kind: "show" }),
-            ),
-            ...randomFillMovies.map((m): Slot => ({ id: m.id, kind: "movie" })),
-            ...randomFillShows.map((s): Slot => ({ id: s.id, kind: "show" })),
-            ...randomMovies.map((m): Slot => ({ id: m.id, kind: "movie" })),
-            ...randomShows.map((s): Slot => ({ id: s.id, kind: "show" })),
-          ].sort(() => 0.5 - Math.random());
-
-          const finalOrder: Slot[] = anchor ? [anchor, ...rest] : rest;
-
-          const combined = (
-            await Promise.all(
-              finalOrder.map((item) =>
-                get<any>(
-                  `/${item.kind === "movie" ? "movie" : "tv"}/${item.id}`,
-                  {
-                    language: formattedLanguage,
-                    append_to_response: "external_ids",
-                  },
-                ).then((data) => ({ ...data, type: item.kind })),
-              ),
-            )
-          ).filter(Boolean);
-
-          // Nothing loaded at all (e.g. TMDB unreachable) — fall back to
-          // the static editor picks rather than showing an empty hero.
-          if (combined.length === 0) {
-            const moviePromises = EDITOR_PICKS_MOVIES.slice(
-              0,
-              SLIDE_QUANTITY_EDITOR_PICKS_MOVIES,
-            ).map((item) =>
-              get<any>(`/movie/${item.id}`, {
-                language: formattedLanguage,
-                append_to_response: "external_ids",
-              }),
-            );
-            const showPromises = EDITOR_PICKS_TV_SHOWS.slice(
-              0,
-              SLIDE_QUANTITY_EDITOR_PICKS_TV_SHOWS,
-            ).map((item) =>
-              get<any>(`/tv/${item.id}`, {
-                language: formattedLanguage,
-                append_to_response: "external_ids",
-              }),
-            );
-            const [fallbackMovies, fallbackShows] = await Promise.all([
-              Promise.all(moviePromises),
-              Promise.all(showPromises),
-            ]);
-            setMedia([
-              ...fallbackMovies.map((movie) => ({
-                ...movie,
-                type: "movie" as const,
-              })),
-              ...fallbackShows.map((show) => ({
-                ...show,
-                type: "show" as const,
-              })),
-            ]);
-          } else {
-            setMedia(combined);
-          }
-        } else if (
+        if (
           effectiveCategory === "movies" ||
           effectiveCategory === "tvshows"
         ) {
@@ -509,14 +302,7 @@ export function FeaturedCarousel({
     };
 
     fetchFeaturedMedia();
-  }, [
-    formattedLanguage,
-    effectiveCategory,
-    personalizedMovies,
-    personalizedShows,
-    personalizedMoviesSettled,
-    personalizedShowsSettled,
-  ]);
+  }, [formattedLanguage, effectiveCategory]);
 
   const handlePrevSlide = () => {
     setContentOpacity(0);

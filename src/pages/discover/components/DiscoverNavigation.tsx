@@ -14,25 +14,19 @@ import { useDiscoverStore } from "@/stores/discover";
 interface DiscoverNavigationProps {
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
-  /** Only offer the "For You" tab once there's a taste profile to draw on. */
-  showForYou?: boolean;
 }
 
 const VISIBLE_GENRE_BREAKPOINT = 850;
+const CATEGORIES = ["movies", "tvshows"] as const;
 
 export function DiscoverNavigation({
   selectedCategory,
   onCategoryChange,
-  showForYou,
 }: DiscoverNavigationProps) {
   const { t } = useTranslation();
   const { width: windowWidth } = useWindowSize();
   const selectedGenreId = useDiscoverStore((s) => s.selectedGenreId);
   const setSelectedGenreId = useDiscoverStore((s) => s.setSelectedGenreId);
-
-  const categories = showForYou
-    ? ["foryou", "movies", "tvshows"]
-    : ["movies", "tvshows"];
 
   const showGenreBar =
     selectedCategory === "movies" || selectedCategory === "tvshows";
@@ -54,7 +48,7 @@ export function DiscoverNavigation({
     <div className="pb-4 w-full max-w-screen-xl mx-auto">
       <div className="relative flex justify-center">
         <div className="flex space-x-4">
-          {categories.map((category) => (
+          {CATEGORIES.map((category) => (
             <button
               key={category}
               type="button"

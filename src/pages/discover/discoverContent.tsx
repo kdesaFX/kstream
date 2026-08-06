@@ -1,5 +1,3 @@
-import classNames from "classnames";
-import { t } from "i18next";
 import { useCallback, useMemo, useRef } from "react";
 
 import { WideContainer } from "@/components/layout/WideContainer";
@@ -11,44 +9,24 @@ import { MediaItem } from "@/utils/media/mediaTypes";
 import { DiscoverNavigation } from "./components/DiscoverNavigation";
 import type { FeaturedMedia } from "./components/FeaturedCarousel";
 import { CarouselDedupeProvider } from "./components/CarouselDedupeContext";
-import { ForYouConfidenceCarousel } from "./components/ForYouConfidenceCarousel";
-import { ForYouWeightCarousel } from "./components/ForYouWeightCarousel";
-import { PersonalRecommendationsProvider } from "./components/PersonalRecommendationsProvider";
-import { useHasRecommendationSignal } from "./hooks/usePersonalRecommendations";
 import { LazyMediaCarousel } from "./components/LazyMediaCarousel";
-import { PersonalRecommendationsCarousel } from "./components/PersonalRecommendationsCarousel";
 import { ScrollToTopButton } from "./components/ScrollToTopButton";
 
 export function DiscoverContent() {
   const {
     selectedCategory,
-    hasManuallySelected,
     setSelectedCategory,
     selectedGenreId,
   } = useDiscoverStore();
-  // Matches the same "is there real signal" check FeaturedCarousel and
-  // usePersonalRecommendations use — a rating alone isn't enough.
-  const hasMovieSignal = useHasRecommendationSignal(false);
-  const hasShowSignal = useHasRecommendationSignal(true);
   const { showModal } = useOverlayStack();
   const carouselRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const progressItems = useProgressStore((state) => state.items);
 
-  const showForYou = hasMovieSignal || hasShowSignal;
-  // Mirrors FeaturedCarousel's own default-category cascade, so the tab
-  // row highlights whichever tab the hero is actually showing.
-  const autoDefaultCategory = showForYou ? "foryou" : "movies";
-  const effectiveCategory = hasManuallySelected
-    ? selectedCategory
-    : autoDefaultCategory;
-
-  // Only load data for the active tab
-  const isForYouTab = effectiveCategory === "foryou";
-  const isMoviesTab = effectiveCategory === "movies";
-  const isTVShowsTab = effectiveCategory === "tvshows";
+  const isMoviesTab = selectedCategory === "movies";
+  const isTVShowsTab = selectedCategory === "tvshows";
 
   const handleCategoryChange = useCallback((category: string) => {
-    setSelectedCategory(category as "foryou" | "movies" | "tvshows");
+    setSelectedCategory(category as "movies" | "tvshows");
   }, [setSelectedCategory]);
 
   const handleShowDetails = useCallback((media: MediaItem | FeaturedMedia) => {
@@ -73,80 +51,6 @@ export function DiscoverContent() {
     [progressItems],
   );
 
-  // Render For You content. Order: confidence tiers (how strongly a pick
-  // matches your taste, from the recommendation score) and weight tiers
-  // (genre-based intensity — easy/comfort vs. serious/heavy) both sit above
-  // the plain overall Movies/Shows rows, since they're the more specific,
-  // more useful cut of the same underlying recommendations.
-  const renderForYouContent = () => (
-    <PersonalRecommendationsProvider enabled={isForYouTab}>
-      <ForYouConfidenceCarousel
-        key="foryou-sure"
-        tier="sure"
-        title="Sure Bets"
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        enabled={isForYouTab}
-      />
-      <ForYouConfidenceCarousel
-        key="foryou-worth-a-look"
-        tier="worthALook"
-        title="Worth a Look"
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        enabled={isForYouTab}
-      />
-      <ForYouConfidenceCarousel
-        key="foryou-something-new"
-        tier="somethingNew"
-        title="Something New"
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        enabled={isForYouTab}
-      />
-      <ForYouWeightCarousel
-        key="foryou-light"
-        weight="light"
-        title="Easy Watching"
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        enabled={isForYouTab}
-      />
-      <ForYouWeightCarousel
-        key="foryou-medium"
-        weight="medium"
-        title="Balanced Picks"
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        enabled={isForYouTab}
-      />
-      <ForYouWeightCarousel
-        key="foryou-heavy"
-        weight="heavy"
-        title="Heavy Hitters"
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        enabled={isForYouTab}
-      />
-      <PersonalRecommendationsCarousel
-        key="foryou-movies"
-        isTVShow={false}
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        title={t("discover.tabs.movies")}
-        enabled={isForYouTab}
-      />
-      <PersonalRecommendationsCarousel
-        key="foryou-shows"
-        isTVShow
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        title={t("discover.tabs.tvshows")}
-        enabled={isForYouTab}
-      />
-    </PersonalRecommendationsProvider>
-  );
-
   // Render Movies content with lazy loading. Earlier rows keep overlapping
   // titles; later rows drop them so each poster shows once (All and genre).
   // Under a genre chip, eager-load every row so claim order is stable
@@ -156,19 +60,6 @@ export function DiscoverContent() {
     let dedupe = 0;
     const eager = Boolean(selectedGenreId);
     const rowPriority = () => eager || carousels.length < 2;
-
-    // For You - personal recommendations from watch history, progress, and bookmarks
-    carousels.push(
-      <PersonalRecommendationsCarousel
-        key="movie-for-you"
-        isTVShow={false}
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        enabled={isMoviesTab}
-        dedupePriority={dedupe++}
-        genreId={selectedGenreId}
-      />,
-    );
 
     // Movie Recommendations - only show if there are movie progress items
     if (movieProgressItems.length > 0) {
@@ -302,19 +193,6 @@ export function DiscoverContent() {
     const eager = Boolean(selectedGenreId);
     const rowPriority = () => eager || carousels.length < 2;
 
-    // For You - personal recommendations from watch history, progress, and bookmarks
-    carousels.push(
-      <PersonalRecommendationsCarousel
-        key="tv-for-you"
-        isTVShow
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        enabled={isTVShowsTab}
-        dedupePriority={dedupe++}
-        genreId={selectedGenreId}
-      />,
-    );
-
     // TV Show Recommendations - only show if there are TV show progress items
     if (tvProgressItems.length > 0) {
       carousels.push(
@@ -443,17 +321,11 @@ export function DiscoverContent() {
   return (
     <div className="relative min-h-screen">
       <DiscoverNavigation
-        selectedCategory={effectiveCategory}
+        selectedCategory={selectedCategory}
         onCategoryChange={handleCategoryChange}
-        showForYou={showForYou}
       />
 
       <WideContainer ultraWide classNames="!px-0">
-        {/* For You Tab */}
-        <div style={{ display: isForYouTab ? "block" : "none" }}>
-          {renderForYouContent()}
-        </div>
-
         {/* Movies Tab */}
         <div style={{ display: isMoviesTab ? "block" : "none" }}>
           {renderMoviesContent()}

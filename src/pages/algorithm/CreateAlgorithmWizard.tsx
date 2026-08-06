@@ -699,7 +699,7 @@ export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
             Your algorithm is ready!
           </h2>
           <p className="mb-6 text-sm text-type-secondary">
-            Your For You section now reflects your taste. Keep rating what
+            Your recommendations now reflect your taste. Keep rating what
             you watch — every rating sharpens the suggestions.
           </p>
           <Button theme="purple" onClick={onClose}>

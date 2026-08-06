@@ -10,7 +10,6 @@ import { useSearchQuery } from "@/hooks/useSearchQuery";
 import { FeaturedCarousel } from "@/pages/discover/components/FeaturedCarousel";
 import type { FeaturedMedia } from "@/pages/discover/components/FeaturedCarousel";
 import DiscoverContent from "@/pages/discover/discoverContent";
-import { useHasRecommendationSignal } from "@/pages/discover/hooks/usePersonalRecommendations";
 import { HomeLayout } from "@/pages/layouts/HomeLayout";
 import { BookmarksCarousel } from "@/pages/parts/home/BookmarksCarousel";
 import { BookmarksGrid } from "@/pages/parts/home/BookmarksGrid";
@@ -83,11 +82,6 @@ export function HomePage() {
   const homeSectionOrder = usePreferencesStore(
     (state) => state.homeSectionOrder,
   );
-
-  const hasMovieSignal = useHasRecommendationSignal(false);
-  const hasShowSignal = useHasRecommendationSignal(true);
-  const forcedFeaturedCategory =
-    hasMovieSignal || hasShowSignal ? ("foryou" as const) : undefined;
 
   const [carouselContainerRef] = useAutoAnimate<HTMLDivElement>();
   const [listContainerRef] = useAutoAnimate<HTMLDivElement>();
@@ -173,7 +167,6 @@ export function HomePage() {
         <FeaturedCarousel
           onShowDetails={handleShowDetails}
           searching={s.searching}
-          forcedCategory={forcedFeaturedCategory}
         />
 
         {conf().SHOW_SUPPORT_BAR ? <SupportBar /> : null}
