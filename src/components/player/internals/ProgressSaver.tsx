@@ -8,10 +8,10 @@ import {
   progressIsCompleted,
   useProgressStore,
 } from "@/stores/progress";
+import { MIN_WATCH_SECONDS } from "@/stores/progress/utils";
 
 function progressIsNotStarted(duration: number, watched: number): boolean {
-  // too short watch time
-  if (watched < 20) return true;
+  if (watched < MIN_WATCH_SECONDS) return true;
   return false;
 }
 
