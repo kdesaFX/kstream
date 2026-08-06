@@ -132,3 +132,28 @@ export const allQualities = Object.keys(qualityNameMap) as SourceQuality[];
 export function qualityToString(quality: SourceQuality): string {
   return qualityNameMap[quality];
 }
+
+const exactHeightMap: Record<number, SourceQuality> = {
+  360: "360",
+  480: "480",
+  720: "720",
+  1080: "1080",
+  1440: "1080",
+  2160: "4k",
+};
+
+/** Map decoded / HLS pixel height to a standard quality bucket. */
+export function resolutionHeightToQuality(
+  height: number,
+): SourceQuality | null {
+  if (!height || height <= 0) return null;
+
+  const exact = exactHeightMap[height];
+  if (exact) return exact;
+
+  if (height >= 1800) return "4k";
+  if (height >= 800) return "1080";
+  if (height >= 600) return "720";
+  if (height >= 420) return "480";
+  return "360";
+}

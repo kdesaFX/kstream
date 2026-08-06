@@ -21,6 +21,7 @@ import {
   LoadableSource,
   SourceQuality,
   getPreferredQuality,
+  resolutionHeightToQuality,
 } from "@/stores/player/utils/qualities";
 import { processCdnLink } from "@/utils/hosting/cdn";
 import {
@@ -34,38 +35,10 @@ import {
 } from "@/utils/browser/detectFeatures";
 import { makeEmitter } from "@/utils/common/events";
 
-const levelConversionMap: Record<number, SourceQuality> = {
-  360: "360",
-  1080: "1080",
-  720: "720",
-  480: "480",
-  2160: "4k",
-};
-
-// Define quality thresholds for mapping non-standard resolutions
-const qualityThresholds = [
-  { minHeight: 1800, quality: "4k" as SourceQuality },
-  { minHeight: 800, quality: "1080" as SourceQuality },
-  { minHeight: 600, quality: "720" as SourceQuality },
-  { minHeight: 420, quality: "480" as SourceQuality },
-  { minHeight: 0, quality: "360" as SourceQuality },
-];
+import { resolveAudioLanguage } from "@/components/player/utils/inferAudioLanguage";
 
 function hlsLevelToQuality(level?: Level): SourceQuality | null {
-  if (!level?.height) return null;
-
-  // First check for exact matches
-  const exactMatch = levelConversionMap[level.height];
-  if (exactMatch) return exactMatch;
-
-  // For non-standard resolutions, map to closest standard quality
-  for (const threshold of qualityThresholds) {
-    if (level.height >= threshold.minHeight) {
-      return threshold.quality;
-    }
-  }
-
-  return "unknown"; // fallback to unknown quality
+  return resolutionHeightToQuality(level?.height ?? 0);
 }
 
 function hlsLevelsToQualities(levels: Level[]): SourceQuality[] {
@@ -94,6 +67,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let automaticQuality = false;
   let preferenceQuality: SourceQuality | null = null;
   let lastVolume = 1;
+  let lastInferredQuality: SourceQuality | null = null;
 
 
   let audioCtx: AudioContext | null = null;
@@ -138,16 +112,34 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     emit("changedaudiotrack", {
       id: currentTrack.id.toString(),
       label: currentTrack.name,
-      language: currentTrack.lang ?? "unknown",
+      language: resolveAudioLanguage(currentTrack.lang, currentTrack.name),
     });
     emit(
       "audiotracks",
       hls.audioTracks.map((v) => ({
         id: v.id.toString(),
         label: v.name,
-        language: v.lang ?? "unknown",
+        language: resolveAudioLanguage(v.lang, v.name),
       })),
     );
+  }
+
+  /**
+   * When the source/HLS playlist doesn't label quality (common on native
+   * Safari HLS and some scrapers), read the decoded frame size from the
+   * <video> element — that's the real resolution being shown.
+   */
+  function reportQualityFromVideoElement() {
+    if (!videoElement) return;
+    // hls.js already reports level heights — don't fight those updates.
+    if (hls && hls.levels.some((l) => l.height > 0)) return;
+
+    const height = videoElement.videoHeight;
+    const quality = resolutionHeightToQuality(height);
+    if (!quality || quality === lastInferredQuality) return;
+    lastInferredQuality = quality;
+    emit("qualities", [quality]);
+    emit("changedquality", quality);
   }
 
   function setupQualityForHls() {
@@ -408,9 +400,11 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     videoElement.addEventListener("playing", () => {
       emit("play", undefined);
       initAudioAnalysis();
+      reportQualityFromVideoElement();
     });
     videoElement.addEventListener("pause", () => emit("pause", undefined));
     videoElement.addEventListener("canplay", () => {
+      reportQualityFromVideoElement();
       // Check if video has enough buffered data to play smoothly (at least 5 seconds ahead)
       const hasEnoughBuffer = (() => {
         if (!videoElement) return false;
@@ -481,8 +475,18 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         videoElement &&
         canPlayHlsNatively(videoElement)
       ) {
-        emit("qualities", ["unknown"]);
-        emit("changedquality", "unknown");
+        // Native HLS often can't enumerate levels — infer from decoded size.
+        const inferred = resolutionHeightToQuality(videoElement.videoHeight);
+        if (inferred) {
+          lastInferredQuality = inferred;
+          emit("qualities", [inferred]);
+          emit("changedquality", inferred);
+        } else {
+          emit("qualities", ["unknown"]);
+          emit("changedquality", "unknown");
+        }
+      } else {
+        reportQualityFromVideoElement();
       }
       // Only emit duration if it's a valid value (> 0) to prevent progress reset during source switches
       const duration = videoElement?.duration ?? 0;
@@ -493,6 +497,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         // Keep the last valid duration if the new one is invalid
         emit("duration", lastValidDuration);
       }
+    });
+    videoElement.addEventListener("resize", () => {
+      reportQualityFromVideoElement();
     });
     videoElement.addEventListener("progress", () => {
       if (videoElement) {
@@ -749,6 +756,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       if (!ops.source) unloadSource();
       automaticQuality = ops.automaticQuality;
       preferenceQuality = ops.preferredQuality;
+      lastInferredQuality = null;
       source = ops.source;
       emit("loading", true);
       startAt = ops.startAt;
@@ -968,7 +976,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       emit("changedaudiotrack", {
         id: audioTrack.id.toString(),
         label: audioTrack.name,
-        language: audioTrack.lang ?? "unknown",
+        language: resolveAudioLanguage(audioTrack.lang, audioTrack.name),
       });
     },
   };
