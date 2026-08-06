@@ -5,10 +5,12 @@ import { getArtemisVariantMeta, getVariantMeta } from "@/sdk";
 import { getCachedMetadata } from "@/backend/helpers/providerApi";
 import { Toggle } from "@/components/buttons/Toggle";
 import { Icon, Icons } from "@/components/Icon";
+import { Spinner } from "@/components/layout/Spinner";
 import { useCaptions } from "@/components/player/hooks/useCaptions";
 import { useCasting } from "@/components/player/casting/useCasting";
 import { Menu } from "@/components/player/internals/ContextMenu";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
+import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { qualityToString } from "@/stores/player/utils/qualities";
 import { useSubtitleStore } from "@/stores/subtitles";
@@ -19,6 +21,8 @@ export function SettingsMenu({ id }: { id: string }) {
   const router = useOverlayRouter(id);
   const currentQuality = usePlayerStore((s) => s.currentQuality);
   const currentAudioTrack = usePlayerStore((s) => s.currentAudioTrack);
+  const status = usePlayerStore((s) => s.status);
+  const source = usePlayerStore((s) => s.source);
   const selectedCaptionLanguage = usePlayerStore(
     (s) => s.caption.selected?.language,
   );
@@ -27,12 +31,17 @@ export function SettingsMenu({ id }: { id: string }) {
   const currentEmbedId = usePlayerStore(
     (s) => (s as any).embedId as string | null,
   );
+  // While scrapers are still searching (or nothing is loaded yet), Quality /
+  // Audio aren't meaningful — show a spinner and block navigation.
+  const awaitingSource =
+    status === playerStatus.SCRAPING ||
+    (status !== playerStatus.PLAYING && !source);
   const sourceName = useMemo(() => {
     if (!currentSourceId) return "...";
-    const source = getCachedMetadata().find(
+    const sourceMeta = getCachedMetadata().find(
       (src) => src.id === currentSourceId,
     );
-    return source?.name ?? "...";
+    return sourceMeta?.name ?? "...";
   }, [currentSourceId]);
   const embedName = useMemo(() => {
     if (!currentEmbedId) return undefined;
@@ -52,13 +61,16 @@ export function SettingsMenu({ id }: { id: string }) {
       t("player.menus.subtitles.unknownLanguage"))
     : undefined;
 
-  const source = usePlayerStore((s) => s.source);
-
   const downloadable = source?.type === "file" || source?.type === "hls";
 
-
-  const { isCasting, chromecastAvailable, airplayAvailable, startChromecast, startAirplay, stop } =
-    useCasting();
+  const {
+    isCasting,
+    chromecastAvailable,
+    airplayAvailable,
+    startChromecast,
+    startAirplay,
+    stop,
+  } = useCasting();
   const castPlatformAvailable = chromecastAvailable || airplayAvailable;
 
   const requestCast = () => {
@@ -86,14 +98,28 @@ export function SettingsMenu({ id }: { id: string }) {
       <Menu.Section grid>
         <Menu.ChevronLink
           box
-          onClick={() => router.navigate("/quality")}
-          rightText={currentQuality ? qualityToString(currentQuality) : ""}
+          disabled={awaitingSource}
+          onClick={() => {
+            if (awaitingSource) return;
+            router.navigate("/quality");
+          }}
+          rightText={
+            awaitingSource
+              ? undefined
+              : currentQuality
+                ? qualityToString(currentQuality)
+                : ""
+          }
         >
           {t("player.menus.settings.qualityItem")}
-          <span className="text-type-secondary text-sm">
-            {currentQuality
-              ? qualityToString(currentQuality)
-              : t("player.menus.quality.auto")}
+          <span className="text-type-secondary text-sm inline-flex items-center justify-center min-h-[1.25rem]">
+            {awaitingSource ? (
+              <Spinner className="text-base" />
+            ) : currentQuality ? (
+              qualityToString(currentQuality)
+            ) : (
+              t("player.menus.quality.auto")
+            )}
           </span>
         </Menu.ChevronLink>
         <Menu.ChevronLink
@@ -117,7 +143,14 @@ export function SettingsMenu({ id }: { id: string }) {
             {selectedLanguagePretty ?? t("player.menus.subtitles.offChoice")}
           </span>
         </Menu.ChevronLink>
-        {currentAudioTrack ? (
+        {awaitingSource ? (
+          <Menu.ChevronLink box disabled>
+            {t("player.menus.settings.audioItem")}
+            <span className="text-type-secondary text-sm inline-flex items-center justify-center min-h-[1.25rem]">
+              <Spinner className="text-base" />
+            </span>
+          </Menu.ChevronLink>
+        ) : currentAudioTrack ? (
           <Menu.ChevronLink
             box
             onClick={() => router.navigate("/audio")}
