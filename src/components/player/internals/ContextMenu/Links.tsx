@@ -113,7 +113,7 @@ export function Link(props: {
     return (
       <div
         className={classes}
-        style={styles}
+        style={props.box ? undefined : styles}
         data-active-link={props.active ? true : undefined}
       >
         {content}

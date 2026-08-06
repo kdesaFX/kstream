@@ -112,9 +112,9 @@ export function SettingsMenu({ id }: { id: string }) {
           }
         >
           {t("player.menus.settings.qualityItem")}
-          <span className="text-type-secondary text-sm inline-flex items-center justify-center min-h-[1.25rem]">
+          <span className="text-type-secondary text-sm leading-5 h-5 flex items-center justify-center">
             {awaitingSource ? (
-              <Spinner className="text-base" />
+              <Spinner className="text-sm" />
             ) : currentQuality ? (
               qualityToString(currentQuality)
             ) : (
@@ -144,10 +144,10 @@ export function SettingsMenu({ id }: { id: string }) {
           </span>
         </Menu.ChevronLink>
         {awaitingSource ? (
-          <Menu.ChevronLink box disabled>
+          <Menu.ChevronLink box disabled onClick={() => {}}>
             {t("player.menus.settings.audioItem")}
-            <span className="text-type-secondary text-sm inline-flex items-center justify-center min-h-[1.25rem]">
-              <Spinner className="text-base" />
+            <span className="text-type-secondary text-sm leading-5 h-5 flex items-center justify-center">
+              <Spinner className="text-sm" />
             </span>
           </Menu.ChevronLink>
         ) : currentAudioTrack ? (
