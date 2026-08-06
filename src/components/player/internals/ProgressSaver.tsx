@@ -8,12 +8,7 @@ import {
   progressIsCompleted,
   useProgressStore,
 } from "@/stores/progress";
-import { MIN_WATCH_SECONDS } from "@/stores/progress/utils";
-
-function progressIsNotStarted(duration: number, watched: number): boolean {
-  if (watched < MIN_WATCH_SECONDS) return true;
-  return false;
-}
+import { progressIsNotStarted } from "@/stores/progress/utils";
 
 function shouldSaveProgress(
   meta: { type: string; tmdbId: string; season?: { tmdbId: string } },

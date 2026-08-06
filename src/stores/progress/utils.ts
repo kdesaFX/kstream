@@ -33,14 +33,17 @@ export function progressIsCompleted(
   return false;
 }
 
-/** Seconds of playback before we treat a title as actually started. */
-export const MIN_WATCH_SECONDS = 120;
+/** Fraction of runtime required before progress / recommendations count. */
+export const MIN_WATCH_FRACTION = 0.35;
 
-function progressIsNotStarted(duration: number, watched: number): boolean {
-  // Ignore brief opens / accidental plays — don't put them in Continue
-  // Watching or feed them into "Because You Watched" recommendations.
-  if (watched < MIN_WATCH_SECONDS) return true;
-
+export function progressIsNotStarted(
+  duration: number,
+  watched: number,
+): boolean {
+  // Need at least 35% watched — brief peeks don't count for Continue
+  // Watching, saves, or "Because You Watched".
+  if (duration <= 0 || watched <= 0) return true;
+  if (watched / duration < MIN_WATCH_FRACTION) return true;
   return false;
 }
 
