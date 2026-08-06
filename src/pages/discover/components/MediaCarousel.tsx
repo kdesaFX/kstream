@@ -17,6 +17,7 @@ import {
 } from "@/pages/discover/hooks/useDiscoverMedia";
 import { useDiscoverStore } from "@/stores/discover";
 import { useProgressStore } from "@/stores/progress";
+import { progressHasMeaningfulWatch } from "@/stores/progress/utils";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
@@ -116,12 +117,18 @@ export function MediaCarousel({
   const mediaType: MediaType = isTVShow ? "tv" : "movie";
   const { providers, genres } = useDiscoverOptions(mediaType);
 
-  // Get progress items for recommendations
+  // Get progress items for recommendations — only titles with real watch
+  // time (same bar as Continue Watching), so a 10-second peek doesn't
+  // spawn a "Because You Watched" row.
   const progressItems = useProgressStore((state) => state.items);
   const recommendationSources = React.useMemo(
     () =>
       Object.entries(progressItems || {})
-        .filter(([_, item]) => item.type === (isTVShow ? "show" : "movie"))
+        .filter(
+          ([_, item]) =>
+            item.type === (isTVShow ? "show" : "movie") &&
+            progressHasMeaningfulWatch(item),
+        )
         .map(([id, item]) => ({
           id,
           title: item.title || "",

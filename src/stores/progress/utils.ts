@@ -33,12 +33,33 @@ export function progressIsCompleted(
   return false;
 }
 
-function progressIsNotStarted(duration: number, watched: number): boolean {
-  // too short watch time
-  if (watched < 20) return true;
+/** Seconds of playback before we treat a title as actually started. */
+export const MIN_WATCH_SECONDS = 120;
 
-  // satisfies all constraints, not completed
+function progressIsNotStarted(duration: number, watched: number): boolean {
+  // Ignore brief opens / accidental plays — don't put them in Continue
+  // Watching or feed them into "Because You Watched" recommendations.
+  if (watched < MIN_WATCH_SECONDS) return true;
+
   return false;
+}
+
+/**
+ * True once the user has watched enough of this title (or any episode)
+ * for it to count as real signal — in-progress or completed.
+ */
+export function progressHasMeaningfulWatch(item: ProgressMediaItem): boolean {
+  if (item.type !== "show") {
+    return !progressIsNotStarted(
+      item.progress?.duration ?? 0,
+      item.progress?.watched ?? 0,
+    );
+  }
+
+  return Object.values(item.episodes).some(
+    (epi) =>
+      !progressIsNotStarted(epi.progress.duration, epi.progress.watched),
+  );
 }
 
 function progressIsAcceptableRange(duration: number, watched: number): boolean {

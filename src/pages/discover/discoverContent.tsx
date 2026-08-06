@@ -4,6 +4,7 @@ import { WideContainer } from "@/components/layout/WideContainer";
 import { useDiscoverStore } from "@/stores/discover";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { useProgressStore } from "@/stores/progress";
+import { progressHasMeaningfulWatch } from "@/stores/progress/utils";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { DiscoverNavigation } from "./components/DiscoverNavigation";
@@ -39,14 +40,16 @@ export function DiscoverContent() {
   const movieProgressItems = useMemo(
     () =>
       Object.entries(progressItems || {}).filter(
-        ([, item]) => item.type === "movie",
+        ([, item]) =>
+          item.type === "movie" && progressHasMeaningfulWatch(item),
       ),
     [progressItems],
   );
   const tvProgressItems = useMemo(
     () =>
       Object.entries(progressItems || {}).filter(
-        ([, item]) => item.type === "show",
+        ([, item]) =>
+          item.type === "show" && progressHasMeaningfulWatch(item),
       ),
     [progressItems],
   );
