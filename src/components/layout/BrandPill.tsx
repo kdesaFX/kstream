@@ -19,11 +19,11 @@ export function BrandPill(props: {
       )}
     >
       <img
-        src="/logo.png"
+        src="/logo.png?v=6"
         alt=""
         width={24}
         height={24}
-        className="h-6 w-6 rounded-md object-cover"
+        className="h-6 w-6 object-contain"
         draggable={false}
       />
       <span className="font-semibold text-white">{t("global.name")}</span>
