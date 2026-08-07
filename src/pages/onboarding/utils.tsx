@@ -102,6 +102,7 @@ export function Link(props: {
   href?: string;
   className?: string;
   target?: "_blank";
+  hideArrow?: boolean;
 }) {
   const navigate = useNavigate();
   return (
@@ -118,10 +119,12 @@ export function Link(props: {
       rel="noreferrer"
     >
       {props.children}
-      <Icon
-        icon={Icons.ARROW_RIGHT}
-        className="group-hover:translate-x-0.5 transition-transform text-xl group-active:translate-x-0"
-      />
+      {!props.hideArrow ? (
+        <Icon
+          icon={Icons.ARROW_RIGHT}
+          className="group-hover:translate-x-0.5 transition-transform text-xl group-active:translate-x-0"
+        />
+      ) : null}
     </a>
   );
 }

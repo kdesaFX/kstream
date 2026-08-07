@@ -171,7 +171,7 @@
       "twitter": "Zwetschere",
       "funding": "Onterstötz üs"
     },
-    "tagline": "Lueg dini lieblings Serie ond Felme gratis ohni Werbig z’gse! (っ'ヮ'c)"
+    "tagline": "Lueg dini lieblings Serie ond Felme gratis ohni Werbig z’gse!"
   },
   "global": {
     "name": "kstream",
@@ -214,8 +214,7 @@
           "Was esch of dim Felm ToDo Zetteli?",
           "Wie esch din Tag gse?",
           "Min Fähler, t’Site fonktioniert nie…",
-          "kstream esch die bescht Site, oder?",
-          ">ᴗ<"
+          "kstream esch die bescht Site, oder?"
         ]
       },
       "sectionTitle": "Suechergebniss",
@@ -232,25 +231,35 @@
       "discover": "Entnecke"
     },
     "titles": {
-      "day": {
-        "default": "Was möchtisch a däm schöne nomitag aluege?",
-        "extra": ["Viva la kstream e ciao Svizzera"]
-      },
-      "morning": {
-        "default": "Was welsch a däm morge aluege?",
-        "extra": ["Viva la kstream!"]
-      },
-      "night": {
-        "default": "Besch no wach? Was möchtisch luege?",
-        "extra": ["Viva la ﻿﻿Svizzera!"]
-      },
       "69": {
         "default": "Hesch loscht of öpis scharfs?",
-        "extra": ["Schöne 69. Tag 😘!"]
+        "extra": [
+          "Schöne 69. Tag 😘!"
+        ]
       },
       "420": {
         "default": "Gets öpis, wodu am 4/20 welsch luege?",
-        "extra": ["Fröhleche 4/20 🥳!"]
+        "extra": [
+          "Fröhleche 4/20 🥳!"
+        ]
+      },
+      "day": {
+        "default": "Was möchtisch a däm schöne nomitag aluege?",
+        "extra": [
+          "Viva la kstream e ciao Svizzera"
+        ]
+      },
+      "morning": {
+        "default": "Was welsch a däm morge aluege?",
+        "extra": [
+          "Viva la kstream!"
+        ]
+      },
+      "night": {
+        "default": "Besch no wach? Was möchtisch luege?",
+        "extra": [
+          "Viva la ﻿﻿Svizzera!"
+        ]
       }
     },
     "mediaCard": {
@@ -286,7 +295,7 @@
   "notFound": {
     "badge": "Net gfonde",
     "goHome": "Zrog zo Home",
-    "message": "Mir hei überall gluegt: unter de Chübeli, im Chaschte, hinterem Proxy – aber mir hei die Seite, wo du suechsch, leider nöd gfunde. (ಥ﹏ಥ)",
+    "message": "Mir hei überall gluegt: unter de Chübeli, im Chaschte, hinterem Proxy – aber mir hei die Seite, wo du suechsch, leider nöd gfunde.",
     "title": "T Site heimer net gfonde",
     "reloadButton": "Versuechs nomol"
   },
@@ -483,7 +492,7 @@
       "subtitles": {
         "customChoice": "Drop oder lad dis File ufe",
         "customizeLabel": "Apasse",
-        "dropSubtitleFile": "Leg din Ontertetel do ab! >_<",
+        "dropSubtitleFile": "Leg din Ontertetel do ab",
         "offChoice": "Us",
         "settings": {
           "backlink": "Eigeni Ontertetel",
@@ -579,27 +588,27 @@
         "discoverButton": "Entdeck me"
       },
       "tips": {
-        "7": "Halt SHIFT und klick uf den Titel, um de Link mit der Zeit z'kopiere!",
+        "1": "Klick uf s‘Zahnradsymbol, um d‘Quellen z‘wechse!",
         "2": "Klick ufe Titel zom der link z kopiere!",
-        "12": "Dröck SPACE oder K zom abspele/pausiere!",
-        "19": "Drück . ond , um Frame für Frame z'bewege, wenn's pausiert esch!",
         "3": "Halt SHIFT für Breitbild statt Vollbild!",
         "4": "Gwössi Quellene fonktioniere besser wie anderi!",
         "5": "Hol der t Erwiterig för me Quellene!",
         "6": "Halt Lesezeichä, um sie z'ändere oder z'lösche!",
+        "7": "Halt SHIFT und klick uf den Titel, um de Link mit der Zeit z'kopiere!",
         "8": "Wähl en eigeni Ontertetel Farb!",
         "9": "Migrier dis Konto zonere neue Backend i de Einstellungen!",
         "10": "Tret em Fluxer bi!",
         "11": "Bruch [ und ], om d‘Ontertitel-Ziit z'ändere!",
+        "12": "Dröck SPACE oder K zom abspele/pausiere!",
+        "13": "Benotz die LENKI oder RÄCHTI Pfiltaschte om 5 sekomde z‘Skipe!",
         "14": "Benotz J ond L zom 10 sekonde z'Skipe!",
         "15": "Dröck F, om Vollbeld ei- oder uszschalte!",
         "16": "Dröck M zom Stomschalte!",
         "17": "Benotz UP ond DOWN Taschte om t Lutsterchi z ändere!",
         "18": "Drück < und >, um d'Wiedergabegschwindigkeit z'ändere!",
+        "19": "Drück. ond , um Frame für Frame z'bewege, wenn's pausiert esch!",
         "20": "Dröck C om der Ontertetel i- oder uszschalte!",
-        "21": "Dröck R, om en Barrel Roll z mache!",
-        "1": "Klick uf s‘Zahnradsymbol, um d‘Quellen z‘wechse!",
-        "13": "Benotz die LENKI oder RÄCHTI Pfiltaschte om 5 sekomde z‘Skipe!"
+        "21": "Dröck R, om en Barrel Roll z mache!"
       }
     },
     "time": {
@@ -645,7 +654,7 @@
         "delete": {
           "button": "Account lösche",
           "confirmButton": "Account lösche",
-          "confirmDescription": "Welsch der Account wörklech lösche? All dini Date göi verlore! ૮₍˶Ó﹏Ò ⑅₎ა",
+          "confirmDescription": "Welsch der Account wörklech lösche? All dini Date göi verlore!",
           "confirmTitle": "Besch secher?",
           "text": "Die Aktion cha net röckgängig gmacht wärde. Alli date werne glöscht ond chöne net wederhergstellt werde.",
           "title": "Account lösche"
@@ -750,7 +759,7 @@
           "description": "Es gset so us, als würdi ei oder meh Element in däre Konfiguration dini Ufmärksamkeit bruuche.",
           "title": "Öpis brucht dini Ufmerksamkeit 😱"
         },
-        "itemError": "Do stemt öpis net met dene Ischtelige. Mach dis Setup erneut, zoms Problem z‘fixe. (ᴗ_ ᴗ。)",
+        "itemError": "Do stemt öpis net met dene Ischtelige. Mach dis Setup erneut, zoms Problem z‘fixe.",
         "items": {
           "default": "Standart Ischtelig",
           "extension": "Erwiterig",
@@ -758,7 +767,7 @@
         },
         "redoSetup": "Erneut Irechte",
         "successStatus": {
-          "description": "Alles esch barat. Du chasch jetzt dini lieblings Medie aluege. (๑>◡<๑)",
+          "description": "Alles esch barat. Du chasch jetzt dini lieblings Medie aluege.",
           "title": "Alles Igrechtet!!"
         },
         "unsetStatus": {
@@ -770,7 +779,7 @@
       "workers": {
         "addButton": "Neue Worker hinzuefüege",
         "description": "Damit d’Applikation funktioniert, wird de gesamt Dateverkehr über en Proxys gleitet. Aktivier das, wenn du dini eigene Workers mitbringe wotsch. <0>Anweisungen.</0>",
-        "emptyState": "Kei Worker vorhande (｡•́︿•̀｡), du muesch eine hinzuefüege",
+        "emptyState": "Kei Worker vorhande, du muesch eine hinzuefüege",
         "label": "Verwänd en eigene Worker-Proxys",
         "urlLabel": "Worker-URLs",
         "urlPlaceholder": "https://",
@@ -798,7 +807,7 @@
       "sourceOrderDescription": "Per Drag & Drop chasch t Quelle neu a‘ordne. Das bestimmt d‘Reihenfolg fo de Quelle wo abgsuecht wärde. Wenn e Quelle grau isch, heisst das, d’<bold>Erweiterig</bold> isch för die Quelle nötig. <br><br> <strong>(D’Standard-Reihenfolg isch für di meiste Notzer am beste)</strong>",
       "skipCreditsLabel": "Skip d‘credits",
       "lowPerformanceMode": "Performenc/bandwiti Modus",
-      "lowPerformanceModeDescription": "Optimiert d‘Application för schwachi verbendige met em drossle for Bandwiti feature. Dä Modus schränkt der Dateverbruch i, ohni d‘Hauptsuechi ond fonktione zom luege izschränke. ",
+      "lowPerformanceModeDescription": "Optimiert d‘Application för schwachi verbendige met em drossle for Bandwiti feature. Dä Modus schränkt der Dateverbruch i, ohni d‘Hauptsuechi ond fonktione zom luege izschränke.",
       "lowPerformanceModeLabel": "Performenc Mode"
     },
     "reset": "Zurogsetze",
@@ -1032,9 +1041,9 @@
   "fedapi": {
     "setup": {
       "step": {
-        "3": "3. Gang zom Application Tab → \"Cookies\".",
         "1": "1. Gang zo <0>febbox.com</0> ond meld dich met dim Google Account a (benotz es neue Account!)",
         "2": "2. Öffne d‘DevTools oder de inspector vom Browser",
+        "3": "3. Gang zom Application Tab → \"Cookies\".",
         "4": "4. Kopiers 'ui' Cookie.",
         "5": "5. Schliess de Tab ond log dich aber NET us!",
         "warning": "(Teil dä Token of kei Fall)"

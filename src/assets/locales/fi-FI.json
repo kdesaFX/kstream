@@ -99,7 +99,7 @@
       "twitter": "Twitter",
       "funding": "Tue meitä"
     },
-    "tagline": "Katso suosikkiohjelmiasi ja elokuviasi täysin ilmaiseksi ilman mainoksia! (っ'ヮ'c)"
+    "tagline": "Katso suosikkiohjelmiasi ja elokuviasi täysin ilmaiseksi ilman mainoksia!"
   },
   "global": {
     "name": "kstream",
@@ -142,8 +142,7 @@
           "Mitä katselulistallasi on tänään?",
           "Miten päiväsi sujui?",
           "Pahoittelut, sivusto ei toimi koskaan...",
-          "Eikö kstream olekin paras?",
-          ">ᴗ<"
+          "Eikö kstream olekin paras?"
         ]
       },
       "sectionTitle": "Hakutulokset",
@@ -160,6 +159,18 @@
       "discover": "Löydä katsottavaa"
     },
     "titles": {
+      "69": {
+        "default": "Ootko valmis johonkin kuumaan?",
+        "extra": [
+          "Hyvää 69-päivää 😘!"
+        ]
+      },
+      "420": {
+        "default": "Mitä tekisi mieli katsoa tänä 4/20-päivänä?",
+        "extra": [
+          "Hyvää 4/20-päivää 🥳!"
+        ]
+      },
       "day": {
         "default": "Mitä haluaisit katsoa tänä iltapäivänä?",
         "extra": [
@@ -174,15 +185,9 @@
       },
       "night": {
         "default": "Mitä haluaisit katsoa tänä iltana?",
-        "extra": ["Väsynyt? Kuulin, että Manaaja (The Exorcist) on hyvä!"]
-      },
-      "420": {
-        "default": "Mitä tekisi mieli katsoa tänä 4/20-päivänä?",
-        "extra": ["Hyvää 4/20-päivää 🥳!"]
-      },
-      "69": {
-        "default": "Ootko valmis johonkin kuumaan?",
-        "extra": ["Hyvää 69-päivää 😘!"]
+        "extra": [
+          "Väsynyt? Kuulin, että Manaaja (The Exorcist) on hyvä!"
+        ]
       }
     },
     "mediaCard": {
@@ -216,7 +221,7 @@
   "notFound": {
     "badge": "Ei löydetty",
     "goHome": "Takaisin kotiin",
-    "message": "Etsimme kaikkialta: roskisten alta, kaapista, välityspalvelimen takaa… mutta emme silti löytäneet etsimääsi sivua. (ಥ﹏ಥ)",
+    "message": "Etsimme kaikkialta: roskisten alta, kaapista, välityspalvelimen takaa… mutta emme silti löytäneet etsimääsi sivua.",
     "title": "Sivua ei löytynyt"
   },
   "onboarding": {
@@ -295,7 +300,7 @@
           "text": "Emme löytäneet upotuksia, kokeile toista lähdettä."
         },
         "noStream": {
-          "text": "Tällä lähteellä ei ole streameja tälle elokuvalle tai sarjalle. /ᐠ - ˕ -マ Ⳋ"
+          "text": "Tällä lähteellä ei ole streameja tälle elokuvalle tai sarjalle."
         }
       }
     },

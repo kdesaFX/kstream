@@ -1,8 +1,7 @@
 import {
   APP_VERSION,
   BACKEND_URL,
-  DISCORD_LINK,
-  GITHUB_LINK,
+  SUPPORT_EMAIL,
   TWITTER_LINK,
 } from "./constants";
 
@@ -11,6 +10,7 @@ interface Config {
   GITHUB_LINK: string;
   DISCORD_LINK: string;
   DMCA_EMAIL: string;
+  SUPPORT_EMAIL: string;
   TWITTER_LINK: string;
   TMDB_READ_API_KEY: string;
   CORS_PROXY_URL: string;
@@ -69,6 +69,7 @@ export interface RuntimeConfig {
   GITHUB_LINK: string;
   DISCORD_LINK: string;
   DMCA_EMAIL: string | null;
+  SUPPORT_EMAIL: string;
   TWITTER_LINK: string;
   TMDB_READ_API_KEY: string | null;
   ALLOW_DEBRID_KEY: boolean;
@@ -137,6 +138,7 @@ const env: Record<keyof Config, undefined | string> = {
   ONBOARDING_PROXY_INSTALL_LINK: import.meta.env
     .VITE_ONBOARDING_PROXY_INSTALL_LINK,
   DMCA_EMAIL: import.meta.env.VITE_DMCA_EMAIL,
+  SUPPORT_EMAIL: import.meta.env.VITE_SUPPORT_EMAIL,
   CORS_PROXY_URL: import.meta.env.VITE_CORS_PROXY_URL,
   M3U8_PROXY_URL: import.meta.env.VITE_M3U8_PROXY_URL,
   NORMAL_ROUTER: import.meta.env.VITE_NORMAL_ROUTER,
@@ -207,10 +209,13 @@ function getKey(key: keyof Config, defaultString?: string): string | null {
 export function conf(): RuntimeConfig {
   return {
     APP_VERSION,
-    GITHUB_LINK: getKey("GITHUB_LINK", GITHUB_LINK),
-    DISCORD_LINK,
+    // Social links for the upstream project — disabled on this instance.
+    GITHUB_LINK: "",
+    DISCORD_LINK: "",
     TWITTER_LINK: getKey("TWITTER_LINK", TWITTER_LINK),
-    DMCA_EMAIL: getKey("DMCA_EMAIL"),
+    SUPPORT_EMAIL: getKey("SUPPORT_EMAIL", SUPPORT_EMAIL),
+    // Legal contact defaults to the same business email unless overridden.
+    DMCA_EMAIL: getKey("DMCA_EMAIL", SUPPORT_EMAIL),
     ONBOARDING_CHROME_EXTENSION_INSTALL_LINK: getKey(
       "ONBOARDING_CHROME_EXTENSION_INSTALL_LINK",
       "https://chromewebstore.google.com/detail/p-stream-enchanced/geimjiobahmbkmaigaafjnoanebpmlmj",

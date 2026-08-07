@@ -136,7 +136,7 @@ export function AppsPage() {
       bullets: [
         "works on Android TV and Google TV",
         "supports HDR, better sources, and more",
-        "new builds published on GitHub",
+        "new builds published regularly",
       ],
       cta: "view releases",
       onClick: () => window.open(ANDROID_RELEASES_URL, "_blank"),
@@ -148,7 +148,7 @@ export function AppsPage() {
       tagline: "in the works, the same experience, on your Apple devices.",
       bullets: [
         "currently in development",
-        "announcements go out on Discord",
+        "check back here for announcements",
         "no sign-up needed, just watch this page",
       ],
       cta: "",

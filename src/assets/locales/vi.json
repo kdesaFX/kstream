@@ -213,7 +213,7 @@
       "twitter": "Twitter",
       "funding": "Hỗ trợ chúng tôi"
     },
-    "tagline": "Xem các chương trình và phim yêu thích của bạn với ứng dụng phát trực tuyến nguồn mở này! (っ'ヮ'c)"
+    "tagline": "Xem các chương trình và phim yêu thích của bạn với ứng dụng phát trực tuyến nguồn mở này!"
   },
   "global": {
     "name": "kstream",
@@ -256,8 +256,7 @@
           "Có gì trong danh sách phim của bạn hôm nay?",
           "Hôm nay bạn thế nào?",
           "Xin lỗi nha, trang này hay hỏng lắm...",
-          "Không phải kstream là tuyệt nhất sao?",
-          ">ᴗ<"
+          "Không phải kstream là tuyệt nhất sao?"
         ]
       },
       "sectionTitle": "Kết quả tìm kiếm",
@@ -274,6 +273,18 @@
       "discoverMore": "Khám phá thêm"
     },
     "titles": {
+      "69": {
+        "default": "Muốn khuấy đảo tí cho đời thêm vui không?",
+        "extra": [
+          "Chúc mừng 69 ngày 😘!"
+        ]
+      },
+      "420": {
+        "default": "Bạn muốn xem gì ngày 20/4 này?",
+        "extra": [
+          "Chúc mừng ngày 20/4 🥳!"
+        ]
+      },
       "day": {
         "default": "Chiều nay bạn muốn coi gì?",
         "extra": [
@@ -282,19 +293,15 @@
       },
       "morning": {
         "default": "Sáng nay bạn muốn coi gì?",
-        "extra": ["Tôi nghe nói rằng bộ phim Before Sunrise hay đấy"]
+        "extra": [
+          "Tôi nghe nói rằng bộ phim Before Sunrise hay đấy"
+        ]
       },
       "night": {
         "default": "Đêm nay bạn muốn coi gì?",
-        "extra": ["Cảm thấy mệt? Tôi nghe nói phim The Exorcist hay đấy."]
-      },
-      "420": {
-        "default": "Bạn muốn xem gì ngày 20/4 này?",
-        "extra": ["Chúc mừng ngày 20/4 🥳 !"]
-      },
-      "69": {
-        "default": "Muốn khuấy đảo tí cho đời thêm vui không?",
-        "extra": ["Chúc mừng 69 ngày 😘!"]
+        "extra": [
+          "Cảm thấy mệt? Tôi nghe nói phim The Exorcist hay đấy."
+        ]
       }
     },
     "mediaCard": {
@@ -330,7 +337,7 @@
   "notFound": {
     "badge": "Không tìm thấy",
     "goHome": "Quay lại trang chính",
-    "message": "Chúng tôi đã tìm kiếm khắp nơi: dưới thùng rác, trong tủ quần áo, đằng sau máy chủ proxy nhưng vẫn không thể tìm thấy trang bạn đang tìm kiếm. (ಥ﹏ಥ)",
+    "message": "Chúng tôi đã tìm kiếm khắp nơi: dưới thùng rác, trong tủ quần áo, đằng sau máy chủ proxy nhưng vẫn không thể tìm thấy trang bạn đang tìm kiếm.",
     "title": "Không thể tìm thấy trang",
     "reloadButton": "Thử lại"
   },
@@ -459,7 +466,7 @@
           "text": "Đã xảy ra lỗi khi cố gắng tìm video... Hãy thử nguồn khác?"
         },
         "noStream": {
-          "text": "Nguồn này không có luồng nào cho bộ phim hoặc chương trình này. /ᐠ - ˕ -マ Ⳋ",
+          "text": "Nguồn này không có luồng nào cho bộ phim hoặc chương trình này.",
           "title": "Không có luồng :("
         },
         "noEmbeds": {
@@ -488,7 +495,7 @@
         },
         "title": "Phụ đề",
         "unknownLanguage": "Không rõ",
-        "dropSubtitleFile": "Thả file phụ đề vào đây! >_<",
+        "dropSubtitleFile": "Thả file phụ đề vào đây",
         "empty": "Không có phụ đề nào được cung cấp cho video này.",
         "useNativeSubtitles": "Sử dụng phụ đề video gốc",
         "useNativeSubtitlesDescription": "Có thể sửa phụ đề khi phát và trong PiP",
@@ -598,8 +605,8 @@
         "title": "Vui lòng bật tiện ích mở rộng"
       },
       "tips": {
-        "5": "Tải tiện ích mở rộng để có thêm nhiều nguồn hơn!",
-        "2": "Nhấp vào tiêu đề để sao chép liên kết!"
+        "2": "Nhấp vào tiêu đề để sao chép liên kết!",
+        "5": "Tải tiện ích mở rộng để có thêm nhiều nguồn hơn!"
       }
     },
     "casting": {
@@ -616,19 +623,19 @@
         },
         "redoSetup": "Thiết lập lại",
         "successStatus": {
-          "description": "Tất cả mọi thứ đã sẵn sàng để bạn bắt đầu xem phương tiện bạn yêu thích. (๑>◡<๑)",
+          "description": "Tất cả mọi thứ đã sẵn sàng để bạn bắt đầu xem phương tiện bạn yêu thích.",
           "title": "Mọi thứ đã hoàn tất!"
         },
         "unsetStatus": {
           "title": "Bạn vẫn chưa hoàn thành cài đặt",
           "description": "Xin nhấn vào nút bên phải để bắt đầu quy trình cài đặt."
         },
-        "itemError": "Cài đặt của bạn có gì đó sai. Hãy làm lại bước cài đặt để sửa chữa nó. (ᴗ_ ᴗ。)"
+        "itemError": "Cài đặt của bạn có gì đó sai. Hãy làm lại bước cài đặt để sửa chữa nó."
       },
       "title": "Kết nối",
       "workers": {
         "documentation": "Tài liệu Proxy",
-        "emptyState": "Chưa có workers (｡•́︿•̀｡), thêm ở phía dưới",
+        "emptyState": "Chưa có workers, thêm ở phía dưới",
         "label": "Sử dụng các proxy worker tùy chỉnh",
         "urlLabel": "Worker URLs",
         "addButton": "Thêm worker mới",
@@ -641,7 +648,7 @@
       }
     },
     "preferences": {
-      "lowPerformanceModeDescription": "Tối ưu hóa ứng dụng cho các kết nối và thiết bị chậm hơn bằng cách tắt các tính năng sử dụng nhiều băng thông. Chế độ này giúp giảm mức sử dụng dữ liệu và cải thiện hiệu suất trong khi vẫn giữ nguyên chức năng tìm kiếm và xem phim. ",
+      "lowPerformanceModeDescription": "Tối ưu hóa ứng dụng cho các kết nối và thiết bị chậm hơn bằng cách tắt các tính năng sử dụng nhiều băng thông. Chế độ này giúp giảm mức sử dụng dữ liệu và cải thiện hiệu suất trong khi vẫn giữ nguyên chức năng tìm kiếm và xem phim.",
       "sourceOrderDescription": "Kéo và thả để sắp xếp lại các nguồn. Thao tác này sẽ xác định thứ tự các nguồn được kiểm tra cho phương tiện bạn đang cố gắng xem. Nếu một nguồn bị mờ đi, điều đó có nghĩa là <bold>tiện ích mở rộng</bold> là bắt buộc đối với nguồn đó. <br><br> <strong>(Thứ tự mặc định là tốt nhất cho hầu hết người dùng)</strong>",
       "autoplayDescription": "Tự động phát tập tiếp theo trong một loạt phim sau khi kết thúc. Người dùng có thể bật bằng tiện ích mở rộng trình duyệt, proxy tùy chỉnh hoặc bằng thiết lập mặc định nếu được máy chủ cho phép."
     },

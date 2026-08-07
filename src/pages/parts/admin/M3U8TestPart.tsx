@@ -271,15 +271,13 @@ export function M3U8TestPart() {
               .filter((p) => enabledProxies[p.id])
               .every((proxy) => proxy.status === "success") ? (
               <p>
-                All enabled M3U8 proxies have passed the test!{" "}
-                <span className="font-bold">٩(ˊᗜˋ*)و♡</span>
+                All enabled M3U8 proxies have passed the test!
               </p>
             ) : (
               <div>
                 <div className="text-right">
                   <p className="pb-4">
-                    Some M3U8 proxies have failed the test...{" "}
-                    <span className="font-bold">(•᷄∩•᷅ )</span>
+                    Some M3U8 proxies have failed the test.
                   </p>
                   <div className="flex justify-end">
                     <Button

@@ -154,7 +154,7 @@
       "passphrasePlaceholder": "Fraza",
       "submit": "Zaloguj się",
       "title": "Zaloguj się na swoje konto",
-      "validationError": "Nieprawidłowa lub niedokończona fraza /ᐠ. .ᐟ\\"
+      "validationError": "Nieprawidłowa lub niedokończona fraza"
     },
     "register": {
       "information": {
@@ -197,7 +197,7 @@
   },
   "footer": {
     "legal": {
-      "disclaimer": "Zastrzeżenie ◝(ᵔᵕᵔ)◜",
+      "disclaimer": "Zastrzeżenie",
       "disclaimerText": "kstream nie przechowuje żadnych plików, zawiera jedynie łącza do usług stron trzecich. Kwestie prawne należy konsultować z hostami plików i dostawcami. kstream nie ponosi odpowiedzialności za jakiekolwiek pliki multimedialne prezentowane przez dostawców wideo."
     },
     "links": {
@@ -207,7 +207,7 @@
       "twitter": "Twitter",
       "funding": "Wesprzyj nas"
     },
-    "tagline": "Oglądaj swoje ulubione seriale i filmy za darmo, bez reklam! (っ'ヮ'c)"
+    "tagline": "Oglądaj swoje ulubione seriale i filmy za darmo, bez reklam!"
   },
   "global": {
     "name": "kstream",
@@ -250,8 +250,7 @@
           "Co jest dzisiaj na Twojej liście Do Obejrzenia?",
           "Jak Ci minął dzień?",
           "Mój błąd, ta strona nigdy nie działa...",
-          "Czy kstream nie jest najlepszy?",
-          ">ᴗ<"
+          "Czy kstream nie jest najlepszy?"
         ]
       },
       "sectionTitle": "Wyniki wyszukiwania",
@@ -268,25 +267,35 @@
       "discover": "Odkrywaj"
     },
     "titles": {
+      "69": {
+        "default": "Masz ochotę na coś pikantnego?",
+        "extra": [
+          "Wesołego dnia 69 😘!"
+        ]
+      },
+      "420": {
+        "extra": [
+          "Wesołego 420 🥳!"
+        ],
+        "default": "Dziś jest 20 kwietnia, co chciałbyś obejrzeć?"
+      },
       "day": {
         "default": "Co chciałbyś obejrzeć dziś po południu?",
-        "extra": ["Viva la kstream!"]
+        "extra": [
+          "Viva la kstream!"
+        ]
       },
       "morning": {
         "default": "Co chciałbyś obejrzeć dziś rano?",
-        "extra": ["Viva la kstream!"]
+        "extra": [
+          "Viva la kstream!"
+        ]
       },
       "night": {
         "default": "Co chciałbyś obejrzeć dziś wieczorem?",
-        "extra": ["Viva la kstream!"]
-      },
-      "69": {
-        "default": "Masz ochotę na coś pikantnego?",
-        "extra": ["Wesołego dnia 69 😘!"]
-      },
-      "420": {
-        "extra": ["Wesołego 420 🥳!"],
-        "default": "Dziś jest 20 kwietnia, co chciałbyś obejrzeć?"
+        "extra": [
+          "Viva la kstream!"
+        ]
       }
     },
     "mediaCard": {
@@ -322,7 +331,7 @@
   "notFound": {
     "badge": "Nie znaleziono",
     "goHome": "Wróć na stronę główną",
-    "message": "Szukaliśmy wszędzie: w koszu, w szafie, a nawet w piwnicy, ale nie byliśmy w stanie znaleźć strony której szukasz. (ಥ﹏ಥ)",
+    "message": "Szukaliśmy wszędzie: w koszu, w szafie, a nawet w piwnicy, ale nie byliśmy w stanie znaleźć strony której szukasz.",
     "title": "Nie można znaleźć tej strony",
     "reloadButton": "Spróbuj jeszcze raz"
   },
@@ -523,7 +532,7 @@
       "subtitles": {
         "customChoice": "Wrzuć lub prześlij plik",
         "customizeLabel": "Dostosuj",
-        "dropSubtitleFile": "Tu przerzuć plik z napisami! >_<",
+        "dropSubtitleFile": "Tu przerzuć plik z napisami",
         "offChoice": "Wyłącz",
         "settings": {
           "backlink": "Własne napisy",
@@ -621,23 +630,23 @@
       "tips": {
         "1": "Kliknij w ikonkę zębatek, aby zmienić źródło!",
         "2": "Kliknij w tytuł, aby skopiować link!",
-        "13": "Użyj strzałek LEWA lub PRAWA, aby pominąć o 5 sekund!",
-        "18": "Wciśnij < i > aby zmienić prędkość odtwarzania!",
-        "5": "Zainstaluj rozszerzenie, aby mieć więcej źródeł!",
-        "7": "Przytrzymaj SHIFT i kliknij w tytuł, aby skopiować link!",
         "3": "Wciśnij i przytrzymaj lub przytrzymaj SHIFT, aby wyświetlić przycisk od szerokiego ekranu, zamiast pełnego!",
         "4": "Niektóre źródła działają lepiej niż inne!",
+        "5": "Zainstaluj rozszerzenie, aby mieć więcej źródeł!",
         "6": "Przytrzymaj zakładki, aby edytować lub usunąć!",
+        "7": "Przytrzymaj SHIFT i kliknij w tytuł, aby skopiować link!",
         "8": "Ustaw niestandardowy kolor napisów!",
         "9": "Migruj swoje konto do nowego backendu w ustawieniach!",
         "10": "Dołącz do serwera Fluxer!",
         "11": "Użyj [ i ] żeby dostosować prędkość napisów!",
         "12": "Wciśnij SPACJĘ lub K, aby wznowić/zatrzymać!",
+        "13": "Użyj strzałek LEWA lub PRAWA, aby pominąć o 5 sekund!",
         "14": "Użyj J lub L, aby pominąć o 10 sekund!",
         "15": "Wciśnij F, aby włączyć pełny ekran!",
         "16": "Wciśnij M, aby wyciszyć!",
         "17": "Użyj strzałek GÓRA lub DÓŁ, aby zmienić głośność!",
-        "19": "Wciśnij . lub , aby ruszyć klatka po klatce w trakcie pauzy!",
+        "18": "Wciśnij < i > aby zmienić prędkość odtwarzania!",
+        "19": "Wciśnij. lub , aby ruszyć klatka po klatce w trakcie pauzy!",
         "20": "Wciśnij C, aby włączyć napisy!"
       }
     },
@@ -684,7 +693,7 @@
         "delete": {
           "button": "Usuń konto",
           "confirmButton": "Usuń konto",
-          "confirmDescription": "Na pewno chcesz usunąć swoje konto? Wszystkie twoje dane zostaną stracone! ૮₍˶Ó﹏Ò ⑅₎ა",
+          "confirmDescription": "Na pewno chcesz usunąć swoje konto? Wszystkie twoje dane zostaną stracone!",
           "confirmTitle": "Jesteś pewny?",
           "text": "Działanie to jest nieodwracalne. Wszystkie dane zostaną usunięte i nie będzie można ich odzyskać.",
           "title": "Usuń konto"
@@ -787,7 +796,7 @@
           "description": "Wygląda na to, że jeden lub więcej elementów tej konfiguracji wymaga Twojej uwagii.",
           "title": "Coś wymaga Twojej uwagi 😱"
         },
-        "itemError": "Coś jest nie tak z tym ustawieniem. Ponownie przejdź przez konfigurację, aby to naprawić. (ᴗ_ ᴗ。)",
+        "itemError": "Coś jest nie tak z tym ustawieniem. Ponownie przejdź przez konfigurację, aby to naprawić.",
         "items": {
           "default": "Domyślna konfiguracja",
           "extension": "Rozszerzenie",
@@ -795,7 +804,7 @@
         },
         "redoSetup": "Ponów konfigurację",
         "successStatus": {
-          "description": "Wszystko jest gotowe, abyś mógł zacząć oglądać ulubione media. (๑>◡<๑)",
+          "description": "Wszystko jest gotowe, abyś mógł zacząć oglądać ulubione media.",
           "title": "Wszystko jest gotowe!"
         },
         "unsetStatus": {
@@ -807,7 +816,7 @@
       "workers": {
         "addButton": "Dodaj nowego pracownika",
         "description": "Aby aplikacja działała, cały ruch jest kierowany przez serwery proxy. Włącz tę opcję, jeśli chcesz korzystać z własnych pracowników. <0>Instrukcje.</0>",
-        "emptyState": "Brak pracowników (｡•́︿•̀｡), dodaj jednego poniżej",
+        "emptyState": "Brak pracowników, dodaj jednego poniżej",
         "label": "Używaj niestandardowych pracowników proxy",
         "urlLabel": "Adresy URL pracowników",
         "urlPlaceholder": "https://",

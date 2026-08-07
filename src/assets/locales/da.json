@@ -46,7 +46,7 @@
       "passphrasePlaceholder": "Adgangssætning",
       "submit": "Log ind",
       "title": "Log ind på din profil",
-      "validationError": "Forkert eller ukomplet adgangssætning /ᐠ. .ᐟ\\"
+      "validationError": "Forkert eller ukomplet adgangssætning"
     },
     "register": {
       "information": {
@@ -89,7 +89,7 @@
   },
   "footer": {
     "legal": {
-      "disclaimer": "Ansvarsfraskrivelse ◝(ᵔᵕᵔ)◜",
+      "disclaimer": "Ansvarsfraskrivelse",
       "disclaimerText": "Bemærk: kstream hoster ikke selv nogen filer, men viser i stedet kun indhold fra tredjepartsudbydere. Lovmæssige forhold bør afklares med dem."
     },
     "links": {
@@ -98,7 +98,7 @@
       "github": "GitHub",
       "twitter": "Twitter"
     },
-    "tagline": "Se dine favoritserier og -film gratis og uden reklamer! (っ'ヮ'c)"
+    "tagline": "Se dine favoritserier og -film gratis og uden reklamer!"
   },
   "global": {
     "name": "kstream",
@@ -136,8 +136,7 @@
           "Hvad er der på din favoritliste i dag?",
           "Hvordan har din dag været?",
           "Min fejl, siden virker aldrig...",
-          "Er kstream ikke bare det bedste?",
-          ">ᴗ<"
+          "Er kstream ikke bare det bedste?"
         ],
         "default": "Hvad har du lyst til at se?"
       },
@@ -158,25 +157,35 @@
       "sectionTitle": "Bogmærker"
     },
     "titles": {
-      "day": {
-        "default": "Hvad vil du gerne se i eftermiddag?",
-        "extra": ["Længe leve kstream!"]
-      },
-      "morning": {
-        "default": "Hvad vil du gerne se her til morgen?",
-        "extra": ["Længe leve kstream!"]
-      },
-      "night": {
-        "extra": ["Længe leve kstream!"],
-        "default": "Hvad vil du gerne se i aften?"
+      "69": {
+        "default": "Har du lyst til at \"hygge\"?",
+        "extra": [
+          "Glædelig 69-dag 😘!"
+        ]
       },
       "420": {
         "default": "Hvad vil du gerne se denne 4/20?",
-        "extra": ["Glædelig 4/20 🥳!"]
+        "extra": [
+          "Glædelig 4/20 🥳!"
+        ]
       },
-      "69": {
-        "default": "Har du lyst til at \"hygge\"?",
-        "extra": ["Glædelig 69-dag 😘!"]
+      "day": {
+        "default": "Hvad vil du gerne se i eftermiddag?",
+        "extra": [
+          "Længe leve kstream!"
+        ]
+      },
+      "morning": {
+        "default": "Hvad vil du gerne se her til morgen?",
+        "extra": [
+          "Længe leve kstream!"
+        ]
+      },
+      "night": {
+        "extra": [
+          "Længe leve kstream!"
+        ],
+        "default": "Hvad vil du gerne se i aften?"
       }
     }
   },
@@ -206,7 +215,7 @@
     "reloadButton": "Prøv igen",
     "title": "Kunne ikke finde den side",
     "goHome": "Tilbage til hjem",
-    "message": "Vi har ledt overalt: under skraldespandene, i skabet, bag proxy'en, men i sidste ende kunne vi ikke finde den side, du leder efter. (ಥ﹏ಥ)"
+    "message": "Vi har ledt overalt: under skraldespandene, i skabet, bag proxy'en, men i sidste ende kunne vi ikke finde den side, du leder efter."
   },
   "downtimeNotice": {
     "badge": "Problemer",
@@ -218,7 +227,7 @@
     "defaultConfirm": {
       "cancel": "Annuller",
       "confirm": "Brug standardopsætning",
-      "description": "Standardopsætningen har ikke de bedste streams og kan være ulideligt langsom ( ͠° ͟ʖ ͡°)",
+      "description": "Standardopsætningen har ikke de bedste streams og kan være ulideligt langsom",
       "title": "Er du sikker?"
     },
     "extension": {
@@ -270,7 +279,7 @@
           "action": "Opsæt proxy"
         },
         "default": {
-          "text": "Jeg vil ikke have god kvalitet, <0 /> <1>brug standardopsætningen ▄︻デ══━一 ʕ-͡--ʔ</1>"
+          "text": "Jeg vil ikke have god kvalitet, <0 /> <1>brug standardopsætningen </1>"
         }
       },
       "title": "Lad os få dig sat op med kstream 🥳",
@@ -304,9 +313,9 @@
           "title": "Download på iOS"
         },
         "onPc": {
+          "1": "På PC skal du klikke på download-knappen og derefter højreklikke på videoen på den nye side og vælge <bold>Gem video som</bold>",
           "shortTitle": "Download / PC",
-          "title": "Download på pc",
-          "1": "På PC skal du klikke på download-knappen og derefter højreklikke på videoen på den nye side og vælge <bold>Gem video som</bold>"
+          "title": "Download på pc"
         },
         "title": "Download",
         "hlsDisclaimer": "Downloads tages direkte fra udbyderen. kstream har ikke kontrol over, hvordan downloads leveres.<br /><br />Vær opmærksom på, at du downloader en HLS-playliste, <bold>det anbefales ikke at downloade, hvis du ikke er bekendt med avancerede streamingformater</bold>. Prøv forskellige kilder til forskellige formater.",
@@ -353,7 +362,7 @@
           "title": "Ingen embeds fundet"
         },
         "noStream": {
-          "text": "Denne kilde har ingen streams for denne film eller serie. /ᐠ - ˕ -マ Ⳋ",
+          "text": "Denne kilde har ingen streams for denne film eller serie.",
           "title": "Ingen stream :("
         },
         "title": "Kilder",
@@ -371,7 +380,7 @@
         },
         "title": "Undertekster",
         "unknownLanguage": "Ukendt",
-        "dropSubtitleFile": "Drop undertekstfilen her! >_<",
+        "dropSubtitleFile": "Drop undertekstfilen her",
         "scrapeButton": "Scrape undertekster",
         "empty": "Der er ingen undertekster til dette."
       }
@@ -512,7 +521,7 @@
           "title": "Slet profil",
           "confirmButton": "Bekræft sletning",
           "button": "Slet profil",
-          "confirmDescription": "Er du sikker på, at du vil slette din profil? Alle dine data vil gå tabt! ૮₍˶Ó﹏Ò ⑅₎ა",
+          "confirmDescription": "Er du sikker på, at du vil slette din profil? Alle dine data vil gå tabt!",
           "confirmTitle": "Er du sikker?",
           "text": "Denne handling er permanent. Alle data slettes, og intet kan gendannes."
         },
@@ -561,7 +570,7 @@
           "description": "Det ser ud til, at en eller flere ting i denne opsætning kræver din opmærksomhed.",
           "title": "Noget kræver din opmærksomhed 😱"
         },
-        "itemError": "Der er noget galt med denne indstilling. Gå gennem opsætningen igen for at rette det. (ᴗ_ ᴗ。)",
+        "itemError": "Der er noget galt med denne indstilling. Gå gennem opsætningen igen for at rette det.",
         "items": {
           "default": "Standardopsætning",
           "extension": "Udvidelse",
@@ -570,7 +579,7 @@
         "redoSetup": "Gentag opsætning",
         "successStatus": {
           "title": "Alt er sat op!",
-          "description": "Alt er på plads, så du kan begynde at se dine yndlingsmedier. (๑>◡<๑)"
+          "description": "Alt er på plads, så du kan begynde at se dine yndlingsmedier."
         },
         "unsetStatus": {
           "description": "Klik på knappen til højre for at starte opsætningen.",
@@ -580,7 +589,7 @@
       "title": "Forbindelser",
       "workers": {
         "addButton": "Tilføj ny arbejder",
-        "emptyState": "Ingen arbejdere endnu (｡-́︿-̀｡), tilføj en nedenfor",
+        "emptyState": "Ingen arbejdere endnu, tilføj en nedenfor",
         "label": "Brug brugerdefinerede proxy-arbejdere",
         "urlLabel": "Arbejder-URL'er",
         "urlPlaceholder": "https://",
@@ -625,7 +634,7 @@
       "textBoldLabel": "Fed tekst",
       "backgroundBlurLabel": "Sløring af baggrund"
     },
-    "unsaved": "Du har ændringer, der ikke er gemt... ฅ^•ﻌ•^ฅ"
+    "unsaved": "Du har ændringer, der ikke er gemt..."
   },
   "fedapi": {
     "setup": {

@@ -44,6 +44,13 @@ export function DiscoverNavigation({
     return overflowGenres.find((g) => g.id.toString() === selectedGenreId);
   }, [overflowGenres, selectedGenreId]);
 
+  // Selected chips must sit above the page black — mediaCard-background
+  // matches the page and makes the active pill look "missing".
+  const chipActive =
+    "bg-white/20 text-white ring-1 ring-white/25";
+  const chipIdle =
+    "bg-mediaCard-hoverBackground text-type-secondary hover:bg-white/10";
+
   return (
     <div className="pb-4 w-full max-w-screen-xl mx-auto">
       <div className="relative flex justify-center">
@@ -71,9 +78,7 @@ export function DiscoverNavigation({
             type="button"
             onClick={() => setSelectedGenreId(null)}
             className={`px-3 py-1 text-sm rounded-full transition-colors whitespace-nowrap flex-shrink-0 ${
-              allSelected
-                ? "bg-mediaCard-background text-white"
-                : "bg-mediaCard-hoverBackground text-type-secondary hover:bg-mediaCard-background"
+              allSelected ? chipActive : chipIdle
             }`}
           >
             {t("discover.genres.all")}
@@ -87,9 +92,7 @@ export function DiscoverNavigation({
                 key={id}
                 onClick={() => setSelectedGenreId(id)}
                 className={`px-3 py-1 text-sm rounded-full transition-colors whitespace-nowrap flex-shrink-0 ${
-                  active
-                    ? "bg-mediaCard-background text-white"
-                    : "bg-mediaCard-hoverBackground text-type-secondary hover:bg-mediaCard-background"
+                  active ? chipActive : chipIdle
                 }`}
               >
                 {genre.name}
@@ -117,9 +120,7 @@ export function DiscoverNavigation({
                 <button
                   type="button"
                   className={`px-3 py-1 text-sm rounded-full transition-colors whitespace-nowrap flex-shrink-0 flex items-center gap-1 ${
-                    selectedOverflow
-                      ? "bg-mediaCard-background text-white"
-                      : "bg-mediaCard-hoverBackground text-type-secondary hover:bg-mediaCard-background"
+                    selectedOverflow ? chipActive : chipIdle
                   }`}
                 >
                   <span>{selectedOverflow ? selectedOverflow.name : "…"}</span>

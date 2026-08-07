@@ -35,7 +35,7 @@
       "section": "seawch"
     },
     "q25": {
-      "body": "we pwiowitize engwish, but some souwces offer other wanguages. t-twy switching souwces uguu.., fow FED API, onwy safawi suppowts audio switching in mp4 f-files (≧◡≦).",
+      "body": "we pwiowitize engwish, but some souwces offer other wanguages. t-twy switching souwces uguu.., fow FED API, onwy safawi suppowts audio switching in mp4 f-files.",
       "title": "how do i change wanguages (o_O)?",
       "section": "wanguage"
     },
@@ -168,7 +168,7 @@
       "passphrasePlaceholder": "passphwase",
       "submit": "wogin",
       "title": "wogin to your accowunt",
-      "validationError": "Incorrect or incomplete passphwase /ᐠ. .ᐟ\\"
+      "validationError": "Incorrect or incomplete passphwase"
     },
     "register": {
       "information": {
@@ -211,7 +211,7 @@
   },
   "footer": {
     "legal": {
-      "disclaimer": "Discwaimew ◝(ᵔᵕᵔ)◜",
+      "disclaimer": "Discwaimew",
       "disclaimerText": "Pwease note ^w^: uwu-flix does nyot host any OwO fiwes itsewf but instead onwy dispway's content fwom 3wd pawty pwovidews. Wegaw issues shouwd be taken up with them."
     },
     "links": {
@@ -221,7 +221,7 @@
       "twitter": "Twitter",
       "funding": "Suppowt us"
     },
-    "tagline": "Watch youw favowite shows and movies fow fwee with nyo ads evew!!11 >w< (っ'ヮ'c)"
+    "tagline": "Watch youw favowite shows and movies fow fwee with nyo ads evew!!11"
   },
   "global": {
     "name": "uwu-flix",
@@ -257,15 +257,14 @@
       "placeholder": {
         "default": "What do you w-want t-to watch?!?1",
         "extra": [
-          "What awe you in the mood >w< f-f-fow?",
+          "What awe you in the mood f-f-fow?",
           "Shouwd we *notices buldge* dewete youw bwowsew histowy? ;;w;;",
           "What do you w-want t-to stweam?",
           "uwu-flix is the best *starts twerking* site e-e-evew!",
           "What's on youw watchwist today?",
           "How was youw day?",
-          "My bad >w< the site nyevew wowks...",
-          "Isn't uwu-flix just *whispers to self* the best?",
-          ">ᴗ<"
+          "My bad the site nyevew wowks...",
+          "Isn't uwu-flix just *whispers to self* the best?"
         ]
       },
       "sectionTitle": "Seawch wesuwts",
@@ -282,25 +281,33 @@
       "discover": "Discwover"
     },
     "titles": {
-      "day": {
-        "default": "What w-wouwd you wike t-to watch this aftewnyoon!!11",
-        "extra": [" /ᐠ>ヮ<ᐟ\\ฅ"]
-      },
-      "morning": {
-        "default": "What w-wouwd you wike t-to watch this mownying?!! *walks away*",
-        "extra": ["\"૮₍ ˶•⤙•˶ ₎ა"]
-      },
-      "night": {
-        "default": "What w-wouwd you wike t-to watch tonyight?!!",
-        "extra": ["(づ ᴗ _ᴗ)づ♡"]
+      "69": {
+        "default": "up fow something spicy owo?",
+        "extra": [
+          "happy 69 day 😘 (* ^ ω ^)!"
+        ]
       },
       "420": {
         "default": "What w-wouwd you wike t-to watch this 4/20!? *cries*",
-        "extra": ["(づ ᴗ _ᴗ)づ♡ Weed!"]
+        "extra": [
+          "(づ ᴗ _ᴗ)づ♡ Weed!"
+        ]
       },
-      "69": {
-        "default": "up fow something spicy owo?",
-        "extra": ["happy 69 day 😘 (* ^ ω ^)!"]
+      "day": {
+        "default": "What w-wouwd you wike t-to watch this aftewnyoon!!11",
+        "extra": []
+      },
+      "morning": {
+        "default": "What w-wouwd you wike t-to watch this mownying?!! *walks away*",
+        "extra": [
+          "\""
+        ]
+      },
+      "night": {
+        "default": "What w-wouwd you wike t-to watch tonyight?!!",
+        "extra": [
+          "(づ ᴗ _ᴗ)づ♡"
+        ]
       }
     },
     "mediaCard": {
@@ -337,20 +344,20 @@
     "badge": "Nyot found",
     "goHome": "Back t-to home",
     "reloadButton": "Twy again",
-    "message": "We wooked everywhere: undew the bins, in the cwoset, behind the pwoxy but uwtimatewy couwdn't find the page you awe wooking fow. (ಥ﹏ಥ)",
+    "message": "We wooked everywhere: undew the bins, in the cwoset, behind the pwoxy but uwtimatewy couwdn't find the page you awe wooking fow.",
     "title": "Couwdn't find that page"
   },
   "downtimeNotice": {
     "badge": "Issues",
     "goHome": "Go home",
-    "message": "uwu-flix is expewiencing issues with some p-pwovidews again, if you cant find ow (・`ω´・) pway a show pwease change the souwce. Expect this ewwow t-to pewsist thwoughout the bewow times.",
+    "message": "uwu-flix is expewiencing issues with some p-pwovidews again, if you cant find ow pway a show pwease change the souwce. Expect this ewwow t-to pewsist thwoughout the bewow times.",
     "title": "Provider issues"
   },
   "onboarding": {
     "defaultConfirm": {
       "cancel": "Cancel",
       "confirm": "Use defauwt setup",
-      "description": "the *runs away* defauwt setup does nyot have the best *starts twerking* stweams and c-can be unbeawabwy swow. ( ͠° ͟ʖ ͡-͡°)",
+      "description": "the *runs away* defauwt setup does nyot have the best *starts twerking* stweams and c-can be unbeawabwy swow.",
       "title": "Awe you suwe?!?!"
     },
     "extension": {
@@ -411,9 +418,9 @@
       "moreInfo": {
         "button": "Mwore info",
         "explainer": {
-          "proxyDescription": "the p-pwoxy s-scwapes media fwom o-other websites. it bypasses bwowser westwictions (wike CORS) to awwow scwaping (≧◡≦).",
+          "proxyDescription": "the p-pwoxy s-scwapes media fwom o-other websites. it bypasses bwowser westwictions (wike CORS) to awwow scwaping.",
           "fedapi": {
-            "fedapiDescription": "b-bwing youw o-own FWEE Febbox accwount to gain access to FED API (pwivate), t-the best s-souwce with 4k quawity, dowby atmos, skip intwo and the fastest woad times (≧◡≦) highwy wecommended option!",
+            "fedapiDescription": "b-bwing youw o-own FWEE Febbox accwount to gain access to FED API (pwivate), t-the best s-souwce with 4k quawity, dowby atmos, skip intwo and the fastest woad times highwy wecommended option!",
             "fedapi": "a-additionaw: FED API (pwivate) token"
           },
           "intro": "uwu-stweam doesn't h-host v-videos. it wewies on thiwd-pawty websites f-fow content, so you need to choose how i-it c-connects to t-those sites.",
@@ -484,7 +491,7 @@
         "button": "Atwempt downwoad",
         "hlsDownloader": "ow, go to the <0>hls downwoader website</0> and pwaste the pwaylist URL f-fwom bewow.",
         "openIn": "Opwen in...",
-        "vlc": "VLC >_<",
+        "vlc": "VLC",
         "iina": "IINA"
       },
       "episodes": {
@@ -494,7 +501,7 @@
         "loadingError": "Ewwow w-w-woading season",
         "loadingList": "Loading...",
         "loadingTitle": "Loading...",
-        "unairedEpisodes": "OO-Onye ow (・`ω´・) mowe episodes in this season have been disabwed.",
+        "unairedEpisodes": "OO-Onye ow mowe episodes in this season have been disabwed.",
         "markAsWatched": "Mwark as watched",
         "markAsUnwatched": "Mwark as unwatched",
         "seasons": "Sweasons",
@@ -534,7 +541,7 @@
           "title": "Nyo embeds found"
         },
         "noStream": {
-          "text": "This souwce has nyo stweams fow this movie ow (・`ω´・) show. /ᐠ - ˕ ---マ Ⳋ",
+          "text": "This souwce has nyo stweams fow this movie ow show.",
           "title": "No stweam :("
         },
         "title": "Souwces",
@@ -556,7 +563,7 @@
         "useNativeSubtitles": "Use nawtive vwideo swubtitles",
         "onChoice": "On",
         "scrapeButton": "Scwape swubtitles",
-        "empty": "There are no pwovided swubtitles fwor this :< .",
+        "empty": "There are no pwovided swubtitles fwor this :<.",
         "notFound": "Nwone of the avwailable options mwatch your qwuery",
         "useNativeSubtitlesDescription": "Mway fix swubtitles when cwasting and in PiP",
         "SourceChoice": "Swource Swubtitles",
@@ -578,7 +585,7 @@
       },
       "legal": {
         "badge": "Wemuvd",
-        "text": "This media is nyo wongew avaiwabwe due t-to a takedown nyotice ow (・`ω´・) copywight UwU cwaim. *huggles tightly*",
+        "text": "This media is nyo wongew avaiwabwe due t-to a takedown nyotice ow copywight UwU cwaim. *huggles tightly*",
         "title": "Media has been wemuvd"
       },
       "extensionPermission": {
@@ -590,13 +597,13 @@
       "failed": {
         "badge": "Faiwed",
         "homeButton": "Go home",
-        "text": "Couwd nyot woad the media's metadata fwom TMDB. Pwease check whethew TMDB is d-d-down ow (・`ω´・) bwocked on youw intewnyet connyection.",
+        "text": "Couwd nyot woad the media's metadata fwom TMDB. Pwease check whethew TMDB is d-d-down ow bwocked on youw intewnyet connyection.",
         "title": "Faiwed t-to woad metadata"
       },
       "notFound": {
         "badge": "Nyot found",
         "homeButton": "Back to home",
-        "text": "We couwdn't find the media you wequested. Eithew it's been wemuvd ow (・`ω´・) you tampewed with the UWW (-(nyaughty).",
+        "text": "We couwdn't find the media you wequested. Eithew it's been wemuvd ow you tampewed with the UWW (-(nyaughty).",
         "title": "Couwdn't find that media."
       }
     },
@@ -640,25 +647,25 @@
         "text": "You've instawwed the s-kstream e-extension. To stawt u-using it, you nyeed t-to enyabwe the extension fow this site."
       },
       "tips": {
-        "7": "Hold SHIFT and twap the twitle to copy the wink with time!",
-        "11": "Use [ and ] two adjust swubtitle timing!",
-        "17": "Use UP and DOWN awwows to chwange vowume!",
         "1": "Twap the gwear icwon to switch swources!",
         "2": "Twap the twitle to cwopy the w-wink!",
         "3": "tap and howd ow howd shift to show widescween button instead of fuwwscween (* ^ ω ^)!",
         "4": "Some swources work bwetter than others!",
         "5": "Gwet the extwension for more swources!",
         "6": "Howd bookmwarks to edit or dewete them!",
+        "7": "Hold SHIFT and twap the twitle to copy the wink with time!",
         "8": "Set a cwustom swubtitle cowor!",
         "9": "Migwate youw accwount to a new bwackend in settings (* ^ ω ^)!",
         "10": "Join the Dwiscord!",
+        "11": "Use [ and ] two adjust swubtitle timing!",
         "12": "Pwess SPACE or K to pway/pwause!",
         "13": "Use LEFT and RIGHT awwow k-keys t-to skip 5 seconds!",
         "14": "Use J and L k-keys to skip 10 seconds!",
         "15": "Pwess F to twoggle fullscween!",
         "16": "Pwess M to twoggle mute!",
+        "17": "Use UP and DOWN awwows to chwange vowume!",
         "18": "Press < and > to change pwayback spweed!",
-        "19": "Press . and , to move fwame by fwame when pwaused!",
+        "19": "Press. and , to move fwame by fwame when pwaused!",
         "20": "Pwess C to twoggle swubtitles!",
         "21": "Pwess R to do a bawwel woll!"
       }
@@ -680,17 +687,17 @@
     "title": "Suppowt",
     "text": "uwu-flix is designyed t-to be as usew-fwiendwy as possibwe. Howevew, peopwe stiww have questions and issues. This page is h-h-hewe t-to hewp wesowve these showtcomings",
     "q1": {
-      "body": "weww, :3 you c-can join the officiaw <0>kstream discowd</0> and ask questions thewe ow (・`ω´・) you c-can emaiw the onye pwovided at the bottom of this page.",
+      "body": "weww, :3 you c-can join the officiaw <0>kstream discowd</0> and ask questions thewe ow you c-can emaiw the onye pwovided at the bottom of this page.",
       "title": "Where can I get help?"
     },
     "q2": {
       "body": "We have a <0>GitHub</0> whewe you c-can cweate a detaiwed issue in ouw wepositowy. Additionyawwy, if you wish, you c-can cweate a puww wequest t-to fix the issue youwsewf.",
-      "title": "H-How c-can I wepowt a bug ow issue!!11 (・`ω´・)"
+      "title": "H-How c-can I wepowt a bug ow issue!!11"
     }
   },
   "screens": {
     "legal": {
-      "title": "Legal / DMCA (っ◞‸◟ c)"
+      "title": "Legal / DMCA"
     },
     "loadingApp": "W-Woading appwication",
     "loadingUser": "W-Woading youw pwofiwe",
@@ -723,9 +730,9 @@
         "delete": {
           "button": "Dewete account",
           "confirmButton": "Dewete account",
-          "confirmDescription": "Awe you suwe you w-want t-to dewete youw account!!11 Aww >w< youw data wiww be wost?!! ૮₍˶Ó﹏Ò ⑅-⑅₎ა",
+          "confirmDescription": "Awe you suwe you w-want t-to dewete youw account!!11 Aww youw data wiww be wost?!!",
           "confirmTitle": "Awe you suwe?!?!",
-          "text": "This action is iwwevewsibwe. aww >w< data wiww be deweted and nyothing *runs away* c-can be wecuvwed.",
+          "text": "This action is iwwevewsibwe. aww data wiww be deweted and nyothing *runs away* c-can be wecuvwed.",
           "title": "Dewete account"
         },
         "title": "Actions :3",
@@ -820,10 +827,10 @@
       "setup": {
         "doSetup": "Do setup",
         "errorStatus": {
-          "description": "It seems that onye ow (・`ω´・) mowe items in this setup nyeed youw attention.",
+          "description": "It seems that onye ow mowe items in this setup nyeed youw attention.",
           "title": "Something nyeeds youw attention 😱"
         },
-        "itemError": "Thewe is something wwong with this setting. Go thwough setup again t-to fix it. >w< (ᴗ_ ᴗ。)",
+        "itemError": "Thewe is something wwong with this setting. Go thwough setup again t-to fix it.",
         "items": {
           "default": "Defauwt setup",
           "extension": "Extension",
@@ -831,7 +838,7 @@
         },
         "redoSetup": "Wedo setup",
         "successStatus": {
-          "description": "Aww >w< things awe in pwace fow you t-to stawt watching youw favowite media. (๑>◡<๑)",
+          "description": "Aww things awe in pwace fow you t-to stawt watching youw favowite media.",
           "title": "Evewything is set up?!?1"
         },
         "unsetStatus": {
@@ -843,7 +850,7 @@
       "workers": {
         "addButton": "Add nyew w-w-wowkew",
         "description": "To make the x3 appwication function, ;;w;; aww twaffic is wouted thwough pwoxies. Enyabwe this if you w-want t-to b-bwing youw own wowkews. <0>Instwuctions.</0>",
-        "emptyState": "Nyo wowkews yet >w<, add onye bewow",
+        "emptyState": "Nyo wowkews yet, add onye bewow",
         "label": "Use custom pwoxy wowkews",
         "urlLabel": "Wowkew URLs",
         "urlPlaceholder": "https://",
@@ -851,7 +858,7 @@
           "description": "onwy needed if y-you can't access t-themoviedb diwectwy, such as if y-youw ISP bwocks it. it is wecomended to disable the discover section to i-impwove pewfowmance with this :3.",
           "title": "Pwoxy TMDB"
         },
-        "documentation": "Pwoxy documwentwation (・`ω´・)"
+        "documentation": "Pwoxy documwentwation"
       }
     },
     "preferences": {
@@ -861,13 +868,13 @@
       "thumbnailDescription": "Most of the x3 time, videos ^w^ don't have thumbnyaiws. You c-can enyabwe this setting t-to genyewate them on the fwy but they c-can make youw v-v-video swowew.",
       "thumbnailLabel": "Genyewate thumbnyaiws",
       "autoplay": "Autopway",
-      "autoplayDescription": "Automaticawwy pway *notices buldge* the nyext episode in a sewies a-a-aftew weaching :3 the end. Can be enyabwed by usews with the x3 bwowsew extension, a custom pwoxy, ow (・`ω´・) with the x3 defauwt setup if awwowed by the host.",
+      "autoplayDescription": "Automaticawwy pway *notices buldge* the nyext episode in a sewies a-a-aftew weaching :3 the end. Can be enyabwed by usews with the x3 bwowsew extension, a custom pwoxy, ow with the x3 defauwt setup if awwowed by the host.",
       "autoplayLabel": "Autopway",
       "title": "Pwefewences",
       "skipCredits": "Skip End Cwedits",
       "skipCreditsDescription": "when e-enabwed, automaticawwy pway the next episode at 99% c-compwetion t-to skip end cwedits. w-when disabwed, wait untiw the episode is fuwwy compweted xD.",
       "sourceOrderDescription": "dwag and dwop t-to weowder souwces. this w-will detewmine the owder in which souwces are checked fow t-the media you are twying to watch xD i-if a souwce is gweyed out.., it means the <bold>extwension</bold> i-is wequiwed fow that souwce. <br><br> <strong>(the defauwt owder is best fow most usews)</strong>",
-      "lowPerformanceModeDescription": "optimizes the appwication fow s-swower connections and d-devices by disabwing bandwidth-heavy features (o^▽^o) this mode w-weduces data usage and i-impwoves pewfowmance while k-keeping the core seawch and watch f-functionawity i-intact. ",
+      "lowPerformanceModeDescription": "optimizes the appwication fow s-swower connections and d-devices by disabwing bandwidth-heavy features (o^▽^o) this mode w-weduces data usage and i-impwoves pewfowmance while k-keeping the core seawch and watch f-functionawity i-intact.",
       "skipCreditsLabel": "Skwip end cwedits",
       "lowPerformanceMode": "wow pewfowmance/bandwidth mwode",
       "lowPerformanceModeLabel": "wow pewfowmance mode",
@@ -910,7 +917,7 @@
         "dropShadow": "Dwop Swadow"
       }
     },
-    "unsaved": "You have unsaved changes... ฅ^•ﻌ•^ฅ"
+    "unsaved": "You have unsaved changes..."
   },
   "migration": {
     "start": {
@@ -939,7 +946,7 @@
       "title": "migwate youw d-data"
     },
     "upload": {
-      "description": "Upwoad youw pweviouswy expowted data file to westore youw bookmawks and pwogwess on this accwount☆ .",
+      "description": "Upwoad youw pweviouswy expowted data file to westore youw bookmawks and pwogwess on this accwount☆.",
       "button": {
         "success": "Impwort compwete",
         "import": "Impwort dwata",
@@ -1028,7 +1035,7 @@
       "body": "w-we h-have a <0>github</0> where you can cweate a detaiwed issue in ouw wepositowy. additionawwy, if you w-wish (*^.^*).., you can c-cweate a pull wequest to fix the issue youwsewf xD.",
       "title": "How can I weport a bwug or issue?"
     },
-    "text": "uwu-stweam didn't fall out of a coconut twee, it was made mostwy by a s-single p-pewson (a vewy epic one at that☆) .",
+    "text": "uwu-stweam didn't fall out of a coconut twee, it was made mostwy by a s-single p-pewson (a vewy epic one at that☆).",
     "q1": {
       "body": "well, you can join the officiaw <0>uwu-stream discowd</0> and a-ask questions there ow you can emaiw the one pwovided at the bottom of this page.",
       "title": "w-where can i get hewp (o_O)?"
@@ -1039,7 +1046,7 @@
     "setup": {
       "step": {
         "1": "1. Gwo to <0>febbox.com</0> and wog in with Google (use a fwesh accwount!)",
-        "2": "2. Open DevTools or inspect the pwage >_<",
+        "2": "2. Open DevTools or inspect the pwage",
         "3": "3. Go to Applicwation tab → Cwookies",
         "4": "4. Copy the 'ui' cwookie.",
         "5": "5. Cwose the tab, but do NOT wogout!",
@@ -1126,7 +1133,7 @@
         "categoryMovies": "{{category}} Mwovies",
         "categoryShows": "{{category}} Shwows"
       },
-      "change": "Chwange >_<",
+      "change": "Chwange",
       "more": "View mwore"
     },
     "tabs": {

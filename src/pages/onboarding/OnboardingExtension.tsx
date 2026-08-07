@@ -136,7 +136,7 @@ function DefaultExtensionPage(props: ExtensionPageProps) {
       <Heading2 className="!mt-0 !text-3xl max-w-[435px]">
         {t("onboarding.extension.title")}
       </Heading2>
-      <Paragraph className="max-w-[320px] mb-4">
+      <Paragraph className="max-w-[520px] mb-4">
         {t("onboarding.extension.explainer")}
       </Paragraph>
 
@@ -147,6 +147,7 @@ function DefaultExtensionPage(props: ExtensionPageProps) {
           <Link
             href={installChromeLink}
             target="_blank"
+            hideArrow
             className="flex flex-col items-center space-y-2 p-4 rounded-lg hover:bg-type-surface-hover transition-colors"
           >
             <span>
@@ -170,6 +171,7 @@ function DefaultExtensionPage(props: ExtensionPageProps) {
           <Link
             href={installFirefoxLink}
             target="_blank"
+            hideArrow
             className="flex flex-col items-center space-y-2 p-4 rounded-lg hover:bg-type-surface-hover transition-colors"
           >
             <span>
@@ -225,7 +227,7 @@ function IosExtensionPage(_props: ExtensionPageProps) {
       <Heading2 className="!mt-0 !text-3xl max-w-[435px]">
         {t("onboarding.extension.title")}
       </Heading2>
-      <Paragraph className="max-w-[320px] mb-4">
+      <Paragraph className="max-w-[520px] mb-4">
         <Trans
           i18nKey="onboarding.extension.explainerIos"
           components={{ bold: <span className="text-white font-bold" /> }}

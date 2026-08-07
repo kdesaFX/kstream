@@ -155,8 +155,7 @@
           "Bugün izleme listende neler var?",
           "Günün nasıldı?",
           "Benim hatam, site hiç çalışmıyor zaten...",
-          "kstream en iyisi değil mi ya?",
-          ">ᴗ<"
+          "kstream en iyisi değil mi ya?"
         ]
       },
       "sectionTitle": "Arama sonuçları",
@@ -173,6 +172,18 @@
       "discover": "Keşfet"
     },
     "titles": {
+      "69": {
+        "default": "Baharatlı bir şeyler denemeye ne dersin?",
+        "extra": [
+          "Mutlu 69 günü 😘!"
+        ]
+      },
+      "420": {
+        "default": "Bu 4/20’de ne izlemek istersin?",
+        "extra": [
+          "Mutlu 4/20 🥳!"
+        ]
+      },
       "day": {
         "default": "Bu öğleden sonra ne izlemek istersiniz?",
         "extra": [
@@ -181,19 +192,15 @@
       },
       "morning": {
         "default": "Bu sabah ne izlemek istersiniz?",
-        "extra": ["Before Sunrise'a iyi diyorlar"]
+        "extra": [
+          "Before Sunrise'a iyi diyorlar"
+        ]
       },
       "night": {
         "default": "Bu akşam ne izlemek istersiniz?",
-        "extra": ["Yoruldun mu? The Exorcist'e iyi diyorlar."]
-      },
-      "420": {
-        "default": "Bu 4/20’de ne izlemek istersin?",
-        "extra": ["Mutlu 4/20 🥳!"]
-      },
-      "69": {
-        "default": "Baharatlı bir şeyler denemeye ne dersin?",
-        "extra": ["Mutlu 69 günü 😘!"]
+        "extra": [
+          "Yoruldun mu? The Exorcist'e iyi diyorlar."
+        ]
       }
     },
     "mediaCard": {

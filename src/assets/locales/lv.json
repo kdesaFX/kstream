@@ -14,7 +14,7 @@
       "body": "Mūsu meklēšanas rezultātus nodrošina filmu datu bāze (TMDB), un tie tiek rādīti neatkarīgi no tā, vai mūsu avotos patiešām ir saturs.",
       "title": "Meklēšanas rezultātos tiek parādīta seriāls vai filma. Kāpēc es nevaru to atskaņot?"
     },
-    "title": "Par "
+    "title": "Par"
   },
   "actions": {
     "copied": "Nokopēts",
@@ -125,11 +125,15 @@
       },
       "morning": {
         "default": "Ko tu gribētu šorīt noskatīties?",
-        "extra": ["Es dzirdu, ka Pirms saullēkta ir labs"]
+        "extra": [
+          "Es dzirdu, ka Pirms saullēkta ir labs"
+        ]
       },
       "night": {
         "default": "Ko tu gribētu šovakar skatīties?",
-        "extra": ["Noguris? Es dzirdu, ka Exorcist ir labs."]
+        "extra": [
+          "Noguris? Es dzirdu, ka Exorcist ir labs."
+        ]
       }
     }
   },

@@ -157,14 +157,9 @@ export function OnboardingPage() {
           </div>
         </div>
         <div>
-          <Trans i18nKey="onboarding.start.moreInfo.explainer.outro">
-            <a
-              href="https://discord.gg/wmbWfk4SGy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-type-link"
-            />
-          </Trans>
+          <p className="text-type-secondary">
+            {t("onboarding.start.moreInfo.explainer.outro")}
+          </p>
         </div>
       </FancyModal>
       <BiggerCenterContainer>

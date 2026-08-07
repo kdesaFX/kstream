@@ -141,8 +141,7 @@
           "Ce ai vrea să vizionezi azi?",
           "Cum a fost ziua de azi?",
           "Vina mea că site-ul nu funcționează niciodată...",
-          "Nu-i așa că kstream e cel mai tare?",
-          ">ᴗ<"
+          "Nu-i așa că kstream e cel mai tare?"
         ]
       },
       "sectionTitle": "Rezultate de căutare",
@@ -159,6 +158,15 @@
       "discover": "Descoperă"
     },
     "titles": {
+      "69": {
+        "default": "Gata de ceva picant?"
+      },
+      "420": {
+        "extra": [
+          "Un 20/4 fericit 🥳!"
+        ],
+        "default": "Ce ai vrea să vizionezi pe data asta de 20/4?"
+      },
       "day": {
         "default": "La ce vrei să te uiți după-amiaza asta?",
         "extra": [
@@ -167,18 +175,15 @@
       },
       "morning": {
         "default": "La ce dorești să te in uiți dimineață aceasta?",
-        "extra": ["Aud că Before Sunrise este bun"]
+        "extra": [
+          "Aud că Before Sunrise este bun"
+        ]
       },
       "night": {
         "default": "La ce dorești să te uiți în astă seară?",
-        "extra": ["Obosit? Aud că The Exorcist is good."]
-      },
-      "420": {
-        "extra": ["Un 20/4 fericit 🥳!"],
-        "default": "Ce ai vrea să vizionezi pe data asta de 20/4?"
-      },
-      "69": {
-        "default": "Gata de ceva picant?"
+        "extra": [
+          "Obosit? Aud că The Exorcist is good."
+        ]
       }
     },
     "mediaCard": {

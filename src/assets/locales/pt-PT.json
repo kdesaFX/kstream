@@ -160,7 +160,7 @@
       "passphrasePlaceholder": "Frase-passe",
       "submit": "Entrar",
       "title": "Entrar na tua conta",
-      "validationError": "Frase-passe incorreta ou incompleta /ᐠ. .ᐟ\\"
+      "validationError": "Frase-passe incorreta ou incompleta"
     },
     "register": {
       "information": {
@@ -255,8 +255,7 @@
           "O qu está na tua lista para ver hoje?",
           "Como foi o teu dia?",
           "Foi erro meu, o site nunca funciona como deve ser...",
-          "O kstream não é simplesmente o melhor?",
-          ">ᴗ<"
+          "O kstream não é simplesmente o melhor?"
         ]
       },
       "sectionTitle": "Resultados da pesquisa",
@@ -273,6 +272,18 @@
       "discover": "Explora"
     },
     "titles": {
+      "69": {
+        "default": "Apetece-te algo picante?",
+        "extra": [
+          "Feliz dia 69 😘!"
+        ]
+      },
+      "420": {
+        "default": "O que gostarias de ver neste 4/20?",
+        "extra": [
+          "Feliz 4/20 🥳!"
+        ]
+      },
       "day": {
         "default": "O que gostaria de assistir esta tarde?",
         "extra": [
@@ -281,19 +292,15 @@
       },
       "morning": {
         "default": "O que gostaria de assistir esta manhã?",
-        "extra": ["Dizem que Antes do Amanhecer é bom"]
+        "extra": [
+          "Dizem que Antes do Amanhecer é bom"
+        ]
       },
       "night": {
         "default": "O que gostaria de assistir esta noite?",
-        "extra": ["Cansado? Dizem que O Exorcista é bom."]
-      },
-      "420": {
-        "default": "O que gostarias de ver neste 4/20?",
-        "extra": ["Feliz 4/20 🥳!"]
-      },
-      "69": {
-        "default": "Apetece-te algo picante?",
-        "extra": ["Feliz dia 69 😘!"]
+        "extra": [
+          "Cansado? Dizem que O Exorcista é bom."
+        ]
       }
     },
     "mediaCard": {

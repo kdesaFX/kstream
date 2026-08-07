@@ -141,8 +141,7 @@
           "¿Qué hay en tu lista de seguimiento hoy?",
           "¿Cómo estuvo su día?",
           "Mala mia este sitio nunca funciona...",
-          "¿No es kstream lo mejor?",
-          ">ᴗ<"
+          "¿No es kstream lo mejor?"
         ]
       },
       "sectionTitle": "Resultados de búsqueda",
@@ -159,6 +158,18 @@
       "discover": "Descubre"
     },
     "titles": {
+      "69": {
+        "default": "¿Te apetece algo picante?",
+        "extra": [
+          "¡Feliz día 69 😘!"
+        ]
+      },
+      "420": {
+        "default": "¿Qué te gustaría ver este 4/20?",
+        "extra": [
+          "¡Feliz 4/20 🥳!"
+        ]
+      },
       "day": {
         "default": "¿Qué te gustaría ver esta tarde?",
         "extra": [
@@ -167,19 +178,15 @@
       },
       "morning": {
         "default": "¿Qué te gustaría ver esta mañana?",
-        "extra": ["Escuché que “Antes del amanecer” es buena"]
+        "extra": [
+          "Escuché que “Antes del amanecer” es buena"
+        ]
       },
       "night": {
         "default": "¿Qué te gustaría ver esta noche?",
-        "extra": ["¿Cansado? Escuché que “El Exorcista” es buena."]
-      },
-      "420": {
-        "default": "¿Qué te gustaría ver este 4/20?",
-        "extra": ["¡Feliz 4/20 🥳!"]
-      },
-      "69": {
-        "default": "¿Te apetece algo picante?",
-        "extra": ["¡Feliz día 69 😘!"]
+        "extra": [
+          "¿Cansado? Escuché que “El Exorcista” es buena."
+        ]
       }
     },
     "mediaCard": {
@@ -773,12 +780,12 @@
   "fedapi": {
     "setup": {
       "step": {
-        "warning": "(¡No compartas este token!)",
         "1": "1. Anda a <0>febbox.com</0> y inicia sesión con Google (¡Usa una cuenta nueva!)",
-        "5": "5. Cierra la pestaña, pero NO cierres sesión!",
-        "4": "4. Copia la galleta/cookie de \"ui\".",
+        "2": "2. Abre DevTools o inspecciona la página",
         "3": "3. Ve a la pestaña de Application → Cookies",
-        "2": "2. Abre DevTools o inspecciona la página"
+        "4": "4. Copia la galleta/cookie de \"ui\".",
+        "5": "5. Cierra la pestaña, pero NO cierres sesión!",
+        "warning": "(¡No compartas este token!)"
       },
       "title": "Para conseguir tu UI token:",
       "showVideo": "Muestra el Video Tutorial",

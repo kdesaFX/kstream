@@ -3,7 +3,6 @@ import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { ThinContainer } from "@/components/layout/ThinContainer";
-import { MwLink } from "@/components/text/Link";
 import { Heading1, Paragraph } from "@/components/utils/Text";
 import { PageTitle } from "@/pages/parts/util/PageTitle";
 import { conf } from "@/setup/config";
@@ -53,8 +52,21 @@ function Item(props: { title: string; children: React.ReactNode }) {
   );
 }
 
+function SupportEmailLink(props: { children?: React.ReactNode }) {
+  const email = conf().SUPPORT_EMAIL;
+  return (
+    <a
+      href={`mailto:${email}`}
+      className="text-type-link hover:text-white transition-colors"
+    >
+      {props.children ?? email}
+    </a>
+  );
+}
+
 export function SupportPage() {
   const { t } = useTranslation();
+  const email = conf().SUPPORT_EMAIL;
 
   return (
     <SubPageLayout>
@@ -72,12 +84,25 @@ export function SupportPage() {
         <Ol
           items={[
             <Item title={t("support.q1.title")}>
-              <Trans i18nKey="support.q1.body">
-                <MwLink to={conf().DISCORD_LINK} />
-              </Trans>
+              <Trans
+                i18nKey="support.q1.body"
+                values={{ email }}
+                components={{ email: <SupportEmailLink /> }}
+              />
+            </Item>,
+            <Item title={t("support.q2.title")}>
+              <Trans
+                i18nKey="support.q2.body"
+                values={{ email }}
+                components={{ email: <SupportEmailLink /> }}
+              />
             </Item>,
           ]}
         />
+        <Paragraph className="mt-12">
+          {t("support.contactLabel")}{" "}
+          <SupportEmailLink />
+        </Paragraph>
       </ThinContainer>
     </SubPageLayout>
   );

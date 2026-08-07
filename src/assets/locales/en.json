@@ -1,10 +1,4 @@
 {
-  "discordNotice": {
-    "title": "Join our Discord",
-    "description": "Get help, Windows & Android app & chat with the community.",
-    "join": "Join",
-    "dismiss": "Dismiss"
-  },
   "updateNotice": {
     "title": "A new version is available",
     "description": "Refresh to get the latest version of kstream.",
@@ -137,7 +131,7 @@
     },
     "q23": {
       "title": "What is the extension? Is it safe?",
-      "body": "It's a local proxy tool used to access streams that restrict scrapers. It mimics your browsing session. It's also completly opensource and can be found on our github.",
+      "body": "It's a local proxy tool used to access streams that restrict scrapers. It mimics your browsing session. It's also completely open source.",
       "section": "connections"
     },
     "q24": {
@@ -216,7 +210,7 @@
       "passphrasePlaceholder": "Passphrase",
       "submit": "Login",
       "title": "Login to your account",
-      "validationError": "Incorrect or incomplete passphrase /ᐠ. .ᐟ\\",
+      "validationError": "Incorrect or incomplete passphrase",
       "usePasskey": "Use passkey",
       "usePassphrase": "Log in with a recovery phrase instead",
       "or": "or",
@@ -279,7 +273,7 @@
   },
   "footer": {
     "legal": {
-      "disclaimer": "Disclaimer ◝(ᵔᵕᵔ)◜",
+      "disclaimer": "Disclaimer",
       "disclaimerText": "Please note: kstream does not host any files itself; instead, it only displays content from third-party providers. Legal issues should be taken up with them."
     },
     "links": {
@@ -289,7 +283,7 @@
       "twitter": "Twitter",
       "funding": "Support us"
     },
-    "tagline": "Watch your favorite shows and movies for free! (っ'ヮ'c)"
+    "tagline": "Watch your favorite shows and movies for free!"
   },
   "global": {
     "name": "kstream",
@@ -452,8 +446,7 @@
           "What do you want to stream?",
           "What's on your watchlist today?",
           "How was your day?",
-          "My bad the site never works...",
-          ">ᴗ<"
+          "My bad the site never works..."
         ]
       },
       "empty": {
@@ -474,25 +467,35 @@
       "close": "Close"
     },
     "titles": {
-      "day": {
-        "default": "What would you like to watch this afternoon?",
-        "extra": ["Viva la kstream!"]
-      },
-      "morning": {
-        "default": "What would you like to watch this morning?",
-        "extra": ["Viva la kstream!"]
-      },
-      "night": {
-        "default": "What would you like to watch tonight?",
-        "extra": ["Viva la kstream!"]
+      "69": {
+        "default": "What would you like to watch this.. day?",
+        "extra": [
+          "Viva la kstream!"
+        ]
       },
       "420": {
         "default": "What would you like to watch this 4/20?",
-        "extra": ["Happy 4/20!"]
+        "extra": [
+          "Happy 4/20!"
+        ]
       },
-      "69": {
-        "default": "What would you like to watch this.. day?",
-        "extra": ["Viva la kstream!"]
+      "day": {
+        "default": "What would you like to watch this afternoon?",
+        "extra": [
+          "Viva la kstream!"
+        ]
+      },
+      "morning": {
+        "default": "What would you like to watch this morning?",
+        "extra": [
+          "Viva la kstream!"
+        ]
+      },
+      "night": {
+        "default": "What would you like to watch tonight?",
+        "extra": [
+          "Viva la kstream!"
+        ]
       },
       "halloween": {
         "default": "What spooky movie would you like to watch this Halloween?",
@@ -509,8 +512,8 @@
       "description": "kstream is run at a loss, and we need help to keep it ad free! If you enjoy using kstream, please consider donating to help us cover our costs.",
       "moreInfo": "More info",
       "explanation": "If you aren't using the extension, it may be harder to find content! We want to fix this, but it's a lot harder to provide content without expensive servers. So please, if you enjoy using kstream, please consider donating to help us cover our growing costs.",
-      "explanation2": "If you want more info, please join our ",
-      "fluxer": "Discord",
+      "explanation2": "If you want more info, please join our",
+      "fluxer": "Support",
       "thankYou": "Thank you for your support!",
       "donate": "Donate",
       "label": "Project Funding: ${{current}} / ${{goal}}",
@@ -742,7 +745,7 @@
             "fedapi": "Additional: Febbox token",
             "fedapiDescription": "Bring your own FREE Febbox account to gain access to FED API, the best sources with 4K quality, Dolby Atmos, skip intro and the fastest load times! Highly recommended option!"
           },
-          "outro": "If you have more questions on how this works, feel free to ask on the <0>kstream Discord</0> server!"
+          "outro": "If you have more questions on how this works, feel free to email us for help!"
         },
         "recommended": {
           "title": "Not sure what to choose?",
@@ -785,7 +788,7 @@
           "title": "Custom proxy"
         },
         "addons": {
-          "title": "Additional sources:"
+          "title": "Advanced"
         }
       },
       "title": "Let's get you setup with kstream."
@@ -816,7 +819,7 @@
         "original": {
           "cardTitle": "Original File",
           "cardDesc": "Download the video file directly",
-          "description": "Download the original video file from the source. This option will be massive in file size (up to 80gb+) due to the files being high quality and contain multiple dub/sub options in one .",
+          "description": "Download the original video file from the source. This option will be massive in file size (up to 80gb+) due to the files being high quality and contain multiple dub/sub options in one.",
           "downloadButton": "Download",
           "loading": "Fetching available downloads...",
           "error": "Couldn't load downloads right now. Try again later.",
@@ -1162,13 +1165,14 @@
   "support": {
     "title": "Support",
     "text": "kstream is designed to be as user-friendly as possible. However, people still have questions and issues. This page is here to help resolve these shortcomings",
+    "contactLabel": "Contact us anytime at",
     "q1": {
-      "body": "You can join the official <0>kstream discord</0> and ask questions there or you can email the one provided at the bottom of this page.",
-      "title": "Where can I get help?"
+      "title": "Where can I get help?",
+      "body": "Email <email>{{email}}</email> and we will help you out."
     },
     "q2": {
-      "body": "We have a <0>GitHub</0> where you can create a detailed issue in our repository. Additionally, if you wish, you can create a pull request to fix the issue yourself.",
-      "title": "How can I report a bug or issue?"
+      "title": "How can I report a bug or issue?",
+      "body": "Email <email>{{email}}</email> with a detailed description of the bug or issue so we can look into it."
     }
   },
   "jip": {
@@ -1241,7 +1245,7 @@
         "delete": {
           "button": "Delete account",
           "confirmButton": "Delete account",
-          "confirmDescription": "Are you sure you want to delete your account? All your data will be lost! ૮₍˶Ó﹏Ò ⑅₎ა",
+          "confirmDescription": "Are you sure you want to delete your account? All your data will be lost!",
           "confirmTitle": "Are you sure?",
           "text": "This action is irreversible. All data will be deleted and nothing can be recovered.",
           "title": "Delete account"
@@ -1431,7 +1435,7 @@
         "addButton": "Add new worker",
         "description": "To make the application function, all traffic is routed through proxies. Enable this if you want to bring your own workers. <0>Instructions.</0>",
         "documentation": "Proxy documentation",
-        "emptyState": "No workers yet (｡•́︿•̀｡), add one below",
+        "emptyState": "No workers yet, add one below",
         "label": "Use custom proxy workers",
         "urlLabel": "Worker URLs",
         "urlPlaceholder": "https://",
@@ -1473,7 +1477,7 @@
       "autoSkipSegmentsDescription": "When enabled, automatically skip intro, recap, and preview segments while watching.",
       "autoSkipSegmentsLabel": "Auto skip segments",
       "lowPerformanceMode": "Low performance/bandwidth mode",
-      "lowPerformanceModeDescription": "Optimizes the application for slower connections and devices by disabling bandwidth-heavy features. This mode reduces data usage and improves performance while keeping the core search and watch functionality intact. ",
+      "lowPerformanceModeDescription": "Optimizes the application for slower connections and devices by disabling bandwidth-heavy features. This mode reduces data usage and improves performance while keeping the core search and watch functionality intact.",
       "lowPerformanceModeLabel": "Low performance mode",
       "holdToBoost": "Hold to boost speed",
       "holdToBoostDescription": "Hold spacebar or touch and hold the screen to temporarily increase playback speed to 2x. Release to return to previous speed.",
@@ -1542,7 +1546,7 @@
       },
       "BorderThicknessLabel": "Border Thickness"
     },
-    "unsaved": "You have unsaved changes... ฅ^•ﻌ•^ฅ"
+    "unsaved": "You have unsaved changes..."
   },
   "discover": {
     "tabs": {

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { getAllTimeBestMovies } from "@/backend/metadata/tmdb";
 
 export function RandomMovieButton() {
+  const { t } = useTranslation();
   const [randomMovie, setRandomMovie] = useState<{
     id: number;
     title: string;
@@ -13,6 +15,8 @@ export function RandomMovieButton() {
     useState<NodeJS.Timeout | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const countingDown = countdown !== null && countdown > 0;
 
   useEffect(() => {
     let countdownInterval: NodeJS.Timeout;
@@ -63,45 +67,46 @@ export function RandomMovieButton() {
       <button
         type="button"
         disabled={loading}
+        aria-label={
+          countingDown
+            ? t("discover.randomMovie.cancel")
+            : t("discover.randomMovie.button")
+        }
+        title={
+          countingDown
+            ? t("discover.randomMovie.cancel")
+            : t("discover.randomMovie.button")
+        }
         className={`
-          tabbable cursor-pointer relative flex items-center overflow-hidden
-          rounded-full text-white h-12
+          tabbable cursor-pointer relative inline-flex items-center gap-2
+          overflow-hidden rounded-full text-white h-12 pl-4 pr-3
           bg-pill-background bg-opacity-50 hover:bg-pill-backgroundHover
           backdrop-blur-lg
           transition-all duration-300 ease-in-out
           hover:scale-105 active:scale-95
           ${loading ? "opacity-60" : ""}
-          ${countdown !== null && countdown > 0 ? "min-w-[10px] pl-3" : "w-12"}
         `}
         onClick={handleRandomMovieClick}
       >
-        {/* Title container that slides in */}
-        <div
-          className={`
-            relative whitespace-nowrap
-            transition-all duration-300 ease-in-out
-            ${countdown !== null && countdown > 0 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}
-          `}
-        >
-          {countdown !== null && countdown > 0 && (
-            <span className="font-bold">{randomMovie?.title}</span>
-          )}
-        </div>
-
-        {/* Icon container that stays fixed on the right */}
-        <div className="ml-auto flex items-center justify-center w-12 h-12">
-          {countdown !== null && countdown > 0 ? (
-            <div className="animate-[pulse_1s_ease-in-out_infinite] text-lg font-bold">
+        <span className="whitespace-nowrap font-medium text-sm sm:text-base max-w-[14rem] truncate">
+          {countingDown
+            ? randomMovie?.title
+            : t("discover.randomMovie.button")}
+        </span>
+        <span className="flex shrink-0 items-center justify-center w-8 h-8">
+          {countingDown ? (
+            <span className="animate-[pulse_1s_ease-in-out_infinite] text-lg font-bold tabular-nums">
               {countdown}
-            </div>
+            </span>
           ) : (
             <img
               src="/lightbar-images/dice.svg"
-              alt="Dice"
-              className="w-6 h-6"
+              alt=""
+              aria-hidden
+              className="w-5 h-5"
             />
           )}
-        </div>
+        </span>
       </button>
     </div>
   );

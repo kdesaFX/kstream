@@ -7,7 +7,6 @@ import { Icon, Icons } from "@/components/Icon";
 import { BrandPill } from "@/components/layout/BrandPill";
 import { WideContainer } from "@/components/layout/WideContainer";
 import { shouldHaveLegalPage } from "@/pages/Legal";
-import { conf } from "@/setup/config";
 
 // to and href are mutually exclusive
 type FooterLinkProps = RequireExactlyOne<
@@ -75,15 +74,6 @@ export function Footer() {
           <p className="mt-3">{t("footer.legal.disclaimerText")}</p>
         </div>
         <div className="flex flex-wrap gap-[0.5rem] -ml-3">
-          {conf().GITHUB_LINK && (
-            <FooterLink icon={Icons.GITHUB} href={conf().GITHUB_LINK}>
-              {t("footer.links.github")}
-            </FooterLink>
-          )}
-          {/* TODO: remove discord text */}
-          <FooterLink icon={Icons.DISCORD} href={conf().DISCORD_LINK}>
-            {t("footer.links.fluxer")}/Discord
-          </FooterLink>
           <div className="inline md:hidden">
             <Legal />
           </div>

@@ -282,8 +282,7 @@
           "Vad är på din titta-lista idag?",
           "Hur var din dag?",
           "Ingen fara, sidan fungerar tydligen aldrig…",
-          "Är inte kstream bara det bästa?",
-          ">ᴗ<"
+          "Är inte kstream bara det bästa?"
         ]
       },
       "sectionTitle": "Sökresultat",
@@ -300,25 +299,35 @@
       "discover": "Utforska"
     },
     "titles": {
-      "day": {
-        "default": "Vad vill du titta på i eftermiddag?",
-        "extra": ["Viva la kstream!"]
-      },
-      "morning": {
-        "default": "Vad vill du titta på den här morgonen?",
-        "extra": ["Jag hör att Before Sunrise är bra"]
-      },
-      "night": {
-        "default": "Vad vill du titta på ikväll?",
-        "extra": ["Trött? Jag hör att The Exorcist är bra."]
+      "69": {
+        "default": "Sugen på något hett?",
+        "extra": [
+          "Glad 69 dag 😘!"
+        ]
       },
       "420": {
         "default": "Vad vill du titta denna 4/20?",
-        "extra": ["Glad 4/20 🥳!"]
+        "extra": [
+          "Glad 4/20 🥳!"
+        ]
       },
-      "69": {
-        "default": "Sugen på något hett?",
-        "extra": ["Glad 69 dag 😘!"]
+      "day": {
+        "default": "Vad vill du titta på i eftermiddag?",
+        "extra": [
+          "Viva la kstream!"
+        ]
+      },
+      "morning": {
+        "default": "Vad vill du titta på den här morgonen?",
+        "extra": [
+          "Jag hör att Before Sunrise är bra"
+        ]
+      },
+      "night": {
+        "default": "Vad vill du titta på ikväll?",
+        "extra": [
+          "Trött? Jag hör att The Exorcist är bra."
+        ]
       }
     },
     "mediaCard": {
@@ -356,7 +365,7 @@
   "notFound": {
     "badge": "Ej hittad",
     "goHome": "Tillbaka till startsidan",
-    "message": "Vi letade överallt: under soptunnorna, i garderoben, bakom proxy men kunde slutligen inte hitta sidan du letar efter. (ಥ﹏ಥ)",
+    "message": "Vi letade överallt: under soptunnorna, i garderoben, bakom proxy men kunde slutligen inte hitta sidan du letar efter.",
     "title": "Kunde inte hitta den sidan",
     "reloadButton": "Försök igen"
   },
@@ -451,7 +460,7 @@
           "title": "Inga inbäddningar hittade"
         },
         "noStream": {
-          "text": "Den här källan har ingen ström för denna film eller serie. /ᐠ - ˕ -マ Ⳋ",
+          "text": "Den här källan har ingen ström för denna film eller serie.",
           "title": "Ingen ström :("
         },
         "title": "Källor",
@@ -470,7 +479,7 @@
         },
         "title": "Undertexter",
         "unknownLanguage": "Okänd",
-        "dropSubtitleFile": "Släpp undertextsfil här! >_<",
+        "dropSubtitleFile": "Släpp undertextsfil här",
         "scrapeButton": "Skrapa undertexter",
         "refresh": "Uppdatera externa undertexter",
         "refreshing": "Uppdaterar...",
@@ -581,7 +590,7 @@
         "16": "Tryck på M för att slå av eller på ljudet!",
         "17": "Använd upp- och nedpilarna för att ändra volym!",
         "18": "Tryck på < och > för att ändra uppspelningshastighet!",
-        "19": "Tryck på . och , för att flytta bildruta för bildruta när videon är pausad!",
+        "19": "Tryck på. och , för att flytta bildruta för bildruta när videon är pausad!",
         "20": "Tryck på C för att slå på eller av undertexter!",
         "21": "Tryck på R för att göra en barrel roll!"
       }

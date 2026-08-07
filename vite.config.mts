@@ -95,8 +95,7 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: "Z-Stream",
           short_name: "Z-Stream",
-          description:
-            "Watch your favorite shows and movies for free! (っ'ヮ'c)",
+          description: "Watch your favorite shows and movies for free!",
           theme_color: "#000000",
           background_color: "#000000",
           display: "standalone",

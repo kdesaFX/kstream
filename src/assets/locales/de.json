@@ -158,8 +158,7 @@
           "Was willst du heute schauen?",
           "Wie war dein Tag?",
           "Mein Fehler die Seite funktioniert nie...",
-          "Ist kstream nicht das beste?",
-          ">ᴗ<"
+          "Ist kstream nicht das beste?"
         ]
       },
       "sectionTitle": "Suchergebnisse",
@@ -176,6 +175,18 @@
       "discover": "Entdecken"
     },
     "titles": {
+      "69": {
+        "default": "Lust auf etwas scharfes?",
+        "extra": [
+          "Schönen 69. Tag 😘!"
+        ]
+      },
+      "420": {
+        "default": "Was möchten Sie am 4/20 sehen?",
+        "extra": [
+          "Schönen 4/20 🥳!"
+        ]
+      },
       "day": {
         "default": "Was würdest du diesem Nachmittag gerne schauen?",
         "extra": [
@@ -184,19 +195,15 @@
       },
       "morning": {
         "default": "Was würdest du diesen Morgen gerne schauen?",
-        "extra": ["Before Sunrise soll gut sein"]
+        "extra": [
+          "Before Sunrise soll gut sein"
+        ]
       },
       "night": {
         "default": "Was möchtest du diesen Abend gerne schauen?",
-        "extra": ["Müde? Ich hab gehört The Exorcist soll gut sein."]
-      },
-      "69": {
-        "default": "Lust auf etwas scharfes?",
-        "extra": ["Schönen 69. Tag 😘!"]
-      },
-      "420": {
-        "default": "Was möchten Sie am 4/20 sehen?",
-        "extra": ["Schönen 4/20 🥳!"]
+        "extra": [
+          "Müde? Ich hab gehört The Exorcist soll gut sein."
+        ]
       }
     },
     "mediaCard": {
@@ -497,18 +504,18 @@
       "tips": {
         "1": "Klicke auf das Einstellungs-Icon, um die Quelle zu wechseln!",
         "2": "Klicke auf den Titel, um den Link zu kopieren!",
-        "7": "Halte SHIFT gedrückt und klick auf den Titel, um den Link mit der Zeitangabe zu kopieren!",
         "3": "Halte SHIFT für Breitbildschirm anstelle von Vollbildschirm!",
         "4": "Manche Quellen funktionieren besser als andere!",
         "5": "Hohle dir die Erweiterung für mehr Quellen!",
         "6": "Halte das Lesezeichen gedrückt, um sie zu verwalten oder zu löschen!",
+        "7": "Halte SHIFT gedrückt und klick auf den Titel, um den Link mit der Zeitangabe zu kopieren!",
         "8": "Lege eine eigene Untertitelfarbe fest!",
         "9": "Migriere dein Account zu einer neuen Backend in den Einstellungen!",
         "10": "Tritt dem Fluxer bei!",
         "11": "Verwende Sie [ und ], um das Timing der Untertitel anzupassen!",
         "12": "Drücke LEERTASTE oder K um Abzuspielen/Pausieren!",
-        "14": "Nutze J und L Tasten, um 10 Sekunden vor-/zurückzuspulen!",
         "13": "Nutze die LINKS und RECHTS Pfeiltasten, um 5 Sekunden vor-/zurückzuspulen!",
+        "14": "Nutze J und L Tasten, um 10 Sekunden vor-/zurückzuspulen!",
         "15": "Drücke F um den Vollbildmodus umzuschalten!"
       }
     },

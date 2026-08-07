@@ -138,7 +138,9 @@
       },
       "morning": {
         "default": "Kateri film ali serijo bi si želeli ogledati ob tem jutru?",
-        "extra": ["Slišala sem, da je film \"Pred sončnim vzhodom\" odličen"]
+        "extra": [
+          "Slišala sem, da je film \"Pred sončnim vzhodom\" odličen"
+        ]
       },
       "night": {
         "default": "Kateri film ali serijo bi si želeli ogledati nocoj?",

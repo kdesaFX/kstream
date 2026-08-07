@@ -138,11 +138,15 @@
       },
       "morning": {
         "default": "Que che gustaría ver esta mañá?",
-        "extra": ["Escoitei que “Antes del amanecer” é boa"]
+        "extra": [
+          "Escoitei que “Antes del amanecer” é boa"
+        ]
       },
       "night": {
         "default": "Que che gustaría ver esta noite?",
-        "extra": ["Canso? Escoitei que “El Exorcista” é boa."]
+        "extra": [
+          "Canso? Escoitei que “El Exorcista” é boa."
+        ]
       }
     }
   },

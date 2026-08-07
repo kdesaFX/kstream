@@ -162,25 +162,35 @@
       "close": "Bezárás"
     },
     "titles": {
+      "69": {
+        "default": "Felvagy készülve valami szaftós, tüzes kalandra?",
+        "extra": [
+          "Boldog 69 napot!"
+        ]
+      },
+      "420": {
+        "extra": [
+          "Boldog 4/20-át!"
+        ],
+        "default": "Mit szeretnél nézni ezen a 4/20-adikán?"
+      },
       "day": {
-        "extra": ["Viva la kstream!"],
+        "extra": [
+          "Viva la kstream!"
+        ],
         "default": "Mit szeretnél nézni e délután?"
       },
       "morning": {
         "default": "Mit szeretnél nézni e reggelen?",
-        "extra": ["Viva la kstream!"]
+        "extra": [
+          "Viva la kstream!"
+        ]
       },
       "night": {
         "default": "Mit szeretnél nézni ezen az estén?",
-        "extra": ["Viva la kstream!"]
-      },
-      "420": {
-        "extra": ["Boldog 4/20-át!"],
-        "default": "Mit szeretnél nézni ezen a 4/20-adikán?"
-      },
-      "69": {
-        "default": "Felvagy készülve valami szaftós, tüzes kalandra?",
-        "extra": ["Boldog 69 napot!"]
+        "extra": [
+          "Viva la kstream!"
+        ]
       }
     },
     "bookmarks": {
@@ -456,9 +466,9 @@
           "title": "Letöltés Androidon"
         },
         "onIos": {
+          "1": "Ha iOS-en akarsz letölteni, nyomd meg a letöltést, majd az új ablakon nyomd meg ezt a gombot <bold><ios_share /></bold>, majd nyomd a <bold>Save to FIles <ios_files /><bold> gombot.",
           "shortTitle": "Letöltés / iOS",
-          "title": "Letöltés iOS-en",
-          "1": "Ha iOS-en akarsz letölteni, nyomd meg a letöltést, majd az új ablakon nyomd meg ezt a gombot <bold><ios_share /></bold>, majd nyomd a <bold>Save to FIles <ios_files /><bold> gombot."
+          "title": "Letöltés iOS-en"
         },
         "onPc": {
           "1": "Számítógépen, nyomd meg a letöltés gombot, majd az új ablakban, jobb-klikkelj a videóra, és válaszd ki a <bold>Save video as/Mentés másként</bold> opciót",
@@ -623,24 +633,24 @@
         "1": "Nyomj a fogaskerékre, hogy forrásokat válts!",
         "2": "Nyomj a címre, hogy kimásold a linket!",
         "3": "Koppints, és tartsd, vagy tartsd lenyomva a SHIFT-et a szélesképernyőért, teljes képernyő helyett!",
+        "4": "Néhány forrás jobban működik, mint a többi!",
         "5": "Töltsd le a bővítményt több forrásért!",
+        "6": "Tartsd a könyvjelzőket lenyomva, hogy szerkezd, vagy töröld őket!",
+        "7": "Tartsd lenyomva a SHIFT-et és nyomj a címre, hogy kimásold a linket idővel együtt!",
+        "8": "Állíts be egy egyéni felirat színt!",
         "9": "Vidd át a fiókod egy új backendre a beállításoknál!",
         "10": "Csatlakozz a Fluxer szerverre!",
+        "11": "Használd a '[' és a ']' billenytűt, hogy állítsd a felirat időzítést!",
         "12": "Nyomd le a SPACE-t vagy a 'K'-t hogy lejátszd/megállítsd!",
         "13": "Használd a BAL és JOBB nyilakat, hogy ugorj 5 másodpercet!",
+        "14": "Használd a J és az L billenytűket, hogy ugorj 10 másodpercet!",
         "15": "Nyomd az F billenytűt, hogy ki/be kapcsold a teljes képernyőt!",
         "16": "Nyomd az M billenytűt, hogy ki/be kapcsold a némítást!",
         "17": "Használd a FEL és a LE nyilakat, hogy változtass a hangerőn!",
-        "19": "Használd a . és a , billenytűt, hogy képkockánként lépkedj, amikor meg van állítva!",
+        "18": "Használd a < és a > billenytűt, hogy változtass a lejátszási sebességen!",
+        "19": "Használd a. és a , billenytűt, hogy képkockánként lépkedj, amikor meg van állítva!",
         "20": "Használd a C billenytűt hogy ki/be kapcsold a feliratokat!",
-        "21": "Nyomd le az R billenytűt, hogy fordulj egyet!",
-        "7": "Tartsd lenyomva a SHIFT-et és nyomj a címre, hogy kimásold a linket idővel együtt!",
-        "8": "Állíts be egy egyéni felirat színt!",
-        "11": "Használd a '[' és a ']' billenytűt, hogy állítsd a felirat időzítést!",
-        "6": "Tartsd a könyvjelzőket lenyomva, hogy szerkezd, vagy töröld őket!",
-        "4": "Néhány forrás jobban működik, mint a többi!",
-        "14": "Használd a J és az L billenytűket, hogy ugorj 10 másodpercet!",
-        "18": "Használd a < és a > billenytűt, hogy változtass a lejátszási sebességen!"
+        "21": "Nyomd le az R billenytűt, hogy fordulj egyet!"
       }
     },
     "time": {

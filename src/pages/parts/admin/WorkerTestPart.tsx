@@ -129,15 +129,13 @@ export function WorkerTestPart() {
           {buttonClicked ? (
             workerState.every((worker) => worker.status === "success") ? (
               <p>
-                All workers have passed the test!{" "}
-                <span className="font-bold">٩(ˊᗜˋ*)و♡</span>
+                All workers have passed the test!
               </p>
             ) : (
               <div>
                 <div className="text-right">
                   <p>
-                    Some workers have failed the test...{" "}
-                    <span className="font-bold">(•᷄∩•᷅ )</span>
+                    Some workers have failed the test.
                   </p>
                   {/* Show button if tests fail */}
                   <div className="flex justify-end">

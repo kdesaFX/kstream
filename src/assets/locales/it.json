@@ -46,7 +46,7 @@
       "passphrasePlaceholder": "Frase d'accesso",
       "submit": "Accedi",
       "title": "Accedi al tuo account",
-      "validationError": "Frase d'accesso incompleta o sbagliata /ᐠ. .ᐟ\\"
+      "validationError": "Frase d'accesso incompleta o sbagliata"
     },
     "register": {
       "information": {
@@ -89,7 +89,7 @@
   },
   "footer": {
     "legal": {
-      "disclaimer": "Disclaimer ◝(ᵔᵕᵔ)◜",
+      "disclaimer": "Disclaimer",
       "disclaimerText": "Nota: kstream non ospita alcun file ma visualizza solo il contenuto di fornitori di terze parti. Le questioni legali dovrebbero essere affrontate con loro."
     },
     "links": {
@@ -99,7 +99,7 @@
       "twitter": "Twitter",
       "funding": "Supportaci"
     },
-    "tagline": "Guarda i tuoi preferiti programmi televisivi e film gratis senza publicità! (っ'ヮ'c)"
+    "tagline": "Guarda i tuoi preferiti programmi televisivi e film gratis senza publicità!"
   },
   "global": {
     "name": "kstream",
@@ -141,8 +141,7 @@
           "Cosa c'è nella tua lista oggi?",
           "Com'è stata la tua giornata?",
           "Colpa mia, il sito non funziona mai...",
-          "kstream non è semplicemente il migliore?",
-          ">ᴗ<"
+          "kstream non è semplicemente il migliore?"
         ]
       },
       "sectionTitle": "Risultati di ricerca",
@@ -159,25 +158,35 @@
       "discover": "Scopri"
     },
     "titles": {
-      "day": {
-        "default": "Cosa vorresti guardare questo pomeriggio?",
-        "extra": ["Viva kstream!"]
-      },
-      "morning": {
-        "default": "Cosa vorresti guardare questa mattina?",
-        "extra": ["Viva kstream!"]
-      },
-      "night": {
-        "default": "Cosa vorresti guardare questa sera?",
-        "extra": ["Viva kstream!"]
+      "69": {
+        "extra": [
+          "Buon 69 giorno😘!"
+        ],
+        "default": "Pronto per qualcosa di piccante?"
       },
       "420": {
         "default": "Cosa ti piacerebbe guardare questo 20/4?",
-        "extra": ["Buon 20/4 🥳!"]
+        "extra": [
+          "Buon 20/4 🥳!"
+        ]
       },
-      "69": {
-        "extra": ["Buon 69 giorno😘!"],
-        "default": "Pronto per qualcosa di piccante?"
+      "day": {
+        "default": "Cosa vorresti guardare questo pomeriggio?",
+        "extra": [
+          "Viva kstream!"
+        ]
+      },
+      "morning": {
+        "default": "Cosa vorresti guardare questa mattina?",
+        "extra": [
+          "Viva kstream!"
+        ]
+      },
+      "night": {
+        "default": "Cosa vorresti guardare questa sera?",
+        "extra": [
+          "Viva kstream!"
+        ]
       }
     },
     "mediaCard": {
@@ -212,7 +221,7 @@
   "notFound": {
     "badge": "Non trovato",
     "goHome": "Torna alla pagina iniziale",
-    "message": "Abbiamo cercato ovunque: sotto i bidoni, nell'armadio, dietro il proxy, ma alla fine non siamo riusciti a trovare la pagina che stai cercando. (ಥ﹏ಥ)",
+    "message": "Abbiamo cercato ovunque: sotto i bidoni, nell'armadio, dietro il proxy, ma alla fine non siamo riusciti a trovare la pagina che stai cercando.",
     "title": "Impossibile trovare quella pagina",
     "reloadButton": "Riprova"
   },
@@ -220,7 +229,7 @@
     "defaultConfirm": {
       "cancel": "Annulla",
       "confirm": "Utilizza impostazione predefinita",
-      "description": "La impostazione predefinita non offre i migliori stream e può essere incredibilmente lenta. ( ͠° ͟ʖ ͡°)",
+      "description": "La impostazione predefinita non offre i migliori stream e può essere incredibilmente lenta.",
       "title": "Sei sicuro?"
     },
     "extension": {
@@ -261,7 +270,7 @@
       "explainer": "Per ottenere le migliori stream possibili, è necessario scegliere il metodo di streaming da utilizzare.",
       "options": {
         "default": {
-          "text": "Non voglio stream di buona qualità, <0 /> <1>usa impostazione predefinita ▄︻デ══━一 ʕ•͡-•ʔ</1>"
+          "text": "Non voglio stream di buona qualità, <0 /> <1>usa impostazione predefinita </1>"
         },
         "extension": {
           "action": "Installa l'estensione",
@@ -355,7 +364,7 @@
           "title": "Nessun incorporamento trovato"
         },
         "noStream": {
-          "text": "Questa fonte non ha streaming per questo film o programma. /ᐠ - ˕ -マ Ⳋ",
+          "text": "Questa fonte non ha streaming per questo film o programma.",
           "title": "Nessuno streaming :("
         },
         "title": "Sorgenti",
@@ -364,7 +373,7 @@
       "subtitles": {
         "customChoice": "Trascina o carica il file",
         "customizeLabel": "Personalizza",
-        "dropSubtitleFile": "Trascina il file dei sottotitoli qui! >_<",
+        "dropSubtitleFile": "Trascina il file dei sottotitoli qui",
         "offChoice": "Spegni",
         "settings": {
           "backlink": "Sottotitoli personalizzati",
@@ -490,7 +499,7 @@
         "delete": {
           "button": "Elimina l'account",
           "confirmButton": "Elimina l'account",
-          "confirmDescription": "Sei sicuro di voler eliminare il tuo account? Tutti i tuoi dati andranno persi! ૮₍˶Ó﹏Ò ⑅₎ა",
+          "confirmDescription": "Sei sicuro di voler eliminare il tuo account? Tutti i tuoi dati andranno persi!",
           "confirmTitle": "Sei sicuro?",
           "text": "Questa azione è irreversibile. Tutti i dati verranno cancellati e nulla potrà essere recuperato.",
           "title": "Elimina l'account"
@@ -550,7 +559,7 @@
           "description": "Sembra che uno o più elementi in questa configurazione richiedano la tua attenzione.",
           "title": "Qualcosa ha bisogno della tua attenzione 😱"
         },
-        "itemError": "C'è qualcosa che non va in questa impostazione. Ripeti la configurazione per risolverlo. (ᴗ_ ᴗ。)",
+        "itemError": "C'è qualcosa che non va in questa impostazione. Ripeti la configurazione per risolverlo.",
         "items": {
           "default": "Configurazione predefinita",
           "extension": "Estensione",
@@ -558,7 +567,7 @@
         },
         "redoSetup": "Rifare configurazione",
         "successStatus": {
-          "description": "Tutto è pronto per iniziare a guardare i tuoi contenuti multimediali preferiti. (๑>◡<๑)",
+          "description": "Tutto è pronto per iniziare a guardare i tuoi contenuti multimediali preferiti.",
           "title": "Tutto è configurato!"
         },
         "unsetStatus": {
@@ -570,7 +579,7 @@
       "workers": {
         "addButton": "Aggiungi nuovo lavoratore",
         "description": "Per far funzionare l'applicazione, tutto il traffico viene instradato tramite proxy. Abilita questa opzione se vuoi portare i tuoi lavoratori. <0>Istruzioni.</0>",
-        "emptyState": "Non ci sono ancora lavoratori (｡•́︿•̀｡), aggiungine uno qui sotto",
+        "emptyState": "Non ci sono ancora lavoratori, aggiungine uno qui sotto",
         "label": "Utilizza proxy worker personalizzati",
         "urlLabel": "URL dei worker",
         "urlPlaceholder": "https://"
@@ -614,7 +623,7 @@
       "title": "Sottotitoli",
       "textBoldLabel": "Testo in grassetto"
     },
-    "unsaved": "Hai modifiche non salvate... ฅ^•ﻌ•^ฅ"
+    "unsaved": "Hai modifiche non salvate..."
   },
   "support": {
     "q2": {

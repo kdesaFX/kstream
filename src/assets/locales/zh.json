@@ -141,38 +141,52 @@
           "您今天的片单上有什么？",
           "今天过得怎么样？",
           "是我的错，网站总是无法正常运行…",
-          "kstream 不就是最棒的吗？",
-          ">ᴗ<"
+          "kstream 不就是最棒的吗？"
         ]
       },
       "sectionTitle": "搜索结果",
       "empty": {
         "default": "欢迎，在这里找到你想看的！",
-        "extra": ["这里啥都没有", "空空如也…", "空空如也…", "Hi，新用户"]
+        "extra": [
+          "这里啥都没有",
+          "空空如也…",
+          "空空如也…",
+          "Hi，新用户"
+        ]
       },
       "discoverMore": "探索更多",
       "discover": "探索"
     },
     "titles": {
-      "day": {
-        "default": "您今天下午想看什么？",
-        "extra": ["kstream 万岁！"]
-      },
-      "morning": {
-        "default": "您今早想看什么？",
-        "extra": ["kstream 万岁！"]
-      },
-      "night": {
-        "default": "您今晚想看什么？",
-        "extra": ["kstream 万岁！"]
+      "69": {
+        "default": "想来点火热的吗？",
+        "extra": [
+          "69 日快乐 😘！"
+        ]
       },
       "420": {
         "default": "这个 4/20 你想看什么？",
-        "extra": ["4/20 快乐 🥳！"]
+        "extra": [
+          "4/20 快乐 🥳！"
+        ]
       },
-      "69": {
-        "default": "想来点火热的吗？",
-        "extra": ["69 日快乐 😘！"]
+      "day": {
+        "default": "您今天下午想看什么？",
+        "extra": [
+          "kstream 万岁！"
+        ]
+      },
+      "morning": {
+        "default": "您今早想看什么？",
+        "extra": [
+          "kstream 万岁！"
+        ]
+      },
+      "night": {
+        "default": "您今晚想看什么？",
+        "extra": [
+          "kstream 万岁！"
+        ]
       }
     }
   },

@@ -213,11 +213,15 @@
       },
       "morning": {
         "default": "Apa yang ingin anda tonton pagi ini?",
-        "extra": ["Kayaknya film Before Sunrise bagus deh"]
+        "extra": [
+          "Kayaknya film Before Sunrise bagus deh"
+        ]
       },
       "night": {
         "default": "Apa yang ingin Anda tonton malam ini?",
-        "extra": ["Capek? Saya dengar The Exocist bagus."]
+        "extra": [
+          "Capek? Saya dengar The Exocist bagus."
+        ]
       }
     }
   },

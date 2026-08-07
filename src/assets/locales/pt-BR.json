@@ -142,8 +142,7 @@
           "O que tem na sua watchlist hoje?",
           "Como foi o teu dia?",
           "Foi mal, o site nunca funciona...",
-          "A kstream não é a melhor?",
-          ">ᴗ<"
+          "A kstream não é a melhor?"
         ]
       },
       "sectionTitle": "Resultados da pesquisa",
@@ -160,6 +159,18 @@
       "discover": "Descobrir"
     },
     "titles": {
+      "69": {
+        "default": "Que tal algo picante?",
+        "extra": [
+          "Feliz dia 69 😘!"
+        ]
+      },
+      "420": {
+        "default": "O que você gostaria de assistir neste 4/20?",
+        "extra": [
+          "Feliz 4/20 🥳!"
+        ]
+      },
       "day": {
         "default": "O que você gostaria de assistir esta tarde?",
         "extra": [
@@ -168,19 +179,15 @@
       },
       "morning": {
         "default": "O que você gostaria de assistir esta manhã?",
-        "extra": ["Ouvi dizer que Antes do Amanhecer é bom"]
+        "extra": [
+          "Ouvi dizer que Antes do Amanhecer é bom"
+        ]
       },
       "night": {
         "default": "O que você gostaria de assistir esta noite?",
-        "extra": ["Cansado? Ouvi dizer que O Exorcista é bom."]
-      },
-      "69": {
-        "default": "Que tal algo picante?",
-        "extra": ["Feliz dia 69 😘!"]
-      },
-      "420": {
-        "default": "O que você gostaria de assistir neste 4/20?",
-        "extra": ["Feliz 4/20 🥳!"]
+        "extra": [
+          "Cansado? Ouvi dizer que O Exorcista é bom."
+        ]
       }
     },
     "mediaCard": {

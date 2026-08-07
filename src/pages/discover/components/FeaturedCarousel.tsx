@@ -671,11 +671,6 @@ export function FeaturedCarousel({
                     <div className="flex items-center gap-1">
                       <Icon icon={Icons.IMDB} className="text-yellow-400" />
                       <span>{imdb.rating.toFixed(1)}</span>
-                      {imdb.votes > 0 && (
-                        <span className="text-white/60">
-                          ({imdb.votes.toLocaleString()})
-                        </span>
-                      )}
                     </div>
                   );
                 }

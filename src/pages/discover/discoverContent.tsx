@@ -165,23 +165,6 @@ export function DiscoverContent() {
       />,
     );
 
-    // Provider Movies
-    carousels.push(
-      <LazyMediaCarousel
-        key="movie-providers"
-        content={{ type: "provider" }}
-        isTVShow={false}
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        showProviders
-        moreContent
-        priority={rowPriority()}
-        enabled={isMoviesTab}
-        dedupePriority={dedupe++}
-        genreId={selectedGenreId}
-      />,
-    );
-
     return (
       <CarouselDedupeProvider key={`movies-dedupe-${selectedGenreId ?? "all"}`}>
         {carousels}
@@ -289,23 +272,6 @@ export function DiscoverContent() {
         isTVShow
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
-        moreContent
-        priority={rowPriority()}
-        enabled={isTVShowsTab}
-        dedupePriority={dedupe++}
-        genreId={selectedGenreId}
-      />,
-    );
-
-    // Provider TV Shows
-    carousels.push(
-      <LazyMediaCarousel
-        key="tv-providers"
-        content={{ type: "provider" }}
-        isTVShow
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-        showProviders
         moreContent
         priority={rowPriority()}
         enabled={isTVShowsTab}
