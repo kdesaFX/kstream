@@ -115,9 +115,9 @@ export function DiscoverNavigation({
             <button
               type="button"
               onClick={() => setGenresExpanded((v) => !v)}
-              className={`px-3 py-1 text-sm rounded-full transition-colors whitespace-nowrap flex-shrink-0 ${chipIdle}`}
+              className="px-2 py-1 text-sm font-medium text-type-link hover:text-white transition-colors whitespace-nowrap flex-shrink-0"
             >
-              {genresExpanded ? "show less" : "show more"}
+              {genresExpanded ? "Show less" : "Show more"}
             </button>
           )}
         </div>
