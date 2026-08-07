@@ -34,9 +34,8 @@ export function DiscoverNavigation({
 
   const visibleCount = windowWidth > VISIBLE_GENRE_BREAKPOINT ? 5 : 0;
   const hasOverflow = genres.length > visibleCount;
-  const shownGenres = genresExpanded
-    ? genres
-    : genres.slice(0, visibleCount);
+  const primaryGenres = genres.slice(0, visibleCount);
+  const overflowGenres = genres.slice(visibleCount);
 
   // If a selected genre would be hidden while collapsed, expand so it stays visible.
   useEffect(() => {
@@ -63,6 +62,11 @@ export function DiscoverNavigation({
   const chipIdle =
     "bg-mediaCard-hoverBackground text-type-secondary hover:bg-white/10";
 
+  const chipClass = (active: boolean) =>
+    `px-3 py-1 text-sm rounded-full transition-colors whitespace-nowrap flex-shrink-0 ${
+      active ? chipActive : chipIdle
+    }`;
+
   return (
     <div className="pb-4 w-full max-w-screen-xl mx-auto">
       <div className="relative flex justify-center">
@@ -85,40 +89,69 @@ export function DiscoverNavigation({
       </div>
 
       {showGenreBar && (
-        <div className="flex items-center justify-center gap-2 mt-3 px-4 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setSelectedGenreId(null)}
-            className={`px-3 py-1 text-sm rounded-full transition-colors whitespace-nowrap flex-shrink-0 ${
-              allSelected ? chipActive : chipIdle
-            }`}
-          >
-            {t("discover.genres.all")}
-          </button>
-          {shownGenres.map((genre) => {
-            const id = genre.id.toString();
-            const active = selectedGenreId === id;
-            return (
-              <button
-                type="button"
-                key={id}
-                onClick={() => setSelectedGenreId(id)}
-                className={`px-3 py-1 text-sm rounded-full transition-colors whitespace-nowrap flex-shrink-0 ${
-                  active ? chipActive : chipIdle
-                }`}
-              >
-                {genre.name}
-              </button>
-            );
-          })}
-          {hasOverflow && (
+        <div className="mt-3 px-4">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
             <button
               type="button"
-              onClick={() => setGenresExpanded((v) => !v)}
-              className="px-2 py-1 text-sm font-medium text-type-link hover:text-white transition-colors whitespace-nowrap flex-shrink-0"
+              onClick={() => setSelectedGenreId(null)}
+              className={chipClass(allSelected)}
             >
-              {genresExpanded ? "Show less" : "Show more"}
+              {t("discover.genres.all")}
             </button>
+            {primaryGenres.map((genre) => {
+              const id = genre.id.toString();
+              return (
+                <button
+                  type="button"
+                  key={id}
+                  onClick={() => setSelectedGenreId(id)}
+                  className={chipClass(selectedGenreId === id)}
+                >
+                  {genre.name}
+                </button>
+              );
+            })}
+            {hasOverflow && (
+              <button
+                type="button"
+                onClick={() => setGenresExpanded((v) => !v)}
+                className="px-2 py-1 text-sm font-medium text-type-link hover:text-white transition-colors whitespace-nowrap flex-shrink-0"
+                aria-expanded={genresExpanded}
+              >
+                {genresExpanded ? "Show less" : "Show more"}
+              </button>
+            )}
+          </div>
+
+          {hasOverflow && (
+            <div
+              className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+                genresExpanded
+                  ? "grid-rows-[1fr] opacity-100"
+                  : "grid-rows-[0fr] opacity-0"
+              }`}
+            >
+              <div className="overflow-hidden min-h-0">
+                <div className="flex items-center justify-center gap-2 flex-wrap pt-2">
+                  {overflowGenres.map((genre) => {
+                    const id = genre.id.toString();
+                    return (
+                      <button
+                        type="button"
+                        key={id}
+                        onClick={() => setSelectedGenreId(id)}
+                        tabIndex={genresExpanded ? 0 : -1}
+                        className={`${chipClass(selectedGenreId === id)} ${
+                          genresExpanded ? "translate-y-0" : "translate-y-1"
+                        } transition-[transform,background-color,color] duration-300 ease-out`}
+                      >
+                        {genre.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           )}
         </div>
       )}
