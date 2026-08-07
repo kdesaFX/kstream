@@ -1,10 +1,7 @@
-import { Listbox } from "@headlessui/react";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useWindowSize } from "react-use";
 
-import { Dropdown } from "@/components/form/Dropdown";
-import { Icon, Icons } from "@/components/Icon";
 import {
   MediaType,
   useDiscoverOptions,
@@ -27,6 +24,7 @@ export function DiscoverNavigation({
   const { width: windowWidth } = useWindowSize();
   const selectedGenreId = useDiscoverStore((s) => s.selectedGenreId);
   const setSelectedGenreId = useDiscoverStore((s) => s.setSelectedGenreId);
+  const [genresExpanded, setGenresExpanded] = useState(false);
 
   const showGenreBar =
     selectedCategory === "movies" || selectedCategory === "tvshows";
@@ -35,19 +33,33 @@ export function DiscoverNavigation({
   const { genres } = useDiscoverOptions(mediaType);
 
   const visibleCount = windowWidth > VISIBLE_GENRE_BREAKPOINT ? 5 : 0;
-  const visibleGenres = genres.slice(0, visibleCount);
-  const overflowGenres = genres.slice(visibleCount);
+  const hasOverflow = genres.length > visibleCount;
+  const shownGenres = genresExpanded
+    ? genres
+    : genres.slice(0, visibleCount);
+
+  // If a selected genre would be hidden while collapsed, expand so it stays visible.
+  useEffect(() => {
+    if (!selectedGenreId || !hasOverflow || genresExpanded) return;
+    const index = genres.findIndex((g) => g.id.toString() === selectedGenreId);
+    if (index >= visibleCount) setGenresExpanded(true);
+  }, [
+    selectedGenreId,
+    genres,
+    visibleCount,
+    hasOverflow,
+    genresExpanded,
+  ]);
+
+  // Collapse when switching Movies / TV so the bar resets.
+  useEffect(() => {
+    setGenresExpanded(false);
+  }, [selectedCategory, mediaType]);
 
   const allSelected = selectedGenreId === null;
-  const selectedOverflow = useMemo(() => {
-    if (!selectedGenreId) return null;
-    return overflowGenres.find((g) => g.id.toString() === selectedGenreId);
-  }, [overflowGenres, selectedGenreId]);
-
   // Selected chips must sit above the page black — mediaCard-background
   // matches the page and makes the active pill look "missing".
-  const chipActive =
-    "bg-white/20 text-white ring-1 ring-white/25";
+  const chipActive = "bg-white/20 text-white ring-1 ring-white/25";
   const chipIdle =
     "bg-mediaCard-hoverBackground text-type-secondary hover:bg-white/10";
 
@@ -83,7 +95,7 @@ export function DiscoverNavigation({
           >
             {t("discover.genres.all")}
           </button>
-          {visibleGenres.map((genre) => {
+          {shownGenres.map((genre) => {
             const id = genre.id.toString();
             const active = selectedGenreId === id;
             return (
@@ -99,75 +111,14 @@ export function DiscoverNavigation({
               </button>
             );
           })}
-          {overflowGenres.length > 0 && (
-            <Dropdown
-              selectedItem={
-                selectedOverflow
-                  ? {
-                      id: selectedOverflow.id.toString(),
-                      name: selectedOverflow.name,
-                    }
-                  : { id: "", name: "+ more" }
-              }
-              setSelectedItem={(item) => {
-                if (item.id) setSelectedGenreId(item.id);
-              }}
-              options={overflowGenres.map((g) => ({
-                id: g.id.toString(),
-                name: g.name,
-              }))}
-              customButton={
-                <button
-                  type="button"
-                  className={`px-3 py-1 text-sm rounded-full transition-colors whitespace-nowrap flex-shrink-0 flex items-center gap-1 ${
-                    selectedOverflow ? chipActive : chipIdle
-                  }`}
-                >
-                  <span>
-                    {selectedOverflow ? selectedOverflow.name : "+ more"}
-                  </span>
-                  <Icon
-                    icon={Icons.UP_DOWN_ARROW}
-                    className="text-xs text-dropdown-secondary"
-                  />
-                </button>
-              }
-              side="right"
-              customMenu={
-                <Listbox.Options static className="py-1 max-h-72 overflow-y-auto">
-                  {overflowGenres.map((g) => (
-                    <Listbox.Option
-                      className={({ active }) =>
-                        `cursor-pointer min-w-48 flex gap-4 items-center relative select-none py-2 px-4 mx-1 rounded-lg ${
-                          active
-                            ? "bg-background-secondaryHover text-type-link"
-                            : "text-type-secondary"
-                        }`
-                      }
-                      key={g.id}
-                      value={{ id: g.id.toString(), name: g.name }}
-                    >
-                      {({ selected }) => (
-                        <>
-                          <span
-                            className={`block ${selected || selectedGenreId === g.id.toString() ? "font-medium text-white" : "font-normal"}`}
-                          >
-                            {g.name}
-                          </span>
-                          {(selected ||
-                            selectedGenreId === g.id.toString()) && (
-                            <Icon
-                              icon={Icons.CHECKMARK}
-                              className="text-xs text-type-link"
-                            />
-                          )}
-                        </>
-                      )}
-                    </Listbox.Option>
-                  ))}
-                </Listbox.Options>
-              }
-            />
+          {hasOverflow && (
+            <button
+              type="button"
+              onClick={() => setGenresExpanded((v) => !v)}
+              className={`px-3 py-1 text-sm rounded-full transition-colors whitespace-nowrap flex-shrink-0 ${chipIdle}`}
+            >
+              {genresExpanded ? "show less" : "show more"}
+            </button>
           )}
         </div>
       )}
