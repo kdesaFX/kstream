@@ -97,8 +97,13 @@ export function useDedupedCarouselMedia(
 
       if (backfillMode === "recent" && mediaType === "movie") {
         baseParams.with_release_type = "2|3";
+      }
+      if (mediaType === "movie") {
         baseParams["primary_release_date.gte"] = from.toISOString().slice(0, 10);
         baseParams["primary_release_date.lte"] = today;
+      } else {
+        baseParams["first_air_date.gte"] = from.toISOString().slice(0, 10);
+        baseParams["first_air_date.lte"] = today;
       }
 
       try {
@@ -118,11 +123,9 @@ export function useDedupedCarouselMedia(
         for (const batch of batches) {
           for (const item of batch.results ?? []) {
             if (item?.id == null || seen.has(item.id)) continue;
-            if (backfillMode === "recent") {
-              if (!item.poster_path) continue;
-              const released = item.release_date || "";
-              if (released.length < 10 || released > today) continue;
-            }
+            if (!item.poster_path) continue;
+            const released = item.release_date || item.first_air_date || "";
+            if (released.length < 10 || released > today) continue;
             seen.add(item.id);
             candidates.push({
               ...item,

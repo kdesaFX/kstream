@@ -152,6 +152,46 @@ function filterResultsByGenre(
   });
 }
 
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Hide unreleased / future titles from discover carousels.
+ * Items with no date are kept (some Trakt rows); year-only stubs are dropped.
+ */
+function filterReleasedDiscoverMedia(
+  results: DiscoverMedia[],
+  today: string = todayIsoDate(),
+): DiscoverMedia[] {
+  return results.filter((item) => {
+    if (item.id == null) return false;
+    const date = item.release_date || item.first_air_date || "";
+    if (!date) return true;
+    if (date.length < 10) return false;
+    return date <= today;
+  });
+}
+
+function recentReleaseDateParams(
+  mediaType: MediaType,
+  today: string,
+  monthsBack: number,
+): Record<string, string> {
+  const from = new Date();
+  from.setMonth(from.getMonth() - monthsBack);
+  const fromStr = from.toISOString().slice(0, 10);
+  return mediaType === "movie"
+    ? {
+        "primary_release_date.gte": fromStr,
+        "primary_release_date.lte": today,
+      }
+    : {
+        "first_air_date.gte": fromStr,
+        "first_air_date.lte": today,
+      };
+}
+
 /** Enough items for a full carousel after genre filter + cross-row dedupe. */
 const CAROUSEL_POOL_SIZE = 100;
 const CAROUSEL_MAX_PAGES = 8;
@@ -504,44 +544,57 @@ export function useDiscoverMedia({
         // and discover popularity, which heavily overlap and used to leave this
         // row with almost nothing after cross-carousel dedupe).
         case "popularThisWeek":
-          if (genreId) {
-            // Trending/week ∩ genre is often tiny after dedupe. Use discover
-            // with a fresh-release window so the row can fill uniquely.
-            const today = new Date().toISOString().slice(0, 10);
-            const from = new Date();
-            from.setMonth(from.getMonth() - 6);
-            const fromStr = from.toISOString().slice(0, 10);
-            const dateParams =
-              mediaType === "movie"
-                ? {
-                    "primary_release_date.gte": fromStr,
-                    "primary_release_date.lte": today,
-                  }
-                : {
-                    "first_air_date.gte": fromStr,
-                    "first_air_date.lte": today,
-                  };
-            data = await fetchTMDBMedia(`/discover/${mediaType}`, {
-              sort_by: "popularity.desc",
-              ...dateParams,
-              "vote_count.gte": 10,
-              include_adult: false,
-            });
+          {
+            const today = todayIsoDate();
+            if (genreId) {
+              // Trending/week ∩ genre is often tiny after dedupe. Use discover
+              // with a fresh-release window so the row can fill uniquely.
+              data = await fetchTMDBMedia(`/discover/${mediaType}`, {
+                sort_by: "popularity.desc",
+                ...recentReleaseDateParams(mediaType, today, 6),
+                "vote_count.gte": 10,
+                include_adult: false,
+              });
+            } else {
+              // TMDB trending includes hyped unreleased titles — filter those out.
+              data = await fetchTMDBMedia(
+                mediaType === "movie"
+                  ? "/trending/movie/week"
+                  : "/trending/tv/week",
+              );
+            }
             data = {
               ...data,
-              results: data.results.filter((item: DiscoverMedia) => {
-                if (!item.poster_path) return false;
-                const date =
-                  item.release_date || item.first_air_date || "";
-                return date.length >= 10 && date <= today;
-              }),
+              results: filterReleasedDiscoverMedia(data.results, today),
             };
-          } else {
-            data = await fetchTMDBMedia(
-              mediaType === "movie"
-                ? "/trending/movie/week"
-                : "/trending/tv/week",
-            );
+            // Pad if hype filtering emptied the row.
+            if (
+              isCarouselView &&
+              data.results.length < CAROUSEL_POOL_SIZE
+            ) {
+              const fill = await fetchTMDBMedia(`/discover/${mediaType}`, {
+                sort_by: "popularity.desc",
+                ...recentReleaseDateParams(mediaType, today, 6),
+                "vote_count.gte": 10,
+                include_adult: false,
+              });
+              const seen = new Set(
+                data.results
+                  .map((item) => item.id)
+                  .filter((id): id is number => id != null),
+              );
+              const merged = [...data.results];
+              for (const item of filterReleasedDiscoverMedia(
+                fill.results,
+                today,
+              )) {
+                if (item.id == null || seen.has(item.id)) continue;
+                seen.add(item.id);
+                merged.push(item);
+                if (merged.length >= CAROUSEL_POOL_SIZE) break;
+              }
+              data = { ...data, results: merged };
+            }
           }
           setSectionTitle(t("discover.carousel.title.popularThisWeek"));
           break;
@@ -814,7 +867,7 @@ export function useDiscoverMedia({
         return data;
       }
 
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayIsoDate();
       const fillParams: Record<string, any> =
         fetchedType === "nowPlaying"
           ? (() => {
@@ -833,6 +886,7 @@ export function useDiscoverMedia({
               sort_by: "popularity.desc",
               include_adult: false,
               "vote_count.gte": 20,
+              ...recentReleaseDateParams(mediaType, today, 24),
             };
 
       const fill = await fetchTMDBMedia(`/discover/${mediaType}`, fillParams);
@@ -841,13 +895,9 @@ export function useDiscoverMedia({
         if (item?.id != null) seen.add(item.id);
       }
       const merged = [...data.results];
-      for (const item of fill.results) {
+      for (const item of filterReleasedDiscoverMedia(fill.results, today)) {
         if (item?.id == null || seen.has(item.id)) continue;
-        if (fetchedType === "nowPlaying") {
-          if (!item.poster_path) continue;
-          const released = item.release_date || "";
-          if (released.length < 10 || released > today) continue;
-        }
+        if (!item.poster_path) continue;
         seen.add(item.id);
         merged.push(item);
         if (merged.length >= CAROUSEL_POOL_SIZE) break;
@@ -861,8 +911,8 @@ export function useDiscoverMedia({
         contentType,
       );
       setMedia((prevMedia) => {
-        const valid = data.results.filter(
-          (item: DiscoverMedia) => item.id != null,
+        const valid = filterReleasedDiscoverMedia(
+          data.results.filter((item: DiscoverMedia) => item.id != null),
         );
         return page === 1 ? valid : [...prevMedia, ...valid];
       });
@@ -883,8 +933,10 @@ export function useDiscoverMedia({
           );
           setActualContentType(fallbackType); // Set actual content type to fallback
           setMedia((prevMedia) => {
-            const valid = fallbackData.results.filter(
-              (item: DiscoverMedia) => item.id != null,
+            const valid = filterReleasedDiscoverMedia(
+              fallbackData.results.filter(
+                (item: DiscoverMedia) => item.id != null,
+              ),
             );
             return page === 1 ? valid : [...prevMedia, ...valid];
           });
