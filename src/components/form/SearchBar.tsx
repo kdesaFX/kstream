@@ -1,5 +1,5 @@
 import c from "classnames";
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useRef, useState } from "react";
 
 import { Flare } from "@/components/utils/Flare";
 
@@ -20,9 +20,6 @@ export interface SearchBarProps {
 export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
   (props, ref) => {
     const [focused, setFocused] = useState(false);
-    const [lightTheme, setLightTheme] = useState(
-      Boolean(props.isInFeatured) && window.scrollY < 600,
-    );
     const containerRef = useRef<HTMLDivElement>(null);
     const [showTooltip, setShowTooltip] = useState(false);
 
@@ -30,24 +27,14 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
       props.onChange(value, false);
     }
 
-    useEffect(() => {
-      const handleScroll = () => {
-        setLightTheme(Boolean(props.isInFeatured) && window.scrollY < 600);
-      };
-      window.addEventListener("scroll", handleScroll);
-      return () => window.removeEventListener("scroll", handleScroll);
-    }, [props.isInFeatured]);
-
     return (
       <div ref={containerRef}>
         <Flare.Base
-          className={c({
-            "hover:flare-enabled group flex flex-col rounded-[28px] transition-colors sm:flex-row sm:items-center relative backdrop-blur-sm": true,
-            "transition-colors duration-300": true,
-            "bg-search-background/50": !focused && lightTheme,
-            "bg-search-background":
-              focused || props.isSticky || !props.isInFeatured,
-          })}
+          className={c(
+            "hover:flare-enabled group flex flex-col rounded-[28px] transition-colors sm:flex-row sm:items-center relative",
+            "bg-search-background",
+            focused && "bg-search-focused",
+          )}
         >
           <Flare.Light
             flareSize={400}
@@ -64,12 +51,6 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
               className={c(
                 "absolute bottom-0 top-0 flex items-center text-search-icon cursor-pointer z-10",
                 props.compact ? "left-3 max-h-11" : "left-5 max-h-14",
-                "transition-colors duration-300",
-                props.isInFeatured
-                  ? lightTheme
-                    ? "text-white/50"
-                    : ""
-                  : "text-search-icon",
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -92,16 +73,11 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
               onChange={(val) => setSearch(val)}
               value={props.value}
               className={c(
-                "w-full flex-1 bg-transparent !text-search-text focus:outline-none pr-2 transition-colors duration-300",
+                "w-full flex-1 bg-transparent !text-search-text focus:outline-none pr-2 placeholder-search-placeholder",
                 props.compact
                   ? "px-3 py-2 pl-10 text-sm"
                   : "px-4 py-4 pl-12 text-base",
-                "transition-colors duration-300 select-none",
-                props.isInFeatured
-                  ? lightTheme
-                    ? "text-white/50"
-                    : "placeholder-search-placeholder"
-                  : "placeholder-search-placeholder",
+                "select-none",
               )}
               placeholder={props.placeholder}
             />
@@ -133,7 +109,7 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
                     ref.current?.focus();
                   }
                 }}
-                className="cursor-pointer hover:text-white  absolute bottom-0 right-2 top-0 flex justify-center my-auto h-10 w-10 items-center hover:bg-search-hoverBackground active:scale-110 text-search-icon rounded-full transition-[transform,background-color] duration-200"
+                className="cursor-pointer hover:text-white absolute bottom-0 right-2 top-0 flex justify-center my-auto h-10 w-10 items-center hover:bg-search-hoverBackground active:scale-110 text-search-icon rounded-full transition-[transform,background-color] duration-200"
               >
                 <Icon
                   icon={Icons.X}
