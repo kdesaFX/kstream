@@ -1,11 +1,14 @@
+import classNames from "classnames";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useWindowSize } from "react-use";
 
+import { Icon, Icons } from "@/components/Icon";
 import {
   MediaType,
   useDiscoverOptions,
 } from "@/pages/discover/hooks/useDiscoverMedia";
+import { getGenreIcon } from "@/pages/discover/lib/genreIcons";
 import { useDiscoverStore } from "@/stores/discover";
 
 interface DiscoverNavigationProps {
@@ -15,6 +18,18 @@ interface DiscoverNavigationProps {
 
 const VISIBLE_GENRE_BREAKPOINT = 850;
 const CATEGORIES = ["movies", "tvshows"] as const;
+
+const chipBase =
+  "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide whitespace-nowrap shrink-0 select-none transition-all duration-200 ease-out-quint hover:-translate-y-0.5 active:translate-y-0 active:scale-95";
+
+const chipIdle =
+  "bg-search-background/40 backdrop-blur-md hover:bg-search-hoverBackground/80 text-type-secondary hover:text-white border border-white/10 hover:border-white/20";
+
+const chipActive =
+  "bg-white/15 backdrop-blur-md text-white border border-white/30 shadow-soft-md";
+
+const chipToggle =
+  "bg-search-background/60 backdrop-blur-md hover:bg-search-hoverBackground text-type-secondary hover:text-white border border-white/35 hover:border-white/55 min-w-[5.5rem] justify-center";
 
 export function DiscoverNavigation({
   selectedCategory,
@@ -56,16 +71,25 @@ export function DiscoverNavigation({
   }, [selectedCategory, mediaType]);
 
   const allSelected = selectedGenreId === null;
-  // Selected chips must sit above the page black — mediaCard-background
-  // matches the page and makes the active pill look "missing".
-  const chipActive = "bg-white/20 text-white ring-1 ring-white/25";
-  const chipIdle =
-    "bg-mediaCard-hoverBackground text-type-secondary hover:bg-white/10";
 
-  const chipClass = (active: boolean) =>
-    `px-3 py-1 text-sm rounded-full transition-colors whitespace-nowrap flex-shrink-0 ${
-      active ? chipActive : chipIdle
-    }`;
+  const renderGenreChip = (genre: { id: number; name: string }) => {
+    const id = genre.id.toString();
+    const active = selectedGenreId === id;
+    return (
+      <button
+        type="button"
+        key={id}
+        onClick={() => setSelectedGenreId(id)}
+        className={classNames(chipBase, active ? chipActive : chipIdle)}
+      >
+        <Icon
+          icon={getGenreIcon(genre.name)}
+          className="text-[14px] opacity-70"
+        />
+        {genre.name}
+      </button>
+    );
+  };
 
   return (
     <div className="pb-4 w-full max-w-screen-xl mx-auto">
@@ -94,31 +118,27 @@ export function DiscoverNavigation({
             <button
               type="button"
               onClick={() => setSelectedGenreId(null)}
-              className={chipClass(allSelected)}
+              className={classNames(
+                chipBase,
+                allSelected ? chipActive : chipIdle,
+              )}
             >
+              <Icon icon={Icons.RISING_STAR} className="text-[14px] opacity-70" />
               {t("discover.genres.all")}
             </button>
-            {primaryGenres.map((genre) => {
-              const id = genre.id.toString();
-              return (
-                <button
-                  type="button"
-                  key={id}
-                  onClick={() => setSelectedGenreId(id)}
-                  className={chipClass(selectedGenreId === id)}
-                >
-                  {genre.name}
-                </button>
-              );
-            })}
+            {primaryGenres.map(renderGenreChip)}
             {hasOverflow && (
               <button
                 type="button"
                 onClick={() => setGenresExpanded((v) => !v)}
-                className="px-2 py-1 text-sm font-medium text-type-link hover:text-white transition-colors whitespace-nowrap flex-shrink-0"
+                className={classNames(chipBase, chipToggle)}
                 aria-expanded={genresExpanded}
               >
-                {genresExpanded ? "Show less" : "Show more"}
+                <Icon
+                  icon={genresExpanded ? Icons.CHEVRON_UP : Icons.PLUS}
+                  className="text-[14px]"
+                />
+                {genresExpanded ? "Less" : "More"}
               </button>
             )}
           </div>
@@ -135,16 +155,24 @@ export function DiscoverNavigation({
                 <div className="flex items-center justify-center gap-2 flex-wrap pt-2">
                   {overflowGenres.map((genre) => {
                     const id = genre.id.toString();
+                    const active = selectedGenreId === id;
                     return (
                       <button
                         type="button"
                         key={id}
                         onClick={() => setSelectedGenreId(id)}
                         tabIndex={genresExpanded ? 0 : -1}
-                        className={`${chipClass(selectedGenreId === id)} ${
-                          genresExpanded ? "translate-y-0" : "translate-y-1"
-                        } transition-[transform,background-color,color] duration-300 ease-out`}
+                        className={classNames(
+                          chipBase,
+                          active ? chipActive : chipIdle,
+                          genresExpanded ? "translate-y-0" : "translate-y-1",
+                          "transition-[transform,background-color,border-color,color,box-shadow] duration-300 ease-out",
+                        )}
                       >
+                        <Icon
+                          icon={getGenreIcon(genre.name)}
+                          className="text-[14px] opacity-70"
+                        />
                         {genre.name}
                       </button>
                     );
