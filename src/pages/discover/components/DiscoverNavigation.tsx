@@ -26,7 +26,7 @@ const chipIdle =
   "bg-search-background/40 backdrop-blur-md hover:bg-search-hoverBackground/80 text-type-secondary hover:text-white border border-white/10 hover:border-white/20";
 
 const chipActive =
-  "bg-white/15 backdrop-blur-md text-white border border-white/30 shadow-soft-md";
+  "bg-white text-black border border-white shadow-[0_0_18px_2px_rgba(255,255,255,0.55)] hover:bg-white hover:text-black";
 
 const chipToggle =
   "bg-search-background/60 backdrop-blur-md hover:bg-search-hoverBackground text-type-secondary hover:text-white border border-white/35 hover:border-white/55 min-w-[5.5rem] justify-center";
@@ -84,7 +84,10 @@ export function DiscoverNavigation({
       >
         <Icon
           icon={getGenreIcon(genre.name)}
-          className="text-[14px] opacity-70"
+          className={classNames(
+            "text-[14px]",
+            active ? "opacity-90 text-black" : "opacity-70",
+          )}
         />
         {genre.name}
       </button>
@@ -123,7 +126,13 @@ export function DiscoverNavigation({
                 allSelected ? chipActive : chipIdle,
               )}
             >
-              <Icon icon={Icons.RISING_STAR} className="text-[14px] opacity-70" />
+              <Icon
+                icon={Icons.RISING_STAR}
+                className={classNames(
+                  "text-[14px]",
+                  allSelected ? "opacity-90 text-black" : "opacity-70",
+                )}
+              />
               {t("discover.genres.all")}
             </button>
             {primaryGenres.map(renderGenreChip)}
@@ -171,7 +180,10 @@ export function DiscoverNavigation({
                       >
                         <Icon
                           icon={getGenreIcon(genre.name)}
-                          className="text-[14px] opacity-70"
+                          className={classNames(
+                            "text-[14px]",
+                            active ? "opacity-90 text-black" : "opacity-70",
+                          )}
                         />
                         {genre.name}
                       </button>
