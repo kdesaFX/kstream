@@ -309,7 +309,7 @@ export function MediaCarousel({
       return activeButton.name;
     }
 
-    return "...";
+    return "+ more";
   }, [activeButton, visibleButtonIdSet]);
 
   // Set selected genre if active button is in dropdown

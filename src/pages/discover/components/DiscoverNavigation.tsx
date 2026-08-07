@@ -107,7 +107,7 @@ export function DiscoverNavigation({
                       id: selectedOverflow.id.toString(),
                       name: selectedOverflow.name,
                     }
-                  : { id: "", name: "…" }
+                  : { id: "", name: "+ more" }
               }
               setSelectedItem={(item) => {
                 if (item.id) setSelectedGenreId(item.id);
@@ -123,7 +123,9 @@ export function DiscoverNavigation({
                     selectedOverflow ? chipActive : chipIdle
                   }`}
                 >
-                  <span>{selectedOverflow ? selectedOverflow.name : "…"}</span>
+                  <span>
+                    {selectedOverflow ? selectedOverflow.name : "+ more"}
+                  </span>
                   <Icon
                     icon={Icons.UP_DOWN_ARROW}
                     className="text-xs text-dropdown-secondary"
