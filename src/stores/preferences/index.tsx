@@ -10,6 +10,18 @@ import {
 export type PreferredMinimumResolution = "none" | "720" | "1080" | "4k";
 export type VolumeBoostApplyMode = "current" | "title";
 
+/** Prefer the source that worked for this title; else the global last success. */
+export function getPreferredSourceForTitle(
+  preferredSourceByTitle: Record<string, string>,
+  tmdbId: string | undefined | null,
+  lastSuccessfulSource: string | null,
+): string | null {
+  if (tmdbId && preferredSourceByTitle[tmdbId]) {
+    return preferredSourceByTitle[tmdbId];
+  }
+  return lastSuccessfulSource;
+}
+
 export interface PreferencesStore {
   enableThumbnails: boolean;
   enableAutoplay: boolean;
@@ -28,6 +40,8 @@ export interface PreferencesStore {
   enableLastSuccessfulSource: boolean;
   /** Last audio language the user picked (e.g. "en", "ja"). */
   preferredAudioLanguage: string | null;
+  /** Per-title (TMDB id) source that last worked for that show/movie. */
+  preferredSourceByTitle: Record<string, string>;
   embedOrder: string[];
   enableEmbedOrder: boolean;
   proxyTmdb: boolean;
@@ -77,6 +91,8 @@ export interface PreferencesStore {
   setLastSuccessfulSource(v: string | null): void;
   setEnableLastSuccessfulSource(v: boolean): void;
   setPreferredAudioLanguage(v: string | null): void;
+  rememberSuccessfulSource(tmdbId: string | null | undefined, sourceId: string): void;
+  clearPreferredSourceForTitle(tmdbId: string): void;
   setEmbedOrder(v: string[]): void;
   setEnableEmbedOrder(v: boolean): void;
   setProxyTmdb(v: boolean): void;
@@ -132,6 +148,7 @@ export const usePreferencesStore = create(
       lastSuccessfulSource: null,
       enableLastSuccessfulSource: true,
       preferredAudioLanguage: null,
+      preferredSourceByTitle: {},
       embedOrder: [],
       enableEmbedOrder: false,
       proxyTmdb: false,
@@ -242,6 +259,19 @@ export const usePreferencesStore = create(
       setPreferredAudioLanguage(v) {
         set((s) => {
           s.preferredAudioLanguage = v;
+        });
+      },
+      rememberSuccessfulSource(tmdbId, sourceId) {
+        set((s) => {
+          s.lastSuccessfulSource = sourceId;
+          if (tmdbId) {
+            s.preferredSourceByTitle[tmdbId] = sourceId;
+          }
+        });
+      },
+      clearPreferredSourceForTitle(tmdbId) {
+        set((s) => {
+          delete s.preferredSourceByTitle[tmdbId];
         });
       },
       setEmbedOrder(v) {
@@ -441,6 +471,9 @@ export const usePreferencesStore = create(
         }
         if (!merged.volumeBoostByTitle) {
           merged.volumeBoostByTitle = {};
+        }
+        if (!merged.preferredSourceByTitle) {
+          merged.preferredSourceByTitle = {};
         }
         return merged;
       },

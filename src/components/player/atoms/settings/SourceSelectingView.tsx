@@ -12,7 +12,10 @@ import { SelectableLink } from "@/components/player/internals/ContextMenu/Links"
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
-import { usePreferencesStore } from "@/stores/preferences";
+import {
+  getPreferredSourceForTitle,
+  usePreferencesStore,
+} from "@/stores/preferences";
 
 export interface SourceSelectionViewProps {
   id: string;
@@ -156,6 +159,7 @@ export function SourceSelectionView({
   const { t } = useTranslation();
   const router = useOverlayRouter(id);
   const metaType = usePlayerStore((s) => s.meta?.type);
+  const metaTmdbId = usePlayerStore((s) => s.meta?.tmdbId);
   const currentSourceId = usePlayerStore((s) => s.sourceId);
   const setResumeFromSourceId = usePlayerStore((s) => s.setResumeFromSourceId);
   const setStatus = usePlayerStore((s) => s.setStatus);
@@ -163,6 +167,9 @@ export function SourceSelectionView({
   const enableSourceOrder = usePreferencesStore((s) => s.enableSourceOrder);
   const lastSuccessfulSource = usePreferencesStore(
     (s) => s.lastSuccessfulSource,
+  );
+  const preferredSourceByTitle = usePreferencesStore(
+    (s) => s.preferredSourceByTitle,
   );
   const enableLastSuccessfulSource = usePreferencesStore(
     (s) => s.enableLastSuccessfulSource,
@@ -177,11 +184,19 @@ export function SourceSelectionView({
       .filter((v) => v.type === "source")
       .filter((v) => v.mediaTypes?.includes(metaType));
 
+    const prioritizeSource = enableLastSuccessfulSource
+      ? getPreferredSourceForTitle(
+          preferredSourceByTitle,
+          metaTmdbId,
+          lastSuccessfulSource,
+        )
+      : null;
+
     if (!enableSourceOrder || preferredSourceOrder.length === 0) {
-      // Even without custom source order, prioritize last successful source if enabled
-      if (enableLastSuccessfulSource && lastSuccessfulSource) {
+      // Even without custom source order, prioritize remembered source if enabled
+      if (prioritizeSource) {
         const lastSourceIndex = allSources.findIndex(
-          (s) => s.id === lastSuccessfulSource,
+          (s) => s.id === prioritizeSource,
         );
         if (lastSourceIndex !== -1) {
           const lastSource = allSources.splice(lastSourceIndex, 1)[0];
@@ -191,14 +206,14 @@ export function SourceSelectionView({
       return allSources;
     }
 
-    // Sort sources according to preferred order, but prioritize last successful source
+    // Sort sources according to preferred order, but prioritize remembered source
     const orderedSources = [];
     const remainingSources = [...allSources];
 
-    // First, add the last successful source if it exists, is available, and the feature is enabled
-    if (enableLastSuccessfulSource && lastSuccessfulSource) {
+    // First, add the remembered source if it exists, is available, and the feature is enabled
+    if (prioritizeSource) {
       const lastSourceIndex = remainingSources.findIndex(
-        (s) => s.id === lastSuccessfulSource,
+        (s) => s.id === prioritizeSource,
       );
       if (lastSourceIndex !== -1) {
         orderedSources.push(remainingSources[lastSourceIndex]);
@@ -221,9 +236,11 @@ export function SourceSelectionView({
     return orderedSources;
   }, [
     metaType,
+    metaTmdbId,
     preferredSourceOrder,
     enableSourceOrder,
     lastSuccessfulSource,
+    preferredSourceByTitle,
     enableLastSuccessfulSource,
   ]);
 

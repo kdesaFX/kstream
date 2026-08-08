@@ -37,6 +37,9 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
   const setLastSuccessfulSource = usePreferencesStore(
     (s) => s.setLastSuccessfulSource,
   );
+  const clearPreferredSourceForTitle = usePreferencesStore(
+    (s) => s.clearPreferredSourceForTitle,
+  );
   const enableAutoResumeOnPlaybackError = usePreferencesStore(
     (s) => s.enableAutoResumeOnPlaybackError,
   );
@@ -76,8 +79,11 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
 
       if (!hasOpenedSettings.current && (!enableAutoResumeOnPlaybackError || props.autoResumeExhausted)) {
         hasOpenedSettings.current = true;
-        // Reset the last successful source when a playback error occurs
+        // Forget preferred source for this title so the next try can move on
         setLastSuccessfulSource(null);
+        if (meta?.tmdbId) {
+          clearPreferredSourceForTitle(meta.tmdbId);
+        }
         settingsRouter.open();
         settingsRouter.navigate("/source");
       }
@@ -92,6 +98,7 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
     addFailedEmbed,
     settingsRouter,
     setLastSuccessfulSource,
+    clearPreferredSourceForTitle,
     enableAutoResumeOnPlaybackError,
     props.autoResumeExhausted,
   ]);

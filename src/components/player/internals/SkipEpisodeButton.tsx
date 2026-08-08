@@ -21,8 +21,8 @@ export function SkipEpisodeButton(props: SkipEpisodeButtonProps) {
   );
   const updateItem = useProgressStore((s) => s.updateItem);
   const sourceId = usePlayerStore((s) => s.sourceId);
-  const setLastSuccessfulSource = usePreferencesStore(
-    (s) => s.setLastSuccessfulSource,
+  const rememberSuccessfulSource = usePreferencesStore(
+    (s) => s.rememberSuccessfulSource,
   );
   const nextEp = meta?.episodes?.find(
     (v) => v.number === (meta?.episode?.number ?? 0) + 1,
@@ -31,7 +31,7 @@ export function SkipEpisodeButton(props: SkipEpisodeButtonProps) {
   const loadNextEpisode = useCallback(() => {
     if (!meta || !nextEp) return;
     if (sourceId) {
-      setLastSuccessfulSource(sourceId);
+      rememberSuccessfulSource(meta.tmdbId, sourceId);
     }
     const metaCopy = { ...meta };
     metaCopy.episode = nextEp;
@@ -51,7 +51,7 @@ export function SkipEpisodeButton(props: SkipEpisodeButtonProps) {
     setShouldStartFromBeginning,
     updateItem,
     sourceId,
-    setLastSuccessfulSource,
+    rememberSuccessfulSource,
   ]);
 
   // Don't show button if not in control, not a show, or no next episode

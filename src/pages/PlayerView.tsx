@@ -76,8 +76,8 @@ export function RealPlayerView() {
   const manualSourceSelection = usePreferencesStore(
     (s) => s.manualSourceSelection,
   );
-  const setLastSuccessfulSource = usePreferencesStore(
-    (s) => s.setLastSuccessfulSource,
+  const rememberSuccessfulSource = usePreferencesStore(
+    (s) => s.rememberSuccessfulSource,
   );
   const enableLastSuccessfulSource = usePreferencesStore(
     (s) => s.enableLastSuccessfulSource,
@@ -250,7 +250,10 @@ export function RealPlayerView() {
         shouldStartFromBeginning ? 0 : startAt,
       );
       if (enableLastSuccessfulSource) {
-        setLastSuccessfulSource(out.sourceId);
+        rememberSuccessfulSource(
+          usePlayerStore.getState().meta?.tmdbId,
+          out.sourceId,
+        );
       }
       setShouldStartFromBeginning(false);
     },
@@ -261,7 +264,7 @@ export function RealPlayerView() {
       setShouldStartFromBeginning,
       preferredAudioLanguage,
       enableLastSuccessfulSource,
-      setLastSuccessfulSource,
+      rememberSuccessfulSource,
     ],
   );
 

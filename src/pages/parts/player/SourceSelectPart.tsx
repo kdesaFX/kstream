@@ -10,7 +10,10 @@ import {
 } from "@/components/player/hooks/useSourceSelection";
 import { Menu } from "@/components/player/internals/ContextMenu";
 import { SelectableLink } from "@/components/player/internals/ContextMenu/Links";
-import { usePreferencesStore } from "@/stores/preferences";
+import {
+  getPreferredSourceForTitle,
+  usePreferencesStore,
+} from "@/stores/preferences";
 
 // Embed option component
 function EmbedOption(props: {
@@ -150,6 +153,9 @@ export function SourceSelectPart(props: { media: ScrapeMedia }) {
   const lastSuccessfulSource = usePreferencesStore(
     (s) => s.lastSuccessfulSource,
   );
+  const preferredSourceByTitle = usePreferencesStore(
+    (s) => s.preferredSourceByTitle,
+  );
   const enableLastSuccessfulSource = usePreferencesStore(
     (s) => s.enableLastSuccessfulSource,
   );
@@ -161,11 +167,19 @@ export function SourceSelectPart(props: { media: ScrapeMedia }) {
       .filter((v) => v.type === "source")
       .filter((v) => v.mediaTypes?.includes(metaType));
 
+    const prioritizeSource = enableLastSuccessfulSource
+      ? getPreferredSourceForTitle(
+          preferredSourceByTitle,
+          props.media.tmdbId,
+          lastSuccessfulSource,
+        )
+      : null;
+
     if (!enableSourceOrder || preferredSourceOrder.length === 0) {
-      // Even without custom source order, prioritize last successful source if enabled
-      if (enableLastSuccessfulSource && lastSuccessfulSource) {
+      // Even without custom source order, prioritize remembered source if enabled
+      if (prioritizeSource) {
         const lastSourceIndex = allSources.findIndex(
-          (s) => s.id === lastSuccessfulSource,
+          (s) => s.id === prioritizeSource,
         );
         if (lastSourceIndex !== -1) {
           const lastSource = allSources.splice(lastSourceIndex, 1)[0];
@@ -175,14 +189,14 @@ export function SourceSelectPart(props: { media: ScrapeMedia }) {
       return allSources;
     }
 
-    // Sort sources according to preferred order, but prioritize last successful source
+    // Sort sources according to preferred order, but prioritize remembered source
     const orderedSources = [];
     const remainingSources = [...allSources];
 
-    // First, add the last successful source if it exists, is available, and the feature is enabled
-    if (enableLastSuccessfulSource && lastSuccessfulSource) {
+    // First, add the remembered source if it exists, is available, and the feature is enabled
+    if (prioritizeSource) {
       const lastSourceIndex = remainingSources.findIndex(
-        (s) => s.id === lastSuccessfulSource,
+        (s) => s.id === prioritizeSource,
       );
       if (lastSourceIndex !== -1) {
         orderedSources.push(remainingSources[lastSourceIndex]);
@@ -205,9 +219,11 @@ export function SourceSelectPart(props: { media: ScrapeMedia }) {
     return orderedSources;
   }, [
     props.media.type,
+    props.media.tmdbId,
     preferredSourceOrder,
     enableSourceOrder,
     lastSuccessfulSource,
+    preferredSourceByTitle,
     enableLastSuccessfulSource,
   ]);
 

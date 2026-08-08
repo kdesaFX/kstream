@@ -1505,9 +1505,9 @@
       "autoResumeOnPlaybackError": "Auto resume on playback error",
       "autoResumeOnPlaybackErrorDescription": "Automatically continue searching for other sources when the current source fails during playback. If disabled, you'll see an error screen with a manual resume option.",
       "autoResumeOnPlaybackErrorLabel": "Auto resume on playback error",
-      "lastSuccessfulSource": "Last used source",
-      "lastSuccessfulSourceDescription": "Automatically prioritize the source that successfully provided content for the previous episode. This helps ensure continuity when watching series.",
-      "lastSuccessfulSourceEnableLabel": "Last used source"
+      "lastSuccessfulSource": "Remember source per title",
+      "lastSuccessfulSourceDescription": "For each show or movie, try the source that worked last time first. If it fails, continue through the other sources as usual.",
+      "lastSuccessfulSourceEnableLabel": "Remember source per title"
     },
     "reset": "Reset",
     "save": "Save",

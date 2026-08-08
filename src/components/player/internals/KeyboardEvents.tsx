@@ -37,8 +37,8 @@ export function KeyboardEvents() {
   );
   const updateItem = useProgressStore((s) => s.updateItem);
   const sourceId = usePlayerStore((s) => s.sourceId);
-  const setLastSuccessfulSource = usePreferencesStore(
-    (s) => s.setLastSuccessfulSource,
+  const rememberSuccessfulSource = usePreferencesStore(
+    (s) => s.rememberSuccessfulSource,
   );
 
   const { toggleLastUsed, selectRandomCaptionFromLastUsedLanguage } =
@@ -103,7 +103,7 @@ export function KeyboardEvents() {
       );
       if (nextEp) {
         if (sourceId) {
-          setLastSuccessfulSource(sourceId);
+          rememberSuccessfulSource(meta.tmdbId, sourceId);
         }
         const metaCopy = { ...meta };
         metaCopy.episode = nextEp;
@@ -153,7 +153,7 @@ export function KeyboardEvents() {
               const nextEp = nextSeasonEpisodes[0];
 
               if (sourceId) {
-                setLastSuccessfulSource(sourceId);
+                rememberSuccessfulSource(meta.tmdbId, sourceId);
               }
 
               const metaCopy = { ...meta };
@@ -184,7 +184,7 @@ export function KeyboardEvents() {
     setShouldStartFromBeginning,
     updateItem,
     sourceId,
-    setLastSuccessfulSource,
+    rememberSuccessfulSource,
   ]);
 
   const navigateToPreviousEpisode = useCallback(async () => {
@@ -200,7 +200,7 @@ export function KeyboardEvents() {
       );
       if (prevEp) {
         if (sourceId) {
-          setLastSuccessfulSource(sourceId);
+          rememberSuccessfulSource(meta.tmdbId, sourceId);
         }
         const metaCopy = { ...meta };
         metaCopy.episode = prevEp;
@@ -250,7 +250,7 @@ export function KeyboardEvents() {
               const prevEp = prevSeasonEpisodes[prevSeasonEpisodes.length - 1];
 
               if (sourceId) {
-                setLastSuccessfulSource(sourceId);
+                rememberSuccessfulSource(meta.tmdbId, sourceId);
               }
 
               const metaCopy = { ...meta };
@@ -281,7 +281,7 @@ export function KeyboardEvents() {
     setShouldStartFromBeginning,
     updateItem,
     sourceId,
-    setLastSuccessfulSource,
+    rememberSuccessfulSource,
   ]);
 
   const dataRef = useRef({

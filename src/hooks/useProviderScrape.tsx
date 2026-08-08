@@ -7,7 +7,10 @@ import { getCachedMetadata } from "@/backend/helpers/providerApi";
 import { getProviders } from "@/backend/providers/providers";
 import { getMediaKey } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
-import { usePreferencesStore } from "@/stores/preferences";
+import {
+  getPreferredSourceForTitle,
+  usePreferencesStore,
+} from "@/stores/preferences";
 
 export interface ScrapingItems {
   id: string;
@@ -183,6 +186,9 @@ export function useScrape() {
   const lastSuccessfulSource = usePreferencesStore(
     (s) => s.lastSuccessfulSource,
   );
+  const preferredSourceByTitle = usePreferencesStore(
+    (s) => s.preferredSourceByTitle,
+  );
   const enableLastSuccessfulSource = usePreferencesStore(
     (s) => s.enableLastSuccessfulSource,
   );
@@ -239,19 +245,22 @@ export function useScrape() {
         baseSourceOrder = [...orderedSources, ...remainingSources];
       }
 
-      // If we have a last successful source and the feature is enabled, prioritize it
-      // BUT only if we're not resuming from a specific source (to preserve custom order)
-      if (
-        enableLastSuccessfulSource &&
-        lastSuccessfulSource &&
-        !startFromSourceId
-      ) {
-        const lastSourceIndex = baseSourceOrder.indexOf(lastSuccessfulSource);
-        if (lastSourceIndex !== -1) {
-          baseSourceOrder = [
-            lastSuccessfulSource,
-            ...baseSourceOrder.filter((id) => id !== lastSuccessfulSource),
-          ];
+      // Prefer the source that worked for this title; fall back to last global.
+      // If it fails, runAll continues through the rest of the order.
+      if (enableLastSuccessfulSource && !startFromSourceId) {
+        const prioritizeSource = getPreferredSourceForTitle(
+          preferredSourceByTitle,
+          media.tmdbId,
+          lastSuccessfulSource,
+        );
+        if (prioritizeSource) {
+          const lastSourceIndex = baseSourceOrder.indexOf(prioritizeSource);
+          if (lastSourceIndex !== -1) {
+            baseSourceOrder = [
+              prioritizeSource,
+              ...baseSourceOrder.filter((id) => id !== prioritizeSource),
+            ];
+          }
         }
       }
 
@@ -353,6 +362,7 @@ export function useScrape() {
       preferredSourceOrder,
       enableSourceOrder,
       lastSuccessfulSource,
+      preferredSourceByTitle,
       enableLastSuccessfulSource,
       preferredEmbedOrder,
       enableEmbedOrder,

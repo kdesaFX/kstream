@@ -51,8 +51,8 @@ export function useEmbedScraping(
   const progressItems = useProgressStore((s) => s.items);
   const router = useOverlayRouter(routerId);
   const { report } = useReportProviders();
-  const setLastSuccessfulSource = usePreferencesStore(
-    (s) => s.setLastSuccessfulSource,
+  const rememberSuccessfulSource = usePreferencesStore(
+    (s) => s.rememberSuccessfulSource,
   );
   const enableLastSuccessfulSource = usePreferencesStore(
     (s) => s.enableLastSuccessfulSource,
@@ -107,7 +107,7 @@ export function useEmbedScraping(
     );
     // Save the last successful source when manually selected
     if (enableLastSuccessfulSource) {
-      setLastSuccessfulSource(sourceId);
+      rememberSuccessfulSource(meta.tmdbId, sourceId);
     }
     router.close();
   }, [
@@ -118,7 +118,7 @@ export function useEmbedScraping(
     report,
     setCaption,
     enableLastSuccessfulSource,
-    setLastSuccessfulSource,
+    rememberSuccessfulSource,
     preferredAudioLanguage,
   ]);
 
@@ -139,8 +139,8 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
   const progressItems = useProgressStore((s) => s.items);
   const router = useOverlayRouter(routerId);
   const { report } = useReportProviders();
-  const setLastSuccessfulSource = usePreferencesStore(
-    (s) => s.setLastSuccessfulSource,
+  const rememberSuccessfulSource = usePreferencesStore(
+    (s) => s.rememberSuccessfulSource,
   );
   const enableLastSuccessfulSource = usePreferencesStore(
     (s) => s.enableLastSuccessfulSource,
@@ -194,7 +194,7 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
       setSourceId(sourceId);
       // Save the last successful source when manually selected
       if (enableLastSuccessfulSource) {
-        setLastSuccessfulSource(sourceId);
+        rememberSuccessfulSource(meta.tmdbId, sourceId);
       }
       router.close();
       return null;
@@ -255,7 +255,7 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
       );
       // Save the last successful source when manually selected
       if (enableLastSuccessfulSource) {
-        setLastSuccessfulSource(sourceId);
+        rememberSuccessfulSource(meta.tmdbId, sourceId);
       }
       router.close();
     }
@@ -266,7 +266,7 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
     router,
     setCaption,
     enableLastSuccessfulSource,
-    setLastSuccessfulSource,
+    rememberSuccessfulSource,
     preferredAudioLanguage,
   ]);
 
