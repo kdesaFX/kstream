@@ -21,6 +21,25 @@ const downloadCache = new SimpleCache<string, string>();
 downloadCache.setCompare((a, b) => a === b);
 const expirySeconds = 24 * 60 * 60;
 
+const PROXY_HEADER_MAP: Record<string, string> = {
+  cookie: "X-Cookie",
+  referer: "X-Referer",
+  origin: "X-Origin",
+  "user-agent": "X-User-Agent",
+};
+
+function mapHeadersForProxy(
+  headers?: Record<string, string>,
+): Record<string, string> {
+  if (!headers) return {};
+  return Object.fromEntries(
+    Object.entries(headers).map(([key, value]) => {
+      const mapped = PROXY_HEADER_MAP[key.toLowerCase()];
+      return [mapped ?? key, value];
+    }),
+  );
+}
+
 async function fetchCaptionRaw(caption: CaptionListItem): Promise<string> {
   let data: string | undefined;
   if (caption.needsProxy) {
@@ -28,6 +47,7 @@ async function fetchCaptionRaw(caption: CaptionListItem): Promise<string> {
       const extensionResponse = await sendExtensionRequest({
         url: caption.url,
         method: "GET",
+        headers: caption.headers,
       });
       if (
         !extensionResponse?.success ||
@@ -42,6 +62,7 @@ async function fetchCaptionRaw(caption: CaptionListItem): Promise<string> {
         responseType: "text",
         headers: {
           "Accept-Charset": "utf-8",
+          ...mapHeadersForProxy(caption.headers),
         },
       });
     }

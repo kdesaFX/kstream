@@ -71,6 +71,8 @@ export interface CaptionListItem {
   needsProxy: boolean;
   hls?: boolean;
   opensubtitles?: boolean;
+  /** Headers required to fetch the caption (e.g. Referer for AniKoto CDN). */
+  headers?: Record<string, string>;
   // subtitle details from wyzie
   display?: string;
   media?: string;

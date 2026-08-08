@@ -107,6 +107,7 @@ export function convertProviderCaption(
     url: v.url,
     type: (v as any).type,
     needsProxy: v.hasCorsRestrictions,
+    headers: (v as any).headers,
     opensubtitles: v.opensubtitles,
     // subtitle details from wyzie
     display: (v as any).display,
