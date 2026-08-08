@@ -1,9 +1,11 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { iso6393To1 } from "iso-639-3";
 
 import { getArtemisVariantMeta, getVariantMeta } from "@/sdk";
 import { getCachedMetadata } from "@/backend/helpers/providerApi";
 import { Toggle } from "@/components/buttons/Toggle";
+import { FlagIcon } from "@/components/FlagIcon";
 import { Icon, Icons } from "@/components/Icon";
 import { Spinner } from "@/components/layout/Spinner";
 import { useCaptions } from "@/components/player/hooks/useCaptions";
@@ -15,6 +17,13 @@ import { usePlayerStore } from "@/stores/player/store";
 import { qualityToString } from "@/stores/player/utils/qualities";
 import { useSubtitleStore } from "@/stores/subtitles";
 import { getPrettyLanguageNameFromLocale } from "@/utils/locale/language";
+
+function audioFlagCode(language?: string): string | undefined {
+  if (!language) return undefined;
+  return language.length === 3
+    ? (iso6393To1[language] ?? language)
+    : language;
+}
 
 export function SettingsMenu({ id }: { id: string }) {
   const { t } = useTranslation();
@@ -78,6 +87,29 @@ export function SettingsMenu({ id }: { id: string }) {
     }
     return undefined;
   })();
+
+  const selectedAudioLangCode = (() => {
+    const streamOpt = audioStreamOptions.find(
+      (o) => o.id === currentAudioStreamId,
+    );
+    if (streamOpt?.language) return audioFlagCode(streamOpt.language);
+    if (currentAudioTrack?.language)
+      return audioFlagCode(currentAudioTrack.language);
+    return undefined;
+  })();
+
+  const audioLanguageLabel = (
+    <span className="text-type-secondary text-sm leading-5 h-5 flex items-center justify-center gap-1.5">
+      {selectedAudioLangCode ? (
+        <span className="inline-flex scale-75 origin-center">
+          <FlagIcon langCode={selectedAudioLangCode} />
+        </span>
+      ) : null}
+      <span>
+        {selectedAudioLanguagePretty ?? t("player.menus.audio.default")}
+      </span>
+    </span>
+  );
 
   const hasAudioChoices =
     audioStreamOptions.length > 1 || audioTracks.length > 1;
@@ -186,10 +218,7 @@ export function SettingsMenu({ id }: { id: string }) {
             rightText={selectedAudioLanguagePretty ?? undefined}
           >
             {t("player.menus.settings.audioItem")}
-            <span className="text-type-secondary text-sm">
-              {selectedAudioLanguagePretty ??
-                t("player.menus.audio.default")}
-            </span>
+            {audioLanguageLabel}
           </Menu.ChevronLink>
         ) : (
           <Menu.ChevronLink
@@ -198,10 +227,7 @@ export function SettingsMenu({ id }: { id: string }) {
             disabled
           >
             {t("player.menus.settings.audioItem")}
-            <span className="text-type-secondary text-sm">
-              {selectedAudioLanguagePretty ??
-                t("player.menus.audio.default")}
-            </span>
+            {audioLanguageLabel}
           </Menu.ChevronLink>
         )}
       </Menu.Section>
