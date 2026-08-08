@@ -20,7 +20,7 @@ const VISIBLE_GENRE_BREAKPOINT = 850;
 const CATEGORIES = ["movies", "tvshows"] as const;
 
 const chipBase =
-  "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide whitespace-nowrap shrink-0 select-none transition-all duration-200 ease-out-quint hover:-translate-y-0.5 active:translate-y-0 active:scale-95";
+  "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide whitespace-nowrap shrink-0 select-none transition-all duration-300 ease-out-quint hover:-translate-y-0.5 active:translate-y-0 active:scale-95";
 
 const chipIdle =
   "bg-search-background/40 backdrop-blur-md hover:bg-search-hoverBackground/80 text-type-secondary hover:text-white border border-white/10 hover:border-white/20";
@@ -49,8 +49,9 @@ export function DiscoverNavigation({
 
   const visibleCount = windowWidth > VISIBLE_GENRE_BREAKPOINT ? 5 : 0;
   const hasOverflow = genres.length > visibleCount;
-  const primaryGenres = genres.slice(0, visibleCount);
-  const overflowGenres = genres.slice(visibleCount);
+  const shownGenres = genresExpanded
+    ? genres
+    : genres.slice(0, visibleCount);
 
   // If a selected genre would be hidden while collapsed, expand so it stays visible.
   useEffect(() => {
@@ -71,28 +72,6 @@ export function DiscoverNavigation({
   }, [selectedCategory, mediaType]);
 
   const allSelected = selectedGenreId === null;
-
-  const renderGenreChip = (genre: { id: number; name: string }) => {
-    const id = genre.id.toString();
-    const active = selectedGenreId === id;
-    return (
-      <button
-        type="button"
-        key={id}
-        onClick={() => setSelectedGenreId(id)}
-        className={classNames(chipBase, active ? chipActive : chipIdle)}
-      >
-        <Icon
-          icon={getGenreIcon(genre.name)}
-          className={classNames(
-            "text-[14px]",
-            active ? "opacity-90 text-black" : "opacity-70",
-          )}
-        />
-        {genre.name}
-      </button>
-    );
-  };
 
   return (
     <div className="pb-4 w-full max-w-screen-xl mx-auto">
@@ -117,6 +96,7 @@ export function DiscoverNavigation({
 
       {showGenreBar && (
         <div className="mt-3 px-4">
+          {/* Single wrapping flex so More/Less always follows the last visible genre. */}
           <div className="flex items-center justify-center gap-2 flex-wrap">
             <button
               type="button"
@@ -135,7 +115,32 @@ export function DiscoverNavigation({
               />
               {t("discover.genres.all")}
             </button>
-            {primaryGenres.map(renderGenreChip)}
+
+            {shownGenres.map((genre) => {
+              const id = genre.id.toString();
+              const active = selectedGenreId === id;
+              return (
+                <button
+                  type="button"
+                  key={id}
+                  onClick={() => setSelectedGenreId(id)}
+                  className={classNames(
+                    chipBase,
+                    active ? chipActive : chipIdle,
+                  )}
+                >
+                  <Icon
+                    icon={getGenreIcon(genre.name)}
+                    className={classNames(
+                      "text-[14px]",
+                      active ? "opacity-90 text-black" : "opacity-70",
+                    )}
+                  />
+                  {genre.name}
+                </button>
+              );
+            })}
+
             {hasOverflow && (
               <button
                 type="button"
@@ -151,48 +156,6 @@ export function DiscoverNavigation({
               </button>
             )}
           </div>
-
-          {hasOverflow && (
-            <div
-              className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
-                genresExpanded
-                  ? "grid-rows-[1fr] opacity-100"
-                  : "grid-rows-[0fr] opacity-0"
-              }`}
-            >
-              <div className="overflow-hidden min-h-0">
-                <div className="flex items-center justify-center gap-2 flex-wrap pt-2">
-                  {overflowGenres.map((genre) => {
-                    const id = genre.id.toString();
-                    const active = selectedGenreId === id;
-                    return (
-                      <button
-                        type="button"
-                        key={id}
-                        onClick={() => setSelectedGenreId(id)}
-                        tabIndex={genresExpanded ? 0 : -1}
-                        className={classNames(
-                          chipBase,
-                          active ? chipActive : chipIdle,
-                          genresExpanded ? "translate-y-0" : "translate-y-1",
-                          "transition-[transform,background-color,border-color,color,box-shadow] duration-300 ease-out",
-                        )}
-                      >
-                        <Icon
-                          icon={getGenreIcon(genre.name)}
-                          className={classNames(
-                            "text-[14px]",
-                            active ? "opacity-90 text-black" : "opacity-70",
-                          )}
-                        />
-                        {genre.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
