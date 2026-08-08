@@ -17,7 +17,7 @@ function NavButton({ direction, onClick }: NavButtonProps) {
   return (
     <button
       type="button"
-      className={`absolute ${direction === "left" ? "left-12" : "right-12"} top-1/2 transform -translate-y-3/4 z-10`}
+      className={`absolute ${direction === "left" ? "left-2" : "right-2"} top-1/2 transform -translate-y-3/4 z-10`}
       onClick={onClick}
     >
       <Flare.Base className="group -m-[0.705em] rounded-full bg-search-hoverBackground transition-transform duration-300 focus:relative focus:z-10 hover:bg-mediaCard-hoverBackground tabbable hover:scale-110">

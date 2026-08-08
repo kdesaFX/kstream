@@ -203,14 +203,12 @@ export function WatchingCarousel({
       <div className="relative overflow-hidden carousel-container md:pb-4">
         <div
           id={`carousel-${categorySlug}`}
-          className="grid grid-flow-col auto-cols-max gap-4 pt-0 overflow-x-scroll scrollbar-none rounded-xl overflow-y-hidden md:pl-8 md:pr-8"
+          className="grid grid-flow-col auto-cols-max gap-4 pt-0 overflow-x-scroll scrollbar-none rounded-xl overflow-y-hidden px-4"
           ref={(el) => {
             carouselRefs.current[categorySlug] = el;
           }}
           onWheel={handleWheel}
         >
-          <div className="lg:w-12" />
-
           {items.length > 0
             ? items.map((media) => (
                 <div
@@ -234,8 +232,6 @@ export function WatchingCarousel({
                   key={`skeleton-${categorySlug}-${Math.random().toString(36).substring(7)}`}
                 />
               ))}
-
-          <div className="lg:w-12" />
         </div>
 
         {!isMobile && (

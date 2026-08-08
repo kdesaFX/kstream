@@ -107,8 +107,8 @@ export function PersonalRecommendationsCarousel({
 
   return (
     <div>
-      <div className="flex items-center justify-between ml-2 md:ml-8 mt-2">
-        <div className="flex flex-col pl-2 lg:pl-[68px]">
+      <div className="flex items-center justify-between px-4 mt-2">
+        <div className="flex flex-col">
           <h2 className="text-2xl cursor-default font-bold text-white md:text-2xl pl-0 text-balance">
             {title ?? sectionTitle}
           </h2>
@@ -117,14 +117,12 @@ export function PersonalRecommendationsCarousel({
       <div className="relative overflow-hidden carousel-container md:pb-4">
         <div
           id={`carousel-${categorySlug}`}
-          className="grid grid-flow-col auto-cols-max gap-4 pt-0 overflow-x-scroll scrollbar-none rounded-xl overflow-y-hidden md:pl-8 md:pr-8"
+          className="grid grid-flow-col auto-cols-max gap-4 pt-0 overflow-x-scroll scrollbar-none rounded-xl overflow-y-hidden px-4"
           ref={(el) => {
             carouselRefs.current[categorySlug] = el;
           }}
           onWheel={handleWheel}
         >
-          <div className="lg:w-12" />
-
           {isLoading
             ? Array.from({ length: 10 }, (_, i) => `for-you-skeleton-${i}`).map(
                 (skeletonId) => (
@@ -159,8 +157,6 @@ export function PersonalRecommendationsCarousel({
                   />
                 </div>
               ))}
-
-          <div className="lg:w-12" />
         </div>
 
         {!isMobile && (

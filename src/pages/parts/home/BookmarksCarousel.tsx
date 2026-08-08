@@ -442,13 +442,12 @@ export function BookmarksCarousel({
               <div className="relative overflow-hidden carousel-container md:pb-4">
                 <div
                   id={`carousel-${section.group}`}
-                  className="grid grid-flow-col auto-cols-max gap-4 pt-0 overflow-x-scroll scrollbar-none rounded-xl overflow-y-hidden md:pl-8 md:pr-8"
+                  className="grid grid-flow-col auto-cols-max gap-4 pt-0 overflow-x-scroll scrollbar-none rounded-xl overflow-y-hidden px-4"
                   ref={(el) => {
                     carouselRefs.current[section.group || "bookmarks"] = el;
                   }}
                   onWheel={handleWheel}
                 >
-                  <div className="lg:w-12" />
 
                   {section.items
                     .slice(0, MAX_ITEMS_PER_SECTION)
@@ -475,8 +474,6 @@ export function BookmarksCarousel({
                   {section.items.length > MAX_ITEMS_PER_SECTION && (
                     <MoreBookmarksCard />
                   )}
-
-                  <div className="lg:w-12" />
                 </div>
 
                 {!isMobile && (
@@ -562,13 +559,12 @@ export function BookmarksCarousel({
             <div className="relative overflow-hidden carousel-container md:pb-4">
               <div
                 id={`carousel-${categorySlug}`}
-                className="grid grid-flow-col auto-cols-max gap-4 pt-0 overflow-x-scroll scrollbar-none rounded-xl overflow-y-hidden md:pl-8 md:pr-8"
+                className="grid grid-flow-col auto-cols-max gap-4 pt-0 overflow-x-scroll scrollbar-none rounded-xl overflow-y-hidden px-4"
                 ref={(el) => {
                   carouselRefs.current[categorySlug] = el;
                 }}
                 onWheel={handleWheel}
               >
-                <div className="lg:w-12" />
 
                 {section.items.length > 0
                   ? section.items
@@ -601,8 +597,6 @@ export function BookmarksCarousel({
                 {section.items.length > MAX_ITEMS_PER_SECTION && (
                   <MoreBookmarksCard />
                 )}
-
-                <div className="lg:w-12" />
               </div>
 
               {!isMobile && (
