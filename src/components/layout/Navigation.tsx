@@ -8,24 +8,24 @@ import { IconPatch } from "@/components/buttons/IconPatch";
 import { SearchBarInput } from "@/components/form/SearchBar";
 import { Icon, Icons } from "@/components/Icon";
 import { LinksDropdown } from "@/components/layout/LinksDropdown";
+import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { useNotifications } from "@/components/overlays/notificationsModal";
 import { useSlashFocus } from "@/components/player/hooks/useSlashFocus";
 import { Lightbar } from "@/components/utils/Lightbar";
 import { Transition } from "@/components/utils/Transition";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useRandomTranslation } from "@/hooks/useRandomTranslation";
 import { useSearchQuery } from "@/hooks/useSearchQuery";
 import { BlurEllipsis } from "@/pages/layouts/SubPageLayout";
+import { HomeSectionCustomizer } from "@/pages/parts/home/HomeSectionCustomizer";
 import { useBannerSize } from "@/stores/banner";
 import { useNavLayoutStore } from "@/stores/navLayout";
 import { usePreferencesStore } from "@/stores/preferences";
 
-import { HomeSectionCustomizer } from "@/pages/parts/home/HomeSectionCustomizer";
-
 import { BrandPill } from "./BrandPill";
-import { useDownloadModal } from "@/components/overlays/downloadModal";
-import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
+
 function HomeLayoutCustomizerToggle() {
   const [isOpen, setIsOpen] = useState(false);
   const path = window.location.pathname;
