@@ -24,7 +24,8 @@ import { usePreferencesStore } from "@/stores/preferences";
 import { HomeSectionCustomizer } from "@/pages/parts/home/HomeSectionCustomizer";
 
 import { BrandPill } from "./BrandPill";
-
+import { useDownloadModal } from "@/components/overlays/downloadModal";
+import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 function HomeLayoutCustomizerToggle() {
   const [isOpen, setIsOpen] = useState(false);
   const path = window.location.pathname;
@@ -124,6 +125,8 @@ function MobileMenuLink(props: {
 
 function MobileActionsMenu(props: {
   openNotifications: () => void;
+  openDownloadModal: () => void;
+  showDownload: boolean;
   unreadCount: number | string;
 }) {
   const [open, setOpen] = useState(false);
@@ -174,6 +177,17 @@ function MobileActionsMenu(props: {
             <Icon icon={Icons.BELL} className="text-xl" />
             Notifications
           </MobileMenuLink>
+          {props.showDownload ? (
+            <MobileMenuLink
+              onClick={() => {
+                setOpen(false);
+                props.openDownloadModal();
+              }}
+            >
+              <Icon icon={Icons.DOWNLOAD} className="text-xl" />
+              Download app
+            </MobileMenuLink>
+          ) : null}
           <div className="mx-2 mt-1">
             <HomeLayoutCustomizerToggle />
           </div>
@@ -196,6 +210,9 @@ export function Navigation(props: NavigationProps) {
   const { loggedIn } = useAuth();
   const [scrollPosition, setScrollPosition] = useState(0);
   const { openNotifications, getUnreadCount } = useNotifications();
+  const { openDownloadModal } = useDownloadModal();
+  const isDesktopApp = useIsDesktopApp();
+  const showDownload = !isDesktopApp;
   const [leftRef, { width: leftWidth }] = useMeasure<HTMLDivElement>();
   const [rightRef, { width: rightWidth }] = useMeasure<HTMLDivElement>();
   const setLeftWidth = useNavLayoutStore((s) => s.setLeftWidth);
@@ -318,6 +335,22 @@ export function Navigation(props: NavigationProps) {
                 <BrandPill clickable header />
               </Link>
               <div className="hidden lg:flex items-center space-x-1.5 ssm:space-x-3">
+                {showDownload ? (
+                  <button
+                    type="button"
+                    onClick={() => openDownloadModal()}
+                    className="text-xl text-white tabbable rounded-full backdrop-blur-lg"
+                    title="Download app"
+                    aria-label="Download Windows app"
+                  >
+                    <IconPatch
+                      icon={Icons.DOWNLOAD}
+                      clickable
+                      downsized
+                      navigation
+                    />
+                  </button>
+                ) : null}
                 <a
                   onClick={() => openNotifications()}
                   rel="noreferrer"
@@ -343,6 +376,8 @@ export function Navigation(props: NavigationProps) {
               </div>
               <MobileActionsMenu
                 openNotifications={openNotifications}
+                openDownloadModal={openDownloadModal}
+                showDownload={showDownload}
                 unreadCount={getUnreadCount()}
               />
             </div>

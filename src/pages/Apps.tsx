@@ -4,8 +4,6 @@ import { PageTitle } from "@/pages/parts/util/PageTitle";
 
 import { SubPageLayout } from "./layouts/SubPageLayout";
 
-const ANDROID_RELEASES_URL =
-  "https://github.com/alturyxx-gif/ZStream-Android/releases";
 const WINDOWS_APP_DOWNLOAD_URL =
   "https://github.com/kdesaFX/kstream-desktop/releases/latest/download/kstream-Setup.exe";
 
@@ -21,32 +19,6 @@ function WindowsGlyph(props: { className?: string }) {
       <rect x="13" y="2" width="9" height="9" rx="1.2" />
       <rect x="2" y="13" width="9" height="9" rx="1.2" />
       <rect x="13" y="13" width="9" height="9" rx="1.2" />
-    </svg>
-  );
-}
-
-function AppleGlyph(props: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={props.className}
-      aria-hidden
-    >
-      <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.912 1.33-1.858 2.66-3.35 2.68-1.46.03-1.93-.86-3.6-.86-1.67 0-2.19.83-3.58.89-1.44.05-2.54-1.44-3.46-2.77-1.87-2.7-3.31-7.66-1.38-11 .95-1.65 2.65-2.7 4.5-2.73 1.4-.02 2.72.94 3.58.94.86 0 2.47-1.16 4.16-.99.71.03 2.7.29 3.98 2.17-.1.06-2.38 1.39-2.35 4.15.03 3.29 2.9 4.39 2.94 4.4z" />
-    </svg>
-  );
-}
-
-function AndroidGlyph(props: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={props.className}
-      aria-hidden
-    >
-      <path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-1.44-.65-3.06-1.01-4.47-1.01-1.41 0-3.03.36-4.47 1.01L5.65 5.67c-.18-.28-.54-.37-.83-.22-.3.16-.42.54-.26.85L6.4 9.48C3.3 11.25 1.28 14.44 1 18h22c-.28-3.56-2.3-6.75-5.4-8.52zM7 15.25a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5zm10 0a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5z" />
     </svg>
   );
 }
@@ -115,48 +87,19 @@ function Panel(props: AppPanel) {
 }
 
 export function AppsPage() {
-  const panels: AppPanel[] = [
-    {
-      key: "windows",
-      glyph: (c) => <WindowsGlyph className={c} />,
-      title: "Windows",
-      tagline: "the native desktop app, built for comfort.",
-      bullets: [
-        "native player, better sources, extra features",
-        "auto-updates built right in",
-        "distributed to our community first",
-      ],
-      cta: "download for Windows",
-      onClick: () => window.open(WINDOWS_APP_DOWNLOAD_URL, "_blank"),
-    },
-    {
-      key: "android",
-      glyph: (c) => <AndroidGlyph className={c} />,
-      title: "Android & TV",
-      tagline: "one APK for phones, tablets, and the big screen.",
-      bullets: [
-        "works on Android TV and Google TV",
-        "supports HDR, better sources, and more",
-        "new builds published regularly",
-      ],
-      cta: "view releases",
-      onClick: () => window.open(ANDROID_RELEASES_URL, "_blank"),
-    },
-    {
-      key: "ios",
-      glyph: (c) => <AppleGlyph className={c} />,
-      title: "iOS",
-      tagline: "in the works, the same experience, on your Apple devices.",
-      bullets: [
-        "currently in development",
-        "check back here for announcements",
-        "no sign-up needed, just watch this page",
-      ],
-      cta: "",
-      disabled: true,
-      disabledLabel: "coming soon",
-    },
-  ];
+  const windowsPanel: AppPanel = {
+    key: "windows",
+    glyph: (c) => <WindowsGlyph className={c} />,
+    title: "Windows",
+    tagline: "the native desktop app, built for comfort.",
+    bullets: [
+      "native player, better sources, extra features",
+      "auto-updates built right in",
+      "system tray and close-to-tray",
+    ],
+    cta: "download for Windows",
+    onClick: () => window.open(WINDOWS_APP_DOWNLOAD_URL, "_blank"),
+  };
 
   return (
     <SubPageLayout>
@@ -167,35 +110,19 @@ export function AppsPage() {
           <h1 className="mx-auto max-w-2xl text-4xl font-black leading-[1.1] text-white sm:text-5xl">
             kstream, on{" "}
             <span className="bg-gradient-to-r from-[#aaafff] via-[#c084fc] to-[#8288fe] bg-clip-text text-transparent">
-              every screen
-            </span>{" "}
-            you own.
+              your desktop
+            </span>
+            .
           </h1>
 
           <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-white/50">
-            one home for movies and shows, wherever you're watching from.
-            pick your platform below.
+            install the Windows app for native scraping, auto-updates, and a
+            tray-friendly experience.
           </p>
         </div>
 
-        <div className="relative mt-16 grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-0">
-          <div className="md:pr-6">
-            <Panel {...panels[0]} />
-          </div>
-
-          <div className="relative md:px-6">
-            <div className="absolute inset-y-6 left-0 hidden w-px md:block">
-              <div className="h-full w-full bg-gradient-to-b from-transparent via-white/[0.12] to-transparent" />
-            </div>
-            <Panel {...panels[1]} />
-          </div>
-
-          <div className="relative md:pl-6">
-            <div className="absolute inset-y-6 left-0 hidden w-px md:block">
-              <div className="h-full w-full bg-gradient-to-b from-transparent via-white/[0.12] to-transparent" />
-            </div>
-            <Panel {...panels[2]} />
-          </div>
+        <div className="relative mx-auto mt-16 max-w-md">
+          <Panel {...windowsPanel} />
         </div>
       </div>
     </SubPageLayout>
