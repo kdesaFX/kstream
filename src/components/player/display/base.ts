@@ -405,50 +405,36 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     videoElement.addEventListener("pause", () => emit("pause", undefined));
     videoElement.addEventListener("canplay", () => {
       reportQualityFromVideoElement();
-      // Check if video has enough buffered data to play smoothly (at least 5 seconds ahead)
-      const hasEnoughBuffer = (() => {
-        if (!videoElement) return false;
-        const currentTime = videoElement.currentTime ?? 0;
-        const buffered = videoElement.buffered;
-        if (buffered.length === 0) return false;
+      // Media is ready enough to start. Clearing here avoids a stuck center spinner
+      // when the browser blocks autoplay (paused + ready, but still "loading").
+      // `waiting` will re-emit loading=true if playback stalls for more data.
+      emit("loading", false);
 
-        // Find the buffered range that contains current time
-        for (let i = 0; i < buffered.length; i += 1) {
-          if (
-            currentTime >= buffered.start(i) &&
-            currentTime <= buffered.end(i)
-          ) {
-            const bufferedAhead = buffered.end(i) - currentTime;
-            return bufferedAhead >= 5; // At least 5 seconds buffered ahead
-          }
-        }
-        return false;
-      })();
-
-      // Only set loading to false if we have enough buffer or if we're not at the start
-      if (hasEnoughBuffer || (videoElement?.currentTime ?? 0) > 0) {
-        emit("loading", false);
-      }
-
-      // Attempt autoplay if this was an autoplay transition (startAt = 0)
-      if (shouldAutoplayAfterLoad && startAt === 0 && videoElement) {
-        shouldAutoplayAfterLoad = false; // Reset the flag
-        // Try to play - this will work on most platforms, but iOS may block it
+      if (shouldAutoplayAfterLoad && videoElement) {
+        // Try to play — browsers may block this without a user gesture
         const playPromise = videoElement.play();
         if (playPromise !== undefined) {
           playPromise
             .then(() => {
-              // Autoplay succeeded
+              shouldAutoplayAfterLoad = false;
             })
-            .catch((_error) => {
-              // Play was blocked (likely iOS), emit that we're not playing
-              // The AutoPlayStart component will show a play button
+            .catch(() => {
+              // Keep shouldAutoplayAfterLoad so iOS fullscreen/PiP can retry
               emit("pause", undefined);
+              emit("loading", false);
             });
+        } else {
+          shouldAutoplayAfterLoad = false;
         }
       }
     });
-    videoElement.addEventListener("waiting", () => emit("loading", true));
+    videoElement.addEventListener("waiting", () => {
+      // Don't treat pre-play buffering as a stuck loading state — that hid the
+      // play button when autoplay was blocked by the browser.
+      if (videoElement && !videoElement.paused) {
+        emit("loading", true);
+      }
+    });
     videoElement.addEventListener("volumechange", () =>
       emit(
         "volumechange",
@@ -760,8 +746,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       source = ops.source;
       emit("loading", true);
       startAt = ops.startAt;
-      // Set autoplay flag if starting from beginning (indicates autoplay transition)
-      shouldAutoplayAfterLoad = ops.startAt === 0;
+      // Autoplay after the stream is ready (resume + fresh starts), when enabled
+      shouldAutoplayAfterLoad =
+        usePreferencesStore.getState().enableAutoplay !== false;
       setSource();
     },
     changeQuality(newAutomaticQuality, newPreferredQuality) {

@@ -60,7 +60,7 @@ function SettingsOverlay({ id }: { id: string }) {
             <QualityView id={id} />
           </Menu.Card>
         </OverlayPage>
-        <OverlayPage id={id} path="/audio" width={343} height={496}>
+        <OverlayPage id={id} path="/audio" width={343} height={280}>
           <Menu.Card>
             <AudioView id={id} />
           </Menu.Card>
