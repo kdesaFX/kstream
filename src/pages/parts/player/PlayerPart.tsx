@@ -141,14 +141,14 @@ export function PlayerPart(props: PlayerPartProps) {
       </div>
 
       <Player.TopControls show={showTargets}>
-        <div className="grid grid-cols-[1fr,auto] xl:grid-cols-3 items-center">
-          <div className="flex space-x-3 items-center">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3">
+          <div className="flex items-center gap-x-3 min-w-0">
             <Player.BackLink url={props.backUrl} />
-            <span className="text mx-3 text-type-secondary">/</span>
+            <span className="text-type-secondary shrink-0">/</span>
             <Player.Title />
 
             {isMobile && meta?.type === "show" && (
-              <span className="text-type-secondary text-sm whitespace-nowrap flex-shrink-0">
+              <span className="text-type-secondary text-sm whitespace-nowrap shrink-0">
                 {t("media.episodeDisplay", {
                   season: meta?.season?.number,
                   episode: meta?.episode?.number,
@@ -160,13 +160,13 @@ export function PlayerPart(props: PlayerPartProps) {
 
             <Player.BookmarkButton />
           </div>
-          <div className="text-center hidden xl:flex justify-center items-center">
+          <div className="text-center hidden xl:flex justify-center items-center shrink-0">
             <Player.EpisodeTitle />
           </div>
-          <div className="hidden lg:flex items-center justify-end">
+          <div className="hidden lg:flex items-center justify-end shrink-0">
             <BrandPill />
           </div>
-          <div className="flex lg:hidden items-center justify-end">
+          <div className="flex lg:hidden items-center justify-end shrink-0">
             {status === playerStatus.PLAYING ? (
               <>
                 <Player.Airplay />
