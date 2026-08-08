@@ -175,11 +175,32 @@ export function getMediaKey(meta: PlayerMeta | null): string | null {
   return `${meta.type}-${meta.tmdbId}`;
 }
 
+/**
+ * Title used for provider search.
+ * Prefer the localized/English TMDB name when the original is a different
+ * script (e.g. anime ホリミヤ vs "Horimiya") — English scrapers otherwise
+ * miss the match or latch onto spinoffs.
+ */
+export function pickScrapeTitle(meta: {
+  title: string;
+  originalTitle?: string;
+}): string {
+  const display = meta.title?.trim() || "";
+  const original = meta.originalTitle?.trim() || "";
+  if (!original) return display;
+  if (!display) return original;
+
+  const hasLatin = (s: string) => /[a-z]/i.test(s);
+  if (hasLatin(display) && !hasLatin(original)) return display;
+
+  return original || display;
+}
+
 export function metaToScrapeMedia(meta: PlayerMeta): ScrapeMedia {
   if (meta.type === "show") {
     if (!meta.episode || !meta.season) throw new Error("missing show data");
     return {
-      title: meta.originalTitle || meta.title,
+      title: pickScrapeTitle(meta),
       releaseYear: meta.releaseYear,
       tmdbId: meta.tmdbId,
       type: "show",
@@ -190,7 +211,7 @@ export function metaToScrapeMedia(meta: PlayerMeta): ScrapeMedia {
   }
 
   return {
-    title: meta.originalTitle || meta.title,
+    title: pickScrapeTitle(meta),
     releaseYear: meta.releaseYear,
     tmdbId: meta.tmdbId,
     type: "movie",
