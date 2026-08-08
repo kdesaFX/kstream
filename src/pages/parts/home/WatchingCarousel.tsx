@@ -131,7 +131,7 @@ export function WatchingCarousel({
       <SectionHeading
         title={t("home.continueWatching.sectionTitle")}
         icon={Icons.CLOCK}
-        className="ml-4 lg:ml-12 mt-2 -mb-5 lg:pl-[48px]"
+        className="px-4 mt-2 -mb-5"
       >
         <div className="mr-4 lg:mr-[88px] flex items-center gap-2">
           <EditButton
@@ -142,7 +142,7 @@ export function WatchingCarousel({
         </div>
       </SectionHeading>
       {editing && (
-        <div className="mt-4 -mb-4 ml-4 lg:ml-12 lg:pl-[48px]">
+        <div className="mt-4 -mb-4 px-4">
           <Dropdown
             selectedItem={selectedSortOption}
             setSelectedItem={(item) => {

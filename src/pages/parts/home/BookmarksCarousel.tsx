@@ -359,7 +359,7 @@ export function BookmarksCarousel({
                     <UserIcon icon={icon} className="w-full h-full" />
                   </span>
                 }
-                className="ml-4 lg:ml-12 mt-2 -mb-5 lg:pl-[48px]"
+                className="px-4 mt-2 -mb-5"
               >
                 <div className="mr-4 lg:mr-[88px] flex items-center gap-2">
                   {editing && section.group && (
@@ -381,7 +381,7 @@ export function BookmarksCarousel({
                 </div>
               </SectionHeading>
               {editing && (
-                <div className="mt-4 -mb-4 ml-4 lg:ml-12 lg:pl-[48px]">
+                <div className="mt-4 -mb-4 px-4">
                   <Dropdown
                     selectedItem={selectedSortOption}
                     setSelectedItem={(item) => {
@@ -491,7 +491,7 @@ export function BookmarksCarousel({
             <SectionHeading
               title={t("home.bookmarks.sectionTitle")}
               icon={Icons.BOOKMARK}
-              className="ml-4 lg:ml-12 mt-2 -mb-5 lg:pl-[48px]"
+              className="px-4 mt-2 -mb-5"
             >
               <div className="mr-4 lg:mr-[88px] flex items-center gap-2">
                 <EditButton
@@ -502,7 +502,7 @@ export function BookmarksCarousel({
               </div>
             </SectionHeading>
             {editing && (
-              <div className="mt-4 -mb-4 ml-4 lg:ml-12 lg:pl-[48px]">
+              <div className="mt-4 -mb-4 px-4">
                 <Dropdown
                   selectedItem={selectedSortOption}
                   setSelectedItem={(item) => setSortBy(item.id as SortOption)}
