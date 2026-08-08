@@ -14,7 +14,7 @@ export function UpdateNotice() {
   const bannerHeight = useBannerSize();
 
   // While watching, drop in from the top so it stays clear of player chrome.
-  // Everywhere else, slide out under the top-right menu.
+  // Everywhere else (home, etc.), slide in from the left under the brand/bell row.
   const isWatching = location.pathname.startsWith("/media/");
 
   useEffect(() => {
@@ -42,14 +42,14 @@ export function UpdateNotice() {
 
   const shellClass = isWatching
     ? "pointer-events-none fixed inset-x-0 z-[200] flex justify-center px-4"
-    : "pointer-events-none fixed right-0 z-[200] flex justify-end pr-[max(0.75rem,env(safe-area-inset-right))] pl-4";
+    : "pointer-events-none fixed left-0 z-[200] flex justify-start pl-[max(0.75rem,env(safe-area-inset-left))] ssm:pl-[max(1.75rem,env(safe-area-inset-left))] pr-4";
 
   const shellStyle = isWatching
     ? {
         top: `max(1.25rem, calc(${bannerHeight}px + env(safe-area-inset-top)))`,
       }
     : {
-        // Sit just under the header menu pill (py-5 + control height).
+        // Same band as the header brand/bell row (py-5 + control height).
         top: `calc(${bannerHeight}px + env(safe-area-inset-top) + 4.75rem)`,
       };
 
@@ -59,7 +59,7 @@ export function UpdateNotice() {
       : "-translate-y-4 opacity-0"
     : entered
       ? "translate-x-0 opacity-100"
-      : "translate-x-full opacity-0";
+      : "-translate-x-full opacity-0";
 
   return (
     <div className={shellClass} style={shellStyle}>
