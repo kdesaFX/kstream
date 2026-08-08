@@ -18,7 +18,7 @@ const SEGMENT_COLORS: Record<
   "intro" | "recap" | "credits" | "preview",
   string
 > = {
-  intro: "rgba(99, 102, 241, 0.75)", // indigo
+  intro: "rgba(18, 196, 171, 0.85)", // aqua — matches brand accent
   recap: "rgba(245, 158, 11, 0.75)", // amber
   credits: "rgba(34, 197, 94, 0.75)", // green
   preview: "rgba(234, 179, 8, 0.75)", // yellow
@@ -183,19 +183,8 @@ export function ProgressBar() {
               dragging ? "!h-1.5" : "",
             ].join(" ")}
           >
-            {/* Skip segment markers */}
-            {segmentRanges.map((range) => (
-              <div
-                key={range.key}
-                className="absolute top-0 bottom-0 rounded-full pointer-events-none"
-                style={{
-                  left: `${range.left}%`,
-                  width: `${range.width}%`,
-                  backgroundColor: range.color,
-                }}
-              />
-            ))}
-            {/* Pre-loaded content bar */}
+            {/* Pre-loaded content bar — under skip markers so buffering
+                doesn't recolor intro/recap/credits segments. */}
             <div
               className="absolute top-0 left-0 h-full rounded-full bg-progress-preloaded bg-opacity-50 flex justify-end items-center"
               style={{
@@ -203,9 +192,22 @@ export function ProgressBar() {
               }}
             />
 
+            {/* Skip segment markers (above preload, below playhead) */}
+            {segmentRanges.map((range) => (
+              <div
+                key={range.key}
+                className="absolute top-0 bottom-0 rounded-full pointer-events-none z-[1]"
+                style={{
+                  left: `${range.left}%`,
+                  width: `${range.width}%`,
+                  backgroundColor: range.color,
+                }}
+              />
+            ))}
+
             {/* Actual progress bar */}
             <div
-              className="absolute top-0 dir-neutral:left-0 h-full rounded-full bg-progress-filled flex justify-end items-center"
+              className="absolute top-0 dir-neutral:left-0 h-full rounded-full bg-progress-filled flex justify-end items-center z-[2]"
               style={{
                 width: `${
                   Math.max(
