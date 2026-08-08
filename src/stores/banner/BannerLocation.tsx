@@ -18,7 +18,7 @@ export function Banner(props: {
   const hideBanner = useBannerStore((s) => s.hideBanner);
   const styles = {
     error: "bg-[#C93957] text-white",
-    info: "bg-[#126FD3] text-white",
+    info: "bg-buttons-purple text-white",
   };
   const icons = {
     error: Icons.CIRCLE_EXCLAMATION,

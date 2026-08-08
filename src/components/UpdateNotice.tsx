@@ -66,16 +66,16 @@ export function UpdateNotice() {
       <div
         className={[
           "pointer-events-auto group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-white/10",
-          "bg-[#12141c]/85 px-4 py-3 pr-2 shadow-soft-lg backdrop-blur-xl ring-1 ring-white/5",
+          "bg-background-main/90 px-4 py-3 pr-2 shadow-soft-lg backdrop-blur-xl ring-1 ring-white/5",
           "transition-[transform,opacity] duration-300 ease-out-quint",
           "max-w-[min(30rem,calc(100vw-2rem))]",
           cardMotion,
         ].join(" ")}
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_100%_at_0%_0%,rgba(139,92,246,0.18),transparent_70%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-progress-filled/20 via-transparent to-transparent" />
 
-        <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] text-white shadow-soft-sm">
-          <span className="absolute inset-0 rounded-xl bg-[#8b5cf6]/40 animate-ping" />
+        <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-progress-filled to-buttons-purple text-white shadow-soft-sm">
+          <span className="absolute inset-0 rounded-xl bg-progress-filled/40 animate-ping" />
           <Icon icon={Icons.RELOAD} className="relative text-lg" />
         </div>
 
@@ -91,7 +91,7 @@ export function UpdateNotice() {
         <button
           type="button"
           onClick={refresh}
-          className="relative flex-shrink-0 rounded-lg bg-[#8b5cf6] px-3 py-1.5 text-xs font-bold text-white transition-[background-color,transform] duration-150 ease-spring hover:-translate-y-0.5 hover:bg-[#7c3aed] active:translate-y-0"
+          className="relative flex-shrink-0 rounded-lg bg-buttons-purple px-3 py-1.5 text-xs font-bold text-white transition-[background-color,transform] duration-150 ease-spring hover:-translate-y-0.5 hover:bg-buttons-purpleHover active:translate-y-0"
         >
           {t("updateNotice.refresh")}
         </button>

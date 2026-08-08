@@ -22,7 +22,7 @@ function optionsFor(): DownloadOption[] {
       subtitle: "Native desktop app, with built-in auto-updates.",
       cta: "Download",
       href: WINDOWS_APP_DOWNLOAD_URL,
-      iconClass: "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30",
+      iconClass: "bg-teal-500/20 text-teal-300 border border-teal-500/30",
     },
     {
       key: "android-tv",
