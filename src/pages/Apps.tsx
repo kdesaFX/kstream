@@ -6,7 +6,8 @@ import { SubPageLayout } from "./layouts/SubPageLayout";
 
 const ANDROID_RELEASES_URL =
   "https://github.com/alturyxx-gif/ZStream-Android/releases";
-const WINDOWS_APP_DOWNLOAD_URL = "https://apps.fontaine.lol/zstream-windows.exe";
+const WINDOWS_APP_DOWNLOAD_URL =
+  "https://github.com/kdesaFX/kstream-desktop/releases/latest/download/kstream-Setup.exe";
 
 function WindowsGlyph(props: { className?: string }) {
   return (

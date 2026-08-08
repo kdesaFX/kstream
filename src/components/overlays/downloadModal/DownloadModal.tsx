@@ -1,7 +1,8 @@
 import { Icon, Icons } from "@/components/Icon";
 import { FancyModal } from "@/components/overlays/Modal";
 
-const WINDOWS_APP_DOWNLOAD_URL = "https://apps.fontaine.lol/zstream-windows.exe";
+const WINDOWS_APP_DOWNLOAD_URL =
+  "https://github.com/kdesaFX/kstream-desktop/releases/latest/download/kstream-Setup.exe";
 
 interface DownloadOption {
   key: string;

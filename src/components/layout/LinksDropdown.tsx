@@ -264,24 +264,16 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
             {t("navigation.menu.settings")}
           </DropdownLink>
           {isDesktopApp && (
-            <>
-              <DropdownLink
-                onClick={() =>
-                  window.dispatchEvent(
-                    new CustomEvent("pstream-desktop-settings"),
-                  )
-                }
-                icon={Icons.GEAR}
-              >
-                {t("navigation.menu.desktop")}
-              </DropdownLink>
-              <DropdownLink
-                onClick={() => window.desktopApi?.openOffline()}
-                icon={Icons.DOWNLOAD}
-              >
-                Offline Downloads
-              </DropdownLink>
-            </>
+            <DropdownLink
+              onClick={() =>
+                window.dispatchEvent(
+                  new CustomEvent("pstream-desktop-settings"),
+                )
+              }
+              icon={Icons.GEAR}
+            >
+              {t("navigation.menu.desktop")}
+            </DropdownLink>
           )}
           <DropdownLink href="/watch-history" icon={Icons.CLOCK}>
             {t("home.watchHistory.sectionTitle")}

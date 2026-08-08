@@ -225,63 +225,6 @@ function StreamLinkView({ id }: { id: string }) {
 function DesktopDownloadView({ id }: { id: string }) {
   const router = useOverlayRouter(id);
   const { t } = useTranslation();
-  const downloadUrl = useDownloadLink();
-  const meta = usePlayerStore((s) => s.meta);
-  const selectedCaption = usePlayerStore((s) => s.caption?.selected);
-  const captionList = usePlayerStore((s) => s.captionList);
-  const duration = usePlayerStore((s) => s.progress.duration);
-  const source = usePlayerStore((s) => s.source);
-  const sourceType = usePlayerStore((s) => s.source?.type);
-
-  const startOfflineDownload = useCallback(async () => {
-    if (!downloadUrl) return;
-    const title = meta?.title ? meta.title : t("player.menus.downloads.title");
-    const poster = meta?.poster;
-    let subtitleText: string | undefined;
-
-    if (selectedCaption?.srtData) {
-      subtitleText = selectedCaption.srtData;
-    } else if (captionList.length > 0) {
-      const defaultCaption =
-        captionList.find((c) => c.language === "en") ?? captionList[0];
-      try {
-        subtitleText = await downloadCaption(defaultCaption);
-      } catch {
-        // Continue without subtitles if fetch fails
-      }
-    }
-
-    const headers = {
-      ...(source?.headers ?? {}),
-      ...(source?.preferredHeaders ?? {}),
-    };
-
-    window.desktopApi?.startDownload({
-      url: downloadUrl,
-      title,
-      poster,
-      subtitleText,
-      duration,
-      type: sourceType,
-      headers,
-    });
-
-    if (window.desktopApi?.openOffline) {
-      window.desktopApi.openOffline();
-    } else {
-      router.navigate("/");
-    }
-  }, [
-    downloadUrl,
-    meta,
-    selectedCaption,
-    captionList,
-    duration,
-    router,
-    source,
-    sourceType,
-    t,
-  ]);
 
   return (
     <>
@@ -290,11 +233,10 @@ function DesktopDownloadView({ id }: { id: string }) {
       </Menu.BackLink>
       <Menu.Section>
         <Menu.Paragraph marginClass="mb-6">
-          <Trans i18nKey="player.menus.downloads.desktopDisclaimer" />
+          Offline downloads are coming in a later desktop update. For now, use
+          the stream / HLS options from a browser build, or keep watching in the
+          app.
         </Menu.Paragraph>
-        <Button className="w-full" theme="purple" onClick={startOfflineDownload}>
-          {t("player.menus.downloads.offlineButton")}
-        </Button>
       </Menu.Section>
     </>
   );
