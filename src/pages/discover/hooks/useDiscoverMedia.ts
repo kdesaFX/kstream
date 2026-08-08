@@ -581,7 +581,7 @@ export function useDiscoverMedia({
               const seen = new Set(
                 data.results
                   .map((item) => item.id)
-                  .filter((id): id is number => id != null),
+                  .filter((mediaId): mediaId is number => mediaId != null),
               );
               const merged = [...data.results];
               for (const item of filterReleasedDiscoverMedia(
