@@ -8,15 +8,20 @@ import { detectUserRegion } from "@/utils/locale/userRegion";
 
 import { useDedupedMedia } from "./CarouselDedupeContext";
 
-/** Minimum posters for a "full" genre carousel after cross-row dedupe. */
+/** Minimum posters for a "full" carousel after cross-row dedupe. */
 export const CAROUSEL_DISPLAY_TARGET = 20;
 
-export type CarouselBackfillMode = "none" | "popular" | "recent";
+/** Start backfill once a row drops below this count. */
+const CAROUSEL_BACKFILL_TRIGGER = 16;
+
+const MAX_BACKFILL_ATTEMPTS = 5;
+
+export type CarouselBackfillMode = "popular" | "recent" | "trending";
 
 /**
- * Dedupes `rawMedia`, then — when a genre chip is active and the row is
- * still short — pulls more discover titles (skipping ones already claimed
- * by earlier rows) so the carousel fills without doubles.
+ * Dedupes `rawMedia`, then — when the row is still short — pulls more
+ * discover/trending titles (skipping ones already claimed by earlier rows)
+ * so the carousel fills without doubles.
  */
 export function useDedupedCarouselMedia(
   priority: number | undefined,
@@ -29,10 +34,9 @@ export function useDedupedCarouselMedia(
     /** Bump when the carousel's primary query identity changes. */
     resetKey?: string;
     /**
-     * none — never pad (trending).
-     * popular — genre popularity pool.
-     * recent — already-released theatrical in the last few years (for the
-     *          former "In Cinemas" row under a genre chip).
+     * popular — genre or general popularity pool.
+     * recent — already-released theatrical in the last few years.
+     * trending — TMDB trending/week (for Popular This Week rows).
      */
     backfillMode?: CarouselBackfillMode;
   },
@@ -66,10 +70,9 @@ export function useDedupedCarouselMedia(
   const media = useDedupedMedia(priority, pooled);
 
   useEffect(() => {
-    if (!enabled || isLoading || !genreId || priority === undefined) return;
-    if (backfillMode === "none") return;
-    if (media.length >= CAROUSEL_DISPLAY_TARGET) return;
-    if (attemptsRef.current >= 3) return;
+    if (!enabled || isLoading || priority === undefined) return;
+    if (media.length >= CAROUSEL_BACKFILL_TRIGGER) return;
+    if (attemptsRef.current >= MAX_BACKFILL_ATTEMPTS) return;
 
     const round = attemptsRef.current + 1;
     attemptsRef.current = round;
@@ -83,56 +86,91 @@ export function useDedupedCarouselMedia(
       const need = CAROUSEL_DISPLAY_TARGET - media.length;
       const today = new Date().toISOString().slice(0, 10);
       const from = new Date();
-      // Round 1: 2 years; round 2: 5 years — still released, not future junk.
+      // Round 1: 2 years; round 2+: 5 years — still released, not future junk.
       from.setMonth(from.getMonth() - (round === 1 ? 24 : 60));
 
-      const baseParams: Record<string, string | number | boolean> = {
-        language: formattedLanguage,
-        region: detectUserRegion(),
-        sort_by: "popularity.desc",
-        with_genres: genreId,
-        include_adult: false,
-        "vote_count.gte": 20,
-      };
-
-      if (backfillMode === "recent" && mediaType === "movie") {
-        baseParams.with_release_type = "2|3";
-      }
-      if (mediaType === "movie") {
-        baseParams["primary_release_date.gte"] = from.toISOString().slice(0, 10);
-        baseParams["primary_release_date.lte"] = today;
-      } else {
-        baseParams["first_air_date.gte"] = from.toISOString().slice(0, 10);
-        baseParams["first_air_date.lte"] = today;
-      }
-
       try {
-        const batches = await Promise.all(
-          pages.map((page) =>
-            get<{ results: DiscoverMedia[] }>(`/discover/${mediaType}`, {
-              ...baseParams,
-              page,
-            }),
-          ),
-        );
+        let candidates: DiscoverMedia[] = [];
 
-        if (cancelled) return;
+        if (backfillMode === "trending") {
+          const endpoint =
+            mediaType === "movie"
+              ? "/trending/movie/week"
+              : "/trending/tv/week";
+          const batches = await Promise.all(
+            pages.map((page) =>
+              get<{ results: DiscoverMedia[] }>(endpoint, {
+                language: formattedLanguage,
+                page,
+              }),
+            ),
+          );
+          const seen = new Set<number>();
+          for (const batch of batches) {
+            for (const item of batch.results ?? []) {
+              if (item?.id == null || seen.has(item.id)) continue;
+              if (!item.poster_path) continue;
+              const released = item.release_date || item.first_air_date || "";
+              if (released.length < 10 || released > today) continue;
+              seen.add(item.id);
+              candidates.push({
+                ...item,
+                type: mediaType === "movie" ? "movie" : "show",
+              });
+            }
+          }
+        } else {
+          const baseParams: Record<string, string | number | boolean> = {
+            language: formattedLanguage,
+            region: detectUserRegion(),
+            sort_by: "popularity.desc",
+            include_adult: false,
+            "vote_count.gte": genreId ? 20 : 50,
+          };
 
-        const seen = new Set<number>();
-        const candidates: DiscoverMedia[] = [];
-        for (const batch of batches) {
-          for (const item of batch.results ?? []) {
-            if (item?.id == null || seen.has(item.id)) continue;
-            if (!item.poster_path) continue;
-            const released = item.release_date || item.first_air_date || "";
-            if (released.length < 10 || released > today) continue;
-            seen.add(item.id);
-            candidates.push({
-              ...item,
-              type: mediaType === "movie" ? "movie" : "show",
-            });
+          if (genreId) {
+            baseParams.with_genres = genreId;
+          }
+
+          if (backfillMode === "recent" && mediaType === "movie") {
+            baseParams.with_release_type = "2|3";
+          }
+          if (mediaType === "movie") {
+            baseParams["primary_release_date.gte"] = from
+              .toISOString()
+              .slice(0, 10);
+            baseParams["primary_release_date.lte"] = today;
+          } else {
+            baseParams["first_air_date.gte"] = from.toISOString().slice(0, 10);
+            baseParams["first_air_date.lte"] = today;
+          }
+
+          const batches = await Promise.all(
+            pages.map((page) =>
+              get<{ results: DiscoverMedia[] }>(`/discover/${mediaType}`, {
+                ...baseParams,
+                page,
+              }),
+            ),
+          );
+
+          const seen = new Set<number>();
+          for (const batch of batches) {
+            for (const item of batch.results ?? []) {
+              if (item?.id == null || seen.has(item.id)) continue;
+              if (!item.poster_path) continue;
+              const released = item.release_date || item.first_air_date || "";
+              if (released.length < 10 || released > today) continue;
+              seen.add(item.id);
+              candidates.push({
+                ...item,
+                type: mediaType === "movie" ? "movie" : "show",
+              });
+            }
           }
         }
+
+        if (cancelled) return;
 
         const slice = candidates.slice(0, need + 50);
         setBackfill((prev) => {
@@ -147,7 +185,7 @@ export function useDedupedCarouselMedia(
           return merged;
         });
       } catch (err) {
-        console.error("Genre carousel backfill failed:", err);
+        console.error("Carousel backfill failed:", err);
       }
     })();
 
