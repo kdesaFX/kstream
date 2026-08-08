@@ -232,13 +232,12 @@ export function MediaCarousel({
       genreId,
     });
 
-  // Drop titles already claimed by an earlier row; under a genre chip,
-  // backfill unique titles so every row can stay full without doubles.
+  // Drop titles already claimed by an earlier row, then backfill unique
+  // titles so every row stays full without doubles (with or without genre).
   const backfillMode = (() => {
-    if (!genreId) return "none" as const;
     const type = actualContentType || content.type;
     if (type === "nowPlaying" || type === "latest") return "recent" as const;
-    // popularThisWeek / onTheAir / everything else under genre: popularity pool
+    if (type === "popularThisWeek") return "trending" as const;
     return "popular" as const;
   })();
 

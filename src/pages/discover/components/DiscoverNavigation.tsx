@@ -1,5 +1,5 @@
 import classNames from "classnames";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type Ref } from "react";
 import { useTranslation } from "react-i18next";
 import { useWindowSize } from "react-use";
 
@@ -40,6 +40,7 @@ export function DiscoverNavigation({
   const selectedGenreId = useDiscoverStore((s) => s.selectedGenreId);
   const setSelectedGenreId = useDiscoverStore((s) => s.setSelectedGenreId);
   const [genresExpanded, setGenresExpanded] = useState(false);
+  const selectedChipRef = useRef<HTMLButtonElement>(null);
 
   const showGenreBar =
     selectedCategory === "movies" || selectedCategory === "tvshows";
@@ -52,9 +53,14 @@ export function DiscoverNavigation({
   const primaryGenres = genres.slice(0, visibleCount);
   const overflowGenres = genres.slice(visibleCount);
 
+  const selectedGenre = genres.find(
+    (genre) => genre.id.toString() === selectedGenreId,
+  );
+  const inGenreView = Boolean(selectedGenreId && selectedGenre);
+
   // If a selected genre would be hidden while collapsed, expand so it stays visible.
   useEffect(() => {
-    if (!selectedGenreId || !hasOverflow || genresExpanded) return;
+    if (!selectedGenreId || !hasOverflow || genresExpanded || inGenreView) return;
     const index = genres.findIndex((g) => g.id.toString() === selectedGenreId);
     if (index >= visibleCount) setGenresExpanded(true);
   }, [
@@ -63,6 +69,7 @@ export function DiscoverNavigation({
     visibleCount,
     hasOverflow,
     genresExpanded,
+    inGenreView,
   ]);
 
   // Collapse when switching Movies / TV so the bar resets.
@@ -70,15 +77,29 @@ export function DiscoverNavigation({
     setGenresExpanded(false);
   }, [selectedCategory, mediaType]);
 
+  // Keep the active genre chip in view on the horizontal bar.
+  useEffect(() => {
+    if (!inGenreView) return;
+    selectedChipRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [inGenreView, selectedGenreId]);
+
   const allSelected = selectedGenreId === null;
 
-  const renderGenreChip = (genre: { id: number; name: string }) => {
+  const renderGenreChip = (
+    genre: { id: number; name: string },
+    options?: { chipRef?: Ref<HTMLButtonElement> },
+  ) => {
     const id = genre.id.toString();
     const active = selectedGenreId === id;
     return (
       <button
         type="button"
         key={id}
+        ref={options?.chipRef}
         onClick={() => setSelectedGenreId(id)}
         className={classNames(chipBase, active ? chipActive : chipIdle)}
       >
@@ -93,6 +114,45 @@ export function DiscoverNavigation({
       </button>
     );
   };
+
+  if (inGenreView && selectedGenre) {
+    const genreTitle =
+      mediaType === "movie"
+        ? t("discover.carousel.title.genreMovies", {
+            genre: selectedGenre.name,
+          })
+        : t("discover.carousel.title.genreShows", {
+            genre: selectedGenre.name,
+          });
+
+    return (
+      <div className="pb-4 w-full max-w-screen-xl mx-auto px-4">
+        <button
+          type="button"
+          onClick={() => setSelectedGenreId(null)}
+          className="flex items-center text-white hover:text-gray-300 transition-colors mb-4"
+        >
+          <Icon icon={Icons.ARROW_LEFT} className="text-xl" />
+          <span className="ml-2">{t("discover.page.back")}</span>
+        </button>
+
+        <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">
+          {genreTitle}
+        </h1>
+
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+          {genres.map((genre) =>
+            renderGenreChip(genre, {
+              chipRef:
+                genre.id.toString() === selectedGenreId
+                  ? selectedChipRef
+                  : undefined,
+            }),
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-4 w-full max-w-screen-xl mx-auto">
@@ -135,7 +195,7 @@ export function DiscoverNavigation({
               />
               {t("discover.genres.all")}
             </button>
-            {primaryGenres.map(renderGenreChip)}
+            {primaryGenres.map((genre) => renderGenreChip(genre))}
             {hasOverflow && (
               <button
                 type="button"
