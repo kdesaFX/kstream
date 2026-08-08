@@ -5,6 +5,10 @@ import { downloadCaption } from "@/backend/helpers/subs";
 import { TTMLCue } from "@/components/player/utils/ttml";
 import { MakeSlice } from "@/stores/player/slices/types";
 import {
+  AudioStreamOption,
+  mergeAudioStreamOptions,
+} from "@/stores/player/utils/audioStreams";
+import {
   SourceQuality,
   SourceSliceSource,
   selectQuality,
@@ -102,8 +106,12 @@ export interface SourceSlice {
   embedId: string | null;
   qualities: SourceQuality[];
   audioTracks: AudioTrack[];
+  /** Cross-source / multi-stream audio languages available for this title. */
+  audioStreamOptions: AudioStreamOption[];
   currentQuality: SourceQuality | null;
   currentAudioTrack: AudioTrack | null;
+  /** Currently selected cross-stream audio option id, if any. */
+  currentAudioStreamId: string | null;
   captionList: CaptionListItem[];
   isLoadingExternalSubtitles: boolean;
   caption: {
@@ -140,6 +148,9 @@ export interface SourceSlice {
   clearFailedSources(mediaKey?: string): void;
   clearFailedEmbeds(mediaKey?: string): void;
   setResumeFromSourceId(sourceId: string | null): void;
+  registerAudioStreamOptions(options: AudioStreamOption[]): void;
+  clearAudioStreamOptions(): void;
+  switchAudioStream(optionId: string): void;
   reset(): void;
 }
 
@@ -193,10 +204,12 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   embedId: null,
   qualities: [],
   audioTracks: [],
+  audioStreamOptions: [],
   captionList: [],
   isLoadingExternalSubtitles: false,
   currentQuality: null,
   currentAudioTrack: null,
+  currentAudioStreamId: null,
   status: playerStatus.IDLE,
   meta: null,
   failedSourcesPerMedia: {},
@@ -239,6 +252,12 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       // Clear failed sources/embeds for the new media when media changes
       // Since we're doing per-episode tracking, we clear whenever media key changes
       // Only clear if we're actually switching to different media (not just setting meta for the first time)
+      // Fresh audio options whenever the watched media/episode changes
+      if (!oldMediaKey || (newMediaKey && oldMediaKey !== newMediaKey)) {
+        s.audioStreamOptions = [];
+        s.currentAudioStreamId = null;
+      }
+
       if (newMediaKey && oldMediaKey && oldMediaKey !== newMediaKey) {
         // Clear failed sources/embeds for the new media (if any exist from previous session)
         // This ensures a fresh start for each media/episode
@@ -281,6 +300,12 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.status = playerStatus.PLAYING;
       s.audioTracks = [];
       s.currentAudioTrack = null;
+      if (stream.audioLanguage) {
+        const match = s.audioStreamOptions.find(
+          (o) => o.language === stream.audioLanguage,
+        );
+        s.currentAudioStreamId = match?.id ?? null;
+      }
     });
     const store = get();
     store.redisplaySource(startAt);
@@ -404,6 +429,41 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.resumeFromSourceId = sourceId;
     });
   },
+  registerAudioStreamOptions(options) {
+    if (!options.length) return;
+    set((s) => {
+      s.audioStreamOptions = mergeAudioStreamOptions(
+        s.audioStreamOptions,
+        options,
+      );
+      if (!s.currentAudioStreamId && s.source?.audioLanguage) {
+        const match = s.audioStreamOptions.find(
+          (o) => o.language === s.source?.audioLanguage,
+        );
+        s.currentAudioStreamId = match?.id ?? null;
+      }
+    });
+  },
+  clearAudioStreamOptions() {
+    set((s) => {
+      s.audioStreamOptions = [];
+      s.currentAudioStreamId = null;
+    });
+  },
+  switchAudioStream(optionId) {
+    const store = get();
+    const option = store.audioStreamOptions.find((o) => o.id === optionId);
+    if (!option) return;
+    if (option.id === store.currentAudioStreamId) return;
+
+    const startAt = store.progress.time;
+    set((s) => {
+      s.currentAudioStreamId = option.id;
+      s.sourceId = option.sourceId;
+      s.embedId = option.embedId ?? null;
+    });
+    store.setSource(option.source, option.captions, startAt);
+  },
   reset() {
     get().clearSkipSegments?.();
     set((s) => {
@@ -412,10 +472,12 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.embedId = null;
       s.qualities = [];
       s.audioTracks = [];
+      s.audioStreamOptions = [];
       s.captionList = [];
       s.isLoadingExternalSubtitles = false;
       s.currentQuality = null;
       s.currentAudioTrack = null;
+      s.currentAudioStreamId = null;
       s.status = playerStatus.IDLE;
       s.meta = null;
       s.failedSourcesPerMedia = {};

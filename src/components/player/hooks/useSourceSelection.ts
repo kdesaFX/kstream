@@ -17,6 +17,7 @@ import { convertRunoutputToSource } from "@/components/player/utils/convertRunou
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { metaToScrapeMedia } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
+import { streamsToAudioOptions } from "@/stores/player/utils/audioStreams";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
 
@@ -84,6 +85,11 @@ export function useEmbedScraping(
     setSourceId(sourceId);
     setEmbedId(embedId);
     setCaption(null);
+    usePlayerStore
+      .getState()
+      .registerAudioStreamOptions(
+        streamsToAudioOptions(result.stream, sourceId, embedId),
+      );
     setSource(
       convertRunoutputToSource({ stream: result.stream[0] }),
       convertProviderCaption(result.stream[0].captions),
@@ -157,6 +163,11 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
       if (isExtensionActiveCached()) await prepareStream(result.stream[0]);
       setEmbedId(null);
       setCaption(null);
+      usePlayerStore
+        .getState()
+        .registerAudioStreamOptions(
+          streamsToAudioOptions(result.stream, sourceId, null),
+        );
       setSource(
         convertRunoutputToSource({ stream: result.stream[0] }),
         convertProviderCaption(result.stream[0].captions),
@@ -206,6 +217,15 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
       setEmbedId(result.embeds[0].embedId);
       setCaption(null);
       if (isExtensionActiveCached()) await prepareStream(embedResult.stream[0]);
+      usePlayerStore
+        .getState()
+        .registerAudioStreamOptions(
+          streamsToAudioOptions(
+            embedResult.stream,
+            sourceId,
+            result.embeds[0].embedId,
+          ),
+        );
       setSource(
         convertRunoutputToSource({ stream: embedResult.stream[0] }),
         convertProviderCaption(embedResult.stream[0].captions),

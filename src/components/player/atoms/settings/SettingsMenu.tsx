@@ -21,6 +21,9 @@ export function SettingsMenu({ id }: { id: string }) {
   const router = useOverlayRouter(id);
   const currentQuality = usePlayerStore((s) => s.currentQuality);
   const currentAudioTrack = usePlayerStore((s) => s.currentAudioTrack);
+  const audioTracks = usePlayerStore((s) => s.audioTracks);
+  const audioStreamOptions = usePlayerStore((s) => s.audioStreamOptions);
+  const currentAudioStreamId = usePlayerStore((s) => s.currentAudioStreamId);
   const status = usePlayerStore((s) => s.status);
   const source = usePlayerStore((s) => s.source);
   const selectedCaptionLanguage = usePlayerStore(
@@ -55,11 +58,29 @@ export function SettingsMenu({ id }: { id: string }) {
       t("player.menus.subtitles.unknownLanguage"))
     : undefined;
 
-  const selectedAudioLanguagePretty = currentAudioTrack
-    ? (getPrettyLanguageNameFromLocale(currentAudioTrack.language) ??
-      currentAudioTrack.label ??
-      t("player.menus.subtitles.unknownLanguage"))
-    : undefined;
+  const selectedAudioLanguagePretty = (() => {
+    const streamOpt = audioStreamOptions.find(
+      (o) => o.id === currentAudioStreamId,
+    );
+    if (streamOpt) {
+      return (
+        streamOpt.label ||
+        getPrettyLanguageNameFromLocale(streamOpt.language) ||
+        t("player.menus.subtitles.unknownLanguage")
+      );
+    }
+    if (currentAudioTrack) {
+      return (
+        getPrettyLanguageNameFromLocale(currentAudioTrack.language) ??
+        currentAudioTrack.label ??
+        t("player.menus.subtitles.unknownLanguage")
+      );
+    }
+    return undefined;
+  })();
+
+  const hasAudioChoices =
+    audioStreamOptions.length > 1 || audioTracks.length > 1;
 
   const downloadable = source?.type === "file" || source?.type === "hls";
 
@@ -158,7 +179,7 @@ export function SettingsMenu({ id }: { id: string }) {
               <Spinner className="text-sm" />
             </span>
           </Menu.ChevronLink>
-        ) : currentAudioTrack ? (
+        ) : hasAudioChoices ? (
           <Menu.ChevronLink
             box
             onClick={() => router.navigate("/audio")}
@@ -166,7 +187,8 @@ export function SettingsMenu({ id }: { id: string }) {
           >
             {t("player.menus.settings.audioItem")}
             <span className="text-type-secondary text-sm">
-              {selectedAudioLanguagePretty}
+              {selectedAudioLanguagePretty ??
+                t("player.menus.audio.default")}
             </span>
           </Menu.ChevronLink>
         ) : (
@@ -177,7 +199,8 @@ export function SettingsMenu({ id }: { id: string }) {
           >
             {t("player.menus.settings.audioItem")}
             <span className="text-type-secondary text-sm">
-              {t("player.menus.audio.default")}
+              {selectedAudioLanguagePretty ??
+                t("player.menus.audio.default")}
             </span>
           </Menu.ChevronLink>
         )}

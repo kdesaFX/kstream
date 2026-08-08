@@ -28,6 +28,7 @@ import { SourceSelectPart } from "@/pages/parts/player/SourceSelectPart";
 import { useLastNonPlayerLink } from "@/stores/history";
 import { PlayerMeta, playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
+import { streamsToAudioOptions } from "@/stores/player/utils/audioStreams";
 import { usePreferencesStore } from "@/stores/preferences";
 import { getProgressPercentage, useProgressStore } from "@/stores/progress";
 import { needsOnboarding } from "@/utils/hosting/onboarding";
@@ -217,6 +218,14 @@ export function RealPlayerView() {
 
       let startAt: number | undefined;
       if (startAtParam) startAt = parseTimestamp(startAtParam) ?? undefined;
+
+      usePlayerStore.getState().registerAudioStreamOptions(
+        streamsToAudioOptions(
+          out.streams?.length ? out.streams : [out.stream],
+          out.sourceId,
+          out.embedId,
+        ),
+      );
 
       playMedia(
         convertRunoutputToSource(out),

@@ -24,12 +24,16 @@ export type SourceSliceSource =
       qualities: Partial<Record<SourceQuality, SourceFileStream>>;
       headers?: Stream["headers"];
       preferredHeaders?: Stream["preferredHeaders"];
+      audioLanguage?: string;
+      audioLabel?: string;
     }
   | {
       type: "hls";
       url: string;
       headers?: Stream["headers"];
       preferredHeaders?: Stream["preferredHeaders"];
+      audioLanguage?: string;
+      audioLabel?: string;
     };
 
 const qualitySorting: Record<SourceQuality, number> = {
