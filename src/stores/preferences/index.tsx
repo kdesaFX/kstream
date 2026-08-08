@@ -26,6 +26,8 @@ export interface PreferencesStore {
   enableSourceOrder: boolean;
   lastSuccessfulSource: string | null;
   enableLastSuccessfulSource: boolean;
+  /** Last audio language the user picked (e.g. "en", "ja"). */
+  preferredAudioLanguage: string | null;
   embedOrder: string[];
   enableEmbedOrder: boolean;
   proxyTmdb: boolean;
@@ -74,6 +76,7 @@ export interface PreferencesStore {
   setEnableSourceOrder(v: boolean): void;
   setLastSuccessfulSource(v: string | null): void;
   setEnableLastSuccessfulSource(v: boolean): void;
+  setPreferredAudioLanguage(v: string | null): void;
   setEmbedOrder(v: string[]): void;
   setEnableEmbedOrder(v: boolean): void;
   setProxyTmdb(v: boolean): void;
@@ -127,7 +130,8 @@ export const usePreferencesStore = create(
       sourceOrder: [],
       enableSourceOrder: false,
       lastSuccessfulSource: null,
-      enableLastSuccessfulSource: false,
+      enableLastSuccessfulSource: true,
+      preferredAudioLanguage: null,
       embedOrder: [],
       enableEmbedOrder: false,
       proxyTmdb: false,
@@ -233,6 +237,11 @@ export const usePreferencesStore = create(
       setEnableLastSuccessfulSource(v) {
         set((s) => {
           s.enableLastSuccessfulSource = v;
+        });
+      },
+      setPreferredAudioLanguage(v) {
+        set((s) => {
+          s.preferredAudioLanguage = v;
         });
       },
       setEmbedOrder(v) {

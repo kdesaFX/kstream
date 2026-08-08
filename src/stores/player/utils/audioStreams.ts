@@ -5,6 +5,22 @@ import { convertRunoutputToSource } from "@/components/player/utils/convertRunou
 import { CaptionListItem } from "@/stores/player/slices/source";
 import { SourceSliceSource } from "@/stores/player/utils/qualities";
 
+/** Pick a stream matching the user's preferred audio language, else fallback. */
+export function pickPreferredAudioStream(
+  streams: Stream[],
+  preferredLanguage: string | null | undefined,
+  fallback?: Stream,
+): Stream {
+  const preferred = preferredLanguage?.trim();
+  if (preferred) {
+    const match = streams.find(
+      (stream) => stream.audioLanguage?.trim() === preferred,
+    );
+    if (match) return match;
+  }
+  return fallback ?? streams[0];
+}
+
 export type AudioStreamOption = {
   /** Unique key for this option */
   id: string;

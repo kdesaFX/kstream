@@ -9,6 +9,8 @@ import {
 import { useAsync } from "react-use";
 
 import { getProviders } from "@/backend/providers/providers";
+import { isExtensionActiveCached } from "@/backend/extension/messaging";
+import { prepareStream } from "@/backend/extension/streams";
 import { DetailedMeta } from "@/backend/metadata/getmeta";
 import { usePlayer } from "@/components/player/hooks/usePlayer";
 import { usePlayerMeta } from "@/components/player/hooks/usePlayerMeta";
@@ -28,7 +30,10 @@ import { SourceSelectPart } from "@/pages/parts/player/SourceSelectPart";
 import { useLastNonPlayerLink } from "@/stores/history";
 import { PlayerMeta, playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
-import { streamsToAudioOptions } from "@/stores/player/utils/audioStreams";
+import {
+  pickPreferredAudioStream,
+  streamsToAudioOptions,
+} from "@/stores/player/utils/audioStreams";
 import { usePreferencesStore } from "@/stores/preferences";
 import { getProgressPercentage, useProgressStore } from "@/stores/progress";
 import { needsOnboarding } from "@/utils/hosting/onboarding";
@@ -74,17 +79,16 @@ export function RealPlayerView() {
   const setLastSuccessfulSource = usePreferencesStore(
     (s) => s.setLastSuccessfulSource,
   );
+  const enableLastSuccessfulSource = usePreferencesStore(
+    (s) => s.enableLastSuccessfulSource,
+  );
+  const preferredAudioLanguage = usePreferencesStore(
+    (s) => s.preferredAudioLanguage,
+  );
   const router = useOverlayRouter("settings");
   const openedWatchPartyRef = useRef<boolean>(false);
   const autoResumeCount = useRef(0);
   const progressItems = useProgressStore((s) => s.items);
-
-  // Reset last successful source when leaving the player
-  useEffect(() => {
-    return () => {
-      setLastSuccessfulSource(null);
-    };
-  }, [setLastSuccessfulSource]);
 
   // Reset resume from source ID when leaving the player
   useEffect(() => {
@@ -211,7 +215,7 @@ export function RealPlayerView() {
   }, [storeResumeFromSourceId, resumeFromSourceId, status]);
 
   const playAfterScrape = useCallback(
-    (out: RunOutput | null) => {
+    async (out: RunOutput | null) => {
       if (!out) return;
 
       autoResumeCount.current = 0;
@@ -219,20 +223,35 @@ export function RealPlayerView() {
       let startAt: number | undefined;
       if (startAtParam) startAt = parseTimestamp(startAtParam) ?? undefined;
 
+      const availableStreams = out.streams?.length
+        ? out.streams
+        : [out.stream];
+      const selectedStream = pickPreferredAudioStream(
+        availableStreams,
+        preferredAudioLanguage,
+        out.stream,
+      );
+
+      if (
+        isExtensionActiveCached() &&
+        selectedStream !== out.stream
+      ) {
+        await prepareStream(selectedStream);
+      }
+
       usePlayerStore.getState().registerAudioStreamOptions(
-        streamsToAudioOptions(
-          out.streams?.length ? out.streams : [out.stream],
-          out.sourceId,
-          out.embedId,
-        ),
+        streamsToAudioOptions(availableStreams, out.sourceId, out.embedId),
       );
 
       playMedia(
-        convertRunoutputToSource(out),
-        convertProviderCaption(out.stream.captions),
+        convertRunoutputToSource({ stream: selectedStream }),
+        convertProviderCaption(selectedStream.captions),
         out.sourceId,
         shouldStartFromBeginning ? 0 : startAt,
       );
+      if (enableLastSuccessfulSource) {
+        setLastSuccessfulSource(out.sourceId);
+      }
       setShouldStartFromBeginning(false);
     },
     [
@@ -240,6 +259,9 @@ export function RealPlayerView() {
       startAtParam,
       shouldStartFromBeginning,
       setShouldStartFromBeginning,
+      preferredAudioLanguage,
+      enableLastSuccessfulSource,
+      setLastSuccessfulSource,
     ],
   );
 

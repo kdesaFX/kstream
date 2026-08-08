@@ -14,6 +14,7 @@ import {
   selectQuality,
 } from "@/stores/player/utils/qualities";
 import { useQualityStore } from "@/stores/quality";
+import { usePreferencesStore } from "@/stores/preferences";
 import googletranslate from "@/utils/translation/googletranslate";
 import { translate } from "@/utils/translation/index";
 import { ValuesOf } from "@/utils/common/typeguard";
@@ -485,6 +486,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.sourceId = option.sourceId;
       s.embedId = option.embedId ?? null;
     });
+    usePreferencesStore.getState().setPreferredAudioLanguage(option.language);
     store.setSource(option.source, option.captions, startAt);
   },
   reset() {

@@ -17,7 +17,10 @@ import { convertRunoutputToSource } from "@/components/player/utils/convertRunou
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { metaToScrapeMedia } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
-import { streamsToAudioOptions } from "@/stores/player/utils/audioStreams";
+import {
+  pickPreferredAudioStream,
+  streamsToAudioOptions,
+} from "@/stores/player/utils/audioStreams";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
 
@@ -54,6 +57,9 @@ export function useEmbedScraping(
   const enableLastSuccessfulSource = usePreferencesStore(
     (s) => s.enableLastSuccessfulSource,
   );
+  const preferredAudioLanguage = usePreferencesStore(
+    (s) => s.preferredAudioLanguage,
+  );
 
   const [request, run] = useAsyncFn(async () => {
     let result: EmbedOutput | undefined;
@@ -81,7 +87,11 @@ export function useEmbedScraping(
     report([
       scrapeSourceOutputToProviderMetric(meta, sourceId, null, "success", null),
     ]);
-    if (isExtensionActiveCached()) await prepareStream(result.stream[0]);
+    const selectedStream = pickPreferredAudioStream(
+      result.stream,
+      preferredAudioLanguage,
+    );
+    if (isExtensionActiveCached()) await prepareStream(selectedStream);
     setSourceId(sourceId);
     setEmbedId(embedId);
     setCaption(null);
@@ -91,8 +101,8 @@ export function useEmbedScraping(
         streamsToAudioOptions(result.stream, sourceId, embedId),
       );
     setSource(
-      convertRunoutputToSource({ stream: result.stream[0] }),
-      convertProviderCaption(result.stream[0].captions),
+      convertRunoutputToSource({ stream: selectedStream }),
+      convertProviderCaption(selectedStream.captions),
       getSavedProgress(progressItems, meta),
     );
     // Save the last successful source when manually selected
@@ -109,6 +119,7 @@ export function useEmbedScraping(
     setCaption,
     enableLastSuccessfulSource,
     setLastSuccessfulSource,
+    preferredAudioLanguage,
   ]);
 
   return {
@@ -133,6 +144,9 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
   );
   const enableLastSuccessfulSource = usePreferencesStore(
     (s) => s.enableLastSuccessfulSource,
+  );
+  const preferredAudioLanguage = usePreferencesStore(
+    (s) => s.preferredAudioLanguage,
   );
 
   const [request, run] = useAsyncFn(async () => {
@@ -160,7 +174,11 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
     ]);
 
     if (result.stream) {
-      if (isExtensionActiveCached()) await prepareStream(result.stream[0]);
+      const selectedStream = pickPreferredAudioStream(
+        result.stream,
+        preferredAudioLanguage,
+      );
+      if (isExtensionActiveCached()) await prepareStream(selectedStream);
       setEmbedId(null);
       setCaption(null);
       usePlayerStore
@@ -169,8 +187,8 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
           streamsToAudioOptions(result.stream, sourceId, null),
         );
       setSource(
-        convertRunoutputToSource({ stream: result.stream[0] }),
-        convertProviderCaption(result.stream[0].captions),
+        convertRunoutputToSource({ stream: selectedStream }),
+        convertProviderCaption(selectedStream.captions),
         getSavedProgress(progressItems, meta),
       );
       setSourceId(sourceId);
@@ -213,10 +231,14 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
           null,
         ),
       ]);
+      const selectedStream = pickPreferredAudioStream(
+        embedResult.stream,
+        preferredAudioLanguage,
+      );
       setSourceId(sourceId);
       setEmbedId(result.embeds[0].embedId);
       setCaption(null);
-      if (isExtensionActiveCached()) await prepareStream(embedResult.stream[0]);
+      if (isExtensionActiveCached()) await prepareStream(selectedStream);
       usePlayerStore
         .getState()
         .registerAudioStreamOptions(
@@ -227,8 +249,8 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
           ),
         );
       setSource(
-        convertRunoutputToSource({ stream: embedResult.stream[0] }),
-        convertProviderCaption(embedResult.stream[0].captions),
+        convertRunoutputToSource({ stream: selectedStream }),
+        convertProviderCaption(selectedStream.captions),
         getSavedProgress(progressItems, meta),
       );
       // Save the last successful source when manually selected
@@ -245,6 +267,7 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
     setCaption,
     enableLastSuccessfulSource,
     setLastSuccessfulSource,
+    preferredAudioLanguage,
   ]);
 
   return {
