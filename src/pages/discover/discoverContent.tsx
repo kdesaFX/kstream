@@ -64,8 +64,8 @@ export function DiscoverContent() {
     const eager = Boolean(selectedGenreId);
     const rowPriority = () => eager || carousels.length < 2;
 
-    // Movie Recommendations - only show if there are movie progress items
-    if (movieProgressItems.length > 0) {
+    // Because You Watched — All only (not under a genre chip)
+    if (movieProgressItems.length > 0 && !selectedGenreId) {
       carousels.push(
         <LazyMediaCarousel
           key="movie-recommendations"
@@ -179,8 +179,8 @@ export function DiscoverContent() {
     const eager = Boolean(selectedGenreId);
     const rowPriority = () => eager || carousels.length < 2;
 
-    // TV Show Recommendations - only show if there are TV show progress items
-    if (tvProgressItems.length > 0) {
+    // Because You Watched — All only (not under a genre chip)
+    if (tvProgressItems.length > 0 && !selectedGenreId) {
       carousels.push(
         <LazyMediaCarousel
           key="tv-recommendations"
