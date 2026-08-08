@@ -134,7 +134,14 @@ export function DetailsBody({
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return null;
-    return new Date(dateString).getFullYear();
+    const [yearStr, monthStr] = dateString.slice(0, 10).split("-");
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    if (!year || !month) return yearStr || null;
+    return new Date(year, month - 1, 1).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
   };
 
   return (

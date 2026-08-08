@@ -684,7 +684,18 @@ export function FeaturedCarousel({
                     <span className="text-white/60">•</span>
                   )}
                   <span>
-                    {new Date(currentMedia.release_date).getFullYear()}
+                    {(() => {
+                      const [yearStr, monthStr] = currentMedia.release_date
+                        .slice(0, 10)
+                        .split("-");
+                      const year = Number(yearStr);
+                      const month = Number(monthStr);
+                      if (!year || !month) return yearStr;
+                      return new Date(year, month - 1, 1).toLocaleDateString(
+                        "en-US",
+                        { month: "long", year: "numeric" },
+                      );
+                    })()}
                   </span>
                 </>
               )}
