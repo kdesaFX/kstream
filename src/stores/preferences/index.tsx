@@ -10,16 +10,16 @@ import {
 export type PreferredMinimumResolution = "none" | "720" | "1080" | "4k";
 export type VolumeBoostApplyMode = "current" | "title";
 
-/** Prefer the source that worked for this title; else the global last success. */
+/** Prefer the source that worked for this title only (never bleed across titles). */
 export function getPreferredSourceForTitle(
   preferredSourceByTitle: Record<string, string>,
   tmdbId: string | undefined | null,
-  lastSuccessfulSource: string | null,
+  _lastSuccessfulSource?: string | null,
 ): string | null {
   if (tmdbId && preferredSourceByTitle[tmdbId]) {
     return preferredSourceByTitle[tmdbId];
   }
-  return lastSuccessfulSource;
+  return null;
 }
 
 export interface PreferencesStore {
