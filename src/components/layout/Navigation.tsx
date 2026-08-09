@@ -274,11 +274,7 @@ export function Navigation(props: NavigationProps) {
           className={classNames(
             "fixed left-0 right-0 top-0 flex items-center",
             "transition-[background-color,backdrop-filter] duration-300 ease-in-out",
-            props.doBackground
-              ? props.clearBackground
-                ? "backdrop-blur-md bg-transparent"
-                : "bg-background-main"
-              : "bg-transparent",
+            "bg-transparent",
           )}
         >
           {props.doBackground ? (
@@ -292,9 +288,10 @@ export function Navigation(props: NavigationProps) {
               "transition-[background-color,backdrop-filter,opacity] duration-300 ease-in-out",
               props.bg ? "opacity-100" : "opacity-0",
               "absolute inset-0 block h-[11rem]",
+              // Stay transparent/clean — light blur only once scrolled, never a solid slab
               props.clearBackground
-                ? "backdrop-blur-md bg-transparent"
-                : "bg-background-main",
+                ? "bg-transparent"
+                : "backdrop-blur-[6px] bg-black/15",
             )}
             style={{
               maskImage: `linear-gradient(

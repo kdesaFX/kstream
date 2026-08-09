@@ -16,12 +16,6 @@ declare global {
         headers?: Record<string, string>;
       }): void;
       openOffline(): void;
-      windowControls?: {
-        minimize: () => Promise<void>;
-        maximize: () => Promise<boolean>;
-        close: () => Promise<void>;
-        isMaximized: () => Promise<boolean>;
-      };
     };
   }
 }

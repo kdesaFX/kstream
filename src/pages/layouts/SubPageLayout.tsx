@@ -35,7 +35,7 @@ export function SubPageLayout(props: { children: React.ReactNode }) {
       <BlurEllipsis />
       {/* Main page */}
       <FooterView>
-        <Navigation doBackground noLightbar />
+        <Navigation doBackground noLightbar clearBackground bg />
         <div className="mt-40 relative">{props.children}</div>
       </FooterView>
     </div>

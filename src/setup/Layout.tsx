@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 
-import { DesktopTitleBar } from "@/components/desktop/DesktopTitleBar";
 import { useBannerSize, useBannerStore } from "@/stores/banner";
 import { BannerLocation } from "@/stores/banner/BannerLocation";
 
@@ -10,8 +9,7 @@ export function Layout(props: { children: ReactNode }) {
 
   return (
     <div>
-      <DesktopTitleBar />
-      <div className="kstream-desktop-banner fixed inset-x-0 z-[1000]">
+      <div className="fixed inset-x-0 z-[1000]">
         <BannerLocation />
       </div>
       <div
