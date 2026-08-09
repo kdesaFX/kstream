@@ -53,6 +53,52 @@ html[data-no-scroll] body {
   padding-top: calc(env(safe-area-inset-top) - 20px);
 }
 
+/* Electron custom title bar (see DesktopTitleBar + titleBarOverlay) */
+html.is-desktop-app {
+  --desktop-titlebar-height: env(titlebar-area-height, 36px);
+}
+
+html.is-desktop-app #root {
+  padding-top: var(--desktop-titlebar-height);
+  box-sizing: border-box;
+}
+
+html.is-desktop-app .top-content {
+  top: var(--desktop-titlebar-height);
+}
+
+html.is-desktop-app .kstream-desktop-banner {
+  top: var(--desktop-titlebar-height);
+}
+
+.kstream-desktop-titlebar {
+  position: fixed;
+  top: 0;
+  left: env(titlebar-area-x, 0);
+  width: env(titlebar-area-width, 100%);
+  height: var(--desktop-titlebar-height, 36px);
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  box-sizing: border-box;
+  background: #141414;
+  color: #d4d4d4;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  -webkit-app-region: drag;
+  app-region: drag;
+  user-select: none;
+  pointer-events: auto;
+}
+
+.kstream-desktop-titlebar__name {
+  line-height: 1;
+  opacity: 0.92;
+}
+
 .roll {
   animation: roll 1s;
 }
