@@ -29,7 +29,7 @@ function shouldSaveProgress(
   if (isCompleted) return false;
 
   // Persist in-progress position for resume. Continue Watching still uses
-  // MIN_WATCH_FRACTION separately so brief peeks don't clutter the home row.
+  // MIN_WATCH_SECONDS separately so brief peeks don't clutter the home row.
   return true;
 }
 

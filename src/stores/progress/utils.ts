@@ -33,35 +33,58 @@ export function progressIsCompleted(
   return false;
 }
 
-/** Fraction of runtime required before progress / recommendations count. */
-export const MIN_WATCH_FRACTION = 0.35;
+/**
+ * Seconds of playback before a title appears in Continue Watching /
+ * Watch History. Caps via a small fraction so short episodes aren't
+ * blocked for nearly their whole runtime.
+ */
+export const MIN_WATCH_SECONDS = 90;
+
+/** Fraction of runtime for recommendation / "Because You Watched" signal. */
+export const MIN_RECOMMENDATION_FRACTION = 0.15;
 
 export function progressIsNotStarted(
   duration: number,
   watched: number,
 ): boolean {
-  // Need at least 35% watched — brief peeks don't count for Continue
-  // Watching, saves, or "Because You Watched".
+  // Ignore brief opens / accidental plays — don't put them in Continue
+  // Watching. (Previously a 35% gate hid almost everything.)
   if (duration <= 0 || watched <= 0) return true;
-  if (watched / duration < MIN_WATCH_FRACTION) return true;
-  return false;
+  const threshold = Math.min(
+    MIN_WATCH_SECONDS,
+    Math.max(20, duration * 0.05),
+  );
+  return watched < threshold;
+}
+
+function progressIsMeaningfulForRecommendations(
+  duration: number,
+  watched: number,
+): boolean {
+  if (duration <= 0 || watched <= 0) return false;
+  if (progressIsCompleted(duration, watched)) return true;
+  if (watched / duration >= MIN_RECOMMENDATION_FRACTION) return true;
+  // Long titles: ~3 minutes is enough signal even under 15%.
+  return watched >= MIN_WATCH_SECONDS * 2;
 }
 
 /**
  * True once the user has watched enough of this title (or any episode)
- * for it to count as real signal — in-progress or completed.
+ * for it to count as real signal for recommendations.
  */
 export function progressHasMeaningfulWatch(item: ProgressMediaItem): boolean {
   if (item.type !== "show") {
-    return !progressIsNotStarted(
+    return progressIsMeaningfulForRecommendations(
       item.progress?.duration ?? 0,
       item.progress?.watched ?? 0,
     );
   }
 
-  return Object.values(item.episodes).some(
-    (epi) =>
-      !progressIsNotStarted(epi.progress.duration, epi.progress.watched),
+  return Object.values(item.episodes).some((epi) =>
+    progressIsMeaningfulForRecommendations(
+      epi.progress.duration,
+      epi.progress.watched,
+    ),
   );
 }
 
@@ -134,4 +157,22 @@ export function shouldShowProgress(
     show: true,
     progress: ep.progress,
   };
+}
+
+/**
+ * Watch History includes in-progress AND finished titles (Continue Watching
+ * intentionally drops completed items).
+ */
+export function shouldShowInWatchHistory(item: ProgressMediaItem): boolean {
+  if (item.type !== "show") {
+    return !progressIsNotStarted(
+      item.progress?.duration ?? 0,
+      item.progress?.watched ?? 0,
+    );
+  }
+
+  return Object.values(item.episodes).some(
+    (epi) =>
+      !progressIsNotStarted(epi.progress.duration, epi.progress.watched),
+  );
 }

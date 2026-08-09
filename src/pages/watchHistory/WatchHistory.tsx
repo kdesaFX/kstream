@@ -15,7 +15,7 @@ import { useRandomTranslation } from "@/hooks/useRandomTranslation";
 import { SubPageLayout } from "@/pages/layouts/SubPageLayout";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { useProgressStore } from "@/stores/progress";
-import { shouldShowProgress } from "@/stores/progress/utils";
+import { shouldShowInWatchHistory } from "@/stores/progress/utils";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 interface WatchHistoryProps {
@@ -47,7 +47,7 @@ export function WatchHistory({ onShowDetails }: WatchHistoryProps) {
   const items = useMemo(() => {
     const output: MediaItem[] = [];
     Object.entries(progressItems)
-      .filter((entry) => shouldShowProgress(entry[1]).show)
+      .filter((entry) => shouldShowInWatchHistory(entry[1]))
       .forEach((entry) => {
         output.push({
           id: entry[0],
