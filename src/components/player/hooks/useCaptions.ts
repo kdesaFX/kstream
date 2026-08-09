@@ -93,9 +93,18 @@ export function useCaptions() {
       };
 
       if (!caption.hls) {
-        const { srtData, ttmlCues } = await downloadCaptionSmart(caption);
+        const { srtData, ttmlCues, language } =
+          await downloadCaptionSmart(caption);
         captionToSet.srtData = srtData;
         captionToSet.ttmlCues = ttmlCues;
+        captionToSet.language = language;
+
+        // Keep the caption list in sync so mislabeled tracks leave the English bucket
+        if (language !== caption.language) {
+          usePlayerStore
+            .getState()
+            .updateCaptionLanguage(caption.id, language);
+        }
       } else {
         // request a language change to hls, so it can load the subtitles
         await setSubtitlePreference?.(caption.language);

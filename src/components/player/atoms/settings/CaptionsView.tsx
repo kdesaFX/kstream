@@ -545,10 +545,11 @@ export function CaptionsView({
     const groups: Record<string, typeof allCaptions> = {};
 
     allCaptions.forEach((caption) => {
-      // Use display name if available, otherwise fall back to language code
+      // Prefer the resolved language code — display labels are often wrong
+      // (e.g. Serbian files marked "English" by upstream CDNs).
       const lang =
-        labelToLanguageCode(caption.display || "") ||
         caption.language ||
+        labelToLanguageCode(caption.display || "") ||
         "unknown";
       if (!groups[lang]) {
         groups[lang] = [];

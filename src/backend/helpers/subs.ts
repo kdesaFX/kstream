@@ -10,6 +10,7 @@ import {
 } from "@/components/player/utils/ttml";
 import { CaptionListItem } from "@/stores/player/slices/source";
 import { SimpleCache } from "@/utils/common/cache";
+import { reconcileCaptionLanguage } from "@/utils/subtitleLanguage";
 
 import {
   isExtensionActiveCached,
@@ -97,21 +98,46 @@ export async function downloadCaption(
   return output;
 }
 
-
 export async function downloadCaptionSmart(
   caption: CaptionListItem,
-): Promise<{ srtData: string; ttmlCues?: TTMLCue[] }> {
+): Promise<{
+  srtData: string;
+  ttmlCues?: TTMLCue[];
+  /** Language corrected from subtitle contents when metadata was wrong. */
+  language: string;
+}> {
   const data = await fetchCaptionRaw(caption);
+  const language = reconcileCaptionLanguage(caption.language, data);
+
   if (isTTML(data)) {
     const ttmlCues = parseTTML(data);
     if (ttmlCues.length > 0) {
-      return { srtData: ttmlCuesToSrt(ttmlCues), ttmlCues };
+      return {
+        srtData: ttmlCuesToSrt(ttmlCues),
+        ttmlCues,
+        language,
+      };
     }
   }
   const cached = downloadCache.get(caption.url);
   const srtData = cached ?? convertSubtitlesToSrt(data);
   if (!cached) downloadCache.set(caption.url, srtData, expirySeconds);
-  return { srtData };
+  return { srtData, language };
+}
+
+/**
+ * Peek at caption contents (no full SRT convert) to correct mislabeled languages.
+ * Best-effort — failures leave the claimed language alone.
+ */
+export async function sniffCaptionLanguage(
+  caption: CaptionListItem,
+): Promise<string> {
+  try {
+    const data = await fetchCaptionRaw(caption);
+    return reconcileCaptionLanguage(caption.language, data.slice(0, 12000));
+  } catch {
+    return caption.language;
+  }
 }
 
 /**

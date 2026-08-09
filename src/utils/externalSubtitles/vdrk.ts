@@ -43,12 +43,9 @@ export async function scrapeVdrkCaptions(
       if (subtitle.file && subtitle.label) {
         // Parse label to extract language and hearing impaired info
         const label = subtitle.label;
-        const isHearingImpaired = label.includes(" Hi") || label.includes("Hi");
-        const languageName = label
-          .replace(/\s*Hi\d*$/, "")
-          .replace(/\s*Hi$/, "")
-          .replace(/\d+$/, "");
-        const language = labelToLanguageCode(languageName) || "";
+        const isHearingImpaired =
+          /\bHi\d*\b/i.test(label) || /\bSDH\b/i.test(label);
+        const language = labelToLanguageCode(label) || "";
 
         if (!language) continue;
 

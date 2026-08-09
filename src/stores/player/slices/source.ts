@@ -141,6 +141,8 @@ export interface SourceSlice {
   redisplaySource(startAt: number): void;
   setCaptionAsTrack(asTrack: boolean): void;
   addExternalSubtitles(): Promise<void>;
+  updateCaptionLanguage(captionId: string, language: string): void;
+  reclassifyMislabeledEnglishCaptions(): Promise<void>;
   translateCaption(
     targetCaption: CaptionListItem,
     targetLanguage: string,
@@ -305,6 +307,42 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.caption.selected = caption;
     });
   },
+  updateCaptionLanguage(captionId, language) {
+    set((s) => {
+      const item = s.captionList.find((c) => c.id === captionId);
+      if (!item || item.language === language) return;
+      item.language = language;
+      if (item.display && /english/i.test(item.display)) {
+        item.display = language;
+      }
+      if (s.caption.selected?.id === captionId) {
+        s.caption.selected.language = language;
+      }
+    });
+  },
+  async reclassifyMislabeledEnglishCaptions() {
+    const { sniffCaptionLanguage } = await import("@/backend/helpers/subs");
+    const englishish = get()
+      .captionList.filter((c) => {
+        if (c.hls) return false;
+        const lang = (c.language || "").toLowerCase().split("-")[0];
+        return lang === "en" || lang === "eng";
+      })
+      .slice(0, 24);
+
+    const concurrency = 4;
+    for (let i = 0; i < englishish.length; i += concurrency) {
+      const batch = englishish.slice(i, i + concurrency);
+      await Promise.all(
+        batch.map(async (caption) => {
+          const language = await sniffCaptionLanguage(caption);
+          if (language !== caption.language) {
+            get().updateCaptionLanguage(caption.id, language);
+          }
+        }),
+      );
+    }
+  },
   setSource(
     stream: SourceSliceSource,
     captions: CaptionListItem[],
@@ -333,6 +371,11 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     });
     const store = get();
     store.redisplaySource(startAt);
+
+    // Correct mislabeled English source captions in the background
+    setTimeout(() => {
+      void store.reclassifyMislabeledEnglishCaptions();
+    }, 250);
 
     // Trigger external subtitle scraping after stream is loaded
     // This runs asynchronously so it doesn't block the stream loading
@@ -540,6 +583,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
           s.captionList = [...s.captionList, ...newCaptions];
         });
         console.log(`Added ${externalCaptions.length} external captions`);
+        void get().reclassifyMislabeledEnglishCaptions();
       }
     } catch (error) {
       console.error("Failed to scrape external subtitles:", error);
