@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import { getCachedMetadata } from "@/backend/helpers/providerApi";
+import { getProviders } from "@/backend/providers/providers";
 import { Loading } from "@/components/layout/Loading";
 import {
   useEmbedScraping,
@@ -180,8 +181,9 @@ export function SourceSelectionView({
 
   const sources = useMemo(() => {
     if (!metaType) return [];
-    const allSources = getCachedMetadata()
-      .filter((v) => v.type === "source")
+    // Match scrape ordering source of truth (live device providers), not MetaPart cache alone
+    const allSources = getProviders()
+      .listSources()
       .filter((v) => v.mediaTypes?.includes(metaType));
 
     const prioritizeSource = enableLastSuccessfulSource

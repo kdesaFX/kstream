@@ -3,7 +3,10 @@ import { RefObject, useCallback, useEffect, useRef, useState } from "react";
 
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
 import { prepareStream } from "@/backend/extension/streams";
-import { getCachedMetadata } from "@/backend/helpers/providerApi";
+import {
+  getCachedMetadata,
+  setCachedMetadata,
+} from "@/backend/helpers/providerApi";
 import { getProviders } from "@/backend/providers/providers";
 import { getMediaKey } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
@@ -46,8 +49,11 @@ const minimumResolutionThreshold: Record<
   "4k": 2160,
 };
 
+/** Adaptive streams (HLS/etc.) don't expose discrete file qualities — treat as satisfying any preferred minimum. */
+const ADAPTIVE_STREAM_RESOLUTION_SCORE = sourceQualityScore["4k"];
+
 function getRunOutputBestResolutionScore(output: RunOutput): number {
-  if (output.stream.type !== "file") return 0;
+  if (output.stream.type !== "file") return ADAPTIVE_STREAM_RESOLUTION_SCORE;
 
   return Object.entries(output.stream.qualities).reduce((best, [quality, stream]) => {
     if (!stream?.url) return best;
@@ -70,10 +76,9 @@ function useBaseScrape() {
       evt.sourceIds
         .map((v) => {
           const source = getCachedMetadata().find((s) => s.id === v);
-          if (!source) throw new Error("invalid source id");
           const out: ScrapingSegment = {
-            name: source.name,
-            id: source.id,
+            name: source?.name ?? v,
+            id: v,
             status: "waiting",
             percentage: 0,
           };
@@ -118,10 +123,9 @@ function useBaseScrape() {
           const source = getCachedMetadata().find(
             (src) => src.id === v.embedScraperId,
           );
-          if (!source) throw new Error("invalid source id");
           const out: ScrapingSegment = {
             embedId: v.embedScraperId,
-            name: source.name,
+            name: source?.name ?? v.embedScraperId,
             id: v.id,
             status: "waiting",
             percentage: 0,
@@ -132,7 +136,7 @@ function useBaseScrape() {
       });
       setSourceOrder((s) => {
         const source = s.find((v) => v.id === evt.sourceId);
-        if (!source) throw new Error("invalid source id");
+        if (!source) return s;
         source.children = evt.embeds.map((v) => v.id);
         return [...s];
       });
@@ -201,6 +205,11 @@ export function useScrape() {
   const startScraping = useCallback(
     async (media: ScrapeMedia, startFromSourceId?: string) => {
       const providerInstance = getProviders();
+      // Keep scrape UI metadata in sync with the live provider list used below
+      setCachedMetadata([
+        ...providerInstance.listSources(),
+        ...providerInstance.listEmbeds(),
+      ]);
       const allSources = providerInstance.listSources();
       const playerState = usePlayerStore.getState();
 
@@ -272,6 +281,10 @@ export function useScrape() {
         if (startIndex !== -1) {
           filteredSourceOrder = filteredSourceOrder.slice(startIndex + 1);
         }
+        // Always exclude the resume id for this run (covers missing-index / stale id cases)
+        filteredSourceOrder = filteredSourceOrder.filter(
+          (id) => id !== startFromSourceId,
+        );
       }
 
       // Now filter out the failed sources so we don't try them again
