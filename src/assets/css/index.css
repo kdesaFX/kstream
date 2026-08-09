@@ -53,9 +53,9 @@ html[data-no-scroll] body {
   padding-top: calc(env(safe-area-inset-top) - 20px);
 }
 
-/* Electron custom title bar (see DesktopTitleBar + titleBarOverlay) */
+/* Electron custom title bar (see DesktopTitleBar + frameless window) */
 html.is-desktop-app {
-  --desktop-titlebar-height: env(titlebar-area-height, 36px);
+  --desktop-titlebar-height: 36px;
 }
 
 html.is-desktop-app #root {
@@ -74,14 +74,14 @@ html.is-desktop-app .kstream-desktop-banner {
 .kstream-desktop-titlebar {
   position: fixed;
   top: 0;
-  left: env(titlebar-area-x, 0);
-  width: env(titlebar-area-width, 100%);
+  left: 0;
+  right: 0;
+  width: 100%;
   height: var(--desktop-titlebar-height, 36px);
   z-index: 2147483000;
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0 0.75rem;
+  align-items: stretch;
+  justify-content: space-between;
   box-sizing: border-box;
   background: #141414;
   color: #d4d4d4;
@@ -94,9 +94,49 @@ html.is-desktop-app .kstream-desktop-banner {
   pointer-events: auto;
 }
 
+.kstream-desktop-titlebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  min-width: 0;
+}
+
 .kstream-desktop-titlebar__name {
   line-height: 1;
   opacity: 0.92;
+}
+
+.kstream-desktop-titlebar__controls {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.kstream-desktop-titlebar__btn {
+  width: 46px;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: #c8c8c8;
+  cursor: pointer;
+}
+
+.kstream-desktop-titlebar__btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.kstream-desktop-titlebar__btn--close:hover {
+  background: #e81123;
+  color: #fff;
 }
 
 .roll {
