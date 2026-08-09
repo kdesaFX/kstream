@@ -47,7 +47,7 @@ importers:
         version: 1.8.0
       '@p-stream/providers':
         specifier: github:kdesaFX/providers#production
-        version: https://codeload.github.com/kdesaFX/providers/tar.gz/fa4dfa2009c15caef7b04ebb367e59cf342098b7
+        version: https://codeload.github.com/kdesaFX/providers/tar.gz/6ad7a2c86c18c422c8b1d8e8901850423c71fa72
       '@plasmohq/messaging':
         specifier: ^0.6.2
         version: 0.6.2(react@18.3.1)
@@ -1854,8 +1854,8 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@p-stream/providers@https://codeload.github.com/kdesaFX/providers/tar.gz/fa4dfa2009c15caef7b04ebb367e59cf342098b7':
-    resolution: {tarball: https://codeload.github.com/kdesaFX/providers/tar.gz/fa4dfa2009c15caef7b04ebb367e59cf342098b7}
+  '@p-stream/providers@https://codeload.github.com/kdesaFX/providers/tar.gz/6ad7a2c86c18c422c8b1d8e8901850423c71fa72':
+    resolution: {tarball: https://codeload.github.com/kdesaFX/providers/tar.gz/6ad7a2c86c18c422c8b1d8e8901850423c71fa72}
     version: 3.2.0
 
   '@pkgjs/parseargs@0.11.0':
@@ -7170,7 +7170,7 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@p-stream/providers@https://codeload.github.com/kdesaFX/providers/tar.gz/fa4dfa2009c15caef7b04ebb367e59cf342098b7':
+  '@p-stream/providers@https://codeload.github.com/kdesaFX/providers/tar.gz/6ad7a2c86c18c422c8b1d8e8901850423c71fa72':
     dependencies:
       abort-controller: 3.0.0
       cheerio: 1.0.0-rc.12
@@ -8753,7 +8753,7 @@ snapshots:
       asynckit: 0.4.0
       combined-stream: 1.0.8
       es-set-tostringtag: 2.1.0
-      hasown: 2.0.2
+      hasown: 2.0.4
       mime-types: 2.1.35
 
   formdata-polyfill@4.0.10:
@@ -8790,7 +8790,7 @@ snapshots:
       call-bound: 1.0.4
       define-properties: 1.2.1
       functions-have-names: 1.2.3
-      hasown: 2.0.2
+      hasown: 2.0.4
       is-callable: 1.2.7
 
   functions-have-names@1.2.3: {}
