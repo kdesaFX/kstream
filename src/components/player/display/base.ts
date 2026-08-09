@@ -63,6 +63,10 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let isPictureInPicture = false;
   let isPausedBeforeSeeking = false;
   let isSeeking = false;
+  let isPausedBeforeQualityChange = true;
+  let isQualitySwitching = false;
+  let suppressPlaybackEvents = false;
+  let qualitySwitchCleanup: (() => void) | null = null;
   let startAt = 0;
   let automaticQuality = false;
   let preferenceQuality: SourceQuality | null = null;
@@ -140,6 +144,80 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     lastInferredQuality = quality;
     emit("qualities", [quality]);
     emit("changedquality", quality);
+  }
+
+  function pauseForQualitySwitch() {
+    if (!videoElement) return;
+    if (!isQualitySwitching) {
+      isPausedBeforeQualityChange = videoElement.paused;
+      isQualitySwitching = true;
+    }
+    emit("loading", true);
+    if (!videoElement.paused) {
+      suppressPlaybackEvents = true;
+      try {
+        videoElement.pause();
+      } finally {
+        suppressPlaybackEvents = false;
+      }
+    }
+  }
+
+  function resumeAfterQualitySwitch() {
+    if (!isQualitySwitching) return;
+    qualitySwitchCleanup?.();
+    qualitySwitchCleanup = null;
+    isQualitySwitching = false;
+    emit("loading", false);
+    if (!isPausedBeforeQualityChange && videoElement) {
+      videoElement.play().catch(() => {
+        emit("pause", undefined);
+      });
+    }
+    isPausedBeforeQualityChange = true;
+  }
+
+  function waitForQualitySwitchReady() {
+    qualitySwitchCleanup?.();
+    const vid = videoElement;
+    const hlsRef = hls;
+    if (!vid) {
+      resumeAfterQualitySwitch();
+      return;
+    }
+
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resumeAfterQualitySwitch();
+    };
+
+    const onCanPlay = () => finish();
+    const onLevelSwitched = () => {
+      // New level attached — resume once the decoder has data, or immediately
+      // if we already have enough buffered frames.
+      if (vid.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+        finish();
+        return;
+      }
+      vid.addEventListener("canplay", onCanPlay, { once: true });
+    };
+
+    if (hlsRef) {
+      hlsRef.on(Hls.Events.LEVEL_SWITCHED, onLevelSwitched);
+    }
+
+    // Auto quality only retunes ABR — don't hold the pause for a full level swap.
+    const safety = window.setTimeout(finish, automaticQuality ? 800 : 6000);
+
+    qualitySwitchCleanup = () => {
+      window.clearTimeout(safety);
+      if (hlsRef) {
+        hlsRef.off(Hls.Events.LEVEL_SWITCHED, onLevelSwitched);
+      }
+      vid.removeEventListener("canplay", onCanPlay);
+    };
   }
 
   function setupQualityForHls() {
@@ -459,7 +537,10 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       initAudioAnalysis();
       reportQualityFromVideoElement();
     });
-    videoElement.addEventListener("pause", () => emit("pause", undefined));
+    videoElement.addEventListener("pause", () => {
+      if (suppressPlaybackEvents) return;
+      emit("pause", undefined);
+    });
     videoElement.addEventListener("canplay", () => {
       reportQualityFromVideoElement();
       // Media is ready enough to start. Clearing here avoids a stuck center spinner
@@ -703,6 +784,10 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       clearTimeout(qualityChangeTimeout);
       qualityChangeTimeout = null;
     }
+    qualitySwitchCleanup?.();
+    qualitySwitchCleanup = null;
+    isQualitySwitching = false;
+    suppressPlaybackEvents = false;
 
     teardownAudioAnalysis();
 
@@ -796,6 +881,20 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       );
     },
     load(ops) {
+      const hadActiveSource = !!source && !!videoElement;
+      const wasPlaying = videoElement ? !videoElement.paused : false;
+
+      // Pause immediately on mid-playback reloads (e.g. MP4 quality switch)
+      // so the old stream doesn't keep playing while the new one loads.
+      if (videoElement && !videoElement.paused) {
+        suppressPlaybackEvents = true;
+        try {
+          videoElement.pause();
+        } finally {
+          suppressPlaybackEvents = false;
+        }
+      }
+
       if (!ops.source) unloadSource();
       automaticQuality = ops.automaticQuality;
       preferenceQuality = ops.preferredQuality;
@@ -803,9 +902,13 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       source = ops.source;
       emit("loading", true);
       startAt = ops.startAt;
-      // Autoplay after the stream is ready (resume + fresh starts), when enabled
-      shouldAutoplayAfterLoad =
-        usePreferencesStore.getState().enableAutoplay !== false;
+      if (hadActiveSource && ops.source) {
+        shouldAutoplayAfterLoad = wasPlaying;
+      } else {
+        // Fresh start / resume: honor autoplay preference
+        shouldAutoplayAfterLoad =
+          usePreferencesStore.getState().enableAutoplay !== false;
+      }
       setSource();
     },
     changeQuality(newAutomaticQuality, newPreferredQuality) {
@@ -816,14 +919,38 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         clearTimeout(qualityChangeTimeout);
         qualityChangeTimeout = null;
       }
+      qualitySwitchCleanup?.();
+      qualitySwitchCleanup = null;
 
       automaticQuality = newAutomaticQuality;
       preferenceQuality = newPreferredQuality;
 
+      // Freeze playback until the new level is ready — switching while playing
+      // causes stutter / double-decode weirdness.
+      pauseForQualitySwitch();
+
       // Debounce quality changes to prevent rapid switching issues
       qualityChangeTimeout = setTimeout(() => {
-        setupQualityForHls();
         qualityChangeTimeout = null;
+        if (!hls || !videoElement) {
+          resumeAfterQualitySwitch();
+          return;
+        }
+
+        const previousLevel = hls.currentLevel;
+        setupQualityForHls();
+
+        // Manual pick landed on the same level — nothing to wait for.
+        if (
+          !automaticQuality &&
+          previousLevel !== -1 &&
+          hls.currentLevel === previousLevel
+        ) {
+          resumeAfterQualitySwitch();
+          return;
+        }
+
+        waitForQualitySwitchReady();
       }, 100); // 100ms debounce delay
     },
 
