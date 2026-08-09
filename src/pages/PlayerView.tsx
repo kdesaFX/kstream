@@ -28,18 +28,32 @@ import { ScrapeErrorPart } from "@/pages/parts/player/ScrapeErrorPart";
 import { ScrapingPart } from "@/pages/parts/player/ScrapingPart";
 import { SourceSelectPart } from "@/pages/parts/player/SourceSelectPart";
 import { useLastNonPlayerLink } from "@/stores/history";
-import { PlayerMeta, playerStatus } from "@/stores/player/slices/source";
+import { PlayerMeta, getMediaKey, playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import {
   pickPreferredAudioStream,
   streamsToAudioOptions,
 } from "@/stores/player/utils/audioStreams";
+import { discoverAlternateAudioLanguages } from "@/stores/player/utils/discoverAlternateAudio";
 import { usePreferencesStore } from "@/stores/preferences";
 import { getProgressPercentage, useProgressStore } from "@/stores/progress";
 import { needsOnboarding } from "@/utils/hosting/onboarding";
 import { parseTimestamp } from "@/utils/format/timestamp";
 
 import { BlurEllipsis } from "./layouts/SubPageLayout";
+
+function startAlternateAudioDiscovery(
+  media: Parameters<typeof discoverAlternateAudioLanguages>[0]["media"],
+  sourceId: string,
+) {
+  const mediaKey = getMediaKey(usePlayerStore.getState().meta);
+  if (!mediaKey) return;
+  void discoverAlternateAudioLanguages({
+    media,
+    mediaKey,
+    skipSourceId: sourceId,
+  });
+}
 
 export function RealPlayerView() {
   const navigate = useNavigate();
@@ -256,6 +270,10 @@ export function RealPlayerView() {
         );
       }
       setShouldStartFromBeginning(false);
+
+      if (scrapeMedia) {
+        startAlternateAudioDiscovery(scrapeMedia, out.sourceId);
+      }
     },
     [
       playMedia,
@@ -265,6 +283,7 @@ export function RealPlayerView() {
       preferredAudioLanguage,
       enableLastSuccessfulSource,
       rememberSuccessfulSource,
+      scrapeMedia,
     ],
   );
 

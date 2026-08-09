@@ -85,6 +85,17 @@ export function SettingsMenu({ id }: { id: string }) {
         t("player.menus.subtitles.unknownLanguage")
       );
     }
+    if (source?.audioLabel?.trim()) return source.audioLabel.trim();
+    if (source?.audioLanguage?.trim()) {
+      return (
+        getPrettyLanguageNameFromLocale(source.audioLanguage) ??
+        (source.audioLanguage === "es"
+          ? "Spanish"
+          : source.audioLanguage === "en"
+            ? "English"
+            : source.audioLanguage.toUpperCase())
+      );
+    }
     return undefined;
   })();
 
@@ -95,6 +106,7 @@ export function SettingsMenu({ id }: { id: string }) {
     if (streamOpt?.language) return audioFlagCode(streamOpt.language);
     if (currentAudioTrack?.language)
       return audioFlagCode(currentAudioTrack.language);
+    if (source?.audioLanguage) return audioFlagCode(source.audioLanguage);
     return undefined;
   })();
 

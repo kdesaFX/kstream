@@ -46,7 +46,9 @@ export function streamToAudioOption(
       ? "Japanese"
       : language === "en"
         ? "English"
-        : language.toUpperCase());
+        : language === "es"
+          ? "Spanish"
+          : language.toUpperCase());
 
   return {
     id: `${sourceId}:${embedId ?? "direct"}:${stream.id}:${language}`,

@@ -503,11 +503,13 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
         s.audioStreamOptions,
         options,
       );
-      if (!s.currentAudioStreamId && s.source?.audioLanguage) {
-        const match = s.audioStreamOptions.find(
-          (o) => o.language === s.source?.audioLanguage,
-        );
-        s.currentAudioStreamId = match?.id ?? null;
+      if (!s.currentAudioStreamId) {
+        const lang = s.source?.audioLanguage?.trim();
+        const match = lang
+          ? s.audioStreamOptions.find((o) => o.language === lang)
+          : undefined;
+        s.currentAudioStreamId =
+          match?.id ?? s.audioStreamOptions[0]?.id ?? null;
       }
     });
   },

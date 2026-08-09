@@ -15,12 +15,16 @@ import { getProviders } from "@/backend/providers/providers";
 import { convertProviderCaption } from "@/components/player/utils/captions";
 import { convertRunoutputToSource } from "@/components/player/utils/convertRunoutputToSource";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
-import { metaToScrapeMedia } from "@/stores/player/slices/source";
+import {
+  getMediaKey,
+  metaToScrapeMedia,
+} from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import {
   pickPreferredAudioStream,
   streamsToAudioOptions,
 } from "@/stores/player/utils/audioStreams";
+import { discoverAlternateAudioLanguages } from "@/stores/player/utils/discoverAlternateAudio";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
 
@@ -35,6 +39,18 @@ function getSavedProgress(items: Record<string, any>, meta: any): number {
   const ep = item.episodes[meta.episode?.tmdbId ?? ""];
   if (!ep) return 0;
   return ep.progress.watched;
+}
+
+function startAlternateAudioDiscovery(sourceId: string) {
+  const store = usePlayerStore.getState();
+  if (!store.meta) return;
+  const mediaKey = getMediaKey(store.meta);
+  if (!mediaKey) return;
+  void discoverAlternateAudioLanguages({
+    media: metaToScrapeMedia(store.meta),
+    mediaKey,
+    skipSourceId: sourceId,
+  });
 }
 
 export function useEmbedScraping(
@@ -110,6 +126,7 @@ export function useEmbedScraping(
       rememberSuccessfulSource(meta.tmdbId, sourceId);
     }
     router.close();
+    startAlternateAudioDiscovery(sourceId);
   }, [
     embedId,
     sourceId,
@@ -197,6 +214,7 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
         rememberSuccessfulSource(meta.tmdbId, sourceId);
       }
       router.close();
+      startAlternateAudioDiscovery(sourceId);
       return null;
     }
     if (result.embeds.length === 1) {
@@ -258,6 +276,7 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
         rememberSuccessfulSource(meta.tmdbId, sourceId);
       }
       router.close();
+      startAlternateAudioDiscovery(sourceId);
     }
     return result.embeds;
   }, [
