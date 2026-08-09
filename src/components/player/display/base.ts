@@ -230,6 +230,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         const exceptions = [
           "Failed to execute 'appendBuffer' on 'SourceBuffer': This SourceBuffer has been removed from the parent media source.",
         ];
+        let mediaRecoveryAttempts = 0;
         hls?.on(Hls.Events.ERROR, (event, data) => {
           console.error("HLS error", data);
 
@@ -258,6 +259,48 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             type: data.type,
             url: (data as any).url,
           };
+
+          // LookMovie/AES CDNs sometimes return an empty/corrupt TS segment.
+          // Skip past it instead of killing the whole playback session.
+          if (
+            data.fatal &&
+            hls &&
+            (data.details === "fragParsingError" ||
+              data.details === Hls.ErrorDetails.FRAG_PARSING_ERROR)
+          ) {
+            const frag = data.frag;
+            if (frag && typeof frag.start === "number") {
+              const skipTo = frag.start + (frag.duration || 2) + 0.05;
+              console.warn(
+                "[hls] skipping unreadable fragment",
+                frag.sn,
+                "→",
+                skipTo,
+              );
+              try {
+                hls.startLoad(skipTo);
+                return;
+              } catch (err) {
+                console.warn("[hls] fragment skip failed", err);
+              }
+            }
+          }
+
+          if (
+            data.fatal &&
+            hls &&
+            data.type === Hls.ErrorTypes.MEDIA_ERROR &&
+            mediaRecoveryAttempts < 2
+          ) {
+            mediaRecoveryAttempts += 1;
+            console.warn("[hls] attempting media error recovery", mediaRecoveryAttempts);
+            try {
+              hls.recoverMediaError();
+              return;
+            } catch (err) {
+              console.warn("[hls] media recovery failed", err);
+            }
+          }
 
           if (
             data.fatal &&
@@ -290,10 +333,24 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
           if (isExtensionActiveCached()) {
             hls.on(Hls.Events.LEVEL_LOADED, async (_, data) => {
-              const chunkUrlsDomains = data.details.fragments.map(
-                (v) => new URL(v.url).hostname,
-              );
-              const chunkUrls = [...new Set(chunkUrlsDomains)];
+              const hosts: string[] = [];
+              for (const frag of data.details.fragments) {
+                try {
+                  hosts.push(new URL(frag.url).hostname);
+                } catch {
+                  // ignore
+                }
+                const keyUri = (frag as { decryptdata?: { uri?: string } })
+                  .decryptdata?.uri;
+                if (keyUri) {
+                  try {
+                    hosts.push(new URL(keyUri, data.details.url).hostname);
+                  } catch {
+                    // ignore
+                  }
+                }
+              }
+              const chunkUrls = [...new Set(hosts)];
 
               await setDomainRule({
                 ruleId: RULE_IDS.SET_DOMAINS_HLS,
