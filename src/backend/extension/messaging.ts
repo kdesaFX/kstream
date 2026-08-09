@@ -12,6 +12,22 @@ export const RULE_IDS = {
   SET_DOMAINS_HLS_AUDIO: 3,
 };
 
+declare global {
+  interface Window {
+    __PSTREAM_DESKTOP__?: boolean;
+    __KSTREAM_DESKTOP_IPC__?: {
+      invoke: (name: string, body?: unknown) => Promise<any>;
+    };
+  }
+}
+
+function isDesktopApp(): boolean {
+  return Boolean(
+    typeof window !== "undefined" &&
+      (window.__PSTREAM_DESKTOP__ || window.__KSTREAM_DESKTOP_IPC__),
+  );
+}
+
 // for some reason, about 500 ms is needed after
 // page load before the extension starts responding properly
 const isExtensionReady = new Promise<void>((resolve) => {
@@ -27,6 +43,18 @@ async function sendMessage<MessageKey extends keyof MessagesMetadata>(
   payload: MessagesMetadata[MessageKey]["req"] | undefined = undefined,
   timeout: number = -1,
 ) {
+  // Desktop: call Electron main directly — do not depend on Plasmo postMessage relay.
+  if (typeof window !== "undefined" && window.__KSTREAM_DESKTOP_IPC__?.invoke) {
+    try {
+      const res = await window.__KSTREAM_DESKTOP_IPC__.invoke(message, payload);
+      activeExtension = true;
+      return res as MessagesMetadata[MessageKey]["res"];
+    } catch {
+      activeExtension = false;
+      return null;
+    }
+  }
+
   await isExtensionReady;
   return new Promise<MessagesMetadata[MessageKey]["res"] | null>((resolve) => {
     if (timeout >= 0) setTimeout(() => resolve(null), timeout);
@@ -74,10 +102,13 @@ export async function extensionInfo(): Promise<
 }
 
 export function isExtensionActiveCached(): boolean {
+  // Desktop embeds the extension bridge — treat as always active.
+  if (isDesktopApp()) return true;
   return activeExtension;
 }
 
 export async function isExtensionActive(): Promise<boolean> {
+  if (isDesktopApp()) return true;
   const info = await extensionInfo();
   if (!info?.success) return false;
   const allowedVersion = isAllowedExtensionVersion(info.version);

@@ -2,6 +2,9 @@
 declare global {
   interface Window {
     __PSTREAM_DESKTOP__?: boolean;
+    __KSTREAM_DESKTOP_IPC__?: {
+      invoke: (name: string, body?: unknown) => Promise<unknown>;
+    };
     desktopApi?: {
       startDownload(data: {
         url: string;
@@ -18,5 +21,5 @@ declare global {
 }
 
 export function useIsDesktopApp(): boolean {
-  return Boolean(window.__PSTREAM_DESKTOP__);
+  return Boolean(window.__PSTREAM_DESKTOP__ || window.__KSTREAM_DESKTOP_IPC__);
 }
