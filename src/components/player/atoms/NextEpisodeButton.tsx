@@ -111,6 +111,9 @@ export function NextEpisodeButton(props: {
   const rememberSuccessfulSource = usePreferencesStore(
     (s) => s.rememberSuccessfulSource,
   );
+  const enableLastSuccessfulSource = usePreferencesStore(
+    (s) => s.enableLastSuccessfulSource,
+  );
   const timeBasedState = shouldShowNextEpisodeButton(time, duration);
   const showingState = props.forceShow ? "always" : timeBasedState;
   const status = usePlayerStore((s) => s.status);
@@ -156,7 +159,7 @@ export function NextEpisodeButton(props: {
     if (!meta || !nextEp) return;
 
     // Remember the source that worked for this title
-    if (sourceId) {
+    if (sourceId && enableLastSuccessfulSource) {
       rememberSuccessfulSource(meta.tmdbId, sourceId);
     }
 
@@ -188,6 +191,7 @@ export function NextEpisodeButton(props: {
     nextSeason,
     sourceId,
     rememberSuccessfulSource,
+    enableLastSuccessfulSource,
   ]);
 
   const startCurrentEpisodeFromBeginning = useCallback(() => {

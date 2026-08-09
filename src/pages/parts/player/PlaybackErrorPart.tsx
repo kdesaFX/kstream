@@ -79,10 +79,15 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
 
       if (!hasOpenedSettings.current && (!enableAutoResumeOnPlaybackError || props.autoResumeExhausted)) {
         hasOpenedSettings.current = true;
-        // Forget preferred source for this title so the next try can move on
-        setLastSuccessfulSource(null);
+        // Forget this title's pin so the next try can move on.
+        // Only clear the global fallback if it was the source that just failed.
         if (meta?.tmdbId) {
           clearPreferredSourceForTitle(meta.tmdbId);
+        }
+        const lastSuccessfulSource =
+          usePreferencesStore.getState().lastSuccessfulSource;
+        if (currentSourceId && lastSuccessfulSource === currentSourceId) {
+          setLastSuccessfulSource(null);
         }
         settingsRouter.open();
         settingsRouter.navigate("/source");

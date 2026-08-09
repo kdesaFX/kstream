@@ -255,8 +255,9 @@ export function useScrape() {
       }
 
       // Prefer the source that worked for this title; fall back to last global.
-      // If it fails, runAll continues through the rest of the order.
-      if (enableLastSuccessfulSource && !startFromSourceId) {
+      // Always apply the same pin for full scrapes AND Find-next/resume slices so
+      // resume walks the same ordered list that produced the current source.
+      if (enableLastSuccessfulSource) {
         const prioritizeSource = getPreferredSourceForTitle(
           preferredSourceByTitle,
           media.tmdbId,

@@ -24,13 +24,16 @@ export function SkipEpisodeButton(props: SkipEpisodeButtonProps) {
   const rememberSuccessfulSource = usePreferencesStore(
     (s) => s.rememberSuccessfulSource,
   );
+  const enableLastSuccessfulSource = usePreferencesStore(
+    (s) => s.enableLastSuccessfulSource,
+  );
   const nextEp = meta?.episodes?.find(
     (v) => v.number === (meta?.episode?.number ?? 0) + 1,
   );
 
   const loadNextEpisode = useCallback(() => {
     if (!meta || !nextEp) return;
-    if (sourceId) {
+    if (sourceId && enableLastSuccessfulSource) {
       rememberSuccessfulSource(meta.tmdbId, sourceId);
     }
     const metaCopy = { ...meta };
@@ -52,6 +55,7 @@ export function SkipEpisodeButton(props: SkipEpisodeButtonProps) {
     updateItem,
     sourceId,
     rememberSuccessfulSource,
+    enableLastSuccessfulSource,
   ]);
 
   // Don't show button if not in control, not a show, or no next episode

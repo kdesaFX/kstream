@@ -40,6 +40,9 @@ export function KeyboardEvents() {
   const rememberSuccessfulSource = usePreferencesStore(
     (s) => s.rememberSuccessfulSource,
   );
+  const enableLastSuccessfulSource = usePreferencesStore(
+    (s) => s.enableLastSuccessfulSource,
+  );
 
   const { toggleLastUsed, selectRandomCaptionFromLastUsedLanguage } =
     useCaptions();
@@ -102,7 +105,7 @@ export function KeyboardEvents() {
         (v) => v.number === meta.episode!.number + 1,
       );
       if (nextEp) {
-        if (sourceId) {
+        if (sourceId && enableLastSuccessfulSource) {
           rememberSuccessfulSource(meta.tmdbId, sourceId);
         }
         const metaCopy = { ...meta };
@@ -152,7 +155,7 @@ export function KeyboardEvents() {
             if (nextSeasonEpisodes.length > 0) {
               const nextEp = nextSeasonEpisodes[0];
 
-              if (sourceId) {
+              if (sourceId && enableLastSuccessfulSource) {
                 rememberSuccessfulSource(meta.tmdbId, sourceId);
               }
 
@@ -185,6 +188,7 @@ export function KeyboardEvents() {
     updateItem,
     sourceId,
     rememberSuccessfulSource,
+    enableLastSuccessfulSource,
   ]);
 
   const navigateToPreviousEpisode = useCallback(async () => {
@@ -199,7 +203,7 @@ export function KeyboardEvents() {
         (v) => v.number === meta.episode!.number - 1,
       );
       if (prevEp) {
-        if (sourceId) {
+        if (sourceId && enableLastSuccessfulSource) {
           rememberSuccessfulSource(meta.tmdbId, sourceId);
         }
         const metaCopy = { ...meta };
@@ -249,7 +253,7 @@ export function KeyboardEvents() {
             if (prevSeasonEpisodes.length > 0) {
               const prevEp = prevSeasonEpisodes[prevSeasonEpisodes.length - 1];
 
-              if (sourceId) {
+              if (sourceId && enableLastSuccessfulSource) {
                 rememberSuccessfulSource(meta.tmdbId, sourceId);
               }
 
@@ -282,6 +286,7 @@ export function KeyboardEvents() {
     updateItem,
     sourceId,
     rememberSuccessfulSource,
+    enableLastSuccessfulSource,
   ]);
 
   const dataRef = useRef({
