@@ -3,7 +3,7 @@ declare global {
   interface Window {
     __PSTREAM_DESKTOP__?: boolean;
     __KSTREAM_DESKTOP_IPC__?: {
-      invoke: (name: string, body?: unknown) => Promise<unknown>;
+      invoke: (name: string, body?: unknown) => Promise<any>;
     };
     desktopApi?: {
       startDownload(data: {
