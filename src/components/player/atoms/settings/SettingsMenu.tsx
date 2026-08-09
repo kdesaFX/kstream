@@ -85,7 +85,16 @@ export function SettingsMenu({ id }: { id: string }) {
         t("player.menus.subtitles.unknownLanguage")
       );
     }
-    if (source?.audioLabel?.trim()) return source.audioLabel.trim();
+    if (source?.audioLabel?.trim()) {
+      const raw = source.audioLabel.trim();
+      if (
+        source.audioLanguage === "es" ||
+        /^spanish\b/i.test(raw)
+      ) {
+        return "Spanish";
+      }
+      return raw;
+    }
     if (source?.audioLanguage?.trim()) {
       return (
         getPrettyLanguageNameFromLocale(source.audioLanguage) ??

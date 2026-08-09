@@ -67,10 +67,6 @@ export function AudioView({ id }: { id: string }) {
   const hasStreamOptions = audioStreamOptions.length > 1;
   const hasHlsTracks = audioTracks.length > 1;
 
-  const streamSectionTitle = useMemo(
-    () => t("player.menus.audio.streamLanguages", "Audio language"),
-    [t],
-  );
   const trackSectionTitle = useMemo(
     () => t("player.menus.audio.trackLanguages", "Audio tracks"),
     [t],
@@ -79,12 +75,9 @@ export function AudioView({ id }: { id: string }) {
   return (
     <>
       <Menu.BackLink onClick={() => router.navigate("/")}>Audio</Menu.BackLink>
-      <Menu.Section className="flex flex-col pb-4 !pt-2">
+      <Menu.Section className="flex flex-col pb-4 !pt-0">
         {hasStreamOptions && (
           <>
-            <Menu.SectionTitle className="!pt-0 mb-1">
-              {streamSectionTitle}
-            </Menu.SectionTitle>
             {audioStreamOptions.map((opt) => (
               <AudioOption
                 key={opt.id}

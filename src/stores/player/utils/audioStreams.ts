@@ -50,10 +50,14 @@ export function streamToAudioOption(
           ? "Spanish"
           : language.toUpperCase());
 
+  // Latino / Castellano are both just Spanish in the chooser
+  const displayLabel =
+    language === "es" || /^spanish\b/i.test(label) ? "Spanish" : label;
+
   return {
     id: `${sourceId}:${embedId ?? "direct"}:${stream.id}:${language}`,
     language,
-    label,
+    label: displayLabel,
     sourceId,
     embedId: embedId ?? null,
     source: convertRunoutputToSource({ stream }),
