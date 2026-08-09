@@ -265,8 +265,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           if (
             data.fatal &&
             hls &&
-            (data.details === "fragParsingError" ||
-              data.details === Hls.ErrorDetails.FRAG_PARSING_ERROR)
+            // String form — enum constant not present on all hls.js typings.
+            data.details === "fragParsingError"
           ) {
             const frag = data.frag;
             if (frag && typeof frag.start === "number") {
