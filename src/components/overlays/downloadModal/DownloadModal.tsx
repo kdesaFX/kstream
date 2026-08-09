@@ -1,8 +1,9 @@
 import { Icon, Icons } from "@/components/Icon";
 import { FancyModal } from "@/components/overlays/Modal";
-
-const WINDOWS_APP_DOWNLOAD_URL =
-  "https://github.com/kdesaFX/kstream-desktop/releases/latest/download/kstream-Setup.exe";
+import {
+  WINDOWS_APP_DOWNLOAD_FILENAME,
+  WINDOWS_APP_DOWNLOAD_PATH,
+} from "@/utils/downloadWindowsApp";
 
 export function DownloadModal({ id }: { id: string }) {
   return (
@@ -12,12 +13,12 @@ export function DownloadModal({ id }: { id: string }) {
           Take kstream with you. Get the Windows app below.
         </p>
 
-        <button
-          type="button"
-          onClick={() => window.open(WINDOWS_APP_DOWNLOAD_URL, "_blank")}
-          className="group w-full rounded-2xl bg-modal-background/60 hover:bg-modal-background/80 transition-colors border border-utils-divider/40 hover:border-white/10 p-4 text-left"
+        <a
+          href={WINDOWS_APP_DOWNLOAD_PATH}
+          download={WINDOWS_APP_DOWNLOAD_FILENAME}
+          className="group flex w-full rounded-2xl bg-modal-background/60 hover:bg-modal-background/80 transition-colors border border-utils-divider/40 hover:border-white/10 p-4 text-left no-underline"
         >
-          <div className="flex items-center gap-4">
+          <div className="flex w-full items-center gap-4">
             <span className="flex shrink-0 items-center justify-center h-11 w-11 rounded-xl text-xl bg-buttons-purple/20 text-buttons-purple border border-buttons-purple/30">
               <Icon icon={Icons.DOWNLOAD} />
             </span>
@@ -35,7 +36,7 @@ export function DownloadModal({ id }: { id: string }) {
               />
             </span>
           </div>
-        </button>
+        </a>
       </div>
     </FancyModal>
   );

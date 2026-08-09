@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "/download/kstream-Setup.exe",
+      "destination": "https://github.com/kdesaFX/kstream-desktop/releases/latest/download/kstream-Setup.exe",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

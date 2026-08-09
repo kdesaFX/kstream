@@ -1,11 +1,9 @@
 import { ReactNode } from "react";
 
 import { PageTitle } from "@/pages/parts/util/PageTitle";
+import { downloadWindowsApp } from "@/utils/downloadWindowsApp";
 
 import { SubPageLayout } from "./layouts/SubPageLayout";
-
-const WINDOWS_APP_DOWNLOAD_URL =
-  "https://github.com/kdesaFX/kstream-desktop/releases/latest/download/kstream-Setup.exe";
 
 function WindowsGlyph(props: { className?: string }) {
   return (
@@ -98,7 +96,7 @@ export function AppsPage() {
       "system tray and close-to-tray",
     ],
     cta: "download for Windows",
-    onClick: () => window.open(WINDOWS_APP_DOWNLOAD_URL, "_blank"),
+    onClick: () => downloadWindowsApp(),
   };
 
   return (
