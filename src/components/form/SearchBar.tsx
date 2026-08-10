@@ -73,7 +73,9 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
               onChange={(val) => setSearch(val)}
               value={props.value}
               className={c(
-                "w-full flex-1 bg-transparent !text-search-text focus:outline-none pr-2 placeholder-search-placeholder",
+                "w-full flex-1 bg-transparent !text-search-text focus:outline-none pr-2",
+                // Near-white placeholder so it stays readable on dark pill backgrounds
+                "placeholder:text-white/70",
                 props.compact
                   ? "px-3 py-2 pl-10 text-sm"
                   : "px-4 py-4 pl-12 text-base",

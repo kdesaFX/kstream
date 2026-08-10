@@ -169,8 +169,8 @@ export default createTheme({
         background: tokens.shade.c500,
         hoverBackground: tokens.shade.c600,
         focused: tokens.shade.c400,
-        placeholder: tokens.shade.c100,
-        icon: tokens.shade.c100,
+        placeholder: "hsla(0, 0%, 78%, 1)",
+        icon: tokens.shade.c50,
         text: tokens.white,
       },
 
