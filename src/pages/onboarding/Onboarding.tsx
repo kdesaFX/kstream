@@ -57,7 +57,13 @@ export function OnboardingPage() {
   const { t } = useTranslation();
   const noProxies = getProxyUrls().length === 0;
 
-  const isFebboxSetup = usePreferencesStore((s) => s.febboxKey) !== "";
+  const febboxKey = usePreferencesStore((s) => s.febboxKey);
+  const setFebboxKey = usePreferencesStore((s) => s.setFebboxKey);
+  const debridToken = usePreferencesStore((s) => s.debridToken);
+  const setdebridToken = usePreferencesStore((s) => s.setdebridToken);
+  const debridService = usePreferencesStore((s) => s.debridService);
+  const setdebridService = usePreferencesStore((s) => s.setdebridService);
+  const isFebboxSetup = febboxKey !== "";
 
   // Mobile can't install the extension — finish with default setup immediately.
   useEffect(() => {
@@ -285,17 +291,17 @@ export function OnboardingPage() {
         )}
         <div className="mt-6">
           <FebboxSetup
-            febboxKey={usePreferencesStore((s) => s.febboxKey)}
-            setFebboxKey={usePreferencesStore((s) => s.setFebboxKey)}
+            febboxKey={febboxKey}
+            setFebboxKey={setFebboxKey}
             mode="onboarding"
           />
         </div>
         <div className="mt-6">
           <DebridEdit
-            debridToken={usePreferencesStore((s) => s.debridToken)}
-            setdebridToken={usePreferencesStore((s) => s.setdebridToken)}
-            debridService={usePreferencesStore((s) => s.debridService)}
-            setdebridService={usePreferencesStore((s) => s.setdebridService)}
+            debridToken={debridToken}
+            setdebridToken={setdebridToken}
+            debridService={debridService}
+            setdebridService={setdebridService}
             mode="onboarding"
           />
         </div>
