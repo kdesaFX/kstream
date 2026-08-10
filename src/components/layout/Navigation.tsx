@@ -284,8 +284,8 @@ export function Navigation(props: NavigationProps) {
                     navigation
                     className={
                       isMobile
-                        ? "[&>div]:!h-10 [&>div]:!w-10 [&>div]:!text-xl"
-                        : "[&>div]:!h-[2.67rem] [&>div]:!w-[2.67rem] [&>div]:!text-[2rem]"
+                        ? "[&>div]:!h-10 [&>div]:!w-10 [&>div]:!text-base"
+                        : "[&>div]:!h-[2.67rem] [&>div]:!w-[2.67rem] [&>div]:!text-lg"
                     }
                   />
                   {(() => {
