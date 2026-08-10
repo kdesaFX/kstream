@@ -128,11 +128,92 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let lastValidTime = 0; // Store the last valid time to prevent reset during source switches
   let shouldAutoplayAfterLoad = false; // Flag to track if we should autoplay after loading completes
   let qualityChangeTimeout: NodeJS.Timeout | null = null; // Timeout for debouncing rapid quality changes
+  let autoplayUnstickTimer: ReturnType<typeof setTimeout> | null = null;
 
   const languagePromises = new Map<
     string,
     (value: void | PromiseLike<void>) => void
   >();
+
+  function isMobileBrowser(): boolean {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent;
+    if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return true;
+    return ua.includes("Mac") && "ontouchend" in document;
+  }
+
+  /**
+   * Browsers block unmuted autoplay after async scrapes (gesture is gone).
+   * Try normal play, then muted→unmute fallback so playback still starts.
+   */
+  function tryAutoplay() {
+    if (!shouldAutoplayAfterLoad || !videoElement) return;
+
+    const markPlaying = () => {
+      shouldAutoplayAfterLoad = false;
+      if (autoplayUnstickTimer) {
+        clearTimeout(autoplayUnstickTimer);
+        autoplayUnstickTimer = null;
+      }
+      emit("loading", false);
+    };
+
+    const giveUpForUserGesture = () => {
+      emit("pause", undefined);
+      emit("loading", false);
+    };
+
+    const restoreAudio = () => {
+      if (!videoElement) return;
+      videoElement.muted = lastVolume === 0;
+      if (lastVolume > 0) {
+        videoElement.volume = lastVolume;
+      }
+      emit("volumechange", lastVolume === 0 ? 0 : lastVolume);
+    };
+
+    const playMutedFallback = () => {
+      if (!videoElement) return;
+      videoElement.muted = true;
+      const mutedPlay = videoElement.play();
+      if (mutedPlay === undefined) {
+        restoreAudio();
+        giveUpForUserGesture();
+        return;
+      }
+      mutedPlay
+        .then(() => {
+          markPlaying();
+          // Unmute after playback has started — usually allowed once playing.
+          try {
+            restoreAudio();
+          } catch {
+            // leave muted; user can unmute
+          }
+        })
+        .catch(() => {
+          restoreAudio();
+          giveUpForUserGesture();
+        });
+    };
+
+    const playPromise = videoElement.play();
+    if (playPromise === undefined) {
+      markPlaying();
+      return;
+    }
+
+    playPromise.then(markPlaying).catch((err: unknown) => {
+      const name = err && typeof err === "object" && "name" in err
+        ? String((err as { name: string }).name)
+        : "";
+      if (name === "NotAllowedError") {
+        playMutedFallback();
+        return;
+      }
+      // AbortError / not ready yet — keep shouldAutoplayAfterLoad and retry on canplay.
+    });
+  }
 
   function reportLevels() {
     if (!hls) return;
@@ -451,6 +532,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           setupQualityForHls();
           reportAudioTracks();
           hls.startLoad();
+          // Start playback once the manifest is ready (gesture is already gone).
+          tryAutoplay();
         });
         hls.on(Hls.Events.MANIFEST_LOADED, () => {
           if (!hls) return;
@@ -564,26 +647,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   function setSource() {
     if (!videoElement || !source) return;
     setupSource(videoElement, source);
-
-    const tryAutoplay = () => {
-      if (!shouldAutoplayAfterLoad || !videoElement) return;
-      const playPromise = videoElement.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            shouldAutoplayAfterLoad = false;
-            emit("loading", false);
-          })
-          .catch(() => {
-            // Autoplay blocked (common on mobile). Unstick UI so play is tappable.
-            emit("pause", undefined);
-            emit("loading", false);
-          });
-      } else {
-        shouldAutoplayAfterLoad = false;
-        emit("loading", false);
-      }
-    };
 
     videoElement.addEventListener("play", () => {
       emit("play", undefined);
@@ -962,14 +1025,21 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       }
       setSource();
 
-      // Mobile native HLS can sit in loading forever without canplay.
-      // Unstick the UI so the center play control is available.
-      window.setTimeout(() => {
-        if (!shouldAutoplayAfterLoad) return;
-        if (!videoElement || !videoElement.paused) return;
-        emit("pause", undefined);
-        emit("loading", false);
-      }, 2500);
+      // Mobile native HLS can sit paused without canplay — unstick UI only there.
+      if (autoplayUnstickTimer) clearTimeout(autoplayUnstickTimer);
+      if (isMobileBrowser()) {
+        autoplayUnstickTimer = setTimeout(() => {
+          autoplayUnstickTimer = null;
+          if (!shouldAutoplayAfterLoad) return;
+          if (!videoElement || !videoElement.paused) return;
+          tryAutoplay();
+          // If still blocked after fallback, show the play control.
+          if (shouldAutoplayAfterLoad && videoElement?.paused) {
+            emit("pause", undefined);
+            emit("loading", false);
+          }
+        }, 2500);
+      }
     },
     changeQuality(newAutomaticQuality, newPreferredQuality) {
       if (source?.type !== "hls") return;
