@@ -38,14 +38,14 @@ function HomeLayoutCustomizerToggle() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`group flex items-center h-8 md:h-[2.67rem] rounded-full transition-all duration-300 ease-out overflow-hidden ${
+        className={`group flex items-center h-10 md:h-[2.67rem] rounded-full transition-all duration-300 ease-out overflow-hidden ${
           isOpen
             ? "bg-type-link text-white shadow-lg pr-4"
             : "bg-pill-background bg-opacity-50 text-white hover:bg-pill-backgroundHover hover:bg-opacity-100 hover:pr-4 active:scale-105"
         }`}
         title="Edit Layout"
       >
-        <div className="flex items-center justify-center w-8 h-8 md:w-[2.67rem] md:h-[2.67rem] shrink-0">
+        <div className="flex items-center justify-center w-10 h-10 md:w-[2.67rem] md:h-[2.67rem] shrink-0">
           <Icon icon={Icons.LAYOUT} className="text-xl md:text-2xl" />
         </div>
         <span
@@ -224,14 +224,14 @@ export function Navigation(props: NavigationProps) {
         }}
       >
         <div className={classNames("fixed left-0 right-0 flex items-center")}>
-          <div className="px-2 ssm:px-7 py-4 md:py-5 relative z-[60] flex flex-1 items-center gap-2 ssm:gap-3">
+          <div className="px-2 ssm:px-7 py-3 md:py-5 relative z-[60] flex flex-1 items-center gap-1.5 ssm:gap-2 md:gap-3">
             {/*
-              Viewport-centered search: left/right stay on the edges; side
-              clearance keeps the bar from colliding with either cluster.
+              Desktop: search is absolutely viewport-centered.
+              Mobile: search stays in the flex row so everything shares one baseline.
             */}
             {props.showSearch ? (
               <div
-                className="pointer-events-none absolute top-1/2 left-1/2 z-[55] -translate-x-1/2 -translate-y-1/2"
+                className="pointer-events-none absolute top-1/2 left-1/2 z-[55] hidden w-full -translate-x-1/2 -translate-y-1/2 md:block"
                 style={{
                   width: `min(48rem, calc(100% - ${
                     Math.max(leftWidth, rightWidth, 72) * 2 + 32
@@ -246,7 +246,7 @@ export function Navigation(props: NavigationProps) {
 
             <div
               ref={leftRef}
-              className="relative z-[60] flex items-center gap-2 md:gap-3 pointer-events-auto shrink-0"
+              className="relative z-[60] flex items-center gap-1.5 ssm:gap-2 md:gap-3 pointer-events-auto shrink-0"
             >
               <Link
                 className="block tabbable rounded-full text-xs ssm:text-base"
@@ -255,7 +255,7 @@ export function Navigation(props: NavigationProps) {
               >
                 <BrandPill clickable header />
               </Link>
-              <div className="flex items-center gap-2 md:gap-3">
+              <div className="flex items-center gap-1.5 ssm:gap-2 md:gap-3">
                 {showDownload ? (
                   <button
                     type="button"
@@ -276,7 +276,7 @@ export function Navigation(props: NavigationProps) {
                 <a
                   onClick={() => openNotifications()}
                   rel="noreferrer"
-                  className="text-white tabbable rounded-full backdrop-blur-lg relative flex h-8 w-8 md:h-[2.67rem] md:w-[2.67rem] items-center justify-center"
+                  className="text-white tabbable rounded-full backdrop-blur-lg relative flex h-10 w-10 md:h-[2.67rem] md:w-[2.67rem] shrink-0 items-center justify-center"
                 >
                   <IconPatch
                     icon={Icons.BELL}
@@ -284,7 +284,7 @@ export function Navigation(props: NavigationProps) {
                     navigation
                     className={
                       isMobile
-                        ? "[&>div]:!h-8 [&>div]:!w-8 [&>div]:!text-[1.65rem]"
+                        ? "[&>div]:!h-10 [&>div]:!w-10 [&>div]:!text-xl"
                         : "[&>div]:!h-[2.67rem] [&>div]:!w-[2.67rem] [&>div]:!text-[2rem]"
                     }
                   />
@@ -302,7 +302,18 @@ export function Navigation(props: NavigationProps) {
               </div>
             </div>
 
-            <div className="flex-1 min-w-0" aria-hidden />
+            {props.showSearch ? (
+              <>
+                <div className="relative z-[55] min-w-0 flex-1 pointer-events-auto md:hidden">
+                  <NavSearchBar
+                    lightOverHero={Boolean(props.clearBackground)}
+                  />
+                </div>
+                <div className="hidden min-w-0 flex-1 md:block" aria-hidden />
+              </>
+            ) : (
+              <div className="flex-1 min-w-0" aria-hidden />
+            )}
 
             <div
               ref={rightRef}
@@ -315,11 +326,11 @@ export function Navigation(props: NavigationProps) {
                 {loggedIn ? (
                   <UserAvatar
                     withName={!isMobile}
-                    sizeClass="w-8 h-8"
-                    iconClass="text-base"
+                    sizeClass="w-6 h-6 md:w-8 md:h-8"
+                    iconClass="text-sm md:text-base"
                   />
                 ) : (
-                  <NoUserAvatar iconClass="text-2xl" />
+                  <NoUserAvatar iconClass="text-xl md:text-2xl" />
                 )}
               </LinksDropdown>
             </div>

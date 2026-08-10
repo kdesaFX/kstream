@@ -237,8 +237,8 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
         className={classNames(
           "cursor-pointer tabbable rounded-full flex text-white items-center bg-black/25 hover:bg-black/40 border border-white/10 hover:border-white/15 backdrop-blur-md transition-all duration-100 hover:scale-105",
           isMobile
-            ? "h-12 w-12 justify-center p-0"
-            : "h-16 gap-2.5 px-4",
+            ? "h-10 w-10 justify-center p-0"
+            : "h-[2.67rem] gap-2 px-3.5",
           open ? "bg-black/40" : "",
         )}
         tabIndex={0}

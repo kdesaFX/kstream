@@ -13,7 +13,7 @@ export function BrandPill(props: {
       className={classNames(
         "flex items-center gap-2 rounded-full text-type-logo",
         props.header
-          ? "h-8 gap-1.5 px-2 text-sm md:h-[2.67rem] md:gap-2 md:px-3.5 md:text-base"
+          ? "h-10 gap-1.5 px-2.5 text-sm md:h-[2.67rem] md:gap-2 md:px-3.5 md:text-base"
           : "px-4 py-2",
         props.header
           ? "bg-black/55 backdrop-blur-md border border-white/25 shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
