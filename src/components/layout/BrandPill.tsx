@@ -12,8 +12,8 @@ export function BrandPill(props: {
     <div
       className={classNames(
         "flex items-center gap-2 rounded-full py-2 text-type-logo",
-        // Logo-only on small screens to free header space; name from ssm up.
-        props.header ? "px-2.5 ssm:px-4" : "px-4",
+        // Logo-only on phones/tablets; wordmark from md up.
+        props.header ? "px-2.5 md:px-4" : "px-4",
         props.header
           ? "bg-black/25 backdrop-blur-md border border-white/10"
           : props.backgroundClass ??
@@ -31,7 +31,7 @@ export function BrandPill(props: {
         className="h-6 w-6 object-contain"
         draggable={false}
       />
-      <span className="hidden ssm:inline font-semibold text-white">
+      <span className="hidden md:inline font-semibold text-white">
         {t("global.name")}
       </span>
     </div>
