@@ -31,8 +31,8 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
       <div ref={containerRef}>
         <Flare.Base
           className={c(
-            "hover:flare-enabled group flex flex-col rounded-[28px] transition-colors sm:flex-row sm:items-center relative backdrop-blur-lg",
-            props.compact ? "h-10" : "",
+            "hover:flare-enabled group flex flex-col rounded-full transition-colors sm:flex-row sm:items-center relative backdrop-blur-lg",
+            showTooltip ? "min-h-10" : "h-10",
             focused
               ? "bg-pill-background/80"
               : "bg-pill-background/50",
@@ -41,22 +41,17 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
           <Flare.Light
             flareSize={400}
             enabled={focused}
-            className="rounded-[28px]"
+            className="rounded-full"
             backgroundClass={c(
               "transition-colors",
               focused ? "bg-pill-background/80" : "bg-pill-background/50",
             )}
           />
-          <Flare.Child
-            className={c(
-              "flex flex-1 flex-col",
-              props.compact ? "h-full justify-center" : "",
-            )}
-          >
+          <Flare.Child className="flex h-full flex-1 flex-col justify-center">
             <div
               className={c(
                 "absolute bottom-0 top-0 flex items-center text-search-icon cursor-pointer z-10",
-                props.compact ? "left-3" : "left-5",
+                props.compact ? "left-3" : "left-4",
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -79,12 +74,10 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
               onChange={(val) => setSearch(val)}
               value={props.value}
               className={c(
-                "w-full flex-1 bg-transparent !text-search-text focus:outline-none pr-2",
+                "w-full h-10 flex-1 bg-transparent !text-search-text focus:outline-none pr-2 leading-none",
                 // Near-white placeholder so it stays readable on dark pill backgrounds
                 "placeholder:text-white/70",
-                props.compact
-                  ? "h-10 px-3 pl-10 text-sm leading-none"
-                  : "px-4 py-4 pl-12 text-base",
+                props.compact ? "px-3 pl-10 text-sm" : "px-4 pl-11 text-base",
                 "select-none",
               )}
               placeholder={props.placeholder}

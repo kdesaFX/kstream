@@ -66,7 +66,7 @@ function HomeLayoutCustomizerToggle() {
   );
 }
 
-function NavSearchBar(props: { lightOverHero?: boolean }) {
+function NavSearchBar(props: { lightOverHero?: boolean; className?: string }) {
   const { t } = useTranslation();
   const { t: randomT } = useRandomTranslation();
   const [search, setSearch, setSearchUnFocus] = useSearchQuery();
@@ -79,13 +79,7 @@ function NavSearchBar(props: { lightOverHero?: boolean }) {
     : randomT("home.search.placeholder");
 
   return (
-    <div
-      className={classNames(
-        "pointer-events-auto w-full max-w-xl",
-        // No side margin on mobile so parent gap matches logo ↔ notifications.
-        isMobile ? "mx-0" : "mx-4",
-      )}
-    >
+    <div className={classNames("pointer-events-auto w-full max-w-xl", props.className)}>
       <SearchBarInput
         ref={inputRef}
         onChange={setSearch}
@@ -225,9 +219,22 @@ export function Navigation(props: NavigationProps) {
       >
         <div className={classNames("fixed left-0 right-0 flex items-center")}>
           <div className="px-2 ssm:px-7 py-5 relative z-[60] flex flex-1 items-center gap-2 ssm:gap-3">
+            {/*
+              True viewport centering: left/right sit on the edges; search is
+              absolutely centered so unequal side clusters don't shove it right.
+            */}
+            {props.showSearch ? (
+              <div className="pointer-events-none absolute inset-x-2 ssm:inset-x-7 top-0 bottom-0 z-[55] flex items-center justify-center">
+                <NavSearchBar
+                  className="px-2"
+                  lightOverHero={Boolean(props.clearBackground)}
+                />
+              </div>
+            ) : null}
+
             <div
               ref={leftRef}
-              className="flex items-center gap-2 md:gap-3 pointer-events-auto shrink-0"
+              className="relative z-[60] flex items-center gap-2 md:gap-3 pointer-events-auto shrink-0"
             >
               <Link
                 className="block tabbable rounded-full text-xs ssm:text-base"
@@ -257,7 +264,7 @@ export function Navigation(props: NavigationProps) {
                 <a
                   onClick={() => openNotifications()}
                   rel="noreferrer"
-                  className="text-xl text-white tabbable rounded-full backdrop-blur-lg relative flex items-center justify-center"
+                  className="text-xl text-white tabbable rounded-full backdrop-blur-lg relative flex h-10 w-10 items-center justify-center"
                 >
                   <IconPatch
                     icon={Icons.BELL}
@@ -279,17 +286,11 @@ export function Navigation(props: NavigationProps) {
               </div>
             </div>
 
-            {props.showSearch ? (
-              <div className="flex-1 flex justify-center min-w-0">
-                <NavSearchBar lightOverHero={Boolean(props.clearBackground)} />
-              </div>
-            ) : (
-              <div className="flex-1" />
-            )}
+            <div className="flex-1 min-w-0" aria-hidden />
 
             <div
               ref={rightRef}
-              className="relative pointer-events-auto flex items-center gap-3 shrink-0"
+              className="relative z-[60] pointer-events-auto flex items-center gap-3 shrink-0"
             >
               <div className="hidden lg:block">
                 <HomeLayoutCustomizerToggle />

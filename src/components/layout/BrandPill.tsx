@@ -11,9 +11,8 @@ export function BrandPill(props: {
   return (
     <div
       className={classNames(
-        "flex items-center gap-2 rounded-full py-2 text-type-logo",
-        // Logo-only on phones/tablets; wordmark from md up.
-        props.header ? "px-2.5 md:px-4" : "px-4",
+        "flex items-center gap-2 rounded-full text-type-logo",
+        props.header ? "h-10 px-2.5 md:px-4" : "px-4 py-2",
         props.header
           ? "bg-black/25 backdrop-blur-md border border-white/10"
           : props.backgroundClass ??

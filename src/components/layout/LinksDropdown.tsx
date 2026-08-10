@@ -235,10 +235,8 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
     <div className="relative is-dropdown">
       <div
         className={classNames(
-          "cursor-pointer tabbable rounded-full flex text-white items-center bg-black/25 hover:bg-black/40 border border-white/10 hover:border-white/15 backdrop-blur-md transition-all duration-100 hover:scale-105",
-          isMobile
-            ? "h-10 w-10 justify-center p-0"
-            : "gap-2 py-2 px-3",
+          "cursor-pointer tabbable rounded-full flex h-10 text-white items-center bg-black/25 hover:bg-black/40 border border-white/10 hover:border-white/15 backdrop-blur-md transition-all duration-100 hover:scale-105",
+          isMobile ? "w-10 justify-center p-0" : "gap-2 px-3",
           open ? "bg-black/40" : "",
         )}
         tabIndex={0}
