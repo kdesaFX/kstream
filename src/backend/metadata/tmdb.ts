@@ -103,6 +103,16 @@ export function formatTMDBMeta(
     originalTitle: media.originalTitle,
     id: media.id.toString(),
     year: media.original_release_date?.getFullYear()?.toString(),
+    releaseDate: media.original_release_date
+      ? [
+          media.original_release_date.getUTCFullYear(),
+          String(media.original_release_date.getUTCMonth() + 1).padStart(
+            2,
+            "0",
+          ),
+          String(media.original_release_date.getUTCDate()).padStart(2, "0"),
+        ].join("-")
+      : undefined,
     poster: media.poster,
     type,
     overview: media.overview,

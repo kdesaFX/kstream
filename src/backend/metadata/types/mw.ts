@@ -29,6 +29,8 @@ type MWMediaMetaBase = {
   originalTitle?: string;
   id: string;
   year?: string;
+  /** ISO date YYYY-MM-DD when known (for Discord presence, etc.). */
+  releaseDate?: string;
   poster?: string;
   overview?: string;
 };

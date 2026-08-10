@@ -45,6 +45,8 @@ export interface PlayerMeta {
   tmdbId: string;
   imdbId?: string;
   releaseYear: number;
+  /** ISO date YYYY-MM-DD when known. */
+  releaseDate?: string;
   poster?: string;
   overview?: string;
   /** TMDB genre ids — used for anime source routing. */

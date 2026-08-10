@@ -32,6 +32,7 @@ export function usePlayerMeta() {
         playerMeta = {
           type: "show",
           releaseYear: +(m.meta.year ?? 0),
+          releaseDate: m.meta.releaseDate,
           title: m.meta.title,
           originalTitle: m.meta.originalTitle,
           poster: m.meta.poster,
@@ -65,6 +66,7 @@ export function usePlayerMeta() {
         playerMeta = {
           type: "movie",
           releaseYear: +(m.meta.year ?? 0),
+          releaseDate: m.meta.releaseDate,
           title: m.meta.title,
           originalTitle: m.meta.originalTitle,
           poster: m.meta.poster,

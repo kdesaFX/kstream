@@ -289,6 +289,8 @@ export function MediaSession() {
 
       const payload = {
         title: currentMeta.title,
+        releaseYear: currentMeta.releaseYear || undefined,
+        releaseDate: currentMeta.releaseDate || undefined,
         episodeTitle:
           currentMeta.type === "show" ? currentMeta.episode?.title : undefined,
         seasonNumber:
@@ -305,6 +307,8 @@ export function MediaSession() {
 
       const key = [
         payload.title,
+        payload.releaseDate,
+        payload.releaseYear,
         payload.seasonNumber,
         payload.episodeNumber,
         payload.episodeTitle,
@@ -335,6 +339,8 @@ export function MediaSession() {
     meta?.title,
     meta?.type,
     meta?.poster,
+    meta?.releaseYear,
+    meta?.releaseDate,
     meta?.season?.number,
     meta?.episode?.number,
     meta?.episode?.title,
