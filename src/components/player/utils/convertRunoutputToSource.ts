@@ -1,5 +1,10 @@
 import { Stream } from "@p-stream/providers";
 
+import { isExtensionActiveCached } from "@/backend/extension/messaging";
+import {
+  createM3U8ProxyUrl,
+  isUrlAlreadyProxied,
+} from "@/components/player/utils/proxy";
 import {
   SourceFileStream,
   SourceQuality,
@@ -21,15 +26,42 @@ function isAllowedQuality(inp: string): inp is SourceQuality {
   return allowedQualities.includes(inp);
 }
 
+function mergeStreamHeaders(stream: Stream): Record<string, string> {
+  return {
+    ...(stream.preferredHeaders || {}),
+    ...(stream.headers || {}),
+  };
+}
+
+/**
+ * Browser (no extension) cannot set Referer/Origin on HLS requests, and many
+ * CDNs also lack CORS. Route those playlists through the same-origin m3u8 proxy.
+ */
+function maybeProxyHlsPlaylist(
+  playlist: string,
+  headers: Record<string, string>,
+): string {
+  if (isExtensionActiveCached()) return playlist;
+  if (isUrlAlreadyProxied(playlist)) return playlist;
+  if (Object.keys(headers).length === 0) return playlist;
+  return createM3U8ProxyUrl(playlist, headers);
+}
+
 export function convertRunoutputToSource(out: {
   stream: Stream;
 }): SourceSliceSource {
   if (out.stream.type === "hls") {
+    const headers = mergeStreamHeaders(out.stream);
+    const url = maybeProxyHlsPlaylist(out.stream.playlist, headers);
+    const proxied = url !== out.stream.playlist;
+
     return {
       type: "hls",
-      url: out.stream.playlist,
-      headers: out.stream.headers,
-      preferredHeaders: out.stream.preferredHeaders,
+      url,
+      // Headers are applied by the m3u8 proxy when proxied; keep them for
+      // extension / casting paths that still need the raw values.
+      headers: proxied ? undefined : out.stream.headers,
+      preferredHeaders: proxied ? undefined : out.stream.preferredHeaders,
       audioLanguage: out.stream.audioLanguage,
       audioLabel: out.stream.audioLabel,
     };
