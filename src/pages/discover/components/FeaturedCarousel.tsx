@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWindowSize } from "react-use";
 
-import { get, getMediaLogo } from "@/backend/metadata/tmdb";
+import { get, getMediaLogo, getAllTimeBestMovies, getAllTimeBestShows } from "@/backend/metadata/tmdb";
 import {
   getDiscoverContent,
   getReleaseDetails,
@@ -19,7 +19,6 @@ import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
 import { fetchImdbRating } from "@/utils/services/imdbRating";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
-import { detectUserLanguage, detectUserRegion } from "@/utils/locale/userRegion";
 
 import { RandomMovieButton } from "./RandomMovieButton";
 
@@ -52,6 +51,65 @@ interface IMDbRatingData {
   votes: number;
 }
 
+const SLIDE_QUANTITY = 12;
+const SLIDE_DURATION = 8000;
+const FEATURED_RECENT_KEY = "kstream::featured-recent-ids";
+const FEATURED_RECENT_MAX = 48;
+
+function shuffleList<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j]!, arr[i]!];
+  }
+  return arr;
+}
+
+function readRecentFeaturedIds(): number[] {
+  try {
+    const raw = localStorage.getItem(FEATURED_RECENT_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+  } catch {
+    return [];
+  }
+}
+
+function writeRecentFeaturedIds(ids: number[]) {
+  try {
+    const unique: number[] = [];
+    const seen = new Set<number>();
+    for (const id of ids) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      unique.push(id);
+      if (unique.length >= FEATURED_RECENT_MAX) break;
+    }
+    localStorage.setItem(FEATURED_RECENT_KEY, JSON.stringify(unique));
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+/** Prefer titles the user hasn't seen in the hero lately; fill with the rest. */
+function pickAvoidingRecent(ids: number[], count: number): number[] {
+  const recent = new Set(readRecentFeaturedIds());
+  const shuffled = shuffleList(ids);
+  const fresh = shuffled.filter((id) => !recent.has(id));
+  const reused = shuffled.filter((id) => recent.has(id));
+  const picked = [...fresh, ...reused].slice(0, count);
+  writeRecentFeaturedIds([...picked, ...readRecentFeaturedIds()]);
+  return picked;
+}
+
+function isFeatureWorthy(item: { backdrop_path?: string | null; overview?: string | null }) {
+  return Boolean(item?.backdrop_path && item?.overview?.trim());
+}
+
 function FeaturedCarouselSkeleton({ shorter }: { shorter?: boolean }) {
   return (
     <div
@@ -82,7 +140,7 @@ function FeaturedCarouselSkeleton({ shorter }: { shorter?: boolean }) {
 
       {/* Navigation Dots Skeleton */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[19] flex gap-2">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
           <div
             key={i}
             className="w-2.5 h-2.5 rounded-full bg-gray-900 animate-pulse"
@@ -144,10 +202,6 @@ export function FeaturedCarousel({
 
   const currentMedia = media[currentIndex];
 
-  const SLIDE_QUANTITY = 10;
-  const FETCH_QUANTITY = 20;
-  const SLIDE_DURATION = 8000;
-
   // Check for extension on mount
   // Fetch IMDb ratings when media changes (OMDb key, extension, or proxy)
   useEffect(() => {
@@ -172,6 +226,35 @@ export function FeaturedCarousel({
   }, [currentMedia]);
 
   useEffect(() => {
+    const mediaKind = effectiveCategory === "movies" ? "movie" : "tv";
+    const mediaType = effectiveCategory === "movies" ? "movie" : "show";
+
+    const fetchDetailsForIds = async (ids: number[]) => {
+      const details = await Promise.all(
+        ids.map((id) =>
+          get<any>(`/${mediaKind}/${id}`, {
+            language: formattedLanguage,
+            append_to_response: "external_ids",
+          }).catch(() => null),
+        ),
+      );
+      return details
+        .filter((item): item is NonNullable<typeof item> => Boolean(item))
+        .filter(isFeatureWorthy)
+        .map((item) => ({
+          ...item,
+          type: mediaType as "movie" | "show",
+        }));
+    };
+
+    const fetchTmdbPoolIds = async (limit: number) => {
+      const pool =
+        effectiveCategory === "movies"
+          ? await getAllTimeBestMovies(limit)
+          : await getAllTimeBestShows(limit);
+      return pool.map((item) => item.id).filter((id) => Number.isFinite(id));
+    };
+
     const fetchFeaturedMedia = async () => {
       setIsLoading(true);
       // Clear all previous data when transitioning
@@ -185,115 +268,70 @@ export function FeaturedCarousel({
       }
       try {
         if (
-          effectiveCategory === "movies" ||
-          effectiveCategory === "tvshows"
+          effectiveCategory !== "movies" &&
+          effectiveCategory !== "tvshows"
         ) {
-          // First try to get IDs from Trakt discover endpoint, if enabled
-          try {
-            if (!isTraktEnabled()) throw new Error("TRAKT_DISABLED");
-            const discoverData = await getDiscoverContent();
+          return;
+        }
 
-            let tmdbIds: number[] = [];
-            if (effectiveCategory === "movies") {
-              tmdbIds = discoverData.movie_tmdb_ids;
-            } else {
-              tmdbIds = discoverData.tv_tmdb_ids;
-            }
+        let candidateIds: number[] = [];
 
-            // Then fetch full details for each movie/show to get external_ids
-            const detailPromises = tmdbIds.map((id) =>
-              get<any>(
-                `/${effectiveCategory === "movies" ? "movie" : "tv"}/${id}`,
-                {
-                  language: formattedLanguage,
-                  append_to_response: "external_ids",
-                },
-              ),
-            );
-
-            const details = await Promise.all(detailPromises);
-            const mediaItems = details.map((item) => ({
-              ...item,
-              type:
-                effectiveCategory === "movies" ? "movie" : ("show" as const),
-            }));
-
-            // Take the first SLIDE_QUANTITY items
-            setMedia(mediaItems.slice(0, SLIDE_QUANTITY));
-          } catch (traktError) {
-            if (
-              !(traktError instanceof Error) ||
-              traktError.message !== "TRAKT_DISABLED"
-            ) {
-              console.error("Error fetching from Trakt discover:", traktError);
-            }
-
-            // Fallback to TMDB method
-            if (effectiveCategory === "movies") {
-              // First get the list of popular movies
-              const listData = await get<any>("/discover/movie", {
-                language: formattedLanguage,
-                region: detectUserRegion(),
-                sort_by: "popularity.desc",
-                with_original_language: detectUserLanguage(),
-                "vote_count.gte": 50,
-              });
-
-              // Then fetch full details for each movie to get external_ids
-              const moviePromises = listData.results
-                .slice(0, FETCH_QUANTITY)
-                .map((movie: any) =>
-                  get<any>(`/movie/${movie.id}`, {
-                    language: formattedLanguage,
-                    append_to_response: "external_ids",
-                  }),
-                );
-
-              const movieDetails = await Promise.all(moviePromises);
-              const allMovies = movieDetails.map((movie) => ({
-                ...movie,
-                type: "movie" as const,
-              }));
-
-              // Shuffle
-              const shuffledMovies = [...allMovies].sort(
-                () => 0.5 - Math.random(),
-              );
-              setMedia(shuffledMovies.slice(0, SLIDE_QUANTITY));
-            } else if (effectiveCategory === "tvshows") {
-              // First get the list of popular shows
-              const listData = await get<any>("/discover/tv", {
-                language: formattedLanguage,
-                region: detectUserRegion(),
-                sort_by: "popularity.desc",
-                with_original_language: detectUserLanguage(),
-                "vote_count.gte": 50,
-              });
-
-              // Then fetch full details for each show to get external_ids
-              const showPromises = listData.results
-                .slice(0, FETCH_QUANTITY)
-                .map((show: any) =>
-                  get<any>(`/tv/${show.id}`, {
-                    language: formattedLanguage,
-                    append_to_response: "external_ids",
-                  }),
-                );
-
-              const showDetails = await Promise.all(showPromises);
-              const allShows = showDetails.map((show) => ({
-                ...show,
-                type: "show" as const,
-              }));
-
-              // Shuffle
-              const shuffledShows = [...allShows].sort(
-                () => 0.5 - Math.random(),
-              );
-              setMedia(shuffledShows.slice(0, SLIDE_QUANTITY));
-            }
+        // Trakt discover is a good seed, but it used to always take the same
+        // first N ids. Shuffle + recent-avoidance, then top up from TMDB.
+        try {
+          if (!isTraktEnabled()) throw new Error("TRAKT_DISABLED");
+          const discoverData = await getDiscoverContent();
+          candidateIds =
+            effectiveCategory === "movies"
+              ? discoverData.movie_tmdb_ids || []
+              : discoverData.tv_tmdb_ids || [];
+        } catch (traktError) {
+          if (
+            !(traktError instanceof Error) ||
+            traktError.message !== "TRAKT_DISABLED"
+          ) {
+            console.error("Error fetching from Trakt discover:", traktError);
           }
         }
+
+        if (candidateIds.length < SLIDE_QUANTITY * 3) {
+          const tmdbIds = await fetchTmdbPoolIds(60);
+          const seen = new Set(candidateIds);
+          for (const id of tmdbIds) {
+            if (seen.has(id)) continue;
+            seen.add(id);
+            candidateIds.push(id);
+          }
+        }
+
+        // Over-fetch a bit so backdrop/overview filtering still fills the hero.
+        const pickedIds = pickAvoidingRecent(
+          candidateIds,
+          Math.min(SLIDE_QUANTITY * 2, candidateIds.length),
+        );
+        let mediaItems = await fetchDetailsForIds(pickedIds);
+
+        if (mediaItems.length < SLIDE_QUANTITY) {
+          const extraIds = await fetchTmdbPoolIds(40);
+          const have = new Set(mediaItems.map((item) => item.id));
+          const more = pickAvoidingRecent(
+            extraIds.filter((id) => !have.has(id)),
+            SLIDE_QUANTITY * 2,
+          );
+          const extras = await fetchDetailsForIds(more);
+          mediaItems = [...mediaItems, ...extras];
+        }
+
+        const unique: FeaturedMedia[] = [];
+        const seenMedia = new Set<number>();
+        for (const item of mediaItems) {
+          const id = Number(item.id);
+          if (!Number.isFinite(id) || seenMedia.has(id)) continue;
+          seenMedia.add(id);
+          unique.push(item as FeaturedMedia);
+          if (unique.length >= SLIDE_QUANTITY) break;
+        }
+        setMedia(unique);
       } catch (error) {
         console.error("Error fetching featured media:", error);
       } finally {
