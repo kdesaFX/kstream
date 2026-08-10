@@ -32,6 +32,7 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
         <Flare.Base
           className={c(
             "hover:flare-enabled group flex flex-col rounded-[28px] transition-colors sm:flex-row sm:items-center relative backdrop-blur-lg",
+            props.compact ? "h-10" : "",
             focused
               ? "bg-pill-background/80"
               : "bg-pill-background/50",
@@ -46,11 +47,16 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
               focused ? "bg-pill-background/80" : "bg-pill-background/50",
             )}
           />
-          <Flare.Child className="flex flex-1 flex-col">
+          <Flare.Child
+            className={c(
+              "flex flex-1 flex-col",
+              props.compact ? "h-full justify-center" : "",
+            )}
+          >
             <div
               className={c(
                 "absolute bottom-0 top-0 flex items-center text-search-icon cursor-pointer z-10",
-                props.compact ? "left-3 max-h-11" : "left-5 max-h-14",
+                props.compact ? "left-3" : "left-5",
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -77,7 +83,7 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
                 // Near-white placeholder so it stays readable on dark pill backgrounds
                 "placeholder:text-white/70",
                 props.compact
-                  ? "px-3 py-2 pl-10 text-sm"
+                  ? "h-10 px-3 pl-10 text-sm leading-none"
                   : "px-4 py-4 pl-12 text-base",
                 "select-none",
               )}
