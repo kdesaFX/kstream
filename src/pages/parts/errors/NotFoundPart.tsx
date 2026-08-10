@@ -1,5 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
 import { Button } from "@/components/buttons/Button";
@@ -15,12 +16,17 @@ import { usePreferencesStore } from "@/stores/preferences";
 
 export function NotFoundPart() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const setOnboardingCompleted = useOnboardingStore((s) => s.setCompleted);
   const febboxKey = usePreferencesStore((s) => s.febboxKey);
 
   function handleOnboarding() {
     setOnboardingCompleted(false);
-    window.location.reload();
+    navigate({
+      pathname: "/onboarding",
+      search: `redirect=${encodeURIComponent(location.pathname + location.search)}`,
+    });
   }
 
   return (

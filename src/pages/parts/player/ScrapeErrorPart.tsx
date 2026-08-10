@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   isExtensionActiveCached,
@@ -33,6 +33,7 @@ export function ScrapeErrorPart(props: ScrapeErrorPartProps) {
   const { t } = useTranslation();
   const modal = useModal("error");
   const location = useLocation();
+  const navigate = useNavigate();
   const [extensionState, setExtensionState] =
     useState<ExtensionStatus>("unknown");
   const setOnboardingCompleted = useOnboardingStore((s) => s.setCompleted);
@@ -138,7 +139,10 @@ export function ScrapeErrorPart(props: ScrapeErrorPartProps) {
 
   function handleOnboarding() {
     setOnboardingCompleted(false);
-    window.location.reload();
+    navigate({
+      pathname: "/onboarding",
+      search: `redirect=${encodeURIComponent(location.pathname + location.search)}`,
+    });
   }
 
   return (
