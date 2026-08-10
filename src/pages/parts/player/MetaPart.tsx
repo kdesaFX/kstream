@@ -48,11 +48,16 @@ export function MetaPart(props: MetaPartProps) {
       if (!info.hasPermission) throw new Error("extension-no-permission");
     }
 
-    // use providers metadata
-    setCachedMetadata([
-      ...getProviders().listSources(),
-      ...getProviders().listEmbeds(),
-    ]);
+    // Cache provider metadata for scrape UI. Keep this soft-fail so a provider
+    // registry error (e.g. duplicate ranks) doesn't masquerade as a TMDB outage.
+    try {
+      setCachedMetadata([
+        ...getProviders().listSources(),
+        ...getProviders().listEmbeds(),
+      ]);
+    } catch (err) {
+      console.error("Failed to initialize providers for player:", err);
+    }
 
     // get media meta data
     let data: ReturnType<typeof decodeTMDBId> = null;
@@ -80,10 +85,10 @@ export function MetaPart(props: MetaPartProps) {
     // replace link with new link if youre not already on the right link
     let epId = params.episode;
     if (meta.meta.type === MWMediaType.SERIES) {
-      let ep = meta.meta.seasonData.episodes.find(
-        (v) => v.id === params.episode,
-      );
-      if (!ep) ep = meta.meta.seasonData.episodes[0];
+      const episodes = meta.meta.seasonData?.episodes ?? [];
+      let ep = episodes.find((v) => v.id === params.episode);
+      if (!ep) ep = episodes[0];
+      if (!ep) return null;
       epId = ep.id;
       if (
         params.season !== meta.meta.seasonData.id ||
@@ -96,7 +101,8 @@ export function MetaPart(props: MetaPartProps) {
     }
 
     props.onGetMeta?.(meta, epId);
-  }, []);
+    return meta;
+  }, [params.media, params.season, params.episode, navigate]);
 
   if (error && error.message === "extension-no-permission") {
     return (
