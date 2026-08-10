@@ -13,6 +13,7 @@ import { ErrorContainer, ErrorLayout } from "@/pages/layouts/ErrorLayout";
 import { conf } from "@/setup/config";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { usePreferencesStore } from "@/stores/preferences";
+import { isMobileOnboardingClient } from "@/utils/hosting/onboarding";
 
 export function NotFoundPart() {
   const { t } = useTranslation();
@@ -60,7 +61,8 @@ export function NotFoundPart() {
               </Button>
             </div>
             {(!isExtensionActiveCached() || !febboxKey) &&
-            conf().HAS_ONBOARDING ? (
+            conf().HAS_ONBOARDING &&
+            !isMobileOnboardingClient() ? (
               <div className="flex flex-col max-w-md gap-3 items-center py-3">
                 <Paragraph>
                   {t("player.scraping.notFound.onboarding")}

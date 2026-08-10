@@ -1,4 +1,5 @@
 import { Trans, useTranslation } from "react-i18next";
+import { useEffect } from "react";
 
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
 import { Button } from "@/components/buttons/Button";
@@ -34,6 +35,7 @@ import {
 import { PageTitle } from "@/pages/parts/util/PageTitle";
 import { conf } from "@/setup/config";
 import { usePreferencesStore } from "@/stores/preferences";
+import { isMobileOnboardingClient } from "@/utils/hosting/onboarding";
 import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 
 import { DebridEdit, FebboxSetup } from "../parts/settings/ConnectionsPart";
@@ -56,6 +58,13 @@ export function OnboardingPage() {
   const noProxies = getProxyUrls().length === 0;
 
   const isFebboxSetup = usePreferencesStore((s) => s.febboxKey) !== "";
+
+  // Mobile can't install the extension — finish with default setup immediately.
+  useEffect(() => {
+    if (isMobileOnboardingClient()) completeAndRedirect();
+  }, [completeAndRedirect]);
+
+  if (isMobileOnboardingClient()) return null;
 
   return (
     <MinimalPageLayout>

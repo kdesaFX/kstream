@@ -19,6 +19,7 @@ import { useOnboardingStore } from "@/stores/onboarding";
 import { usePreferencesStore } from "@/stores/preferences";
 import { getExtensionState } from "@/utils/browser/extension";
 import type { ExtensionStatus } from "@/utils/browser/extension";
+import { isMobileOnboardingClient } from "@/utils/hosting/onboarding";
 
 import { ErrorCardInModal } from "../errors/ErrorCard";
 
@@ -171,7 +172,9 @@ export function ScrapeErrorPart(props: ScrapeErrorPartProps) {
             {t("player.scraping.notFound.detailsButton")}
           </Button>
         </div>
-        {(!isExtensionActiveCached() || !febboxKey) && conf().HAS_ONBOARDING ? (
+        {(!isExtensionActiveCached() || !febboxKey) &&
+        conf().HAS_ONBOARDING &&
+        !isMobileOnboardingClient() ? (
           <div className="flex flex-col max-w-md gap-3 items-center py-3">
             <Paragraph>{t("player.scraping.notFound.onboarding")}</Paragraph>
             <Button
