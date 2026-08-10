@@ -74,7 +74,13 @@ function NavSearchBar(props: { lightOverHero?: boolean }) {
   const placeholder = randomT(`home.search.placeholder`);
 
   return (
-    <div className="pointer-events-auto w-full max-w-xl mx-1 md:mx-4">
+    <div
+      className={classNames(
+        "pointer-events-auto w-full max-w-xl",
+        // No side margin on mobile so parent gap matches logo ↔ notifications.
+        isMobile ? "mx-0" : "mx-4",
+      )}
+    >
       <SearchBarInput
         ref={inputRef}
         onChange={setSearch}
@@ -213,10 +219,10 @@ export function Navigation(props: NavigationProps) {
         }}
       >
         <div className={classNames("fixed left-0 right-0 flex items-center")}>
-          <div className="px-2 ssm:px-7 py-5 relative z-[60] flex flex-1 items-center gap-1.5 ssm:gap-3">
+          <div className="px-2 ssm:px-7 py-5 relative z-[60] flex flex-1 items-center gap-2 ssm:gap-3">
             <div
               ref={leftRef}
-              className="flex items-center gap-1.5 md:gap-3 pointer-events-auto shrink-0"
+              className="flex items-center gap-2 md:gap-3 pointer-events-auto shrink-0"
             >
               <Link
                 className="block tabbable rounded-full text-xs ssm:text-base"
@@ -225,7 +231,7 @@ export function Navigation(props: NavigationProps) {
               >
                 <BrandPill clickable header />
               </Link>
-              <div className="flex items-center gap-1.5 md:gap-3">
+              <div className="flex items-center gap-2 md:gap-3">
                 {showDownload ? (
                   <button
                     type="button"
