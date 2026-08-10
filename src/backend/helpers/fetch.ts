@@ -27,6 +27,12 @@ export async function singularProxiedFetch<T>(
   url: string,
   ops: P<T>[1] = {},
 ): R<T> {
+  if (!proxyUrl) {
+    throw new Error(
+      "No CORS proxy configured. Set VITE_CORS_PROXY_URL, or use the browser extension / desktop app.",
+    );
+  }
+
   let combinedUrl = ops?.baseURL ?? "";
   if (
     combinedUrl.length > 0 &&

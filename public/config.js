@@ -1,7 +1,10 @@
 window.__CONFIG__ = {
-  // The URL for the CORS proxy, the URL must NOT end with a slash!
-  // If not specified, the onboarding will not allow a "default setup". The user will have to use the extension or set up a proxy themselves
-  VITE_CORS_PROXY_URL: "",
+  // Same-origin scrape proxy (Vercel /api/proxy). Must NOT end with a slash.
+  // Relative paths are resolved against the current site origin at runtime.
+  VITE_CORS_PROXY_URL: "/api/proxy",
+
+  // Base URL for HLS proxy routes (/m3u8-proxy, /ts-proxy). Must NOT end with a slash.
+  VITE_M3U8_PROXY_URL: "/api",
 
   // The READ API key to access TMDB
   VITE_TMDB_READ_API_KEY: "",

@@ -11,6 +11,21 @@ export interface ParsedUrl {
   type: ParsedUrlType;
 }
 
+/** Turn relative proxy paths into absolute URLs for ofetch. */
+export function resolveProxyUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("data:")) {
+    return trimmed.replace(/\/$/, "");
+  }
+  if (typeof window === "undefined") return trimmed.replace(/\/$/, "");
+  try {
+    return new URL(trimmed, window.location.origin).href.replace(/\/$/, "");
+  } catch {
+    return trimmed.replace(/\/$/, "");
+  }
+}
+
 function canParseUrl(url: string): boolean {
   try {
     return !!new URL(url);
@@ -39,9 +54,10 @@ export function getParsedUrls() {
   const output: ParsedUrl[] = [];
   urls.forEach((url) => {
     if (!url.startsWith("|")) {
-      if (canParseUrl(url)) {
+      const resolved = resolveProxyUrl(url);
+      if (canParseUrl(resolved)) {
         output.push({
-          url,
+          url: resolved,
           type: "proxy",
         });
         return;
@@ -50,13 +66,14 @@ export function getParsedUrls() {
 
     const match = /^\|([^|]+)\|(.*)$/g.exec(url);
     if (!match || !match[2]) return;
-    if (!canParseUrl(match[2])) return;
+    const resolved = resolveProxyUrl(match[2]);
+    if (!canParseUrl(resolved)) return;
     const params = parseParams(match[1]);
     const type = params.type ?? "proxy";
 
     if (!isParsedUrlType(type)) return;
     output.push({
-      url: match[2],
+      url: resolved,
       type,
     });
   });
@@ -71,5 +88,7 @@ export function getProxyUrls() {
 }
 
 export function getM3U8ProxyUrls(): string[] {
-  return conf().M3U8_PROXY_URLS;
+  return conf()
+    .M3U8_PROXY_URLS.map(resolveProxyUrl)
+    .filter((v) => v.length > 0);
 }

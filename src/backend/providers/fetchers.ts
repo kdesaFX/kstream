@@ -14,6 +14,7 @@ function makeLoadbalancedList(getter: () => string[]) {
   let listIndex = -1;
   return () => {
     const fetchers = getter();
+    if (fetchers.length === 0) return "";
     if (listIndex === -1 || listIndex >= fetchers.length) {
       listIndex = Math.floor(Math.random() * fetchers.length);
     }
@@ -76,8 +77,14 @@ export function setupM3U8Proxy() {
 
 export function makeLoadBalancedSimpleProxyFetcher() {
   const fetcher: Fetcher = async (a, b) => {
+    const proxyUrl = getLoadbalancedProxyUrl();
+    if (!proxyUrl) {
+      throw new Error(
+        "No CORS proxy configured. Set VITE_CORS_PROXY_URL, or use the browser extension / desktop app.",
+      );
+    }
     const currentFetcher = makeSimpleProxyFetcher(
-      getLoadbalancedProxyUrl(),
+      proxyUrl,
       fetchButWithApiTokens,
     );
     return currentFetcher(a, b);
