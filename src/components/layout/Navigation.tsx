@@ -375,7 +375,7 @@ export function Navigation(props: NavigationProps) {
               <MobileActionsMenu
                 openNotifications={openNotifications}
                 openDownloadModal={openDownloadModal}
-                showDownload={showDownload}
+                showDownload={false}
                 unreadCount={getUnreadCount()}
               />
             </div>
