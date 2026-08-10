@@ -7,6 +7,8 @@ export function useShouldShowControls() {
     (s) => s.interface.lastHoveringState,
   );
   const isPaused = usePlayerStore((s) => s.mediaPlaying.isPaused);
+  const isLoading = usePlayerStore((s) => s.mediaPlaying.isLoading);
+  const hasPlayedOnce = usePlayerStore((s) => s.mediaPlaying.hasPlayedOnce);
   const hasOpenOverlay = usePlayerStore((s) => s.interface.hasOpenOverlay);
   const isHoveringControls = usePlayerStore(
     (s) => s.interface.isHoveringControls,
@@ -15,10 +17,14 @@ export function useShouldShowControls() {
   const isUsingTouch = lastHoveringState === PlayerHoverState.MOBILE_TAPPED;
   const isHovering = hovering !== PlayerHoverState.NOT_HOVERING;
 
+  // Initial source lock: paused+loading before first frame — don't flash chrome.
+  const awaitingFirstFrame = isLoading && !hasPlayedOnce;
+
   // when using touch, pause screens can be dismissed by tapping
   const showTargetsWithoutPause =
     isHovering || (isHoveringControls && !isUsingTouch) || hasOpenOverlay;
-  const showTargetsIncludingPause = showTargetsWithoutPause || isPaused;
+  const showTargetsIncludingPause =
+    showTargetsWithoutPause || (isPaused && !awaitingFirstFrame);
   const showTargets = isUsingTouch
     ? showTargetsWithoutPause
     : showTargetsIncludingPause;

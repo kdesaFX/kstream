@@ -738,11 +738,12 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     });
     videoElement.addEventListener("canplay", () => {
       reportQualityFromVideoElement();
-      // Media is ready enough to start. Clearing here avoids a stuck center spinner
-      // when the browser blocks autoplay (paused + ready, but still "loading").
-      // `waiting` will re-emit loading=true if playback stalls for more data.
-      emit("loading", false);
       tryAutoplay();
+      // Keep the spinner while muted autoplay is still pending — clearing
+      // loading here flashed the idle play button for a frame.
+      if (!shouldAutoplayAfterLoad && videoElement?.paused) {
+        emit("loading", false);
+      }
     });
     videoElement.addEventListener("waiting", () => {
       // Don't treat pre-play buffering as a stuck loading state — that hid the

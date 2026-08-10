@@ -366,6 +366,11 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.captionList = captions;
       s.interface.error = undefined;
       s.status = playerStatus.PLAYING;
+      // Avoid one-frame idle player (play button + 00:00 controls) before
+      // display.load() emits loading.
+      s.mediaPlaying.isLoading = true;
+      s.mediaPlaying.isPlaying = false;
+      s.mediaPlaying.isPaused = true;
       s.audioTracks = [];
       s.currentAudioTrack = null;
       if (stream.audioLanguage) {
@@ -400,6 +405,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     set((s) => {
       s.interface.error = undefined;
       s.status = playerStatus.PLAYING;
+      s.mediaPlaying.isLoading = true;
     });
     store.display?.load({
       source: loadableStream.stream,
@@ -418,6 +424,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
         s.currentQuality = quality;
         s.status = playerStatus.PLAYING;
         s.interface.error = undefined;
+        s.mediaPlaying.isLoading = true;
       });
       store.display?.load({
         source: selectedQuality,
