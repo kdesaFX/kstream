@@ -670,6 +670,18 @@
       "desktop": "App Settings"
     }
   },
+  "desktopApp": {
+    "settings": {
+      "title": "App settings",
+      "description": "The desktop app loads kstream with native scraping.",
+      "url": "URL",
+      "mode": "Mode",
+      "installFolder": "Install folder",
+      "version": "Desktop version",
+      "smartScreenNote": "Unsigned builds may show a Windows SmartScreen warning. Choose More info, then Run anyway.",
+      "close": "Close"
+    }
+  },
   "notFound": {
     "badge": "Not found",
     "goHome": "Back to home",

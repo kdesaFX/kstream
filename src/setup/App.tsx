@@ -14,6 +14,7 @@ import { generateQuickSearchMediaUrl } from "@/backend/metadata/tmdb";
 import { DesktopChromeBridge } from "@/components/DesktopChromeBridge";
 import { DetailsModal } from "@/components/overlays/detailsModal";
 import { DownloadModal } from "@/components/overlays/downloadModal";
+import { DesktopAppSettingsModal } from "@/components/overlays/desktopAppSettings";
 import { GamepadControlsModal } from "@/components/overlays/GamepadControlsModal";
 import { KeyboardCommandsEditModal } from "@/components/overlays/KeyboardCommandsEditModal";
 import { KeyboardCommandsModal } from "@/components/overlays/KeyboardCommandsModal";
@@ -180,6 +181,7 @@ function App() {
       <NotificationModal id="notifications" />
       <TipJarModal id="tip-jar" />
       <DownloadModal id="download" />
+      <DesktopAppSettingsModal id="desktop-app-settings" />
       <KeyboardCommandsModal id="keyboard-commands" />
       <KeyboardCommandsEditModal id="keyboard-commands-edit" />
       <GamepadControlsModal id="gamepad-controls-edit" />
