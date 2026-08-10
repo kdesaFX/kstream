@@ -64,35 +64,41 @@ function isAvcLevel(level: Level): boolean {
 }
 
 /**
- * Prefer a fast, playable start level for browser/proxy paths.
- * Cap at 720p AVC — 1080p init segments through the Vercel proxy are multi‑MB.
+ * Prefer a fast, playable start level.
+ * - No extension (browser proxy): cap at 720p AVC — 1080p init through the
+ *   proxy is multi‑MB and slows first frame.
+ * - Extension or Windows app: prefer 1080p AVC — direct fetches can take it.
  */
 function pickBrowserStartLevel(levels: Level[]): Level | null {
   if (!levels.length) return null;
 
+  const maxHeight = isExtensionActiveCached() ? 1080 : 720;
+
   const avc = levels.filter((l) => isAvcLevel(l) && (l.height || 0) > 0);
-  const avcUpTo720 = avc
-    .filter((l) => (l.height || 0) <= 720)
+  const avcUpToCap = avc
+    .filter((l) => (l.height || 0) <= maxHeight)
     .sort((a, b) => (b.height || 0) - (a.height || 0));
-  if (avcUpTo720[0]) return avcUpTo720[0];
+  if (avcUpToCap[0]) return avcUpToCap[0];
 
-  const avcUpTo1080 = avc
-    .filter((l) => (l.height || 0) <= 1080)
-    .sort((a, b) => (a.height || 0) - (b.height || 0)); // lowest ≤1080 if no 720
-  if (avcUpTo1080[0]) return avcUpTo1080[0];
-
+  // No rung at/under the preferred cap — take the lowest AVC so we still avoid
+  // jumping straight into 4K HEVC when possible.
   const anyAvc = [...avc].sort((a, b) => (a.height || 0) - (b.height || 0));
   if (anyAvc[0]) return anyAvc[0];
 
   const nonHevc = levels
-    .filter((l) => !isHevcLevel(l) && (l.height || 0) > 0 && (l.height || 0) <= 720)
+    .filter(
+      (l) =>
+        !isHevcLevel(l) &&
+        (l.height || 0) > 0 &&
+        (l.height || 0) <= maxHeight,
+    )
     .sort((a, b) => (b.height || 0) - (a.height || 0));
   if (nonHevc[0]) return nonHevc[0];
 
-  const upTo720 = levels
-    .filter((l) => (l.height || 0) > 0 && (l.height || 0) <= 720)
+  const upToCap = levels
+    .filter((l) => (l.height || 0) > 0 && (l.height || 0) <= maxHeight)
     .sort((a, b) => (b.height || 0) - (a.height || 0));
-  if (upTo720[0]) return upTo720[0];
+  if (upToCap[0]) return upToCap[0];
 
   return sortLevelsByQuality(levels)[0] ?? null;
 }
@@ -400,7 +406,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         }
       }
     } else {
-      // Auto: start on a playable AVC ≤1080p rung when present (avoid 4K HEVC hang).
+      // Auto: start on a playable AVC rung (720p proxy / 1080p extension+desktop).
       const startLevel = pickBrowserStartLevel(hls.levels);
       const topIndex = startLevel ? hls.levels.indexOf(startLevel) : -1;
       if (topIndex !== -1) {
@@ -431,7 +437,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         const proxiedStream =
           typeof src.url === "string" && src.url.includes("/m3u8-proxy");
         hls = new Hls({
-          // Wait until we pick AVC ≤720p — autoStart would race into 4K HEVC.
+          // Wait until we pick the start AVC rung — autoStart would race into 4K HEVC.
           autoStartLoad: false,
           // Proxied segments are slower; keep the first buffer lean for faster start.
           maxBufferLength: proxiedStream ? 30 : 120,
