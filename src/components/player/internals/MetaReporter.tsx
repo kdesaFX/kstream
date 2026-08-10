@@ -8,6 +8,7 @@ export type WindowMeta = {
     tmdbId: string;
     title: string;
     year: number;
+    releaseDate?: string;
     poster?: string;
   };
   episode?: {
@@ -56,6 +57,7 @@ export function MetaReporter() {
           type: meta.type,
           tmdbId: meta.tmdbId,
           year: meta.releaseYear,
+          releaseDate: meta.releaseDate,
           poster: meta.poster,
         },
         controls: {
