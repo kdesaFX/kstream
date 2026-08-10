@@ -14,9 +14,23 @@ import { TMDBContentTypes } from "@/backend/metadata/types/tmdb";
 import type { TraktReleaseResponse } from "@/backend/metadata/types/trakt";
 import { Icon, Icons } from "@/components/Icon";
 import { Movie, TVShow } from "@/pages/discover/common";
+import {
+  getHistorySources,
+  hasFeaturedAlgorithmSignal,
+} from "@/pages/discover/hooks/usePersonalRecommendations";
+import {
+  type ProgressSource,
+  type RatingSource,
+  fetchPersonalRecommendations,
+} from "@/pages/discover/lib/personalRecommendations";
+import { hydrateMissingCompletedGenres } from "@/pages/discover/lib/watchHistoryGenres";
 import { useDiscoverStore } from "@/stores/discover";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
+import { useProgressStore } from "@/stores/progress";
+import { progressMediaIsHighPercentage } from "@/stores/progress/utils";
+import { useRatingsStore } from "@/stores/ratings";
+import { useWatchHistoryStore } from "@/stores/watchHistory";
 import { fetchImdbRating } from "@/utils/services/imdbRating";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 
@@ -200,6 +214,29 @@ export function FeaturedCarousel({
   );
   const [contentOpacity, setContentOpacity] = useState(1);
 
+  // Refresh hero when algorithm / high-% watch signal changes.
+  const algorithmTick = useRatingsStore((s) =>
+    [
+      s.preferences.completedOnboarding ? "1" : "0",
+      s.preferences.favoriteGenres.join(","),
+      s.preferences.moods.join(","),
+      s.preferences.franchises.join(","),
+      Object.entries(s.ratings)
+        .map(([id, r]) => `${id}:${r.rating}`)
+        .sort()
+        .join(","),
+    ].join("|"),
+  );
+  const historyTick = useWatchHistoryStore((s) =>
+    Object.entries(s.items)
+      .map(([id, item]) => `${id}:${item.completed ? 1 : 0}`)
+      .sort()
+      .join(","),
+  );
+  const progressTick = useProgressStore((s) =>
+    Object.keys(s.items).sort().join(","),
+  );
+
   const currentMedia = media[currentIndex];
 
   // Check for extension on mount
@@ -275,16 +312,75 @@ export function FeaturedCarousel({
         }
 
         let candidateIds: number[] = [];
+        let personalSeedCount = 0;
+        const isTVShow = effectiveCategory === "tvshows";
+
+        // Personalized hero when the user has an algorithm (wizard / likes)
+        // or high-% watches. Fresh accounts keep the normal discover pool.
+        if (hasFeaturedAlgorithmSignal(isTVShow)) {
+          try {
+            await hydrateMissingCompletedGenres(15);
+            const history = getHistorySources(
+              useWatchHistoryStore.getState().items,
+            );
+            const progressItems = useProgressStore.getState().items;
+            const progress: ProgressSource[] = Object.entries(progressItems)
+              .filter(([, item]) => progressMediaIsHighPercentage(item))
+              .map(([tmdbId, item]) => ({ tmdbId, type: item.type }));
+            const ratingItems = useRatingsStore.getState().ratings;
+            const ratings: RatingSource[] = Object.entries(ratingItems).map(
+              ([tmdbId, item]) => ({
+                tmdbId,
+                type: item.type,
+                rating: item.rating,
+                genreIds: item.genreIds,
+                ratedAt: item.ratedAt,
+              }),
+            );
+            const preferences = useRatingsStore.getState().preferences;
+            const excludeIds = new Set<string>();
+            for (const key of Object.keys(
+              useWatchHistoryStore.getState().items,
+            )) {
+              excludeIds.add(key.includes("-") ? key.split("-")[0]! : key);
+            }
+            for (const id of Object.keys(progressItems)) excludeIds.add(id);
+
+            const personal = await fetchPersonalRecommendations(
+              isTVShow,
+              history,
+              progress,
+              excludeIds,
+              ratings,
+              preferences,
+            );
+            candidateIds = personal
+              .map((item) => Number(item.id))
+              .filter((id) => Number.isFinite(id) && id > 0);
+            personalSeedCount = candidateIds.length;
+          } catch (personalError) {
+            console.error(
+              "Featured carousel personalization failed:",
+              personalError,
+            );
+          }
+        }
 
         // Trakt discover is a good seed, but it used to always take the same
         // first N ids. Shuffle + recent-avoidance, then top up from TMDB.
         try {
           if (!isTraktEnabled()) throw new Error("TRAKT_DISABLED");
           const discoverData = await getDiscoverContent();
-          candidateIds =
+          const traktIds =
             effectiveCategory === "movies"
               ? discoverData.movie_tmdb_ids || []
               : discoverData.tv_tmdb_ids || [];
+          const seen = new Set(candidateIds);
+          for (const id of traktIds) {
+            if (seen.has(id)) continue;
+            seen.add(id);
+            candidateIds.push(id);
+          }
         } catch (traktError) {
           if (
             !(traktError instanceof Error) ||
@@ -304,12 +400,28 @@ export function FeaturedCarousel({
           }
         }
 
-        // Over-fetch a bit so backdrop/overview filtering still fills the hero.
+        // Prefer personalized seeds when present; fill gaps from discover pool.
+        const personalPool = candidateIds.slice(0, personalSeedCount);
+        const discoverPool = candidateIds.slice(personalSeedCount);
+        const primaryPool =
+          personalPool.length > 0 ? personalPool : discoverPool;
+        const backupPool = personalPool.length > 0 ? discoverPool : [];
+
         const pickedIds = pickAvoidingRecent(
-          candidateIds,
-          Math.min(SLIDE_QUANTITY * 2, candidateIds.length),
+          primaryPool,
+          Math.min(SLIDE_QUANTITY * 2, primaryPool.length),
         );
         let mediaItems = await fetchDetailsForIds(pickedIds);
+
+        if (mediaItems.length < SLIDE_QUANTITY && backupPool.length > 0) {
+          const have = new Set(mediaItems.map((item) => item.id));
+          const more = pickAvoidingRecent(
+            backupPool.filter((id) => !have.has(id)),
+            SLIDE_QUANTITY * 2,
+          );
+          const extras = await fetchDetailsForIds(more);
+          mediaItems = [...mediaItems, ...extras];
+        }
 
         if (mediaItems.length < SLIDE_QUANTITY) {
           const extraIds = await fetchTmdbPoolIds(40);
@@ -340,7 +452,13 @@ export function FeaturedCarousel({
     };
 
     fetchFeaturedMedia();
-  }, [formattedLanguage, effectiveCategory]);
+  }, [
+    formattedLanguage,
+    effectiveCategory,
+    algorithmTick,
+    historyTick,
+    progressTick,
+  ]);
 
   const handlePrevSlide = () => {
     setContentOpacity(0);

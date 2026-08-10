@@ -88,6 +88,25 @@ export function progressHasMeaningfulWatch(item: ProgressMediaItem): boolean {
   );
 }
 
+/**
+ * True once the user has watched a high share of this title (~80% / near end).
+ * Used as algorithm seed signal for featured hero personalization.
+ */
+export function progressMediaIsHighPercentage(
+  item: ProgressMediaItem,
+): boolean {
+  if (item.type !== "show") {
+    return progressIsCompleted(
+      item.progress?.duration ?? 0,
+      item.progress?.watched ?? 0,
+    );
+  }
+
+  return Object.values(item.episodes).some((epi) =>
+    progressIsCompleted(epi.progress.duration, epi.progress.watched),
+  );
+}
+
 function progressIsAcceptableRange(duration: number, watched: number): boolean {
   // not started enough yet, not acceptable
   if (progressIsNotStarted(duration, watched)) return false;

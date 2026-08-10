@@ -9,6 +9,7 @@ import {
   useRatingsStore,
 } from "@/stores/ratings";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
+import { progressMediaIsHighPercentage } from "@/stores/progress/utils";
 
 import {
   type HistorySource,
@@ -68,6 +69,52 @@ export function useHasRecommendationSignal(isTVShow: boolean): boolean {
   );
 }
 
+/**
+ * Whether the featured hero should use personal recommendations.
+ * Requires a real algorithm (wizard prefs / likes) or high-% watches —
+ * casual opens with a few minutes watched stay on the default discover pool.
+ */
+export function hasFeaturedAlgorithmSignal(isTVShow: boolean): boolean {
+  const preferences = useRatingsStore.getState().preferences;
+  const ratingItems = useRatingsStore.getState().ratings;
+  const watchHistoryItems = useWatchHistoryStore.getState().items;
+  const progressItems = useProgressStore.getState().items;
+  const wantedType = isTVShow ? "show" : "movie";
+
+  if (preferences.completedOnboarding) return true;
+  if (
+    preferences.favoriteGenres.length > 0 ||
+    preferences.moods.length > 0 ||
+    preferences.franchises.length > 0
+  ) {
+    return true;
+  }
+  if (
+    Object.values(ratingItems).some(
+      (r) => r.rating === "liked" || r.rating === "loved",
+    )
+  ) {
+    return true;
+  }
+  if (
+    Object.values(watchHistoryItems).some(
+      (item) => item.type === wantedType && item.completed,
+    )
+  ) {
+    return true;
+  }
+  if (
+    Object.values(progressItems).some(
+      (item) =>
+        item.type === wantedType && progressMediaIsHighPercentage(item),
+    )
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 export interface UsePersonalRecommendationsReturn {
   media: DiscoverMedia[];
   isLoading: boolean;
@@ -84,7 +131,7 @@ export interface UsePersonalRecommendationsReturn {
   hasSettled: boolean;
 }
 
-function getHistorySources(
+export function getHistorySources(
   items: Record<string, WatchHistoryItem>,
 ): HistorySource[] {
   const byKey: Map<string, HistorySource> = new Map();
