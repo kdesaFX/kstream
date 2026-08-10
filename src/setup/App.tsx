@@ -127,6 +127,12 @@ function App() {
   const [showDowntime, setShowDowntime] = useState(maintenance);
   const adsDisabled = useAdsStore((s) => s.adsDisabled);
 
+  // Footer/nav Link navigations keep the previous scroll offset otherwise.
+  useEffect(() => {
+    if (location.hash) return;
+    window.scrollTo(0, 0);
+  }, [location.pathname, location.search, location.hash]);
+
   useEffect(() => {
     const cfg = conf();
     if (!cfg.ENABLE_RYBBIT || !cfg.RYBBIT_SCRIPT_URL || !cfg.RYBBIT_SITE_ID) return;
