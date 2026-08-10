@@ -336,22 +336,23 @@ export function Navigation(props: NavigationProps) {
                   <button
                     type="button"
                     onClick={() => openDownloadModal()}
-                    className="text-xl text-white tabbable rounded-full backdrop-blur-lg"
+                    className="tabbable rounded-full text-xs ssm:text-base"
                     title="Download app"
                     aria-label="Download Windows app"
                   >
-                    <IconPatch
-                      icon={Icons.DOWNLOAD}
-                      clickable
-                      downsized
-                      navigation
-                    />
+                    <div className="flex h-10 items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3.5 text-white backdrop-blur-md transition-[transform,background-color,border-color] hover:scale-105 hover:border-white/15 hover:bg-black/35 active:scale-95">
+                      <Icon
+                        icon={Icons.DOWNLOAD}
+                        className="inline-flex text-lg leading-none [&>svg]:block"
+                      />
+                      <span className="font-semibold">Download</span>
+                    </div>
                   </button>
                 ) : null}
                 <a
                   onClick={() => openNotifications()}
                   rel="noreferrer"
-                  className="text-xl text-white tabbable rounded-full backdrop-blur-lg relative"
+                  className="text-xl text-white tabbable rounded-full backdrop-blur-lg relative flex items-center justify-center"
                 >
                   <IconPatch
                     icon={Icons.BELL}

@@ -25,13 +25,19 @@ export function IconPatch(props: IconPatchProps) {
     ? "bg-pill-backgroundHover text-white"
     : "";
   const sizeClasses = props.downsized ? "h-10 w-10" : "h-12 w-12";
+  // Font Awesome bell hangs a bit low optically — nudge it up in the circle.
+  const iconNudge =
+    props.icon === Icons.BELL ? "relative -translate-y-px" : "";
 
   return (
     <div className={props.className || undefined} onClick={props.onClick}>
       <div
         className={`flex items-center justify-center rounded-full border-2 border-transparent bg-pill-background bg-opacity-100 transition-[background-color,color,transform,border-color] duration-75 ${transparentClasses} ${navigationClasses} ${clickableClasses} ${activeClasses} ${sizeClasses}`}
       >
-        <Icon icon={props.icon} />
+        <Icon
+          icon={props.icon}
+          className={`inline-flex items-center justify-center leading-none [&>svg]:block [&>svg]:shrink-0 ${iconNudge}`}
+        />
       </div>
     </div>
   );
