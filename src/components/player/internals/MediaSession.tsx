@@ -279,16 +279,6 @@ export function MediaSession() {
           ? state.progress.duration
           : 0;
 
-      // Progress bar only while playing. Discord can't freeze Listening bars
-      // (client animates + rate-limits), so paused omits timestamps.
-      const startTimestamp = isPaused
-        ? undefined
-        : Date.now() - Math.floor(timeSec * 1000);
-      const endTimestamp =
-        !isPaused && durationSec > 0
-          ? startTimestamp + Math.floor(durationSec * 1000)
-          : undefined;
-
       const payload = {
         title: currentMeta.title,
         releaseYear: currentMeta.releaseYear || undefined,
@@ -301,10 +291,9 @@ export function MediaSession() {
           currentMeta.type === "show" ? currentMeta.episode?.number : undefined,
         poster: currentMeta.poster || undefined,
         isPaused,
-        startTimestamp,
-        endTimestamp,
+        currentTimeSec: timeSec,
         durationSec,
-        clearTimestamps: isPaused || undefined,
+        clearTimestamps: true,
         url: typeof window !== "undefined" ? window.location.href : undefined,
       };
 
@@ -316,8 +305,8 @@ export function MediaSession() {
         payload.episodeNumber,
         payload.episodeTitle,
         payload.isPaused,
-        // Refresh on seeks / every ~15s of playback so the bar stays accurate
-        Math.floor(timeSec / 15),
+        // Update the plain-text clock about every 5s
+        Math.floor(timeSec / 5),
         Math.floor(durationSec),
       ].join("|");
 
