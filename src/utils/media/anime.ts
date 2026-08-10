@@ -1,13 +1,5 @@
 /** Provider source ids that only make sense for anime titles. */
-export const ANIME_SOURCE_IDS = new Set([
-  "anikoto",
-  "animekai",
-  "animetsu",
-  "myanime",
-  "animeflv",
-  "zunime",
-  "watchanimeworld",
-]);
+export const ANIME_SOURCE_IDS = new Set(["anikoto", "myanime"]);
 
 export const TMDB_ANIMATION_GENRE_ID = 16;
 
