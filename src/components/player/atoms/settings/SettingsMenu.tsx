@@ -50,6 +50,8 @@ export function SettingsMenu({ id }: { id: string }) {
     (status !== playerStatus.PLAYING && !source);
   const sourceName = useMemo(() => {
     if (!currentSourceId) return "...";
+    // Compact label for the cramped settings grid only — lists/scrape keep full names.
+    if (currentSourceId === "tqq") return "TQQ";
     const sourceMeta = getCachedMetadata().find(
       (src) => src.id === currentSourceId,
     );
