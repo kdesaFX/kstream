@@ -15,6 +15,8 @@ export interface SearchBarProps {
   isInFeatured?: boolean;
   hideTooltip?: boolean;
   compact?: boolean;
+  /** Larger control for the main nav (≈2× default height). */
+  large?: boolean;
 }
 
 export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
@@ -22,6 +24,7 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
     const [focused, setFocused] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const [showTooltip, setShowTooltip] = useState(false);
+    const large = Boolean(props.large) && !props.compact;
 
     function setSearch(value: string) {
       props.onChange(value, false);
@@ -32,7 +35,13 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
         <Flare.Base
           className={c(
             "hover:flare-enabled group flex flex-col rounded-full transition-colors sm:flex-row sm:items-center relative backdrop-blur-lg",
-            showTooltip ? "min-h-10" : "h-10",
+            showTooltip
+              ? large
+                ? "min-h-16"
+                : "min-h-10"
+              : large
+                ? "h-16"
+                : "h-10",
             focused
               ? "bg-pill-background/80"
               : "bg-pill-background/50",
@@ -51,7 +60,7 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
             <div
               className={c(
                 "absolute bottom-0 top-0 flex items-center text-search-icon cursor-pointer z-10",
-                props.compact ? "left-3" : "left-4",
+                large ? "left-5 text-xl" : props.compact ? "left-3" : "left-4",
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -74,10 +83,14 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
               onChange={(val) => setSearch(val)}
               value={props.value}
               className={c(
-                "w-full h-10 flex-1 bg-transparent !text-search-text focus:outline-none pr-2 leading-none",
+                "w-full flex-1 bg-transparent !text-search-text focus:outline-none pr-2 leading-none",
                 // Near-white placeholder so it stays readable on dark pill backgrounds
                 "placeholder:text-white/70",
-                props.compact ? "px-3 pl-10 text-sm" : "px-4 pl-11 text-base",
+                large
+                  ? "h-16 px-5 pl-14 text-lg"
+                  : props.compact
+                    ? "h-10 px-3 pl-10 text-sm"
+                    : "h-10 px-4 pl-11 text-base",
                 "select-none",
               )}
               placeholder={props.placeholder}
@@ -110,7 +123,10 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
                     ref.current?.focus();
                   }
                 }}
-                className="cursor-pointer hover:text-white absolute bottom-0 right-2 top-0 flex justify-center my-auto h-10 w-10 items-center hover:bg-search-hoverBackground active:scale-110 text-search-icon rounded-full transition-[transform,background-color] duration-200"
+                className={c(
+                  "cursor-pointer hover:text-white absolute bottom-0 right-2 top-0 flex justify-center my-auto items-center hover:bg-search-hoverBackground active:scale-110 text-search-icon rounded-full transition-[transform,background-color] duration-200",
+                  large ? "h-12 w-12 text-xl" : "h-10 w-10",
+                )}
               >
                 <Icon
                   icon={Icons.X}

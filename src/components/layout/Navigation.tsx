@@ -38,21 +38,21 @@ function HomeLayoutCustomizerToggle() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`group flex items-center h-10 rounded-full transition-all duration-300 ease-out overflow-hidden ${
+        className={`group flex items-center h-12 md:h-16 rounded-full transition-all duration-300 ease-out overflow-hidden ${
           isOpen
-            ? "bg-type-link text-white shadow-lg pr-4"
-            : "bg-pill-background bg-opacity-50 text-white hover:bg-pill-backgroundHover hover:bg-opacity-100 hover:pr-4 active:scale-105"
+            ? "bg-type-link text-white shadow-lg pr-5"
+            : "bg-pill-background bg-opacity-50 text-white hover:bg-pill-backgroundHover hover:bg-opacity-100 hover:pr-5 active:scale-105"
         }`}
         title="Edit Layout"
       >
-        <div className="flex items-center justify-center w-10 h-10 shrink-0">
-          <Icon icon={Icons.LAYOUT} className="text-xl" />
+        <div className="flex items-center justify-center w-12 h-12 md:w-16 md:h-16 shrink-0">
+          <Icon icon={Icons.LAYOUT} className="text-2xl md:text-3xl" />
         </div>
         <span
-          className={`font-medium text-sm whitespace-nowrap transition-all duration-300 ease-out ${
+          className={`font-medium text-base whitespace-nowrap transition-all duration-300 ease-out ${
             isOpen
-              ? "max-w-[100px] opacity-100"
-              : "max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100"
+              ? "max-w-[120px] opacity-100"
+              : "max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100"
           }`}
         >
           Layout
@@ -79,7 +79,12 @@ function NavSearchBar(props: { lightOverHero?: boolean; className?: string }) {
     : randomT("home.search.placeholder");
 
   return (
-    <div className={classNames("pointer-events-auto w-full max-w-xl", props.className)}>
+    <div
+      className={classNames(
+        "pointer-events-auto w-full max-w-2xl md:max-w-3xl",
+        props.className,
+      )}
+    >
       <SearchBarInput
         ref={inputRef}
         onChange={setSearch}
@@ -89,6 +94,7 @@ function NavSearchBar(props: { lightOverHero?: boolean; className?: string }) {
         isSticky={!props.lightOverHero}
         isInFeatured={props.lightOverHero}
         compact={isMobile}
+        large={!isMobile}
         hideTooltip={isMobile}
       />
     </div>
@@ -218,15 +224,21 @@ export function Navigation(props: NavigationProps) {
         }}
       >
         <div className={classNames("fixed left-0 right-0 flex items-center")}>
-          <div className="px-2 ssm:px-7 py-5 relative z-[60] flex flex-1 items-center gap-2 ssm:gap-3">
+          <div className="px-2 ssm:px-7 py-4 md:py-5 relative z-[60] flex flex-1 items-center gap-2 ssm:gap-3">
             {/*
-              True viewport centering: left/right sit on the edges; search is
-              absolutely centered so unequal side clusters don't shove it right.
+              Viewport-centered search: left/right stay on the edges; side
+              clearance keeps the bar from colliding with either cluster.
             */}
             {props.showSearch ? (
-              <div className="pointer-events-none absolute inset-x-2 ssm:inset-x-7 top-0 bottom-0 z-[55] flex items-center justify-center">
+              <div
+                className="pointer-events-none absolute top-1/2 left-1/2 z-[55] -translate-x-1/2 -translate-y-1/2"
+                style={{
+                  width: `min(48rem, calc(100% - ${
+                    Math.max(leftWidth, rightWidth, 72) * 2 + 32
+                  }px))`,
+                }}
+              >
                 <NavSearchBar
-                  className="px-2"
                   lightOverHero={Boolean(props.clearBackground)}
                 />
               </div>
@@ -248,36 +260,37 @@ export function Navigation(props: NavigationProps) {
                   <button
                     type="button"
                     onClick={() => openDownloadModal()}
-                    className="hidden lg:block tabbable rounded-full text-xs ssm:text-base"
+                    className="hidden lg:block tabbable rounded-full text-base"
                     title="Download app"
                     aria-label="Download Windows app"
                   >
-                    <div className="flex h-10 items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3.5 text-white backdrop-blur-md transition-[transform,background-color,border-color] hover:scale-105 hover:border-white/15 hover:bg-black/35 active:scale-95">
+                    <div className="flex h-16 items-center gap-2.5 rounded-full border border-white/10 bg-black/25 px-5 text-white backdrop-blur-md transition-[transform,background-color,border-color] hover:scale-105 hover:border-white/15 hover:bg-black/35 active:scale-95">
                       <Icon
                         icon={Icons.DOWNLOAD}
-                        className="inline-flex text-lg leading-none [&>svg]:block"
+                        className="inline-flex text-2xl leading-none [&>svg]:block"
                       />
-                      <span className="font-semibold">Download</span>
+                      <span className="font-semibold text-lg">Download</span>
                     </div>
                   </button>
                 ) : null}
                 <a
                   onClick={() => openNotifications()}
                   rel="noreferrer"
-                  className="text-xl text-white tabbable rounded-full backdrop-blur-lg relative flex h-10 w-10 items-center justify-center"
+                  className="text-white tabbable rounded-full backdrop-blur-lg relative flex h-12 w-12 md:h-16 md:w-16 items-center justify-center"
                 >
                   <IconPatch
                     icon={Icons.BELL}
                     clickable
-                    downsized
+                    large={!isMobile}
                     navigation
+                    className={isMobile ? "[&>div]:!h-12 [&>div]:!w-12" : undefined}
                   />
                   {(() => {
                     const count = getUnreadCount();
                     const shouldShow =
                       typeof count === "number" ? count > 0 : count === "99+";
                     return shouldShow ? (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[16px] aspect-square flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] aspect-square flex items-center justify-center">
                         {count}
                       </span>
                     ) : null;
@@ -290,7 +303,7 @@ export function Navigation(props: NavigationProps) {
 
             <div
               ref={rightRef}
-              className="relative z-[60] pointer-events-auto flex items-center gap-3 shrink-0"
+              className="relative z-[60] pointer-events-auto flex items-center gap-2 md:gap-3 shrink-0"
             >
               <div className="hidden lg:block">
                 <HomeLayoutCustomizerToggle />
@@ -299,11 +312,11 @@ export function Navigation(props: NavigationProps) {
                 {loggedIn ? (
                   <UserAvatar
                     withName={!isMobile}
-                    sizeClass="w-6 h-6"
-                    iconClass="text-sm"
+                    sizeClass="w-8 h-8"
+                    iconClass="text-base"
                   />
                 ) : (
-                  <NoUserAvatar iconClass="text-lg" />
+                  <NoUserAvatar iconClass="text-2xl" />
                 )}
               </LinksDropdown>
             </div>

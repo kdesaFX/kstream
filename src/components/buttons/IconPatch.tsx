@@ -8,6 +8,7 @@ export interface IconPatchProps {
   icon: Icons;
   transparent?: boolean;
   downsized?: boolean;
+  large?: boolean;
   navigation?: boolean;
 }
 
@@ -24,7 +25,11 @@ export function IconPatch(props: IconPatchProps) {
   const activeClasses = props.active
     ? "bg-pill-backgroundHover text-white"
     : "";
-  const sizeClasses = props.downsized ? "h-10 w-10" : "h-12 w-12";
+  const sizeClasses = props.large
+    ? "h-16 w-16 text-2xl"
+    : props.downsized
+      ? "h-10 w-10"
+      : "h-12 w-12";
   // Font Awesome bell hangs a bit low optically — nudge it up in the circle.
   const iconNudge =
     props.icon === Icons.BELL ? "relative -translate-y-px" : "";
