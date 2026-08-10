@@ -40,19 +40,16 @@ export function streamToAudioOption(
   const language = stream.audioLanguage?.trim();
   if (!language) return null;
 
-  const label =
-    stream.audioLabel?.trim() ||
-    (language === "ja"
-      ? "Japanese"
+  // Chooser shows language only — no (Dub) / Latino / Hardsub suffixes.
+  const displayLabel =
+    language === "es"
+      ? "Spanish"
       : language === "en"
         ? "English"
-        : language === "es"
-          ? "Spanish"
-          : language.toUpperCase());
-
-  // Latino / Castellano are both just Spanish in the chooser
-  const displayLabel =
-    language === "es" || /^spanish\b/i.test(label) ? "Spanish" : label;
+        : language === "ja"
+          ? "Japanese"
+          : stream.audioLabel?.trim()?.replace(/\s*\([^)]*\)\s*/g, "").trim() ||
+            language.toUpperCase();
 
   return {
     id: `${sourceId}:${embedId ?? "direct"}:${stream.id}:${language}`,

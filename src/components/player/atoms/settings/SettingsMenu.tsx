@@ -86,14 +86,14 @@ export function SettingsMenu({ id }: { id: string }) {
       );
     }
     if (source?.audioLabel?.trim()) {
-      const raw = source.audioLabel.trim();
-      if (
-        source.audioLanguage === "es" ||
-        /^spanish\b/i.test(raw)
-      ) {
-        return "Spanish";
-      }
-      return raw;
+      const lang = source.audioLanguage?.trim();
+      if (lang === "es") return "Spanish";
+      if (lang === "en") return "English";
+      if (lang === "ja") return "Japanese";
+      return (
+        source.audioLabel.trim().replace(/\s*\([^)]*\)\s*/g, "").trim() ||
+        source.audioLabel.trim()
+      );
     }
     if (source?.audioLanguage?.trim()) {
       return (
