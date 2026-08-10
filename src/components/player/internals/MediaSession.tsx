@@ -279,12 +279,11 @@ export function MediaSession() {
           ? state.progress.duration
           : 0;
 
-      // Spotify-style bar needs both start + end timestamps
-      const startTimestamp = isPaused
-        ? undefined
-        : Date.now() - Math.floor(timeSec * 1000);
+      // Always send start+end so Discord can show/freeze the progress bar.
+      // While paused, re-anchoring to now keeps the bar from advancing.
+      const startTimestamp = Date.now() - Math.floor(timeSec * 1000);
       const endTimestamp =
-        !isPaused && startTimestamp && durationSec > 0
+        durationSec > 0
           ? startTimestamp + Math.floor(durationSec * 1000)
           : undefined;
 
@@ -313,6 +312,8 @@ export function MediaSession() {
         // Refresh on seeks / every ~15s of playback so the bar stays accurate
         Math.floor(timeSec / 15),
         Math.floor(durationSec),
+        // While paused, re-push every ~3s so the bar stays frozen
+        isPaused ? Math.floor(Date.now() / 3000) : 0,
       ].join("|");
 
       if (key === lastDiscordKey.current) return;
