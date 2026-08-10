@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import { usePlayerStore } from "@/stores/player/store";
+import { playerStatus } from "@/stores/player/slices/source";
 
 import { usePlayerMeta } from "../hooks/usePlayerMeta";
+
+function pushDesktopDiscordPresence(body: Record<string, unknown>) {
+  const ipc = window.__KSTREAM_DESKTOP_IPC__;
+  if (!ipc?.invoke) return;
+  void ipc.invoke("updateMediaMetadata", body).catch(() => {
+    // Discord may be closed — ignore
+  });
+}
 
 export function MediaSession() {
   const { setDirectMeta } = usePlayerMeta();
@@ -14,9 +23,11 @@ export function MediaSession() {
   const progress = usePlayerStore((s) => s.progress);
   const meta = usePlayerStore((s) => s.meta);
   const display = usePlayerStore((s) => s.display);
+  const status = usePlayerStore((s) => s.status);
 
   const shouldUpdatePositionState = useRef(false);
   const lastPlaybackPosition = useRef(0);
+  const lastDiscordKey = useRef("");
   const lastMetadata = useRef<{
     title?: string;
     artist?: string;
@@ -223,6 +234,80 @@ export function MediaSession() {
     meta?.poster,
     meta?.season?.number,
   ]);
+
+  // Discord Rich Presence (desktop app only)
+  useEffect(() => {
+    if (!window.__KSTREAM_DESKTOP_IPC__?.invoke) return;
+
+    const isActive =
+      status === playerStatus.PLAYING &&
+      Boolean(meta?.title) &&
+      mediaPlaying.hasPlayedOnce;
+
+    if (!isActive) {
+      if (lastDiscordKey.current !== "") {
+        lastDiscordKey.current = "";
+        pushDesktopDiscordPresence({ clear: true });
+      }
+      return;
+    }
+
+    const isPaused = mediaPlaying.isPaused;
+    const timeSec =
+      typeof progress.time === "number" && Number.isFinite(progress.time)
+        ? Math.max(0, progress.time)
+        : 0;
+    // Discord elapsed timer = now - startTimestamp
+    const startTimestamp = isPaused
+      ? undefined
+      : Date.now() - Math.floor(timeSec * 1000);
+
+    const payload = {
+      title: meta.title,
+      episodeTitle: meta.type === "show" ? meta.episode?.title : undefined,
+      seasonNumber: meta.type === "show" ? meta.season?.number : undefined,
+      episodeNumber: meta.type === "show" ? meta.episode?.number : undefined,
+      poster: meta.poster || undefined,
+      isPaused,
+      startTimestamp,
+      url: typeof window !== "undefined" ? window.location.href : undefined,
+    };
+
+    // Throttle identical text updates; allow timestamp refresh ~every 30s
+    const key = [
+      payload.title,
+      payload.seasonNumber,
+      payload.episodeNumber,
+      payload.episodeTitle,
+      payload.poster,
+      payload.isPaused,
+      Math.floor((startTimestamp || 0) / 30000),
+    ].join("|");
+
+    if (key === lastDiscordKey.current) return;
+    lastDiscordKey.current = key;
+    pushDesktopDiscordPresence(payload);
+  }, [
+    status,
+    meta?.title,
+    meta?.type,
+    meta?.poster,
+    meta?.season?.number,
+    meta?.episode?.number,
+    meta?.episode?.title,
+    mediaPlaying.hasPlayedOnce,
+    mediaPlaying.isPaused,
+    progress.time,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (lastDiscordKey.current !== "") {
+        lastDiscordKey.current = "";
+        pushDesktopDiscordPresence({ clear: true });
+      }
+    };
+  }, []);
 
   return null;
 }
