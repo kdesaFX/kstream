@@ -237,8 +237,8 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
         className={classNames(
           "cursor-pointer tabbable rounded-full flex text-white items-center overflow-hidden bg-black/25 hover:bg-black/40 border border-white/10 hover:border-white/15 backdrop-blur-md transition-all duration-100 hover:scale-105",
           isMobile
-            ? "h-10 w-10 justify-center p-0"
-            : "h-[2.67rem] gap-1.5 px-3",
+            ? "h-10 min-w-[2.75rem] justify-center gap-0 px-3"
+            : "h-[2.67rem] min-w-[3.25rem] gap-1.5 px-3.5",
           open ? "bg-black/40" : "",
         )}
         tabIndex={0}
@@ -249,7 +249,7 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
         {!isMobile ? (
           <Icon
             className={classNames(
-              "text-lg leading-none transition-transform duration-100 shrink-0",
+              "inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none transition-transform duration-100 [&>svg]:block [&>svg]:h-5 [&>svg]:w-5",
               open ? "rotate-180" : "",
             )}
             icon={Icons.CHEVRON_DOWN}

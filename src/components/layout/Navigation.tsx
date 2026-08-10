@@ -46,7 +46,10 @@ function HomeLayoutCustomizerToggle() {
         title="Edit Layout"
       >
         <div className="flex items-center justify-center w-10 h-10 md:w-[2.67rem] md:h-[2.67rem] shrink-0">
-          <Icon icon={Icons.LAYOUT} className="text-xl md:text-2xl" />
+          <Icon
+            icon={Icons.LAYOUT}
+            className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none [&>svg]:block [&>svg]:h-5 [&>svg]:w-5"
+          />
         </div>
         <span
           className={`font-medium text-sm whitespace-nowrap transition-all duration-300 ease-out ${
@@ -330,7 +333,7 @@ export function Navigation(props: NavigationProps) {
                     iconClass="text-xs md:text-sm"
                   />
                 ) : (
-                  <NoUserAvatar iconClass="text-lg md:text-lg" />
+                  <NoUserAvatar iconClass="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none [&>svg]:block [&>svg]:h-5 [&>svg]:w-5" />
                 )}
               </LinksDropdown>
             </div>
