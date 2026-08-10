@@ -565,6 +565,26 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     if (!videoElement || !source) return;
     setupSource(videoElement, source);
 
+    const tryAutoplay = () => {
+      if (!shouldAutoplayAfterLoad || !videoElement) return;
+      const playPromise = videoElement.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            shouldAutoplayAfterLoad = false;
+            emit("loading", false);
+          })
+          .catch(() => {
+            // Autoplay blocked (common on mobile). Unstick UI so play is tappable.
+            emit("pause", undefined);
+            emit("loading", false);
+          });
+      } else {
+        shouldAutoplayAfterLoad = false;
+        emit("loading", false);
+      }
+    };
+
     videoElement.addEventListener("play", () => {
       emit("play", undefined);
       emit("loading", false);
@@ -586,58 +606,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     videoElement.addEventListener("pause", () => {
       if (suppressPlaybackEvents) return;
       emit("pause", undefined);
-    });
-    videoElement.addEventListener("canplay", () => {
-      reportQualityFromVideoElement();
-      // Media is ready enough to start. Clearing here avoids a stuck center spinner
-      // when the browser blocks autoplay (paused + ready, but still "loading").
-      // `waiting` will re-emit loading=true if playback stalls for more data.
-      emit("loading", false);
-
-      if (shouldAutoplayAfterLoad && videoElement) {
-        // Try to play — browsers may block this without a user gesture
-        const playPromise = videoElement.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              shouldAutoplayAfterLoad = false;
-            })
-            .catch(() => {
-              // Keep shouldAutoplayAfterLoad so iOS fullscreen/PiP can retry
-              emit("pause", undefined);
-              emit("loading", false);
-            });
-        } else {
-          shouldAutoplayAfterLoad = false;
-        }
-      }
-    });
-    videoElement.addEventListener("waiting", () => {
-      // Don't treat pre-play buffering as a stuck loading state — that hid the
-      // play button when autoplay was blocked by the browser.
-      if (videoElement && !videoElement.paused) {
-        emit("loading", true);
-      }
-    });
-    videoElement.addEventListener("volumechange", () =>
-      emit(
-        "volumechange",
-        videoElement?.muted ? 0 : (videoElement?.volume ?? 0),
-      ),
-    );
-    videoElement.addEventListener("timeupdate", () => {
-      const currentTime = videoElement?.currentTime ?? 0;
-      // Always emit time updates when seeking to prevent subtitle freezing
-      // Also emit when progressing forward or when time changes significantly
-      // This prevents time from resetting to 0 during source switches
-      if (
-        currentTime >= lastValidTime ||
-        isSeeking ||
-        Math.abs(currentTime - lastValidTime) > 0.1
-      ) {
-        lastValidTime = currentTime;
-        emit("time", currentTime);
-      }
     });
     videoElement.addEventListener("loadedmetadata", () => {
       if (
@@ -666,6 +634,43 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       } else if (lastValidDuration > 0) {
         // Keep the last valid duration if the new one is invalid
         emit("duration", lastValidDuration);
+      }
+      // Native HLS on iOS may not fire canplay until play() — try early.
+      tryAutoplay();
+    });
+    videoElement.addEventListener("canplay", () => {
+      reportQualityFromVideoElement();
+      // Media is ready enough to start. Clearing here avoids a stuck center spinner
+      // when the browser blocks autoplay (paused + ready, but still "loading").
+      // `waiting` will re-emit loading=true if playback stalls for more data.
+      emit("loading", false);
+      tryAutoplay();
+    });
+    videoElement.addEventListener("waiting", () => {
+      // Don't treat pre-play buffering as a stuck loading state — that hid the
+      // play button when autoplay was blocked by the browser.
+      if (videoElement && !videoElement.paused) {
+        emit("loading", true);
+      }
+    });
+    videoElement.addEventListener("volumechange", () =>
+      emit(
+        "volumechange",
+        videoElement?.muted ? 0 : (videoElement?.volume ?? 0),
+      ),
+    );
+    videoElement.addEventListener("timeupdate", () => {
+      const currentTime = videoElement?.currentTime ?? 0;
+      // Always emit time updates when seeking to prevent subtitle freezing
+      // Also emit when progressing forward or when time changes significantly
+      // This prevents time from resetting to 0 during source switches
+      if (
+        currentTime >= lastValidTime ||
+        isSeeking ||
+        Math.abs(currentTime - lastValidTime) > 0.1
+      ) {
+        lastValidTime = currentTime;
+        emit("time", currentTime);
       }
     });
     videoElement.addEventListener("resize", () => {
@@ -956,6 +961,15 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           usePreferencesStore.getState().enableAutoplay !== false;
       }
       setSource();
+
+      // Mobile native HLS can sit in loading forever without canplay.
+      // Unstick the UI so the center play control is available.
+      window.setTimeout(() => {
+        if (!shouldAutoplayAfterLoad) return;
+        if (!videoElement || !videoElement.paused) return;
+        emit("pause", undefined);
+        emit("loading", false);
+      }, 2500);
     },
     changeQuality(newAutomaticQuality, newPreferredQuality) {
       if (source?.type !== "hls") return;

@@ -114,6 +114,13 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
         return;
       }
 
+      // First tap on mobile while waiting to start: begin playback (user gesture).
+      const hasPlayedOnce = usePlayerStore.getState().mediaPlaying.hasPlayedOnce;
+      if (isPaused && !hasPlayedOnce) {
+        display?.play();
+        return;
+      }
+
       // toggle on other types of clicks
       if (isSeeking) return;
       if (hovering !== PlayerHoverState.MOBILE_TAPPED) {
@@ -128,11 +135,11 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
       display,
       isPaused,
       hovering,
+      isPendingBoost,
+      isSeeking,
       updateInterfaceHovering,
       reset,
       cancel,
-      isPendingBoost,
-      isSeeking,
     ],
   );
 
