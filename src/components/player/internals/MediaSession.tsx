@@ -10,7 +10,12 @@ function pushDesktopDiscordPresence(body: Record<string, unknown>) {
   if (!ipc?.invoke) return Promise.resolve(false);
   return ipc
     .invoke("updateMediaMetadata", body)
-    .then((res: { success?: boolean } | undefined) => Boolean(res?.success))
+    .then((res: { success?: boolean } | undefined) => {
+      // Treat missing success as ok — older handlers / relays may omit it
+      if (res == null) return true;
+      if (typeof res.success === "boolean") return res.success;
+      return true;
+    })
     .catch(() => false);
 }
 
@@ -248,10 +253,6 @@ export function MediaSession() {
       return;
     }
 
-    if (!mediaPlaying.hasPlayedOnce && !mediaPlaying.isPlaying) {
-      return;
-    }
-
     const send = () => {
       const state = usePlayerStore.getState();
       const currentMeta = state.meta;
@@ -308,8 +309,6 @@ export function MediaSession() {
     meta?.season?.number,
     meta?.episode?.number,
     meta?.episode?.title,
-    mediaPlaying.hasPlayedOnce,
-    mediaPlaying.isPlaying,
     mediaPlaying.isPaused,
   ]);
 
