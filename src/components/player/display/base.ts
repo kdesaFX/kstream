@@ -64,31 +64,35 @@ function isAvcLevel(level: Level): boolean {
 }
 
 /**
- * Prefer a browser-playable start level: AVC at or below 1080p when available.
- * Goated (and similar) masters list 4K HEVC first — starting there hangs Chrome.
+ * Prefer a fast, playable start level for browser/proxy paths.
+ * Cap at 720p AVC — 1080p init segments through the Vercel proxy are multi‑MB.
  */
 function pickBrowserStartLevel(levels: Level[]): Level | null {
   if (!levels.length) return null;
 
-  const avcUpTo1080 = levels
-    .filter((l) => isAvcLevel(l) && (l.height || 0) > 0 && (l.height || 0) <= 1080)
+  const avc = levels.filter((l) => isAvcLevel(l) && (l.height || 0) > 0);
+  const avcUpTo720 = avc
+    .filter((l) => (l.height || 0) <= 720)
     .sort((a, b) => (b.height || 0) - (a.height || 0));
+  if (avcUpTo720[0]) return avcUpTo720[0];
+
+  const avcUpTo1080 = avc
+    .filter((l) => (l.height || 0) <= 1080)
+    .sort((a, b) => (a.height || 0) - (b.height || 0)); // lowest ≤1080 if no 720
   if (avcUpTo1080[0]) return avcUpTo1080[0];
 
-  const anyAvc = levels
-    .filter((l) => isAvcLevel(l))
-    .sort((a, b) => (b.height || 0) - (a.height || 0));
+  const anyAvc = [...avc].sort((a, b) => (a.height || 0) - (b.height || 0));
   if (anyAvc[0]) return anyAvc[0];
 
   const nonHevc = levels
-    .filter((l) => !isHevcLevel(l) && (l.height || 0) <= 1080)
+    .filter((l) => !isHevcLevel(l) && (l.height || 0) > 0 && (l.height || 0) <= 720)
     .sort((a, b) => (b.height || 0) - (a.height || 0));
   if (nonHevc[0]) return nonHevc[0];
 
-  const upTo1080 = levels
-    .filter((l) => (l.height || 0) > 0 && (l.height || 0) <= 1080)
+  const upTo720 = levels
+    .filter((l) => (l.height || 0) > 0 && (l.height || 0) <= 720)
     .sort((a, b) => (b.height || 0) - (a.height || 0));
-  if (upTo1080[0]) return upTo1080[0];
+  if (upTo720[0]) return upTo720[0];
 
   return sortLevelsByQuality(levels)[0] ?? null;
 }
@@ -398,12 +402,17 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       if (!Hls.isSupported())
         throw new Error("HLS not supported. Update your browser. 🤦‍♂️");
       if (!hls) {
+        const proxiedStream =
+          typeof src.url === "string" && src.url.includes("/m3u8-proxy");
         hls = new Hls({
-          // Wait until we pick AVC ≤1080p — autoStart would race into 4K HEVC.
+          // Wait until we pick AVC ≤720p — autoStart would race into 4K HEVC.
           autoStartLoad: false,
-          maxBufferLength: 120, // 120 seconds
-          maxMaxBufferLength: 240,
-          abrEwmaDefaultEstimate: 5 * 1000 * 1000, // 5 Mbps default bandwidth estimate for better ABR decisions
+          // Proxied segments are slower; keep the first buffer lean for faster start.
+          maxBufferLength: proxiedStream ? 30 : 120,
+          maxMaxBufferLength: proxiedStream ? 60 : 240,
+          abrEwmaDefaultEstimate: proxiedStream
+            ? 1.5 * 1000 * 1000
+            : 5 * 1000 * 1000,
           fragLoadPolicy: {
             default: {
               maxLoadTimeMs: 30 * 1000, // allow it load extra long, fragments are slow if requested for the first time on an origin

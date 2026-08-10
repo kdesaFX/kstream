@@ -128,13 +128,20 @@ function preferBrowserVariants(body: string): string {
   if (!variants.length) return body;
 
   const score = (v: Variant) => {
-    // Higher is better for browser start order
+    // Higher is better for browser start order — prefer ~720p AVC (fast first frame
+    // through the same-origin proxy; 1080p init segments are multi‑MB).
     let s = 0;
     if (v.avc) s += 1000;
     if (v.hevc) s -= 500;
-    if (v.height > 0 && v.height <= 1080) s += 200;
-    if (v.height > 1080) s -= 100;
-    s += Math.min(v.height, 1080) / 1080; // prefer higher within cap
+    if (v.height > 1080) s -= 200;
+    if (v.height > 0 && v.height <= 720) {
+      s += 300;
+      // Closest to 720 wins
+      s += 1 - Math.abs(v.height - 720) / 720;
+    } else if (v.height > 720 && v.height <= 1080) {
+      s += 100;
+      s += (1080 - v.height) / 1080;
+    }
     return s;
   };
 

@@ -21,6 +21,22 @@ function isDesktopApp(): boolean {
   );
 }
 
+/** Wake cold Vercel edge functions before the first scrape/play request. */
+let proxyWarmStarted = false;
+function warmSameOriginProxies() {
+  if (proxyWarmStarted || typeof window === "undefined") return;
+  proxyWarmStarted = true;
+  const origin = window.location.origin;
+  // Fire-and-forget OPTIONS / tiny GETs — ignore failures.
+  void fetch(`${origin}/api/proxy?destination=${encodeURIComponent("https://example.com")}`, {
+    method: "GET",
+    cache: "no-store",
+  }).catch(() => undefined);
+  void fetch(`${origin}/api/m3u8-proxy?url=${encodeURIComponent("https://example.com")}`, {
+    method: "OPTIONS",
+  }).catch(() => undefined);
+}
+
 export function getProviders() {
   // Desktop app has extension built in and can play MKV; use NATIVE target.
   if (isDesktopApp()) {
@@ -42,6 +58,7 @@ export function getProviders() {
   }
 
   setupM3U8Proxy();
+  warmSameOriginProxies();
 
   return makeProviders({
     fetcher: makeStandardFetcher(fetch),
