@@ -13,7 +13,7 @@ export function BrandPill(props: {
       className={classNames(
         "flex items-center gap-2 rounded-full text-type-logo",
         props.header
-          ? "h-12 px-3 text-base md:h-16 md:px-5 md:text-lg"
+          ? "h-8 gap-1.5 px-2 text-sm md:h-[2.67rem] md:gap-2 md:px-3.5 md:text-base"
           : "px-4 py-2",
         props.header
           ? "bg-black/55 backdrop-blur-md border border-white/25 shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
@@ -29,11 +29,11 @@ export function BrandPill(props: {
       <img
         src="/logo.png?v=6"
         alt={t("global.name")}
-        width={props.header ? 36 : 24}
-        height={props.header ? 36 : 24}
+        width={props.header ? 24 : 24}
+        height={props.header ? 24 : 24}
         className={
           props.header
-            ? "h-7 w-7 md:h-9 md:w-9 object-contain"
+            ? "h-5 w-5 md:h-6 md:w-6 object-contain"
             : "h-6 w-6 object-contain"
         }
         draggable={false}

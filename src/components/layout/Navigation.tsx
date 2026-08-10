@@ -38,21 +38,21 @@ function HomeLayoutCustomizerToggle() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`group flex items-center h-12 md:h-16 rounded-full transition-all duration-300 ease-out overflow-hidden ${
+        className={`group flex items-center h-8 md:h-[2.67rem] rounded-full transition-all duration-300 ease-out overflow-hidden ${
           isOpen
-            ? "bg-type-link text-white shadow-lg pr-5"
-            : "bg-pill-background bg-opacity-50 text-white hover:bg-pill-backgroundHover hover:bg-opacity-100 hover:pr-5 active:scale-105"
+            ? "bg-type-link text-white shadow-lg pr-4"
+            : "bg-pill-background bg-opacity-50 text-white hover:bg-pill-backgroundHover hover:bg-opacity-100 hover:pr-4 active:scale-105"
         }`}
         title="Edit Layout"
       >
-        <div className="flex items-center justify-center w-12 h-12 md:w-16 md:h-16 shrink-0">
-          <Icon icon={Icons.LAYOUT} className="text-2xl md:text-3xl" />
+        <div className="flex items-center justify-center w-8 h-8 md:w-[2.67rem] md:h-[2.67rem] shrink-0">
+          <Icon icon={Icons.LAYOUT} className="text-xl md:text-2xl" />
         </div>
         <span
-          className={`font-medium text-base whitespace-nowrap transition-all duration-300 ease-out ${
+          className={`font-medium text-sm whitespace-nowrap transition-all duration-300 ease-out ${
             isOpen
-              ? "max-w-[120px] opacity-100"
-              : "max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100"
+              ? "max-w-[100px] opacity-100"
+              : "max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100"
           }`}
         >
           Layout
@@ -264,26 +264,29 @@ export function Navigation(props: NavigationProps) {
                     title="Download app"
                     aria-label="Download Windows app"
                   >
-                    <div className="flex h-16 items-center gap-2.5 rounded-full border border-white/10 bg-black/25 px-5 text-white backdrop-blur-md transition-[transform,background-color,border-color] hover:scale-105 hover:border-white/15 hover:bg-black/35 active:scale-95">
+                    <div className="flex h-[2.67rem] items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3.5 text-white backdrop-blur-md transition-[transform,background-color,border-color] hover:scale-105 hover:border-white/15 hover:bg-black/35 active:scale-95">
                       <Icon
                         icon={Icons.DOWNLOAD}
-                        className="inline-flex text-2xl leading-none [&>svg]:block"
+                        className="inline-flex text-xl leading-none [&>svg]:block"
                       />
-                      <span className="font-semibold text-lg">Download</span>
+                      <span className="font-semibold text-base">Download</span>
                     </div>
                   </button>
                 ) : null}
                 <a
                   onClick={() => openNotifications()}
                   rel="noreferrer"
-                  className="text-white tabbable rounded-full backdrop-blur-lg relative flex h-12 w-12 md:h-16 md:w-16 items-center justify-center"
+                  className="text-white tabbable rounded-full backdrop-blur-lg relative flex h-8 w-8 md:h-[2.67rem] md:w-[2.67rem] items-center justify-center"
                 >
                   <IconPatch
                     icon={Icons.BELL}
                     clickable
-                    large={!isMobile}
                     navigation
-                    className={isMobile ? "[&>div]:!h-12 [&>div]:!w-12" : undefined}
+                    className={
+                      isMobile
+                        ? "[&>div]:!h-8 [&>div]:!w-8 [&>div]:!text-[1.65rem]"
+                        : "[&>div]:!h-[2.67rem] [&>div]:!w-[2.67rem] [&>div]:!text-[2rem]"
+                    }
                   />
                   {(() => {
                     const count = getUnreadCount();
