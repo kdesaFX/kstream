@@ -44,7 +44,7 @@ function maybeProxyHlsPlaylist(
   if (isExtensionActiveCached()) return playlist;
   if (isUrlAlreadyProxied(playlist)) return playlist;
   if (Object.keys(headers).length === 0) return playlist;
-  return createM3U8ProxyUrl(playlist, headers);
+  return createM3U8ProxyUrl(playlist, headers, { requireProxy: true });
 }
 
 export function convertRunoutputToSource(out: {

@@ -40,6 +40,10 @@ export default async function handler(request: Request): Promise<Response> {
       upstreamHeaders.set(k, v);
     }
 
+    // fMP4 / Safari often request byte ranges for init + media segments
+    const range = request.headers.get("Range") ?? request.headers.get("range");
+    if (range) upstreamHeaders.set("Range", range);
+
     const upstream = await fetch(target.href, {
       method: "GET",
       headers: upstreamHeaders,
@@ -50,6 +54,14 @@ export default async function handler(request: Request): Promise<Response> {
       upstream.headers,
       upstream.url || target.href,
     );
+
+    const contentRange = upstream.headers.get("content-range");
+    if (contentRange) headers.set("Content-Range", contentRange);
+    const acceptRanges = upstream.headers.get("accept-ranges");
+    if (acceptRanges) headers.set("Accept-Ranges", acceptRanges);
+    const contentLength = upstream.headers.get("content-length");
+    if (contentLength) headers.set("Content-Length", contentLength);
+
     headers.set("Cache-Control", "public, max-age=3600");
 
     return new Response(upstream.body, {

@@ -53,6 +53,46 @@ function sortLevelsByQuality(levels: Level[]): Level[] {
   return [...levels].sort((a, b) => (b.height || 0) - (a.height || 0));
 }
 
+function isHevcLevel(level: Level): boolean {
+  const codec = (level.videoCodec || "").toLowerCase();
+  return codec.includes("hev1") || codec.includes("hvc1") || codec.includes("hevc");
+}
+
+function isAvcLevel(level: Level): boolean {
+  const codec = (level.videoCodec || "").toLowerCase();
+  return codec.includes("avc1") || codec.includes("avc3") || codec.includes("avc");
+}
+
+/**
+ * Prefer a browser-playable start level: AVC at or below 1080p when available.
+ * Goated (and similar) masters list 4K HEVC first — starting there hangs Chrome.
+ */
+function pickBrowserStartLevel(levels: Level[]): Level | null {
+  if (!levels.length) return null;
+
+  const avcUpTo1080 = levels
+    .filter((l) => isAvcLevel(l) && (l.height || 0) > 0 && (l.height || 0) <= 1080)
+    .sort((a, b) => (b.height || 0) - (a.height || 0));
+  if (avcUpTo1080[0]) return avcUpTo1080[0];
+
+  const anyAvc = levels
+    .filter((l) => isAvcLevel(l))
+    .sort((a, b) => (b.height || 0) - (a.height || 0));
+  if (anyAvc[0]) return anyAvc[0];
+
+  const nonHevc = levels
+    .filter((l) => !isHevcLevel(l) && (l.height || 0) <= 1080)
+    .sort((a, b) => (b.height || 0) - (a.height || 0));
+  if (nonHevc[0]) return nonHevc[0];
+
+  const upTo1080 = levels
+    .filter((l) => (l.height || 0) > 0 && (l.height || 0) <= 1080)
+    .sort((a, b) => (b.height || 0) - (a.height || 0));
+  if (upTo1080[0]) return upTo1080[0];
+
+  return sortLevelsByQuality(levels)[0] ?? null;
+}
+
 export function makeVideoElementDisplayInterface(): DisplayInterface {
   const { emit, on, off } = makeEmitter<DisplayInterfaceEvents>();
   let source: LoadableSource | null = null;
@@ -249,10 +289,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         }
       }
     } else {
-       // Good job fucking up auto qualities on non standarts so i have to make this fix
-      const sortedLevels = sortLevelsByQuality(hls.levels);
-      const topLevel = sortedLevels[0];
-      const topIndex = topLevel ? hls.levels.indexOf(topLevel) : -1;
+      // Auto: start on a playable AVC ≤1080p rung when present (avoid 4K HEVC hang).
+      const startLevel = pickBrowserStartLevel(hls.levels);
+      const topIndex = startLevel ? hls.levels.indexOf(startLevel) : -1;
       if (topIndex !== -1) {
         hls.startLevel = topIndex;
         hls.nextLevel = topIndex;

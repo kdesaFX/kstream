@@ -10,18 +10,25 @@ import { getM3U8ProxyUrls } from "@/utils/hosting/proxyUrls";
 export function createM3U8ProxyUrl(
   url: string,
   headers: Record<string, string> = {},
+  options: { requireProxy?: boolean } = {},
 ): string {
-  // Get a random M3U8 proxy URL from the configuration
   const proxyBaseUrl = getLoadbalancedM3U8ProxyUrl();
 
   if (!proxyBaseUrl) {
+    if (options.requireProxy || Object.keys(headers).length > 0) {
+      throw new Error(
+        "No M3U8 proxy configured. Set VITE_M3U8_PROXY_URL (e.g. /api) for browser playback without the extension.",
+      );
+    }
     console.warn("No M3U8 proxy URLs available in configuration");
-    return url; // Fallback to original URL
+    return url;
   }
 
   const encodedUrl = encodeURIComponent(url);
   const encodedHeaders = encodeURIComponent(JSON.stringify(headers));
-  return `${proxyBaseUrl}/m3u8-proxy?url=${encodedUrl}${headers ? `&headers=${encodedHeaders}` : ""}`;
+  return `${proxyBaseUrl}/m3u8-proxy?url=${encodedUrl}${
+    Object.keys(headers).length > 0 ? `&headers=${encodedHeaders}` : ""
+  }`;
 }
 
 /**

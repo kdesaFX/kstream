@@ -71,6 +71,9 @@ const PASSTHROUGH_HEADERS = new Set([
   "content-type",
   "accept",
   "accept-language",
+  // Anikoto / TQQ ajax endpoints require this; browsers send it as-is (not X-*)
+  "x-requested-with",
+  "range",
 ]);
 
 /** Build upstream headers from the simple-proxy X-* remaps + safe passthrough. */
