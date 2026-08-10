@@ -5,6 +5,7 @@ import { Button } from "@/components/buttons/Button";
 import { Icon, Icons } from "@/components/Icon";
 import { FancyModal, useModal } from "@/components/overlays/Modal";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
+import { useOverlayStack } from "@/stores/interface/overlayStack";
 
 export type DesktopAppInfo = {
   streamUrl: string;
@@ -12,6 +13,8 @@ export type DesktopAppInfo = {
   installDir: string;
   version: string;
 };
+
+const MODAL_ID = "desktop-app-settings";
 
 async function fetchDesktopAppInfo(): Promise<DesktopAppInfo | null> {
   const ipc = window.__KSTREAM_DESKTOP_IPC__;
@@ -39,22 +42,24 @@ function InfoRow(props: { label: string; value: string }) {
   );
 }
 
-export function DesktopAppSettingsModal({ id }: { id: string }) {
+export function DesktopAppSettingsModal({ id = MODAL_ID }: { id?: string }) {
   const { t } = useTranslation();
   const modal = useModal(id);
+  const showModal = useOverlayStack((s) => s.showModal);
   const isDesktop = useIsDesktopApp();
   const [info, setInfo] = useState<DesktopAppInfo | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Backup for any leftover dispatchEvent callers
   useEffect(() => {
     if (!isDesktop) return;
-    const open = () => modal.show();
+    const open = () => showModal(id);
     window.addEventListener("pstream-desktop-settings", open);
     return () => window.removeEventListener("pstream-desktop-settings", open);
-  }, [isDesktop, modal]);
+  }, [isDesktop, id, showModal]);
 
   useEffect(() => {
-    if (!modal.isShown || !isDesktop) return;
+    if (!modal.isShown) return;
     let cancelled = false;
     setLoading(true);
     void fetchDesktopAppInfo().then((next) => {
@@ -65,10 +70,9 @@ export function DesktopAppSettingsModal({ id }: { id: string }) {
     return () => {
       cancelled = true;
     };
-  }, [modal.isShown, isDesktop]);
+  }, [modal.isShown]);
 
-  if (!isDesktop) return null;
-
+  // Keep mounted on web too so the id always exists; content only loads on desktop.
   return (
     <FancyModal id={id} title={t("desktopApp.settings.title")} size="md">
       <div className="space-y-5">
@@ -86,7 +90,7 @@ export function DesktopAppSettingsModal({ id }: { id: string }) {
           <div className="rounded-xl bg-largeCard-background bg-opacity-50 p-4 space-y-4">
             <InfoRow
               label={t("desktopApp.settings.url")}
-              value={info?.streamUrl || ""}
+              value={info?.streamUrl || (isDesktop ? "" : "—")}
             />
             <InfoRow
               label={t("desktopApp.settings.mode")}

@@ -9,6 +9,7 @@ import { getRoomStatuses } from "@/backend/player/status";
 import { UserAvatar } from "@/components/Avatar";
 import { Icon, Icons } from "@/components/Icon";
 import { Spinner } from "@/components/layout/Spinner";
+import { useDesktopAppSettingsModal } from "@/components/overlays/desktopAppSettings";
 import { Transition } from "@/components/utils/Transition";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
@@ -226,6 +227,7 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
   }, []);
 
   const isDesktopApp = useIsDesktopApp();
+  const { openDesktopAppSettings } = useDesktopAppSettingsModal();
 
   return (
     <div className="relative is-dropdown">
@@ -265,11 +267,10 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
           </DropdownLink>
           {isDesktopApp && (
             <DropdownLink
-              onClick={() =>
-                window.dispatchEvent(
-                  new CustomEvent("pstream-desktop-settings"),
-                )
-              }
+              onClick={() => {
+                setOpen(false);
+                openDesktopAppSettings();
+              }}
               icon={Icons.GEAR}
             >
               {t("navigation.menu.desktop")}
