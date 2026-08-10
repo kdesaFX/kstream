@@ -16,11 +16,13 @@ export function BrandPill(props: {
           ? "h-12 px-3 text-base md:h-16 md:px-5 md:text-lg"
           : "px-4 py-2",
         props.header
-          ? "bg-black/25 backdrop-blur-md border border-white/10"
+          ? "bg-black/55 backdrop-blur-md border border-white/25 shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
           : props.backgroundClass ??
               "bg-pill-background bg-opacity-50 backdrop-blur-lg",
         props.clickable
-          ? "transition-[transform,background-color,border-color] hover:scale-105 hover:bg-black/35 hover:border-white/15 hover:text-type-logo active:scale-95"
+          ? props.header
+            ? "transition-[transform,background-color,border-color,box-shadow] hover:scale-105 hover:bg-black/70 hover:border-white/40 hover:shadow-[0_0_0_1px_rgba(255,255,255,0.12)] hover:text-type-logo active:scale-95"
+            : "transition-[transform,background-color,border-color] hover:scale-105 hover:bg-black/35 hover:border-white/15 hover:text-type-logo active:scale-95"
           : "",
       )}
     >
