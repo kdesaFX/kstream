@@ -10,10 +10,12 @@ import {
 } from "@/components/player/hooks/useSourceSelection";
 import { Menu } from "@/components/player/internals/ContextMenu";
 import { SelectableLink } from "@/components/player/internals/ContextMenu/Links";
+import { usePlayerStore } from "@/stores/player/store";
 import {
   getPreferredSourceForTitle,
   usePreferencesStore,
 } from "@/stores/preferences";
+import { orderSourcesForTitle } from "@/utils/media/anime";
 
 // Embed option component
 function EmbedOption(props: {
@@ -159,6 +161,7 @@ export function SourceSelectPart(props: { media: ScrapeMedia }) {
   const enableLastSuccessfulSource = usePreferencesStore(
     (s) => s.enableLastSuccessfulSource,
   );
+  const playerMeta = usePlayerStore((s) => s.meta);
 
   const sources = useMemo(() => {
     const metaType = props.media.type;
@@ -175,51 +178,57 @@ export function SourceSelectPart(props: { media: ScrapeMedia }) {
         )
       : null;
 
-    if (!enableSourceOrder || preferredSourceOrder.length === 0) {
-      // Even without custom source order, prioritize remembered source if enabled
+    let orderedSources = allSources;
+
+    if (enableSourceOrder && preferredSourceOrder.length > 0) {
+      const preferred: typeof allSources = [];
+      const remaining = [...allSources];
+
       if (prioritizeSource) {
-        const lastSourceIndex = allSources.findIndex(
+        const lastSourceIndex = remaining.findIndex(
           (s) => s.id === prioritizeSource,
         );
         if (lastSourceIndex !== -1) {
-          const lastSource = allSources.splice(lastSourceIndex, 1)[0];
-          return [lastSource, ...allSources];
+          preferred.push(remaining[lastSourceIndex]);
+          remaining.splice(lastSourceIndex, 1);
         }
       }
-      return allSources;
-    }
 
-    // Sort sources according to preferred order, but prioritize remembered source
-    const orderedSources = [];
-    const remainingSources = [...allSources];
+      for (const sourceId of preferredSourceOrder) {
+        const sourceIndex = remaining.findIndex((s) => s.id === sourceId);
+        if (sourceIndex !== -1) {
+          preferred.push(remaining[sourceIndex]);
+          remaining.splice(sourceIndex, 1);
+        }
+      }
 
-    // First, add the remembered source if it exists, is available, and the feature is enabled
-    if (prioritizeSource) {
-      const lastSourceIndex = remainingSources.findIndex(
+      preferred.push(...remaining);
+      orderedSources = preferred;
+    } else if (prioritizeSource) {
+      const lastSourceIndex = orderedSources.findIndex(
         (s) => s.id === prioritizeSource,
       );
       if (lastSourceIndex !== -1) {
-        orderedSources.push(remainingSources[lastSourceIndex]);
-        remainingSources.splice(lastSourceIndex, 1);
+        const lastSource = orderedSources.splice(lastSourceIndex, 1)[0];
+        orderedSources = [lastSource, ...orderedSources];
       }
     }
 
-    // Add sources in preferred order
-    for (const sourceId of preferredSourceOrder) {
-      const sourceIndex = remainingSources.findIndex((s) => s.id === sourceId);
-      if (sourceIndex !== -1) {
-        orderedSources.push(remainingSources[sourceIndex]);
-        remainingSources.splice(sourceIndex, 1);
+    orderedSources = orderSourcesForTitle(orderedSources, playerMeta);
+
+    if (prioritizeSource) {
+      const pinIndex = orderedSources.findIndex((s) => s.id === prioritizeSource);
+      if (pinIndex > 0) {
+        const pinned = orderedSources.splice(pinIndex, 1)[0];
+        orderedSources = [pinned, ...orderedSources];
       }
     }
-
-    // Add remaining sources that weren't in the preferred order
-    orderedSources.push(...remainingSources);
 
     return orderedSources;
   }, [
     props.media.type,
     props.media.tmdbId,
+    playerMeta,
     preferredSourceOrder,
     enableSourceOrder,
     lastSuccessfulSource,

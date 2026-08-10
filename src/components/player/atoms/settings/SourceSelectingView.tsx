@@ -17,6 +17,7 @@ import {
   getPreferredSourceForTitle,
   usePreferencesStore,
 } from "@/stores/preferences";
+import { orderSourcesForTitle } from "@/utils/media/anime";
 
 export interface SourceSelectionViewProps {
   id: string;
@@ -161,6 +162,9 @@ export function SourceSelectionView({
   const router = useOverlayRouter(id);
   const metaType = usePlayerStore((s) => s.meta?.type);
   const metaTmdbId = usePlayerStore((s) => s.meta?.tmdbId);
+  const metaGenreIds = usePlayerStore((s) => s.meta?.genreIds);
+  const metaOriginalLanguage = usePlayerStore((s) => s.meta?.originalLanguage);
+  const metaOriginCountry = usePlayerStore((s) => s.meta?.originCountry);
   const currentSourceId = usePlayerStore((s) => s.sourceId);
   const setResumeFromSourceId = usePlayerStore((s) => s.setResumeFromSourceId);
   const setStatus = usePlayerStore((s) => s.setStatus);
@@ -194,51 +198,64 @@ export function SourceSelectionView({
         )
       : null;
 
-    if (!enableSourceOrder || preferredSourceOrder.length === 0) {
-      // Even without custom source order, prioritize remembered source if enabled
+    let orderedSources = allSources;
+
+    if (enableSourceOrder && preferredSourceOrder.length > 0) {
+      const preferred: typeof allSources = [];
+      const remaining = [...allSources];
+
       if (prioritizeSource) {
-        const lastSourceIndex = allSources.findIndex(
+        const lastSourceIndex = remaining.findIndex(
           (s) => s.id === prioritizeSource,
         );
         if (lastSourceIndex !== -1) {
-          const lastSource = allSources.splice(lastSourceIndex, 1)[0];
-          return [lastSource, ...allSources];
+          preferred.push(remaining[lastSourceIndex]);
+          remaining.splice(lastSourceIndex, 1);
         }
       }
-      return allSources;
-    }
 
-    // Sort sources according to preferred order, but prioritize remembered source
-    const orderedSources = [];
-    const remainingSources = [...allSources];
+      for (const sourceId of preferredSourceOrder) {
+        const sourceIndex = remaining.findIndex((s) => s.id === sourceId);
+        if (sourceIndex !== -1) {
+          preferred.push(remaining[sourceIndex]);
+          remaining.splice(sourceIndex, 1);
+        }
+      }
 
-    // First, add the remembered source if it exists, is available, and the feature is enabled
-    if (prioritizeSource) {
-      const lastSourceIndex = remainingSources.findIndex(
+      preferred.push(...remaining);
+      orderedSources = preferred;
+    } else if (prioritizeSource) {
+      const lastSourceIndex = orderedSources.findIndex(
         (s) => s.id === prioritizeSource,
       );
       if (lastSourceIndex !== -1) {
-        orderedSources.push(remainingSources[lastSourceIndex]);
-        remainingSources.splice(lastSourceIndex, 1);
+        const lastSource = orderedSources.splice(lastSourceIndex, 1)[0];
+        orderedSources = [lastSource, ...orderedSources];
       }
     }
 
-    // Add sources in preferred order
-    for (const sourceId of preferredSourceOrder) {
-      const sourceIndex = remainingSources.findIndex((s) => s.id === sourceId);
-      if (sourceIndex !== -1) {
-        orderedSources.push(remainingSources[sourceIndex]);
-        remainingSources.splice(sourceIndex, 1);
+    orderedSources = orderSourcesForTitle(orderedSources, {
+      genreIds: metaGenreIds,
+      originalLanguage: metaOriginalLanguage,
+      originCountry: metaOriginCountry,
+    });
+
+    // Re-apply title pin after anime grouping so Find-next / remembered source stays first.
+    if (prioritizeSource) {
+      const pinIndex = orderedSources.findIndex((s) => s.id === prioritizeSource);
+      if (pinIndex > 0) {
+        const pinned = orderedSources.splice(pinIndex, 1)[0];
+        orderedSources = [pinned, ...orderedSources];
       }
     }
-
-    // Add remaining sources that weren't in the preferred order
-    orderedSources.push(...remainingSources);
 
     return orderedSources;
   }, [
     metaType,
     metaTmdbId,
+    metaGenreIds,
+    metaOriginalLanguage,
+    metaOriginCountry,
     preferredSourceOrder,
     enableSourceOrder,
     lastSuccessfulSource,

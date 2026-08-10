@@ -33,6 +33,10 @@ export interface DetailedMeta {
   meta: MWMediaMeta;
   imdbId?: string;
   tmdbId?: string;
+  /** TMDB genre ids — used for anime detection (Animation = 16). */
+  genreIds?: number[];
+  originalLanguage?: string;
+  originCountry?: string[];
 }
 
 export function formatTMDBMetaResult(
@@ -119,10 +123,25 @@ export async function getMetaFromId(
   const meta = formatTMDBMeta(tmdbmeta, seasonData);
   if (!meta) return null;
 
+  const genreIds = details.genres?.map((g) => g.id) ?? [];
+  const originalLanguage = details.original_language;
+  let originCountry: string[] = [];
+  if (type === MWMediaType.SERIES) {
+    originCountry = (details as TMDBShowData).origin_country ?? [];
+  } else {
+    const movie = details as TMDBMovieData;
+    originCountry =
+      movie.production_countries?.map((c) => c.iso_3166_1).filter(Boolean) ??
+      [];
+  }
+
   return {
     meta,
     imdbId,
     tmdbId: id,
+    genreIds,
+    originalLanguage,
+    originCountry,
   };
 }
 

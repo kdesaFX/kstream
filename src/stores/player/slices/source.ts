@@ -47,6 +47,10 @@ export interface PlayerMeta {
   releaseYear: number;
   poster?: string;
   overview?: string;
+  /** TMDB genre ids — used for anime source routing. */
+  genreIds?: number[];
+  originalLanguage?: string;
+  originCountry?: string[];
   episodes?: PlayerMetaEpisode[];
   episode?: PlayerMetaEpisode;
   season?: {

@@ -14,6 +14,7 @@ import {
   getPreferredSourceForTitle,
   usePreferencesStore,
 } from "@/stores/preferences";
+import { orderSourceIdsForTitle } from "@/utils/media/anime";
 
 export interface ScrapingItems {
   id: string;
@@ -254,6 +255,12 @@ export function useScrape() {
         baseSourceOrder = [...orderedSources, ...remainingSources];
       }
 
+      // Anime titles try anime scrapers first; non-anime titles hide them.
+      baseSourceOrder = orderSourceIdsForTitle(
+        baseSourceOrder,
+        playerState.meta,
+      );
+
       // Prefer the source that worked for this title; fall back to last global.
       // Always apply the same pin for full scrapes AND Find-next/resume slices so
       // resume walks the same ordered list that produced the current source.
@@ -263,14 +270,11 @@ export function useScrape() {
           media.tmdbId,
           lastSuccessfulSource,
         );
-        if (prioritizeSource) {
-          const lastSourceIndex = baseSourceOrder.indexOf(prioritizeSource);
-          if (lastSourceIndex !== -1) {
-            baseSourceOrder = [
-              prioritizeSource,
-              ...baseSourceOrder.filter((id) => id !== prioritizeSource),
-            ];
-          }
+        if (prioritizeSource && baseSourceOrder.includes(prioritizeSource)) {
+          baseSourceOrder = [
+            prioritizeSource,
+            ...baseSourceOrder.filter((id) => id !== prioritizeSource),
+          ];
         }
       }
 
