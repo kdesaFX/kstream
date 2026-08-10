@@ -264,9 +264,21 @@ export function MediaSession() {
         Number.isFinite(state.progress.time)
           ? Math.max(0, state.progress.time)
           : 0;
+      const durationSec =
+        typeof state.progress.duration === "number" &&
+        Number.isFinite(state.progress.duration) &&
+        state.progress.duration > 0
+          ? state.progress.duration
+          : 0;
+
+      // Spotify-style bar needs both start + end timestamps
       const startTimestamp = isPaused
         ? undefined
         : Date.now() - Math.floor(timeSec * 1000);
+      const endTimestamp =
+        !isPaused && startTimestamp && durationSec > 0
+          ? startTimestamp + Math.floor(durationSec * 1000)
+          : undefined;
 
       const payload = {
         title: currentMeta.title,
@@ -279,6 +291,8 @@ export function MediaSession() {
         poster: currentMeta.poster || undefined,
         isPaused,
         startTimestamp,
+        endTimestamp,
+        durationSec,
         url: typeof window !== "undefined" ? window.location.href : undefined,
       };
 
@@ -288,9 +302,11 @@ export function MediaSession() {
         payload.episodeNumber,
         payload.episodeTitle,
         payload.isPaused,
+        // Refresh on seeks / every ~15s of playback so the bar stays accurate
+        Math.floor(timeSec / 15),
+        Math.floor(durationSec),
       ].join("|");
 
-      // Skip IPC spam once Discord has accepted this title/episode
       if (key === lastDiscordKey.current) return;
 
       void pushDesktopDiscordPresence(payload).then((ok) => {
@@ -299,7 +315,7 @@ export function MediaSession() {
     };
 
     send();
-    const interval = window.setInterval(send, 3000);
+    const interval = window.setInterval(send, 5000);
     return () => window.clearInterval(interval);
   }, [
     status,
