@@ -35,7 +35,7 @@ export function AppInfoPart() {
   const { t } = useTranslation();
   const { account } = useAuthStore();
   // eslint-disable-next-line no-restricted-globals
-  const hostname = location.hostname;
+  const hostname = location.hostname.replace(/^www\./i, "");
   const navigate = useNavigate();
 
   const backendUrl = useBackendUrl();
