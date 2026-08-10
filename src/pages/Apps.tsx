@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 
+import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { PageTitle } from "@/pages/parts/util/PageTitle";
-import { downloadWindowsApp } from "@/utils/downloadWindowsApp";
 
 import { SubPageLayout } from "./layouts/SubPageLayout";
 
@@ -85,6 +85,8 @@ function Panel(props: AppPanel) {
 }
 
 export function AppsPage() {
+  const { openDownloadModal } = useDownloadModal();
+
   const windowsPanel: AppPanel = {
     key: "windows",
     glyph: (c) => <WindowsGlyph className={c} />,
@@ -96,7 +98,7 @@ export function AppsPage() {
       "system tray and close-to-tray",
     ],
     cta: "download for Windows",
-    onClick: () => downloadWindowsApp(),
+    onClick: () => openDownloadModal(),
   };
 
   return (
