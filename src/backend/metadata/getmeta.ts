@@ -87,7 +87,10 @@ export async function getMetaFromId(
     if (override) return override;
   }
 
-  const details = await getMediaDetails(id, mediaTypeToTMDB(type));
+  // Details modal already uses fetchEpisodes=false. The player only needs the
+  // selected season (loaded via getEpisodes below). Fetching every season here
+  // hammers TMDB and often fails play while browse still works.
+  const details = await getMediaDetails(id, mediaTypeToTMDB(type), false);
 
   if (!details) return null;
 
