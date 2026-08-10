@@ -400,10 +400,10 @@ export function FebboxSetup({
                 Aurora API (4K)
               </p>
               <p className="max-w-[30rem] font-medium">
-                Bring your own FREE Febbox account to unlock Aurora API — the best sources with 4K quality, Dolby Atmos, and the fastest load times.
+                Bring your own FREE Febbox account to unlock Aurora API, the best sources with 4K quality, Dolby Atmos, and the fastest load times.
               </p>
               <p className="max-w-[30rem] mt-2 text-sm text-type-secondary italic">
-                Aurora requires a Febbox token. Your token is never stored on our servers — it is sent directly from your browser to Febbox.
+                Aurora requires a Febbox token. Your token is never stored on our servers. It is sent directly from your browser to Febbox.
               </p>
             </div>
             <div>
@@ -549,7 +549,7 @@ export function FebboxSetup({
               eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NDc1MTI2MTksIm5iZiI6MTc0NzUxMjYxOSwiZXhwIjoxNzc4NjE2NjM5LCJkYXRhIjp7InVpZCI6NTI1NTc3LCsudujeI6IjE4NTQ4NmEwMzBjMGNlMWJjY2IzYWJjMjI2OTYwYzQ4dhdhs.qkuTF2aVPu54S0RFJS_ca7rlHuGz_Fe6kWkBydYQoCg
             </div>
             <Paragraph className="!mt-1 !mb-6 text-type-danger">
-              Don&apos;t try to use this — it&apos;s fake.
+              Don&apos;t try to use this. It&apos;s fake.
             </Paragraph>
             <div className="flex justify-end">
               <Button theme="secondary" onClick={exampleModal.hide}>

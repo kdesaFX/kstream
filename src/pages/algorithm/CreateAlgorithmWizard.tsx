@@ -445,7 +445,7 @@ function RatingStep({
       ) : (
         refillFailed && (
           <p className="text-sm text-type-secondary">
-            That&apos;s everything we could load for now — you can stop here.
+            That&apos;s everything we could load for now. You can stop here.
           </p>
         )
       )}
@@ -462,7 +462,7 @@ function RatingStep({
               You&apos;ve rated {ratedCount}
             </h3>
             <p className="mb-6 text-sm text-type-secondary">
-              That&apos;s plenty to work with — feel free to stop here, or
+              That&apos;s plenty to work with. Feel free to stop here, or
               keep going if you&apos;re having fun.
             </p>
             <div className="flex justify-center gap-3">
@@ -612,7 +612,7 @@ export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
       {step === "shows" && (
         <RatingStep
           heading="What about these shows?"
-          description="Same idea for TV — finished watches first when available. Movies and shows stay separate."
+          description="Same idea for TV. Finished watches first when available. Movies and shows stay separate."
           queue={showQueue}
           onStop={() => setStep("genres")}
         />
@@ -625,7 +625,7 @@ export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
           </h2>
           <p className="mb-4 text-sm text-type-secondary">
             Pick as many as you like. We pre-select genres from what you&apos;ve
-            finished watching when we can — change anything you want.
+            finished watching when we can. Change anything you want.
           </p>
           <ChipGrid
             options={genreOptions}
@@ -650,7 +650,7 @@ export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
           </h2>
           <p className="mb-4 text-sm text-type-secondary">
             Pick as many as you like. We may pre-select moods from what you
-            finish watching — tweak freely.
+            finish watching. Tweak freely.
           </p>
           <ChipGrid
             options={MOODS.map((m) => ({ id: m.id, label: m.label }))}
@@ -700,7 +700,7 @@ export function CreateAlgorithmWizard({ onClose }: { onClose: () => void }) {
           </h2>
           <p className="mb-6 text-sm text-type-secondary">
             Your recommendations now reflect your taste. Keep rating what
-            you watch — every rating sharpens the suggestions.
+            you watch. Every rating sharpens the suggestions.
           </p>
           <Button theme="purple" onClick={onClose}>
             See my taste profile

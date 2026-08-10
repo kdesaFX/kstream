@@ -280,7 +280,7 @@ function RateSearchRow({ item }: { item: SearchResult }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-white">{title}</p>
         <p className="text-xs text-type-secondary">
-          {year ?? "—"} · {isMovie ? "Movie" : "Show"}
+          {year ?? "-"} · {isMovie ? "Movie" : "Show"}
         </p>
       </div>
       <MediaRatingCapsule
@@ -324,7 +324,7 @@ function RatedItemRow({ tmdbId }: { tmdbId: string }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-white">{item.title}</p>
         <p className="text-xs text-type-secondary">
-          {item.year ?? "—"} · {item.type === "movie" ? "Movie" : "Show"} ·{" "}
+          {item.year ?? "-"} · {item.type === "movie" ? "Movie" : "Show"} ·{" "}
           {RATING_LABELS[item.rating] ?? item.rating}
         </p>
       </div>
@@ -450,7 +450,7 @@ export function MyAlgorithmPage() {
           </div>
         ) : shares.length === 0 ? (
           <div className="mb-10 rounded-xl bg-white/5 p-6 text-center text-type-secondary">
-            Keep finishing titles or add a few ratings — we&apos;ll shape your
+            Keep finishing titles or add a few ratings. We&apos;ll shape your
             genre taste from that.
           </div>
         ) : (

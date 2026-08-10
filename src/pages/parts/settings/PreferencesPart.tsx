@@ -153,7 +153,7 @@ export function PreferencesPart(props: {
     .sort((a, b) => sorted.indexOf(a.code) - sorted.indexOf(b.code))
     .map((opt) => ({
       id: opt.code,
-      name: `${opt.name}${opt.nativeName ? ` — ${opt.nativeName}` : ""}`,
+      name: `${opt.name}${opt.nativeName ? ` (${opt.nativeName})` : ""}`,
       leftIcon: <FlagIcon langCode={opt.code} />,
     }));
 

@@ -118,7 +118,7 @@ export function BannerLocation(props: { location?: string }) {
       {hasMigrateBanner ? (
         <Banner id="migrate-passphrase" type="info">
           {t("settings.account.security.migrateBanner") ??
-            "Your account still uses a recovery phrase — switch to a username & password."}{" "}
+            "Your account still uses a recovery phrase. Switch to a username and password when you can."}{" "}
           <a href="/settings#settings-account-security" className="underline">
             {t("settings.account.security.migrateBannerAction") ?? "Switch now"}
           </a>

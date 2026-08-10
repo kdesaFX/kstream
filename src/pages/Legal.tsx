@@ -98,7 +98,7 @@ export function LegalPage() {
               <Paragraph>
                 We&apos;re a search index. The actual video files live on
                 third-party hosts that we don&apos;t own and don&apos;t
-                control — we just point at them. If a file disappears
+                control. We just point at them. If a file disappears
                 upstream, our link breaks the same day. The host is the only
                 party who can take a file down.
                 <br />
@@ -107,13 +107,13 @@ export function LegalPage() {
                 holders. If you own the rights to a title and send us a
                 notice with enough detail to identify it, we&apos;ll delist
                 it from our search so it can&apos;t be reached from anywhere
-                on the site — and we&apos;ll happily tell you exactly which
+                on the site, and we&apos;ll happily tell you exactly which
                 upstream sources we were pulling it from, so you can chase
                 the files at their actual source.
                 <br />
                 <br />
                 Blocking a title here won&apos;t make it disappear from the
-                internet — it only stops users from finding it through us.
+                internet. It only stops users from finding it through us.
                 But that&apos;s the part we control, and we&apos;ll act on it
                 in good faith.
               </Paragraph>
@@ -200,7 +200,7 @@ export function LegalPage() {
                 statement that you own the rights (or are authorised to act
                 for the rights holder). Once we&apos;ve confirmed the claim,
                 we&apos;ll delist the title from our search and reply with
-                the upstream hosts we were pointing at — so you can pursue
+                the upstream hosts we were pointing at, so you can pursue
                 the actual files at their source.
                 <br />
                 <br />

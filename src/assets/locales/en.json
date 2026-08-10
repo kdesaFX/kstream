@@ -61,7 +61,7 @@
     },
     "q9": {
       "title": "This media is missing / Can I request media?",
-      "body": "No—since we don't host content, we cannot add or change what's available. The content list is based on what's publicly accessible through the search mechanism.",
+      "body": "No. Since we don't host content, we can't add or change what's available. The list is just whatever shows up through public search.",
       "section": "search"
     },
     "q10": {
@@ -264,7 +264,7 @@
   "errors": {
     "badge": "It broke",
     "details": "Error details",
-    "adBlocker": "This is likely caused by your adblocker — we don't have any ads, so it's safe to whitelist us!",
+    "adBlocker": "This is probably your adblocker. We don't run ads, so you're fine to whitelist us!",
     "adBlockerLink": "How to whitelist a site",
     "goHome": "Go to home",
     "reloadPage": "Reload the page",
@@ -1274,7 +1274,7 @@
       },
       "security": {
         "title": "Account Security",
-        "migrateBanner": "Your account still uses a recovery phrase — switch to a username & password.",
+        "migrateBanner": "Your account still uses a recovery phrase. Switch to a username and password when you can.",
         "migrateBannerAction": "Switch now",
         "migrateTitle": "Your account still uses a recovery phrase",
         "migrateDescription": "Switch to a username and password so you don't have to keep track of a 12-word phrase.",
@@ -1619,7 +1619,7 @@
     "onboarding": {
       "title": "Febbox token",
       "description": "Bring your own FREE Febbox account to gain access to FED API, the best sources with 4K quality, Dolby Atmos, skip intro and the fastest load times! Highly recommended option!",
-      "note": "Note: FED API was a scraper originally created by OG kstream Developer Nemo. XP Technologies recreated the scraper to match its functionalities — it does not take any credit for the name or the original scraper."
+      "note": "Note: FED API was a scraper originally made by OG kstream developer Nemo. XP Technologies rebuilt a matching scraper and doesn't claim credit for the name or the original."
     },
     "setup": {
       "title": "To get your UI token:",

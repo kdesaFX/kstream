@@ -86,7 +86,7 @@ export function AdvancedColorView({ id }: { id: string }) {
           </button>
           <p className="text-xs text-type-secondary">
             Color adjustments are applied via CSS filters and persist across sessions.
-            HDR and Dolby Vision content may still look incorrect — that is a browser/OS
+            HDR and Dolby Vision content may still look incorrect. That is a browser/OS
             decoding limitation, not a player issue. Use these sliders to compensate.
           </p>
         </div>

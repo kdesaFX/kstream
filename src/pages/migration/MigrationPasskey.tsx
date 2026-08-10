@@ -208,7 +208,7 @@ export function MigrationPasskeyPage() {
                     className="text-green-400 text-xl"
                   />
                   <span className="text-green-400 font-medium">
-                    You&apos;re logged in — your data is here.
+                    You&apos;re logged in. Your data is here.
                   </span>
                 </div>
                 <p className="text-type-secondary text-sm">
@@ -278,7 +278,7 @@ export function MigrationPasskeyPage() {
 
               <div className="pt-4">
                 <Button theme="secondary" onClick={() => navigate("/")}>
-                  Skip — just use my old account as-is
+                  Skip, just use my old account as-is
                 </Button>
               </div>
             </div>
@@ -307,7 +307,7 @@ export function MigrationPasskeyPage() {
                   loading={phraseResult.loading}
                   disabled={phraseResult.loading}
                 >
-                  I Saved It — Create Account
+                  I Saved It. Create Account
                 </Button>
                 <Button
                   theme="secondary"

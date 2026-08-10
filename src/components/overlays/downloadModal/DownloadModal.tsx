@@ -9,7 +9,7 @@ import {
 const STEPS = [
   {
     title: "If Windows shows a purple warning",
-    body: "That’s normal for a new app. It’s not a virus alert — just SmartScreen saying it hasn’t seen kstream much yet.",
+    body: "That’s normal for a new app. It’s not a virus alert, just SmartScreen saying it hasn’t seen kstream much yet.",
     image: "/install-guide/01-more-info.jpg",
     imageAlt: "Windows SmartScreen warning with More info highlighted",
     tip: "Click More info",
@@ -38,7 +38,7 @@ export function DownloadModal({ id }: { id: string }) {
           <p className="text-sm leading-relaxed text-emerald-100/90">
             <span className="font-semibold text-emerald-200">You’re safe.</span>{" "}
             This is the official Windows app. Windows may show a SmartScreen
-            warning because the installer isn’t code-signed yet — follow the
+            warning because the installer isn’t code-signed yet, so follow the
             steps below and you’re good.
           </p>
         </div>
