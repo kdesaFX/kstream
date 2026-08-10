@@ -33,7 +33,6 @@ import { CaptionsPart } from "@/pages/parts/settings/CaptionsPart";
 import { ConnectionsPart } from "@/pages/parts/settings/ConnectionsPart";
 import { DeviceListPart } from "@/pages/parts/settings/DeviceListPart";
 import { LetterboxdImportPart } from "@/pages/parts/settings/LetterboxdImportPart";
-import { RegisterCalloutPart } from "@/pages/parts/settings/RegisterCalloutPart";
 import { SidebarPart } from "@/pages/parts/settings/SidebarPart";
 import { PageTitle } from "@/pages/parts/util/PageTitle";
 import { AccountWithToken, useAuthStore } from "@/stores/auth";
@@ -376,10 +375,13 @@ export function SettingsPage() {
     }
   }, []);
 
+  const account = useAuthStore((s) => s.account);
+
   const handleCategoryChange = useCallback(
     (category: string | null) => {
       if (searchQuery.trim()) return;
-      const sectionId = category ?? "settings-account";
+      const sectionId =
+        category ?? (account ? "settings-account" : "settings-preferences");
       setTimeout(() => {
         scrollToElement(`#${sectionId}`, {
           behavior: "smooth",
@@ -388,7 +390,7 @@ export function SettingsPage() {
         });
       }, 100); // Wait for section to render after tab switch
     },
-    [searchQuery],
+    [searchQuery, account],
   );
 
   const appLanguage = useLanguageStore((s) => s.language);
@@ -574,7 +576,6 @@ export function SettingsPage() {
     (s) => s.setEnableNumberKeySeeking,
   );
 
-  const account = useAuthStore((s) => s.account);
   const updateProfile = useAuthStore((s) => s.setAccountProfile);
   const updateDeviceName = useAuthStore((s) => s.updateDeviceName);
   const updateNickname = useAuthStore((s) => s.setAccountNickname);
@@ -1032,14 +1033,15 @@ export function SettingsPage() {
         onCategoryChange={handleCategoryChange}
         className="space-y-28"
       >
-        {(searchQuery.trim() ||
-          !selectedCategory ||
-          selectedCategory === "settings-account") && (
+        {(user.account &&
+          (searchQuery.trim() ||
+            !selectedCategory ||
+            selectedCategory === "settings-account")) && (
           <div id="settings-account">
             <Heading1 border className="!mb-0">
               {t("settings.account.title")}
             </Heading1>
-            {user.account && state.profile.state ? (
+            {state.profile.state ? (
               <AccountSettings
                 account={user.account}
                 deviceName={state.deviceName.state}
@@ -1063,9 +1065,7 @@ export function SettingsPage() {
                   state.profile.set((s) => (s ? { ...s, icon: v } : undefined))
                 }
               />
-            ) : (
-              <RegisterCalloutPart />
-            )}
+            ) : null}
           </div>
         )}
         {(searchQuery.trim() ||

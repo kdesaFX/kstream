@@ -5,6 +5,7 @@ import { Icons } from "@/components/Icon";
 import { SidebarLink, SidebarSection } from "@/components/layout/Sidebar";
 import { Divider } from "@/components/utils/Divider";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useAuthStore } from "@/stores/auth";
 
 import { AppInfoPart } from "./AppInfoPart";
 
@@ -17,9 +18,10 @@ export function SidebarPart(props: {
   const { t } = useTranslation();
   const { isMobile } = useIsMobile();
   const [activeLink, setActiveLink] = useState("");
+  const account = useAuthStore((s) => s.account);
 
-  const settingLinks = useMemo(
-    () => [
+  const settingLinks = useMemo(() => {
+    const links = [
       {
         textKey: "settings.account.title",
         id: "settings-account",
@@ -50,9 +52,9 @@ export function SidebarPart(props: {
         id: "settings-import",
         icon: Icons.CLOUD_ARROW_UP,
       },
-    ],
-    [],
-  );
+    ];
+    return account ? links : links.filter((l) => l.id !== "settings-account");
+  }, [account]);
 
   useEffect(() => {
     // Only track active link when searching (to show all sections)

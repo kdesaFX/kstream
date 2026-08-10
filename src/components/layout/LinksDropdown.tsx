@@ -259,16 +259,14 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
       <Transition animation="slide-down" show={open}>
         <div className="rounded-xl absolute w-64 bg-dropdown-altBackground top-full mt-3 right-0">
           {deviceName ? (
-            <DropdownLink className="text-white" href="/settings">
-              <UserAvatar />
-              {nickname}
-            </DropdownLink>
-          ) : (
-            <DropdownLink href="/login" icon={Icons.RISING_STAR} highlight>
-              {t("navigation.menu.register")}
-            </DropdownLink>
-          )}
-          <Divider />
+            <>
+              <DropdownLink className="text-white" href="/settings">
+                <UserAvatar />
+                {nickname}
+              </DropdownLink>
+              <Divider />
+            </>
+          ) : null}
           <DropdownLink href="/settings" icon={Icons.SETTINGS}>
             {t("navigation.menu.settings")}
           </DropdownLink>
