@@ -267,17 +267,6 @@ export function MediaSession() {
 
       const isPaused =
         state.mediaPlaying.isPaused || !state.mediaPlaying.isPlaying;
-      const timeSec =
-        typeof state.progress.time === "number" &&
-        Number.isFinite(state.progress.time)
-          ? Math.max(0, state.progress.time)
-          : 0;
-      const durationSec =
-        typeof state.progress.duration === "number" &&
-        Number.isFinite(state.progress.duration) &&
-        state.progress.duration > 0
-          ? state.progress.duration
-          : 0;
 
       const payload = {
         title: currentMeta.title,
@@ -291,9 +280,6 @@ export function MediaSession() {
           currentMeta.type === "show" ? currentMeta.episode?.number : undefined,
         poster: currentMeta.poster || undefined,
         isPaused,
-        currentTimeSec: timeSec,
-        durationSec,
-        clearTimestamps: true,
         url: typeof window !== "undefined" ? window.location.href : undefined,
       };
 
@@ -305,9 +291,6 @@ export function MediaSession() {
         payload.episodeNumber,
         payload.episodeTitle,
         payload.isPaused,
-        // Update the plain-text clock about every 5s
-        Math.floor(timeSec / 5),
-        Math.floor(durationSec),
       ].join("|");
 
       if (key === lastDiscordKey.current) return;
