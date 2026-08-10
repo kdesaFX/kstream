@@ -230,7 +230,16 @@ export function RealPlayerView() {
 
   const playAfterScrape = useCallback(
     async (out: RunOutput | null) => {
-      if (!out) return;
+      // Clear resume state after this scrape attempt finishes
+      setResumeFromSourceId(null);
+      setResumeFromSourceIdInStore(null);
+
+      if (!out) {
+        // Only show the "not found" screen when scraping actually found nothing.
+        // Calling this before play used to flash the error UI on every success.
+        setScrapeNotFound();
+        return;
+      }
 
       autoResumeCount.current = 0;
 
@@ -263,6 +272,9 @@ export function RealPlayerView() {
         out.sourceId,
         shouldStartFromBeginning ? 0 : startAt,
       );
+      if (out.embedId) {
+        usePlayerStore.getState().setEmbedId(out.embedId);
+      }
       if (enableLastSuccessfulSource) {
         rememberSuccessfulSource(
           usePlayerStore.getState().meta?.tmdbId,
@@ -284,6 +296,8 @@ export function RealPlayerView() {
       enableLastSuccessfulSource,
       rememberSuccessfulSource,
       scrapeMedia,
+      setScrapeNotFound,
+      setResumeFromSourceIdInStore,
     ],
   );
 
@@ -311,14 +325,12 @@ export function RealPlayerView() {
               resumeFromSourceId || storeResumeFromSourceId || undefined
             }
             onResult={(sources, sourceOrder) => {
+              // Keep scrape details for the real not-found screen; do not flip
+              // status here or a successful play flashes the error UI first.
               setErrorData({
                 sourceOrder,
                 sources,
               });
-              setScrapeNotFound();
-              // Clear resume state after scraping
-              setResumeFromSourceId(null);
-              setResumeFromSourceIdInStore(null);
             }}
             onGetStream={playAfterScrape}
           />
