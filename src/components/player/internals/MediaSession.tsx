@@ -253,12 +253,20 @@ export function MediaSession() {
       return;
     }
 
+    let sendId = 0;
+    let appliedId = 0;
+
     const send = () => {
       const state = usePlayerStore.getState();
       const currentMeta = state.meta;
       if (!currentMeta?.title || state.status !== playerStatus.PLAYING) return;
 
-      const isPaused = state.mediaPlaying.isPaused;
+      // Default store is isPaused=true before the first play event — don't
+      // advertise "Paused" while the stream is still starting.
+      if (!state.mediaPlaying.hasPlayedOnce) return;
+
+      const isPaused =
+        state.mediaPlaying.isPaused || !state.mediaPlaying.isPlaying;
       const timeSec =
         typeof state.progress.time === "number" &&
         Number.isFinite(state.progress.time)
@@ -309,8 +317,12 @@ export function MediaSession() {
 
       if (key === lastDiscordKey.current) return;
 
+      const id = ++sendId;
       void pushDesktopDiscordPresence(payload).then((ok) => {
-        if (ok) lastDiscordKey.current = key;
+        // Ignore stale IPC responses so an early "Paused" can't overwrite Watching
+        if (!ok || id < appliedId) return;
+        appliedId = id;
+        lastDiscordKey.current = key;
       });
     };
 
@@ -326,6 +338,8 @@ export function MediaSession() {
     meta?.episode?.number,
     meta?.episode?.title,
     mediaPlaying.isPaused,
+    mediaPlaying.isPlaying,
+    mediaPlaying.hasPlayedOnce,
   ]);
 
   useEffect(() => {
