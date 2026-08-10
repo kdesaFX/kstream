@@ -85,8 +85,8 @@ export function SettingsMenu({ id }: { id: string }) {
   }, [currentSourceId]);
   const embedName = useMemo(() => {
     if (!currentEmbedId) return undefined;
-    const meta = getCachedMetadata().find((s) => s.id === currentEmbedId);
-    return meta?.name;
+    const embedMeta = getCachedMetadata().find((s) => s.id === currentEmbedId);
+    return embedMeta?.name;
   }, [currentEmbedId]);
   const { toggleLastUsed } = useCaptions();
 
