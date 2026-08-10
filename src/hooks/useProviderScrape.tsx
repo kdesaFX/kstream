@@ -297,21 +297,39 @@ export function useScrape() {
         (id) => !failedSources.includes(id)
       );
 
-      // Collect all failed embed IDs across all sources for current media
+      // Collect failed embed IDs for this media and always exclude them.
+      // (Previously only applied when custom embed order was enabled, so TQQ
+      // mirrors marked bad on playback were still retried / whole source skipped.)
       const allFailedEmbedIds = Object.values(failedEmbeds).flat();
+      const failedEmbedIdSet = new Set(allFailedEmbedIds);
+      const providers = getProviders();
+      const allEmbedIds = providers.listEmbeds().map((e) => e.id);
 
-      // Filter out failed embeds from the embed order
-      const filteredEmbedOrder = enableEmbedOrder
-        ? (preferredEmbedOrder || []).filter(
-            (id) => !allFailedEmbedIds.includes(id),
-          )
-        : undefined;
+      let filteredEmbedOrder: string[] | undefined;
+      if (enableEmbedOrder && (preferredEmbedOrder || []).length > 0) {
+        const ordered: string[] = [];
+        for (const sourceId of preferredEmbedOrder) {
+          if (
+            !failedEmbedIdSet.has(sourceId) &&
+            allEmbedIds.includes(sourceId)
+          ) {
+            ordered.push(sourceId);
+          }
+        }
+        for (const embedId of allEmbedIds) {
+          if (!failedEmbedIdSet.has(embedId) && !ordered.includes(embedId)) {
+            ordered.push(embedId);
+          }
+        }
+        filteredEmbedOrder = ordered;
+      } else if (failedEmbedIdSet.size > 0) {
+        filteredEmbedOrder = allEmbedIds.filter((id) => !failedEmbedIdSet.has(id));
+      }
 
       const minimumResolutionScore =
         minimumResolutionThreshold[preferredMinimumResolution] ?? 0;
 
       startScrape();
-      const providers = getProviders();
 
       if (minimumResolutionScore <= 0) {
         const output = await providers.runAll({

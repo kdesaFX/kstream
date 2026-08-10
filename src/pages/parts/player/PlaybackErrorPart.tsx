@@ -9,7 +9,6 @@ import { Paragraph } from "@/components/text/Paragraph";
 import { Title } from "@/components/text/Title";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { ErrorContainer, ErrorLayout } from "@/pages/layouts/ErrorLayout";
-import { getMediaKey } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
 
@@ -17,6 +16,8 @@ import { ErrorCardInModal } from "../errors/ErrorCard";
 
 export interface PlaybackErrorPartProps {
   onResume?: (startFromSourceId: string) => void;
+  /** Re-scrape without skipping the current multi-embed source (next mirror). */
+  onRetrySource?: () => void;
   currentSourceId?: string | null;
   autoResumeExhausted?: boolean;
 }
@@ -27,7 +28,6 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
   const currentSourceId = usePlayerStore((s) => s.sourceId);
   const currentEmbedId = usePlayerStore((s) => s.embedId);
   const meta = usePlayerStore((s) => s.meta);
-  const failedEmbedsPerMedia = usePlayerStore((s) => s.failedEmbedsPerMedia);
   const addFailedSource = usePlayerStore((s) => s.addFailedSource);
   const addFailedEmbed = usePlayerStore((s) => s.addFailedEmbed);
   const modal = useModal("error");
@@ -54,25 +54,11 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
           : playbackError.type === "htmlvideo";
 
       if (isFatalError) {
-        // If there's an active embed, disable that embed instead of the source
         if (currentEmbedId) {
+          // Multi-mirror sources (e.g. TQQ quints) must not ban the whole source
+          // after one/two bad mirrors — only mark the mirror itself failed.
           addFailedEmbed(currentSourceId, currentEmbedId);
-
-          // Check if all embeds for this source have now failed
-          // If so, disable the entire source
-          const mediaKey = getMediaKey(meta);
-          const failedEmbeds =
-            mediaKey && failedEmbedsPerMedia[mediaKey]
-              ? failedEmbedsPerMedia[mediaKey]
-              : {};
-          const failedEmbedsForSource = failedEmbeds[currentSourceId] || [];
-          // For now, we'll assume if we have 2+ failed embeds for a source, disable it
-          // This is a simple heuristic - we could make it more sophisticated
-          if (failedEmbedsForSource.length >= 2) {
-            addFailedSource(currentSourceId);
-          }
         } else {
-          // No embed active, disable the source
           addFailedSource(currentSourceId);
         }
       }
@@ -98,7 +84,6 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
     currentSourceId,
     currentEmbedId,
     meta,
-    failedEmbedsPerMedia,
     addFailedSource,
     addFailedEmbed,
     settingsRouter,
@@ -108,18 +93,23 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
     props.autoResumeExhausted,
   ]);
 
-  // Automatically resume scraping from the next source if enabled
+  // Automatically resume scraping if enabled
   useEffect(() => {
     if (
       playbackError &&
       !hasAutoResumed.current &&
       enableAutoResumeOnPlaybackError &&
       !props.autoResumeExhausted &&
-      props.currentSourceId &&
-      props.onResume
+      props.currentSourceId
     ) {
       hasAutoResumed.current = true;
-      props.onResume!(props.currentSourceId!);
+      if (currentEmbedId && props.onRetrySource) {
+        // Same source, next mirror/embed (failed embed already recorded)
+        props.onRetrySource();
+      } else if (props.onResume) {
+        // No embed context — skip this source entirely
+        props.onResume(props.currentSourceId);
+      }
     }
   }, [
     playbackError,
@@ -127,6 +117,8 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
     props.autoResumeExhausted,
     props.currentSourceId,
     props.onResume,
+    props.onRetrySource,
+    currentEmbedId,
   ]);
 
   const handleOpenSourcePicker = () => {

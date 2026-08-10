@@ -279,13 +279,13 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.interface.hideNextEpisodeBtn = false;
       if (newStatus) s.status = newStatus;
 
-      // Clear failed sources/embeds for the new media when media changes
-      // Since we're doing per-episode tracking, we clear whenever media key changes
-      // Only clear if we're actually switching to different media (not just setting meta for the first time)
       // Fresh audio options whenever the watched media/episode changes
       if (!oldMediaKey || (newMediaKey && oldMediaKey !== newMediaKey)) {
         s.audioStreamOptions = [];
         s.currentAudioStreamId = null;
+        // Don't carry "start after source X" into the next episode — that
+        // short-circuits anime mirrors (TQQ) and jumps to later sources.
+        s.resumeFromSourceId = null;
       }
 
       if (newMediaKey && oldMediaKey && oldMediaKey !== newMediaKey) {

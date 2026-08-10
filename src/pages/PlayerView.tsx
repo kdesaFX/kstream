@@ -215,6 +215,16 @@ export function RealPlayerView() {
     [setStatus, setResumeFromSourceIdInStore],
   );
 
+  /** Retry scrape without skipping the current source (next TQQ mirror, etc.). */
+  const handleRetrySource = useCallback(() => {
+    autoResumeCount.current += 1;
+    setResumeFromSourceId(null);
+    setResumeFromSourceIdInStore(null);
+    setTimeout(() => {
+      setStatus(playerStatus.SCRAPING);
+    }, 0);
+  }, [setStatus, setResumeFromSourceIdInStore]);
+
   // Sync store value to local state when it changes (e.g., from settings)
   // or when status changes to SCRAPING
   useEffect(() => {
@@ -342,6 +352,7 @@ export function RealPlayerView() {
       {status === playerStatus.PLAYBACK_ERROR ? (
         <PlaybackErrorPart
           onResume={handleResumeScraping}
+          onRetrySource={handleRetrySource}
           currentSourceId={sourceId}
           autoResumeExhausted={autoResumeCount.current >= getProviders().listSources().length}
         />
