@@ -239,15 +239,16 @@ export function MediaSession() {
   useEffect(() => {
     if (!window.__KSTREAM_DESKTOP_IPC__?.invoke) return;
 
-    if (
-      status !== playerStatus.PLAYING ||
-      !meta?.title ||
-      !mediaPlaying.hasPlayedOnce
-    ) {
+    if (status !== playerStatus.PLAYING || !meta?.title) {
       if (lastDiscordKey.current !== "") {
         lastDiscordKey.current = "";
         pushDesktopDiscordPresence({ clear: true });
       }
+      return;
+    }
+
+    // Prefer actively playing; still show presence while paused on a title
+    if (!mediaPlaying.hasPlayedOnce && !mediaPlaying.isPlaying) {
       return;
     }
 
