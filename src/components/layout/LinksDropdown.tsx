@@ -235,10 +235,10 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
     <div className="relative is-dropdown">
       <div
         className={classNames(
-          "cursor-pointer tabbable rounded-full flex text-white items-center bg-black/25 hover:bg-black/40 border border-white/10 hover:border-white/15 backdrop-blur-md transition-all duration-100 hover:scale-105",
+          "cursor-pointer tabbable rounded-full flex text-white items-center overflow-hidden bg-black/25 hover:bg-black/40 border border-white/10 hover:border-white/15 backdrop-blur-md transition-all duration-100 hover:scale-105",
           isMobile
             ? "h-10 w-10 justify-center p-0"
-            : "h-[2.67rem] gap-2 px-3.5",
+            : "h-[2.67rem] gap-1.5 px-3",
           open ? "bg-black/40" : "",
         )}
         tabIndex={0}
@@ -249,7 +249,7 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
         {!isMobile ? (
           <Icon
             className={classNames(
-              "text-2xl transition-transform duration-100",
+              "text-lg leading-none transition-transform duration-100 shrink-0",
               open ? "rotate-180" : "",
             )}
             icon={Icons.CHEVRON_DOWN}

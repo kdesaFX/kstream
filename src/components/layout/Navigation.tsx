@@ -326,11 +326,11 @@ export function Navigation(props: NavigationProps) {
                 {loggedIn ? (
                   <UserAvatar
                     withName={!isMobile}
-                    sizeClass="w-6 h-6 md:w-8 md:h-8"
-                    iconClass="text-sm md:text-base"
+                    sizeClass="w-5 h-5 md:w-5 md:h-5"
+                    iconClass="text-xs md:text-sm"
                   />
                 ) : (
-                  <NoUserAvatar iconClass="text-xl md:text-2xl" />
+                  <NoUserAvatar iconClass="text-lg md:text-lg" />
                 )}
               </LinksDropdown>
             </div>
