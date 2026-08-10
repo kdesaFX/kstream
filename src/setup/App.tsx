@@ -11,6 +11,7 @@ import {
 
 import { convertLegacyUrl, isLegacyUrl } from "@/backend/metadata/getmeta";
 import { generateQuickSearchMediaUrl } from "@/backend/metadata/tmdb";
+import { DesktopChromeBridge } from "@/components/DesktopChromeBridge";
 import { DetailsModal } from "@/components/overlays/detailsModal";
 import { DownloadModal } from "@/components/overlays/downloadModal";
 import { GamepadControlsModal } from "@/components/overlays/GamepadControlsModal";
@@ -175,6 +176,7 @@ function App() {
       <SimklAuthHandler />
       <LanguageProvider />
       <UpdateNotice />
+      <DesktopChromeBridge />
       <NotificationModal id="notifications" />
       <TipJarModal id="tip-jar" />
       <DownloadModal id="download" />

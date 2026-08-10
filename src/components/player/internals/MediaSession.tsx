@@ -246,9 +246,9 @@ export function MediaSession() {
     if (!window.__KSTREAM_DESKTOP_IPC__?.invoke) return;
 
     if (status !== playerStatus.PLAYING || !meta?.title) {
-      if (lastDiscordKey.current !== "") {
-        lastDiscordKey.current = "";
-        void pushDesktopDiscordPresence({ clear: true });
+      if (lastDiscordKey.current !== "idle") {
+        lastDiscordKey.current = "idle";
+        void pushDesktopDiscordPresence({ idle: true });
       }
       return;
     }
@@ -314,9 +314,9 @@ export function MediaSession() {
 
   useEffect(() => {
     return () => {
-      if (lastDiscordKey.current !== "") {
-        lastDiscordKey.current = "";
-        void pushDesktopDiscordPresence({ clear: true });
+      if (lastDiscordKey.current !== "" && lastDiscordKey.current !== "idle") {
+        lastDiscordKey.current = "idle";
+        void pushDesktopDiscordPresence({ idle: true });
       }
     };
   }, []);
