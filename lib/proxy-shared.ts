@@ -67,14 +67,27 @@ export function assertSafeDestination(raw: string): URL {
   return parsed;
 }
 
-/** Build upstream headers from the simple-proxy X-* remaps. */
+const PASSTHROUGH_HEADERS = new Set([
+  "content-type",
+  "accept",
+  "accept-language",
+]);
+
+/** Build upstream headers from the simple-proxy X-* remaps + safe passthrough. */
 export function buildUpstreamHeaders(incoming: Headers): Headers {
   const out = new Headers();
   out.set("User-Agent", DEFAULT_UA);
 
   for (const [key, value] of incoming.entries()) {
-    const mapped = HEADER_MAP[key.toLowerCase()];
-    if (mapped) out.set(mapped, value);
+    const lower = key.toLowerCase();
+    const mapped = HEADER_MAP[lower];
+    if (mapped) {
+      out.set(mapped, value);
+      continue;
+    }
+    if (PASSTHROUGH_HEADERS.has(lower)) {
+      out.set(key, value);
+    }
   }
 
   return out;

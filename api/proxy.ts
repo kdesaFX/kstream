@@ -21,15 +21,18 @@ export default async function handler(request: Request): Promise<Response> {
     const target = assertSafeDestination(destination);
     const upstreamHeaders = buildUpstreamHeaders(request.headers);
 
-    const init: RequestInit & { duplex?: string } = {
+    const init: RequestInit = {
       method: request.method,
       headers: upstreamHeaders,
       redirect: "follow",
     };
 
+    // Buffer the body so Edge can re-send it without requiring duplex streaming.
     if (request.method !== "GET" && request.method !== "HEAD") {
-      init.body = request.body;
-      init.duplex = "half";
+      const buf = await request.arrayBuffer();
+      if (buf.byteLength > 0) {
+        init.body = buf;
+      }
     }
 
     const upstream = await fetch(target.href, init);
