@@ -6,6 +6,10 @@ window.__CONFIG__ = {
   // Base URL for HLS proxy routes (/m3u8-proxy, /ts-proxy). Must NOT end with a slash.
   VITE_M3U8_PROXY_URL: "/api",
 
+  // First-watch setup (extension vs continue). Keep true so new browsers
+  // still see the onboarding screen before playback.
+  VITE_HAS_ONBOARDING: "true",
+
   // The READ API key to access TMDB
   VITE_TMDB_READ_API_KEY: "",
 
