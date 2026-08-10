@@ -1,5 +1,6 @@
 import classNames from "classnames";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMeasure } from "react-use";
 import { Link } from "react-router-dom";
 
@@ -66,12 +67,16 @@ function HomeLayoutCustomizerToggle() {
 }
 
 function NavSearchBar(props: { lightOverHero?: boolean }) {
+  const { t } = useTranslation();
   const { t: randomT } = useRandomTranslation();
   const [search, setSearch, setSearchUnFocus] = useSearchQuery();
   const { isMobile } = useIsMobile();
   const inputRef = useRef<HTMLInputElement>(null);
   useSlashFocus(inputRef);
-  const placeholder = randomT(`home.search.placeholder`);
+  // Short copy on mobile so the full placeholder fits in the narrower field.
+  const placeholder = isMobile
+    ? t("home.search.placeholder.defaultMobile")
+    : randomT("home.search.placeholder");
 
   return (
     <div
