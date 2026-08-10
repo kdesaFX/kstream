@@ -267,7 +267,7 @@ export function Navigation(props: NavigationProps) {
                     <div className="flex h-[2.67rem] items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3.5 text-white backdrop-blur-md transition-[transform,background-color,border-color] hover:scale-105 hover:border-white/15 hover:bg-black/35 active:scale-95">
                       <Icon
                         icon={Icons.DOWNLOAD}
-                        className="inline-flex text-xl leading-none [&>svg]:block"
+                        className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none [&>svg]:block [&>svg]:h-5 [&>svg]:w-5"
                       />
                       <span className="font-semibold text-base">Download</span>
                     </div>
@@ -284,8 +284,8 @@ export function Navigation(props: NavigationProps) {
                     navigation
                     className={
                       isMobile
-                        ? "[&>div]:!h-10 [&>div]:!w-10 [&>div]:!text-base"
-                        : "[&>div]:!h-[2.67rem] [&>div]:!w-[2.67rem] [&>div]:!text-lg"
+                        ? "[&>div]:!h-10 [&>div]:!w-10 [&>div]:!text-[1.25rem] [&>div>span]:!text-[1.25rem] [&>div>span>svg]:!h-5 [&>div>span>svg]:!w-5"
+                        : "[&>div]:!h-[2.67rem] [&>div]:!w-[2.67rem] [&>div]:!text-[1.25rem] [&>div>span]:!text-[1.25rem] [&>div>span>svg]:!h-5 [&>div>span>svg]:!w-5"
                     }
                   />
                   {(() => {

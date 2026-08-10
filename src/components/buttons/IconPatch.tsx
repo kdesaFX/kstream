@@ -41,7 +41,7 @@ export function IconPatch(props: IconPatchProps) {
       >
         <Icon
           icon={props.icon}
-          className={`inline-flex items-center justify-center leading-none [&>svg]:block [&>svg]:shrink-0 ${iconNudge}`}
+          className={`inline-flex h-[1em] w-[1em] items-center justify-center leading-none [&>svg]:block [&>svg]:h-full [&>svg]:w-full [&>svg]:shrink-0 ${iconNudge}`}
         />
       </div>
     </div>

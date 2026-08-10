@@ -29,11 +29,11 @@ export function BrandPill(props: {
       <img
         src="/logo.png?v=6"
         alt={t("global.name")}
-        width={props.header ? 24 : 24}
-        height={props.header ? 24 : 24}
+        width={20}
+        height={20}
         className={
           props.header
-            ? "h-5 w-5 md:h-6 md:w-6 object-contain"
+            ? "h-5 w-5 shrink-0 object-contain"
             : "h-6 w-6 object-contain"
         }
         draggable={false}
