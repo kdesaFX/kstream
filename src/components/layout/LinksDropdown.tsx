@@ -14,6 +14,7 @@ import { Transition } from "@/components/utils/Transition";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { useAuthStore } from "@/stores/auth";
 
 function Divider() {
@@ -228,12 +229,16 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
 
   const isDesktopApp = useIsDesktopApp();
   const { openDesktopAppSettings } = useDesktopAppSettingsModal();
+  const { isMobile } = useIsMobile();
 
   return (
     <div className="relative is-dropdown">
       <div
         className={classNames(
-          "cursor-pointer tabbable rounded-full flex gap-2 text-white items-center py-2 px-3 bg-black/25 hover:bg-black/40 border border-white/10 hover:border-white/15 backdrop-blur-md transition-all duration-100 hover:scale-105",
+          "cursor-pointer tabbable rounded-full flex text-white items-center bg-black/25 hover:bg-black/40 border border-white/10 hover:border-white/15 backdrop-blur-md transition-all duration-100 hover:scale-105",
+          isMobile
+            ? "h-10 w-10 justify-center p-0"
+            : "gap-2 py-2 px-3",
           open ? "bg-black/40" : "",
         )}
         tabIndex={0}
@@ -241,13 +246,15 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
         onKeyUp={(evt) => evt.key === "Enter" && toggleOpen()}
       >
         {props.children}
-        <Icon
-          className={classNames(
-            "text-xl transition-transform duration-100",
-            open ? "rotate-180" : "",
-          )}
-          icon={Icons.CHEVRON_DOWN}
-        />
+        {!isMobile ? (
+          <Icon
+            className={classNames(
+              "text-xl transition-transform duration-100",
+              open ? "rotate-180" : "",
+            )}
+            icon={Icons.CHEVRON_DOWN}
+          />
+        ) : null}
       </div>
       <Transition animation="slide-down" show={open}>
         <div className="rounded-xl absolute w-64 bg-dropdown-altBackground top-full mt-3 right-0">

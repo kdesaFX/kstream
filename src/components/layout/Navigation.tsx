@@ -101,6 +101,7 @@ export interface NavigationProps {
 export function Navigation(props: NavigationProps) {
   const bannerHeight = useBannerSize();
   const { loggedIn } = useAuth();
+  const { isMobile } = useIsMobile();
   const [scrollPosition, setScrollPosition] = useState(0);
   const { openNotifications, getUnreadCount } = useNotifications();
   const { openDownloadModal } = useDownloadModal();
@@ -215,7 +216,7 @@ export function Navigation(props: NavigationProps) {
           <div className="px-2 ssm:px-7 py-5 relative z-[60] flex flex-1 items-center gap-1.5 ssm:gap-3">
             <div
               ref={leftRef}
-              className="flex items-center gap-1 md:gap-3 pointer-events-auto shrink-0"
+              className="flex items-center gap-1.5 md:gap-3 pointer-events-auto shrink-0"
             >
               <Link
                 className="block tabbable rounded-full text-xs ssm:text-base"
@@ -224,7 +225,7 @@ export function Navigation(props: NavigationProps) {
               >
                 <BrandPill clickable header />
               </Link>
-              <div className="flex items-center gap-1 md:gap-3">
+              <div className="flex items-center gap-1.5 md:gap-3">
                 {showDownload ? (
                   <button
                     type="button"
@@ -283,7 +284,15 @@ export function Navigation(props: NavigationProps) {
                 <HomeLayoutCustomizerToggle />
               </div>
               <LinksDropdown>
-                {loggedIn ? <UserAvatar withName /> : <NoUserAvatar />}
+                {loggedIn ? (
+                  <UserAvatar
+                    withName={!isMobile}
+                    sizeClass="w-6 h-6"
+                    iconClass="text-sm"
+                  />
+                ) : (
+                  <NoUserAvatar iconClass="text-lg" />
+                )}
               </LinksDropdown>
             </div>
           </div>
