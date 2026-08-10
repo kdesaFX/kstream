@@ -1,0 +1,14 @@
+---
+description: Always commit and push completed work without asking
+alwaysApply: true
+---
+
+# Git: always commit and push
+
+When you finish a code change that should ship:
+
+1. **Commit** without asking (follow the repo’s existing commit-message style and the standard git safety protocol: no force-push to main/master, no hook skips, no amend unless the usual amend conditions apply).
+2. **Push** to the tracked remote branch with `-u` when needed — do not wait for the user to ask.
+3. Do **not** prompt with “want me to commit/push?”
+
+Still never commit secrets (`.env`, credentials, tokens). If a change only exists to ask a question or explore, do not create an empty/noise commit.
