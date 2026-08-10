@@ -19,9 +19,6 @@ const SPANISH_LEANING_SOURCES = new Set([
   "cinehdplus",
 ]);
 
-/** Sources known to provide English audio — try early when `en` is missing. */
-const ENGLISH_LEANING_SOURCES = new Set(["goated"]);
-
 function haveEnoughLanguages(languages: Set<string>): boolean {
   if (languages.has("en") && languages.has("es")) return true;
   return languages.size >= 2;
@@ -49,8 +46,7 @@ function orderCandidates(sourceIds: string[], have: Set<string>): string[] {
   const rest: string[] = [];
   for (const id of sourceIds) {
     const wantSpanish = !have.has("es") && SPANISH_LEANING_SOURCES.has(id);
-    const wantEnglish = !have.has("en") && ENGLISH_LEANING_SOURCES.has(id);
-    if (wantSpanish || wantEnglish) prefer.push(id);
+    if (wantSpanish) prefer.push(id);
     else rest.push(id);
   }
   return [...prefer, ...rest];

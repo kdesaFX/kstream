@@ -16,13 +16,38 @@ import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { qualityToString } from "@/stores/player/utils/qualities";
 import { useSubtitleStore } from "@/stores/subtitles";
+import { isAnimeTitle } from "@/utils/media/anime";
 import { getPrettyLanguageNameFromLocale } from "@/utils/locale/language";
 
 function audioFlagCode(language?: string): string | undefined {
   if (!language) return undefined;
+  if (language === "und") return undefined;
   return language.length === 3
     ? (iso6393To1[language] ?? language)
     : language;
+}
+
+/** Prefer TMDB original language when a source mislabels anime as English. */
+function correctedSourceAudioLanguage(
+  claimed: string | undefined,
+  meta: {
+    genreIds?: number[];
+    originalLanguage?: string;
+    originCountry?: string[];
+  } | null,
+): string | undefined {
+  const lang = claimed?.trim().toLowerCase();
+  if (!lang || lang === "und") return lang || undefined;
+  const original = meta?.originalLanguage?.trim().toLowerCase().slice(0, 2);
+  if (
+    lang === "en" &&
+    original &&
+    original !== "en" &&
+    isAnimeTitle(meta)
+  ) {
+    return original;
+  }
+  return lang;
 }
 
 export function SettingsMenu({ id }: { id: string }) {
@@ -35,6 +60,7 @@ export function SettingsMenu({ id }: { id: string }) {
   const currentAudioStreamId = usePlayerStore((s) => s.currentAudioStreamId);
   const status = usePlayerStore((s) => s.status);
   const source = usePlayerStore((s) => s.source);
+  const meta = usePlayerStore((s) => s.meta);
   const selectedCaptionLanguage = usePlayerStore(
     (s) => s.caption.selected?.language,
   );
@@ -87,24 +113,29 @@ export function SettingsMenu({ id }: { id: string }) {
         t("player.menus.subtitles.unknownLanguage")
       );
     }
-    if (source?.audioLabel?.trim()) {
-      const lang = source.audioLanguage?.trim();
+    const lang = correctedSourceAudioLanguage(source?.audioLanguage, meta);
+    if (source?.audioLabel?.trim() && lang === source.audioLanguage?.trim()) {
       if (lang === "es") return "Spanish";
       if (lang === "en") return "English";
       if (lang === "ja") return "Japanese";
+      if (lang === "und") return "Original";
       return (
         source.audioLabel.trim().replace(/\s*\([^)]*\)\s*/g, "").trim() ||
         source.audioLabel.trim()
       );
     }
-    if (source?.audioLanguage?.trim()) {
+    if (lang) {
       return (
-        getPrettyLanguageNameFromLocale(source.audioLanguage) ??
-        (source.audioLanguage === "es"
+        getPrettyLanguageNameFromLocale(lang) ??
+        (lang === "es"
           ? "Spanish"
-          : source.audioLanguage === "en"
+          : lang === "en"
             ? "English"
-            : source.audioLanguage.toUpperCase())
+            : lang === "ja"
+              ? "Japanese"
+              : lang === "und"
+                ? "Original"
+                : lang.toUpperCase())
       );
     }
     return undefined;
@@ -117,8 +148,9 @@ export function SettingsMenu({ id }: { id: string }) {
     if (streamOpt?.language) return audioFlagCode(streamOpt.language);
     if (currentAudioTrack?.language)
       return audioFlagCode(currentAudioTrack.language);
-    if (source?.audioLanguage) return audioFlagCode(source.audioLanguage);
-    return undefined;
+    return audioFlagCode(
+      correctedSourceAudioLanguage(source?.audioLanguage, meta),
+    );
   })();
 
   const audioLanguageLabel = (
