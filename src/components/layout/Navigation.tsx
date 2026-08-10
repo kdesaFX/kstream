@@ -12,7 +12,6 @@ import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { useNotifications } from "@/components/overlays/notificationsModal";
 import { useSlashFocus } from "@/components/player/hooks/useSlashFocus";
 import { Lightbar } from "@/components/utils/Lightbar";
-import { Transition } from "@/components/utils/Transition";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -87,112 +86,6 @@ function NavSearchBar(props: { lightOverHero?: boolean }) {
         compact={isMobile}
         hideTooltip={isMobile}
       />
-    </div>
-  );
-}
-
-function MobileMenuLink(props: {
-  children: React.ReactNode;
-  href?: string;
-  onClick?: () => void;
-  badge?: React.ReactNode;
-}) {
-  const className =
-    "w-full text-left tabbable cursor-pointer flex gap-3 items-center mx-2 my-0.5 p-2 rounded font-medium text-dropdown-text hover:text-white transition-colors duration-100";
-
-  if (props.href) {
-    return (
-      <a
-        href={props.href}
-        target="_blank"
-        rel="noreferrer"
-        className={className}
-        onClick={props.onClick}
-      >
-        {props.children}
-        {props.badge}
-      </a>
-    );
-  }
-
-  return (
-    <button type="button" onClick={props.onClick} className={className}>
-      {props.children}
-      {props.badge}
-    </button>
-  );
-}
-
-function MobileActionsMenu(props: {
-  openNotifications: () => void;
-  openDownloadModal: () => void;
-  showDownload: boolean;
-  unreadCount: number | string;
-}) {
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    function onWindowClick(evt: MouseEvent) {
-      if ((evt.target as HTMLElement).closest(".is-mobile-menu")) return;
-      setOpen(false);
-    }
-    window.addEventListener("click", onWindowClick);
-    return () => window.removeEventListener("click", onWindowClick);
-  }, []);
-
-  const shouldShowBadge =
-    typeof props.unreadCount === "number"
-      ? props.unreadCount > 0
-      : props.unreadCount === "99+";
-
-  return (
-    <div className="relative is-mobile-menu lg:hidden">
-      <a
-        onClick={() => setOpen((v) => !v)}
-        className="text-xl text-white tabbable rounded-full backdrop-blur-lg relative block"
-        title="Menu"
-      >
-        <IconPatch icon={Icons.MENU} clickable downsized navigation />
-        {shouldShowBadge ? (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[16px] aspect-square flex items-center justify-center">
-            {props.unreadCount}
-          </span>
-        ) : null}
-      </a>
-      <Transition animation="slide-down" show={open}>
-        <div className="absolute left-0 top-full mt-3 z-50 w-56 rounded-xl bg-dropdown-altBackground py-2 shadow-lg ring-1 ring-white/10">
-          <MobileMenuLink
-            onClick={() => {
-              setOpen(false);
-              props.openNotifications();
-            }}
-            badge={
-              shouldShowBadge ? (
-                <span className="ml-auto bg-red-500 text-white text-xs rounded-full min-w-[16px] px-1 aspect-square flex items-center justify-center">
-                  {props.unreadCount}
-                </span>
-              ) : null
-            }
-          >
-            <Icon icon={Icons.BELL} className="text-xl" />
-            Notifications
-          </MobileMenuLink>
-          {props.showDownload ? (
-            <MobileMenuLink
-              onClick={() => {
-                setOpen(false);
-                props.openDownloadModal();
-              }}
-            >
-              <Icon icon={Icons.DOWNLOAD} className="text-xl" />
-              Download app
-            </MobileMenuLink>
-          ) : null}
-          <div className="mx-2 mt-1">
-            <HomeLayoutCustomizerToggle />
-          </div>
-        </div>
-      </Transition>
     </div>
   );
 }
@@ -331,12 +224,12 @@ export function Navigation(props: NavigationProps) {
               >
                 <BrandPill clickable header />
               </Link>
-              <div className="hidden lg:flex items-center space-x-1.5 ssm:space-x-3">
+              <div className="flex items-center space-x-1.5 ssm:space-x-3">
                 {showDownload ? (
                   <button
                     type="button"
                     onClick={() => openDownloadModal()}
-                    className="tabbable rounded-full text-xs ssm:text-base"
+                    className="hidden lg:block tabbable rounded-full text-xs ssm:text-base"
                     title="Download app"
                     aria-label="Download Windows app"
                   >
@@ -372,12 +265,6 @@ export function Navigation(props: NavigationProps) {
                   })()}
                 </a>
               </div>
-              <MobileActionsMenu
-                openNotifications={openNotifications}
-                openDownloadModal={openDownloadModal}
-                showDownload={false}
-                unreadCount={getUnreadCount()}
-              />
             </div>
 
             {props.showSearch ? (
