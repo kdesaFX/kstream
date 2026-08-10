@@ -418,8 +418,9 @@ export async function fetchPersonalRecommendations(
   const type = isTVShow ? TMDBContentTypes.TV : TMDBContentTypes.MOVIE;
   const wantedType = isTVShow ? "show" : "movie";
 
-  const ratingsFiltered = ratings.filter((r) => r.type === wantedType);
-  const positiveFiltered = ratingsFiltered
+  // Same-type likes/watches seed TMDB "related" (API is per-media-type).
+  const ratingsSameType = ratings.filter((r) => r.type === wantedType);
+  const positiveFiltered = ratingsSameType
     .filter((r) => r.rating === "loved" || r.rating === "liked")
     // Loved first, then most recent.
     .sort((a, b) => {
@@ -428,7 +429,7 @@ export async function fetchPersonalRecommendations(
     })
     .slice(0, MAX_LIKED_FOR_RELATED);
 
-  const historyFiltered = history
+  const historySameType = history
     .filter((h) => h.type === wantedType)
     .sort((a, b) => b.watchedAt - a.watchedAt)
     .slice(0, MAX_HISTORY_FOR_RELATED);
@@ -452,7 +453,7 @@ export async function fetchPersonalRecommendations(
       r.rating === "loved" ? SEED_WEIGHT_LOVED : SEED_WEIGHT_LIKED,
       RELATED_PER_LIKED_LIMIT,
     );
-  for (const h of historyFiltered)
+  for (const h of historySameType)
     addSeed(
       h.tmdbId,
       h.completed ? SEED_WEIGHT_HISTORY_COMPLETED : SEED_WEIGHT_HISTORY,
@@ -461,26 +462,23 @@ export async function fetchPersonalRecommendations(
   for (const p of progressFiltered)
     addSeed(p.tmdbId, SEED_WEIGHT_PROGRESS, RELATED_PER_ITEM_LIMIT);
 
-  // Movies and shows are different enough as mediums that a rating in one
-  // shouldn't shape recommendations in the other (loving a horror movie
-  // says little about wanting horror shows, and vice versa) — build the
-  // profile from same-medium ratings and completed watches only.
-  const completedForProfile = historyFiltered.filter(
-    (h) => h.completed !== false,
-  );
-  const profile = buildTasteProfile(
-    ratingsFiltered,
-    prefs,
-    completedForProfile,
-  );
+  // Taste profile is cross-type: TV watches/ratings shape movie recs and
+  // vice versa (genres are normalized into one space). Related seeds stay
+  // same-type because TMDB similar/related endpoints are per media type.
+  const completedForProfile = history.filter((h) => h.completed !== false);
+  const profile = buildTasteProfile(ratings, prefs, completedForProfile);
 
-  // Never recommend anything already rated.
-  const ratedIds = new Set(ratingsFiltered.map((r) => r.tmdbId));
+  // Never recommend anything already rated in this media type.
+  const ratedIds = new Set(ratingsSameType.map((r) => r.tmdbId));
 
   // Also seed from the taste profile's top genres directly, so the
   // profile can generate candidates beyond same-type watched/rated items.
+  // Prefer a few more genres when cross-type signal is doing the heavy lifting.
+  const crossTypeSignal =
+    ratings.some((r) => r.type !== wantedType) ||
+    history.some((h) => h.type !== wantedType && h.completed !== false);
   const topGenres = genresForType(
-    topPositiveGenres(profile, 2),
+    topPositiveGenres(profile, crossTypeSignal ? 3 : 2),
     isTVShow,
   );
 
@@ -493,7 +491,10 @@ export async function fetchPersonalRecommendations(
   if (topGenres.length > 0) {
     fetches.push(getMediaByGenres(topGenres, type, GENRE_DISCOVER_LIMIT));
     seedKeys.push("genre-discover");
-    seedWeights.push(SEED_WEIGHT_GENRE_DISCOVER);
+    // Lean harder on genre discover when opposite-type history is carrying taste.
+    seedWeights.push(
+      SEED_WEIGHT_GENRE_DISCOVER * (crossTypeSignal ? 1.25 : 1),
+    );
   }
 
   // Collections contribute films (movies only); companies feed discover

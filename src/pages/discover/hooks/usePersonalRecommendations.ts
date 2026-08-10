@@ -32,30 +32,23 @@ export interface UsePersonalRecommendationsOptions {
 }
 
 /**
- * Cheap, non-fetching check for whether there's enough signal (of the given
- * type) for personalized recommendations to produce anything — mirrors the
- * `hasAnySource` gate inside usePersonalRecommendations' fetch, so callers
- * that need to decide "should I even offer a For You view" (e.g. picking a
- * default tab) get the same answer the hook itself would, without needing to
- * actually fetch. A rating alone isn't enough: someone who rated a batch of
- * things "meh"/"didn't like it" during testing has no positive signal and
- * would otherwise silently fall through to trending, looking unchanged.
+ * Cheap, non-fetching check for whether there's enough signal for
+ * personalized recommendations — mirrors the `hasAnySource` gate inside
+ * usePersonalRecommendations' fetch. History/progress/ratings of either
+ * media type count (taste is cross-type). A rating alone isn't enough if
+ * every rating is "meh"/"didn't like it" — needs a positive like/love,
+ * prefs, or watch signal.
  *
  * Bookmarks are not a signal — saving only adds to Saved Titles.
  */
-export function useHasRecommendationSignal(isTVShow: boolean): boolean {
+export function useHasRecommendationSignal(_isTVShow: boolean): boolean {
   const watchHistoryItems = useWatchHistoryStore((s) => s.items);
   const progressItems = useProgressStore((s) => s.items);
   const ratingItems = useRatingsStore((s) => s.ratings);
   const preferences = useRatingsStore((s) => s.preferences);
 
-  const wantedType = isTVShow ? "show" : "movie";
-  const hasHistory = Object.values(watchHistoryItems).some(
-    (item) => item.type === wantedType,
-  );
-  const hasProgress = Object.values(progressItems).some(
-    (item) => item.type === wantedType,
-  );
+  const hasHistory = Object.keys(watchHistoryItems).length > 0;
+  const hasProgress = Object.keys(progressItems).length > 0;
   const hasPositiveRating = Object.values(ratingItems).some(
     (r) => r.rating === "liked" || r.rating === "loved",
   );
@@ -64,9 +57,7 @@ export function useHasRecommendationSignal(isTVShow: boolean): boolean {
     preferences.moods.length > 0 ||
     preferences.franchises.length > 0;
 
-  return (
-    hasHistory || hasProgress || hasPositiveRating || hasPrefs
-  );
+  return hasHistory || hasProgress || hasPositiveRating || hasPrefs;
 }
 
 /**
@@ -74,12 +65,11 @@ export function useHasRecommendationSignal(isTVShow: boolean): boolean {
  * Requires a real algorithm (wizard prefs / likes) or high-% watches —
  * casual opens with a few minutes watched stay on the default discover pool.
  */
-export function hasFeaturedAlgorithmSignal(isTVShow: boolean): boolean {
+export function hasFeaturedAlgorithmSignal(_isTVShow: boolean): boolean {
   const preferences = useRatingsStore.getState().preferences;
   const ratingItems = useRatingsStore.getState().ratings;
   const watchHistoryItems = useWatchHistoryStore.getState().items;
   const progressItems = useProgressStore.getState().items;
-  const wantedType = isTVShow ? "show" : "movie";
 
   if (preferences.completedOnboarding) return true;
   if (
@@ -96,17 +86,13 @@ export function hasFeaturedAlgorithmSignal(isTVShow: boolean): boolean {
   ) {
     return true;
   }
-  if (
-    Object.values(watchHistoryItems).some(
-      (item) => item.type === wantedType && item.completed,
-    )
-  ) {
+  // Completed / high-% watches of either type personalize both carousels.
+  if (Object.values(watchHistoryItems).some((item) => item.completed)) {
     return true;
   }
   if (
-    Object.values(progressItems).some(
-      (item) =>
-        item.type === wantedType && progressMediaIsHighPercentage(item),
+    Object.values(progressItems).some((item) =>
+      progressMediaIsHighPercentage(item),
     )
   ) {
     return true;
@@ -249,10 +235,10 @@ export function usePersonalRecommendations({
     );
 
     const wantedType = isTVShow ? "show" : "movie";
+    // History/progress/ratings of either type unlock For You — taste is cross-type.
     const hasAnySource =
-      history.some((h) => h.type === wantedType) ||
-      progress.some((p) => p.type === wantedType) ||
-      // Ratings of either type count; the taste profile is cross-type.
+      history.length > 0 ||
+      progress.length > 0 ||
       ratings.some((r) => r.rating === "liked" || r.rating === "loved") ||
       preferences.favoriteGenres.length > 0 ||
       preferences.moods.length > 0 ||
