@@ -93,8 +93,8 @@ export default defineConfig(({ mode }) => {
           "safari-pinned-tab.svg",
         ],
         manifest: {
-          name: "Z-Stream",
-          short_name: "Z-Stream",
+          name: "kstream",
+          short_name: "kstream",
           description: "Watch your favorite shows and movies for free!",
           theme_color: "#000000",
           background_color: "#000000",

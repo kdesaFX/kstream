@@ -44,10 +44,22 @@
       content="black-translucent"
     />
 
-    <!-- Z-Stream Preview Embed -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:image" content="/embed-preview.png?v=6" />
+    <!-- kstream Preview Embed -->
+    <meta property="og:title" content="kstream" />
+    <meta property="og:site_name" content="kstream" />
+    <meta
+      property="og:description"
+      content="Watch your favorite shows and movies for free!"
+    />
+    <meta property="og:type" content="website" />
     <meta property="og:image" content="/embed-preview.png?v=6" />
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="kstream" />
+    <meta
+      property="twitter:description"
+      content="Watch your favorite shows and movies for free!"
+    />
+    <meta property="twitter:image" content="/embed-preview.png?v=6" />
 
     <link
       rel="apple-touch-startup-image"
@@ -238,14 +250,14 @@
     <!-- <meta name="referrer" content="no-referrer" /> -->
     <meta name="referrer" content="always" />
 
-    <title>Z-Stream</title>
+    <title>kstream</title>
 
     {{#if opensearchEnabled }}
     <!-- OpenSearch -->
     <link
       rel="search"
       type="application/opensearchdescription+xml"
-      title="P-Stream"
+      title="kstream"
       href="/opensearch.xml"
     />
 
@@ -254,13 +266,9 @@
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "name": "Z-Stream",
-        "alternateName": ["P-Stream", "PStream", "pstream", "pstream.net"],
+        "name": "kstream",
+        "alternateName": ["kdesa.stream", "kstream"],
         "url": "{{ routeDomain }}",
-        "sameAs": [
-          "https://pstream.net",
-          "https://pstream.mov"
-        ],
         "potentialAction": {
           "@type": "SearchAction",
           "target": {
@@ -275,13 +283,8 @@
       {
         "@context": "https://schema.org",
         "@type": "Organization",
-        "name": "Z-Stream",
-        "alternateName": ["P-Stream", "pstream"],
-        "url": "{{ routeDomain }}",
-        "sameAs": [
-          "https://pstream.net",
-          "https://pstream.mov"
-        ]
+        "name": "kstream",
+        "url": "{{ routeDomain }}"
       }
     </script>
     {{/if}}
@@ -289,17 +292,12 @@
 
   <body>
     <noscript>
-      <h1>Z-Stream</h1>
+      <h1>kstream</h1>
       <p>
-        Z-Stream is a free movie and TV show streaming site. Continuation of
-        P-Stream — the same project, new home at zstream.mov. Formerly hosted
-        at pstream.net. No ads, no signup, just watch.
+        kstream is a free movie and TV show streaming site. No ads, no signup,
+        just watch.
       </p>
-      <p>
-        If you were looking for P-Stream, pstream, or pstream.net — you are
-        in the right place. Z-Stream is the successor. Enable
-        JavaScript to load the site.
-      </p>
+      <p>Enable JavaScript to load the site.</p>
     </noscript>
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
