@@ -17,6 +17,7 @@ declare global {
     __PSTREAM_DESKTOP__?: boolean;
     __KSTREAM_DESKTOP_IPC__?: {
       invoke: (name: string, body?: unknown) => Promise<any>;
+      onPauseForClose?: (cb: () => void) => () => void;
     };
   }
 }
