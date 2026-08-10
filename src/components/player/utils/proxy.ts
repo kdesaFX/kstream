@@ -28,7 +28,7 @@ export function createM3U8ProxyUrl(
   const encodedHeaders = encodeURIComponent(JSON.stringify(headers));
   return `${proxyBaseUrl}/m3u8-proxy?url=${encodedUrl}${
     Object.keys(headers).length > 0 ? `&headers=${encodedHeaders}` : ""
-  }`;
+  }&browser=1`;
 }
 
 /**

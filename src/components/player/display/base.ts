@@ -295,6 +295,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       if (topIndex !== -1) {
         hls.startLevel = topIndex;
         hls.nextLevel = topIndex;
+        hls.loadLevel = topIndex;
+        hls.currentLevel = topIndex;
       } else {
         hls.currentLevel = -1;
         hls.loadLevel = -1;
@@ -316,7 +318,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         throw new Error("HLS not supported. Update your browser. 🤦‍♂️");
       if (!hls) {
         hls = new Hls({
-          autoStartLoad: true,
+          // Wait until we pick AVC ≤1080p — autoStart would race into 4K HEVC.
+          autoStartLoad: false,
           maxBufferLength: 120, // 120 seconds
           maxMaxBufferLength: 240,
           abrEwmaDefaultEstimate: 5 * 1000 * 1000, // 5 Mbps default bandwidth estimate for better ABR decisions
@@ -442,11 +445,15 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             });
           }
         });
-        hls.on(Hls.Events.MANIFEST_LOADED, () => {
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
           if (!hls) return;
           reportLevels();
           setupQualityForHls();
           reportAudioTracks();
+          hls.startLoad();
+        });
+        hls.on(Hls.Events.MANIFEST_LOADED, () => {
+          if (!hls) return;
 
           if (isExtensionActiveCached()) {
             hls.on(Hls.Events.LEVEL_LOADED, async (_, data) => {

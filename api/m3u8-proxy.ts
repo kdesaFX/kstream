@@ -29,12 +29,129 @@ function buildSegmentOrNestedProxy(
   requestOrigin: string,
   clientHeadersJson: string,
   isPlaylist: boolean,
+  browserFriendly: boolean,
 ): string {
   const path = isPlaylist ? "/api/m3u8-proxy" : "/api/ts-proxy";
   const u = new URL(path, requestOrigin);
   u.searchParams.set("url", absolute);
   if (clientHeadersJson) u.searchParams.set("headers", clientHeadersJson);
+  if (browserFriendly && isPlaylist) u.searchParams.set("browser", "1");
   return u.toString();
+}
+
+type Variant = {
+  tags: string[]; // comment lines belonging to this variant (e.g. # 4K)
+  info: string; // EXT-X-STREAM-INF
+  uri: string;
+  height: number;
+  hevc: boolean;
+  avc: boolean;
+};
+
+function parseHeight(info: string): number {
+  const m = /RESOLUTION=\d+x(\d+)/i.exec(info);
+  return m ? Number(m[1]) || 0 : 0;
+}
+
+function isHevcCodecs(info: string): boolean {
+  const m = /CODECS="([^"]+)"/i.exec(info);
+  const codecs = (m?.[1] || "").toLowerCase();
+  return codecs.includes("hev1") || codecs.includes("hvc1") || codecs.includes("hevc");
+}
+
+function isAvcCodecs(info: string): boolean {
+  const m = /CODECS="([^"]+)"/i.exec(info);
+  const codecs = (m?.[1] || "").toLowerCase();
+  return codecs.includes("avc1") || codecs.includes("avc3");
+}
+
+/**
+ * Reorder master playlist variants so native Safari / hls.js start on a
+ * playable AVC ≤1080p rung instead of 4K HEVC (common Goated hang).
+ */
+function preferBrowserVariants(body: string): string {
+  const lines = body.split(/\r?\n/);
+  const head: string[] = [];
+  const variants: Variant[] = [];
+  const tail: string[] = [];
+  let i = 0;
+  let seenStreamInf = false;
+  let pendingTags: string[] = [];
+
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.startsWith("#EXT-X-STREAM-INF:")) {
+      seenStreamInf = true;
+      const info = line;
+      const uri = lines[i + 1] || "";
+      variants.push({
+        tags: pendingTags,
+        info,
+        uri,
+        height: parseHeight(info),
+        hevc: isHevcCodecs(info),
+        avc: isAvcCodecs(info),
+      });
+      pendingTags = [];
+      i += 2;
+      continue;
+    }
+
+    if (!seenStreamInf) {
+      // Keep media/audio/header lines in head; stash blank/comment tags before variants
+      if (
+        line.startsWith("#") &&
+        !line.startsWith("#EXT") &&
+        line.trim() !== ""
+      ) {
+        pendingTags.push(line);
+      } else {
+        if (pendingTags.length) {
+          head.push(...pendingTags);
+          pendingTags = [];
+        }
+        head.push(line);
+      }
+      i += 1;
+      continue;
+    }
+
+    // After variants — keep remaining lines
+    if (pendingTags.length) {
+      tail.push(...pendingTags);
+      pendingTags = [];
+    }
+    tail.push(line);
+    i += 1;
+  }
+
+  if (!variants.length) return body;
+
+  const score = (v: Variant) => {
+    // Higher is better for browser start order
+    let s = 0;
+    if (v.avc) s += 1000;
+    if (v.hevc) s -= 500;
+    if (v.height > 0 && v.height <= 1080) s += 200;
+    if (v.height > 1080) s -= 100;
+    s += Math.min(v.height, 1080) / 1080; // prefer higher within cap
+    return s;
+  };
+
+  const sorted = [...variants].sort((a, b) => score(b) - score(a));
+
+  // Drop 4K+ HEVC when an AVC alternative exists (native iOS often sticks on it)
+  const hasAvc = sorted.some((v) => v.avc);
+  const filtered = hasAvc
+    ? sorted.filter((v) => !(v.hevc && v.height > 1080))
+    : sorted;
+
+  const out = [...head];
+  for (const v of filtered.length ? filtered : sorted) {
+    out.push(...v.tags, v.info, v.uri);
+  }
+  out.push(...tail);
+  return out.join("\n");
 }
 
 function rewritePlaylist(
@@ -42,6 +159,7 @@ function rewritePlaylist(
   playlistUrl: string,
   requestOrigin: string,
   clientHeadersJson: string,
+  browserFriendly: boolean,
 ): string {
   const lines = body.split(/\r?\n/);
   const out: string[] = [];
@@ -58,6 +176,7 @@ function rewritePlaylist(
               requestOrigin,
               clientHeadersJson,
               absolute.includes(".m3u8"),
+              browserFriendly,
             );
             return `URI="${proxied}"`;
           }),
@@ -80,11 +199,16 @@ function rewritePlaylist(
         requestOrigin,
         clientHeadersJson,
         absolute.includes(".m3u8"),
+        browserFriendly,
       ),
     );
   }
 
-  return out.join("\n");
+  let rewritten = out.join("\n");
+  if (browserFriendly && rewritten.includes("#EXT-X-STREAM-INF:")) {
+    rewritten = preferBrowserVariants(rewritten);
+  }
+  return rewritten;
 }
 
 export default async function handler(request: Request): Promise<Response> {
@@ -100,6 +224,7 @@ export default async function handler(request: Request): Promise<Response> {
     const target = assertSafeDestination(targetRaw);
     const clientHeadersJson = reqUrl.searchParams.get("headers") || "";
     const clientHeaders = parseClientHeaders(clientHeadersJson);
+    const browserFriendly = reqUrl.searchParams.get("browser") === "1";
 
     const upstreamHeaders = buildUpstreamHeaders(request.headers);
     for (const [k, v] of clientHeaders.entries()) {
@@ -125,7 +250,13 @@ export default async function handler(request: Request): Promise<Response> {
       text.trimStart().startsWith("#EXTM3U");
 
     const body = looksLikePlaylist
-      ? rewritePlaylist(text, finalUrl, reqUrl.origin, clientHeadersJson)
+      ? rewritePlaylist(
+          text,
+          finalUrl,
+          reqUrl.origin,
+          clientHeadersJson,
+          browserFriendly,
+        )
       : text;
 
     const headers = afterResponseHeaders(upstream.headers, finalUrl);

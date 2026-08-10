@@ -90,7 +90,7 @@ export function ScrapeErrorPart(props: ScrapeErrorPartProps) {
     });
   }, [t]);
 
-  if (extensionState === "disallowed") {
+  if (extensionState === "disallowed" && conf().PROXY_URLS.length === 0) {
     return (
       <ErrorLayout>
         <ErrorContainer>

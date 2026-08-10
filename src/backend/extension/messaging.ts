@@ -67,7 +67,20 @@ async function sendMessage<MessageKey extends keyof MessagesMetadata>(
       body: payload,
     })
       .then((res) => {
-        activeExtension = true;
+        // Presence alone is not enough — installed-but-disabled still answers hello.
+        if (message === "hello") {
+          const hello = res as MessagesMetadata["hello"]["res"] | null;
+          activeExtension = !!(
+            hello &&
+            "success" in hello &&
+            hello.success &&
+            hello.allowed &&
+            hello.hasPermission &&
+            isAllowedExtensionVersion(hello.version)
+          );
+        } else if (res != null) {
+          activeExtension = true;
+        }
         resolve(res);
       })
       .catch(() => {
@@ -111,8 +124,15 @@ export function isExtensionActiveCached(): boolean {
 export async function isExtensionActive(): Promise<boolean> {
   if (isDesktopApp()) return true;
   const info = await extensionInfo();
-  if (!info?.success) return false;
+  if (!info?.success) {
+    activeExtension = false;
+    return false;
+  }
   const allowedVersion = isAllowedExtensionVersion(info.version);
-  if (!allowedVersion) return false;
-  return info.allowed && info.hasPermission;
+  if (!allowedVersion || !info.allowed || !info.hasPermission) {
+    activeExtension = false;
+    return false;
+  }
+  activeExtension = true;
+  return true;
 }
