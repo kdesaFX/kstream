@@ -33,17 +33,51 @@ function mergeStreamHeaders(stream: Stream): Record<string, string> {
   };
 }
 
+function isDesktopApp(): boolean {
+  return Boolean(
+    typeof window !== "undefined" &&
+      (window.__PSTREAM_DESKTOP__ || window.__KSTREAM_DESKTOP_IPC__),
+  );
+}
+
+/** Phones/tablets — no usable header-injecting extension. */
+function isMobileBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return true;
+  // iPadOS desktop-UA mode
+  return ua.includes("Mac") && "ontouchend" in document;
+}
+
 /**
- * Browser (no extension) cannot set Referer/Origin on HLS requests, and many
- * CDNs also lack CORS. Route those playlists through the same-origin m3u8 proxy.
+ * Same-origin Vercel m3u8/CORS proxy:
+ * - Desktop app: never (native/extension is faster)
+ * - Desktop browser + enabled extension: never
+ * - Desktop browser without extension: yes
+ * - Mobile: always
+ */
+export function shouldUseSameOriginStreamProxy(): boolean {
+  if (isDesktopApp()) return false;
+  if (isMobileBrowser()) return true;
+  return !isExtensionActiveCached();
+}
+
+/**
+ * Route HLS through /api/m3u8-proxy when the environment can't set Referer/Origin.
  */
 function maybeProxyHlsPlaylist(
   playlist: string,
   headers: Record<string, string>,
 ): string {
-  if (isExtensionActiveCached()) return playlist;
+  if (!shouldUseSameOriginStreamProxy()) return playlist;
   if (isUrlAlreadyProxied(playlist)) return playlist;
-  if (Object.keys(headers).length === 0) return playlist;
+
+  // Mobile: always proxy HLS (CDN CORS / referer locks).
+  // Browser without extension: proxy when the stream needs headers.
+  if (!isMobileBrowser() && Object.keys(headers).length === 0) {
+    return playlist;
+  }
+
   return createM3U8ProxyUrl(playlist, headers, { requireProxy: true });
 }
 
@@ -59,7 +93,7 @@ export function convertRunoutputToSource(out: {
       type: "hls",
       url,
       // Headers are applied by the m3u8 proxy when proxied; keep them for
-      // extension / casting paths that still need the raw values.
+      // extension / desktop paths that still need the raw values.
       headers: proxied ? undefined : out.stream.headers,
       preferredHeaders: proxied ? undefined : out.stream.preferredHeaders,
       audioLanguage: out.stream.audioLanguage,
