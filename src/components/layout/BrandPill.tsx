@@ -11,7 +11,9 @@ export function BrandPill(props: {
   return (
     <div
       className={classNames(
-        "flex items-center space-x-2 rounded-full px-4 py-2 text-type-logo",
+        "flex items-center gap-2 rounded-full py-2 text-type-logo",
+        // Logo-only on small screens to free header space; name from ssm up.
+        props.header ? "px-2.5 ssm:px-4" : "px-4",
         props.header
           ? "bg-black/25 backdrop-blur-md border border-white/10"
           : props.backgroundClass ??
@@ -23,13 +25,15 @@ export function BrandPill(props: {
     >
       <img
         src="/logo.png?v=6"
-        alt=""
+        alt={t("global.name")}
         width={24}
         height={24}
         className="h-6 w-6 object-contain"
         draggable={false}
       />
-      <span className="font-semibold text-white">{t("global.name")}</span>
+      <span className="hidden ssm:inline font-semibold text-white">
+        {t("global.name")}
+      </span>
     </div>
   );
 }
