@@ -141,14 +141,14 @@ function DefaultExtensionPage(props: ExtensionPageProps) {
       </Paragraph>
 
       {/* Main extension icons */}
-      <div className="mb-4 flex flex-col md:flex-row md:space-x-8 space-y-4 md:space-y-0 justify-center items-center">
+      <div className="mb-1 flex flex-col md:flex-row md:space-x-8 space-y-4 md:space-y-0 justify-center items-center">
         {installChromeLink &&
         (browser === "chrome" || browser === "unknown") ? (
           <Link
             href={installChromeLink}
             target="_blank"
             hideArrow
-            className="flex flex-col items-center space-y-2 p-4 rounded-lg hover:bg-type-surface-hover transition-colors"
+            className="flex flex-col items-center space-y-2 px-4 pt-4 pb-1 rounded-lg hover:bg-type-surface-hover transition-colors"
           >
             <span>
               <svg
@@ -172,7 +172,7 @@ function DefaultExtensionPage(props: ExtensionPageProps) {
             href={installFirefoxLink}
             target="_blank"
             hideArrow
-            className="flex flex-col items-center space-y-2 p-4 rounded-lg hover:bg-type-surface-hover transition-colors"
+            className="flex flex-col items-center space-y-2 px-4 pt-4 pb-1 rounded-lg hover:bg-type-surface-hover transition-colors"
           >
             <span>
               <svg
@@ -193,7 +193,7 @@ function DefaultExtensionPage(props: ExtensionPageProps) {
       </div>
 
       {/* Secondary userscript option */}
-      <div className="mb-6 text-left">
+      <div className="mb-6 mt-0 text-left">
         <div className="flex flex-col items-center space-y-1">
           <Link
             href="https://raw.githubusercontent.com/xp-technologies-dev/Userscript/main/p-stream.user.js"
