@@ -31,3 +31,6 @@ package-lock.json
 sync-fork.bat
 
 .cursor/
+
+scripts/goon-test-results.json
+scripts/source-hit-bench-results.json

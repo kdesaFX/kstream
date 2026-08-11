@@ -35,37 +35,3 @@ export function isAnimeTitle(meta: AnimeDetectionInput | null | undefined): bool
 export function isAnimeSourceId(sourceId: string): boolean {
   return ANIME_SOURCE_IDS.has(sourceId);
 }
-
-/**
- * Anime titles: anime sources first (relative order preserved), then general.
- * Non-anime titles: drop anime sources so they never appear or get scraped.
- * Unknown (no genre data): leave order unchanged.
- */
-export function orderSourceIdsForTitle(
-  sourceIds: string[],
-  meta: AnimeDetectionInput | null | undefined,
-): string[] {
-  if (!hasAnimeDetectionData(meta)) return sourceIds;
-
-  if (isAnimeTitle(meta)) {
-    const animeIds = sourceIds.filter(isAnimeSourceId);
-    const otherIds = sourceIds.filter((id) => !isAnimeSourceId(id));
-    return [...animeIds, ...otherIds];
-  }
-
-  return sourceIds.filter((id) => !isAnimeSourceId(id));
-}
-
-export function orderSourcesForTitle<T extends { id: string }>(
-  sources: T[],
-  meta: AnimeDetectionInput | null | undefined,
-): T[] {
-  const orderedIds = orderSourceIdsForTitle(
-    sources.map((s) => s.id),
-    meta,
-  );
-  const byId = new Map(sources.map((s) => [s.id, s]));
-  return orderedIds
-    .map((id) => byId.get(id))
-    .filter((s): s is T => Boolean(s));
-}

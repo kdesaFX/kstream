@@ -14,7 +14,7 @@ import {
   getPreferredSourceForTitle,
   usePreferencesStore,
 } from "@/stores/preferences";
-import { orderSourceIdsForTitle } from "@/utils/media/anime";
+import { orderSourceIdsForPlayback, detectPlaybackEnv } from "@/utils/media/sourceOrder";
 
 export interface ScrapingItems {
   id: string;
@@ -255,11 +255,12 @@ export function useScrape() {
         baseSourceOrder = [...orderedSources, ...remainingSources];
       }
 
-      // Anime titles try anime scrapers first; non-anime titles hide them.
-      baseSourceOrder = orderSourceIdsForTitle(
-        baseSourceOrder,
-        playerState.meta,
-      );
+      // Goon-test stats: order by env (browser/extension/desktop) × media bucket.
+      baseSourceOrder = orderSourceIdsForPlayback(baseSourceOrder, {
+        env: detectPlaybackEnv(),
+        mediaType: media.type === "show" ? "show" : "movie",
+        meta: playerState.meta,
+      });
 
       // Prefer the source that worked for this title; fall back to last global.
       // Always apply the same pin for full scrapes AND Find-next/resume slices so

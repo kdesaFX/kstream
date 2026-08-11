@@ -15,7 +15,7 @@ import {
   getPreferredSourceForTitle,
   usePreferencesStore,
 } from "@/stores/preferences";
-import { orderSourcesForTitle } from "@/utils/media/anime";
+import { orderSourcesForPlayback, detectPlaybackEnv } from "@/utils/media/sourceOrder";
 
 // Embed option component
 function EmbedOption(props: {
@@ -214,7 +214,11 @@ export function SourceSelectPart(props: { media: ScrapeMedia }) {
       }
     }
 
-    orderedSources = orderSourcesForTitle(orderedSources, playerMeta);
+    orderedSources = orderSourcesForPlayback(orderedSources, {
+      env: detectPlaybackEnv(),
+      mediaType: props.media.type === "show" ? "show" : "movie",
+      meta: playerMeta,
+    });
 
     if (prioritizeSource) {
       const pinIndex = orderedSources.findIndex((s) => s.id === prioritizeSource);

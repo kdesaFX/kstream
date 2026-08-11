@@ -17,7 +17,7 @@ import {
   getPreferredSourceForTitle,
   usePreferencesStore,
 } from "@/stores/preferences";
-import { orderSourcesForTitle } from "@/utils/media/anime";
+import { orderSourcesForPlayback, detectPlaybackEnv } from "@/utils/media/sourceOrder";
 
 export interface SourceSelectionViewProps {
   id: string;
@@ -234,13 +234,17 @@ export function SourceSelectionView({
       }
     }
 
-    orderedSources = orderSourcesForTitle(orderedSources, {
-      genreIds: metaGenreIds,
-      originalLanguage: metaOriginalLanguage,
-      originCountry: metaOriginCountry,
+    orderedSources = orderSourcesForPlayback(orderedSources, {
+      env: detectPlaybackEnv(),
+      mediaType: metaType === "show" ? "show" : "movie",
+      meta: {
+        genreIds: metaGenreIds,
+        originalLanguage: metaOriginalLanguage,
+        originCountry: metaOriginCountry,
+      },
     });
 
-    // Re-apply title pin after anime grouping so Find-next / remembered source stays first.
+    // Re-apply title pin after goon ordering so Find-next / remembered source stays first.
     if (prioritizeSource) {
       const pinIndex = orderedSources.findIndex((s) => s.id === prioritizeSource);
       if (pinIndex > 0) {
