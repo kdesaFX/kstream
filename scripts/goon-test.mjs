@@ -54,11 +54,19 @@ const FULL_CATALOG = [
   { kind: "movie", tmdbId: "550", label: "Fight Club", bucketHint: "movie" },
   { kind: "movie", tmdbId: "603", label: "The Matrix", bucketHint: "movie" },
   { kind: "movie", tmdbId: "157336", label: "Interstellar", bucketHint: "movie" },
+  { kind: "movie", tmdbId: "299536", label: "Infinity War", bucketHint: "movie" },
+  { kind: "movie", tmdbId: "424694", label: "Bohemian Rhapsody", bucketHint: "movie" },
+  { kind: "movie", tmdbId: "438631", label: "Dune", bucketHint: "movie" },
+  { kind: "movie", tmdbId: "346698", label: "Barbie", bucketHint: "movie" },
+  { kind: "movie", tmdbId: "76600", label: "Avatar 2", bucketHint: "movie" },
+  { kind: "movie", tmdbId: "872585", label: "Oppenheimer", bucketHint: "movie" },
   // Anime movies
   { kind: "movie", tmdbId: "372058", label: "Your Name", bucketHint: "anime" },
   { kind: "movie", tmdbId: "128", label: "Princess Mononoke", bucketHint: "anime" },
   { kind: "movie", tmdbId: "129", label: "Spirited Away", bucketHint: "anime" },
   { kind: "movie", tmdbId: "378064", label: "A Silent Voice", bucketHint: "anime" },
+  { kind: "movie", tmdbId: "149", label: "Akira", bucketHint: "anime" },
+  { kind: "movie", tmdbId: "493529", label: "Demon Slayer Mugen", bucketHint: "anime" },
   // Shows
   { kind: "show", tmdbId: "1396", season: 1, episode: 1, label: "Breaking Bad S1E1", bucketHint: "show" },
   { kind: "show", tmdbId: "66732", season: 1, episode: 1, label: "Stranger Things S1E1", bucketHint: "show" },
@@ -68,20 +76,26 @@ const FULL_CATALOG = [
   { kind: "show", tmdbId: "1399", season: 1, episode: 1, label: "Game of Thrones S1E1", bucketHint: "show" },
   { kind: "show", tmdbId: "87108", season: 1, episode: 1, label: "Chernobyl S1E1", bucketHint: "show" },
   { kind: "show", tmdbId: "60625", season: 1, episode: 1, label: "Rick and Morty S1E1", bucketHint: "show" },
+  { kind: "show", tmdbId: "1402", season: 1, episode: 1, label: "The Walking Dead S1E1", bucketHint: "show" },
+  { kind: "show", tmdbId: "1668", season: 1, episode: 1, label: "Friends S1E1", bucketHint: "show" },
+  { kind: "show", tmdbId: "84958", season: 1, episode: 1, label: "Loki S1E1", bucketHint: "show" },
+  { kind: "show", tmdbId: "95557", season: 1, episode: 1, label: "Invincible S1E1", bucketHint: "show" },
   // Anime shows
   { kind: "show", tmdbId: "37854", season: 1, episode: 1, label: "One Piece S1E1", bucketHint: "anime" },
   { kind: "show", tmdbId: "46261", season: 1, episode: 1, label: "Attack on Titan S1E1", bucketHint: "anime" },
   { kind: "show", tmdbId: "85937", season: 1, episode: 1, label: "Demon Slayer S1E1", bucketHint: "anime" },
-  { kind: "show", tmdbId: "1429", season: 1, episode: 1, label: "Attack on Titan? wait", bucketHint: "anime" },
+  { kind: "show", tmdbId: "30984", season: 1, episode: 1, label: "Cowboy Bebop S1E1", bucketHint: "anime" },
+  { kind: "show", tmdbId: "31910", season: 1, episode: 1, label: "Naruto S1E1", bucketHint: "anime" },
+  { kind: "show", tmdbId: "1429", season: 1, episode: 1, label: "Attack on Titan (dup id)", bucketHint: "anime" },
 ];
 
-// Fix bad entry - 1429 is Attack on Titan actually? Let me use Cowboy Bebop 30984
+// 1429 is Attack on Titan (same franchise) — replace with Jujutsu Kaisen
 FULL_CATALOG[FULL_CATALOG.length - 1] = {
   kind: "show",
-  tmdbId: "30984",
+  tmdbId: "95479",
   season: 1,
   episode: 1,
-  label: "Cowboy Bebop S1E1",
+  label: "Jujutsu Kaisen S1E1",
   bucketHint: "anime",
 };
 

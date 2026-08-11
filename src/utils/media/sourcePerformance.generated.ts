@@ -23,30 +23,97 @@ export type SourceScoreMatrix = {
 };
 
 export const SOURCE_SCORE_MATRIX: SourceScoreMatrix = {
-  updatedAt: "2026-08-11T23:15:29.680Z",
-  animeOnly: ["tqq", "myanime"],
-  scores: {
-    tqq: {
-      browser: { movie: 0, anime: 100, show: 0 },
-      extension: { movie: 0, anime: 100, show: 0 },
+  "updatedAt": "2026-08-11T23:45:58.629Z",
+  "animeOnly": [
+    "tqq",
+    "myanime"
+  ],
+  "scores": {
+    "tqq": {
+      "browser": {
+        "movie": 0,
+        "anime": 100,
+        "show": 0
+      },
+      "extension": {
+        "movie": 0,
+        "anime": 100,
+        "show": 0
+      }
     },
-    fsonline: {
-      browser: { movie: 83.3, anime: 50, show: 100 },
-      extension: { movie: 83.3, anime: 50, show: 100 },
+    "fsonline": {
+      "browser": {
+        "movie": 89.5,
+        "anime": 45.5,
+        "show": 100
+      },
+      "extension": {
+        "movie": 89.5,
+        "anime": 45.5,
+        "show": 100
+      }
     },
-    cuevana3: {
-      browser: { movie: 33.3, anime: 62.5, show: 75 },
-      extension: { movie: 33.3, anime: 62.5, show: 75 },
+    "cuevana3": {
+      "browser": {
+        "movie": 36.8,
+        "anime": 63.6,
+        "show": 83.3
+      },
+      "extension": {
+        "movie": 36.8,
+        "anime": 63.6,
+        "show": 83.3
+      }
     },
-    reyna: {
-      browser: { movie: 50, anime: 37.5, show: 75 },
-      extension: { movie: 66.7, anime: 37.5, show: 50 },
+    "reyna": {
+      "browser": {
+        "movie": 89.5,
+        "anime": 90.9,
+        "show": 91.7
+      },
+      "extension": {
+        "movie": 89.5,
+        "anime": 90.9,
+        "show": 91.7
+      }
     },
-    vidrock: {
-      extension: { movie: 100, anime: 100, show: 100 },
+    "oneembed": {
+      "browser": {
+        "movie": 94.7,
+        "anime": 100,
+        "show": 100
+      },
+      "extension": {
+        "movie": 94.7,
+        "anime": 90.9,
+        "show": 91.7
+      }
     },
-    pelisplushd: {
-      extension: { movie: 25, anime: 0, show: 0 },
+    "sevenmovies": {
+      "browser": {
+        "movie": 94.7,
+        "anime": 27.3,
+        "show": 50
+      },
+      "extension": {
+        "movie": 68.4,
+        "anime": 45.5,
+        "show": 50
+      }
     },
-  },
+    "vidrock": {
+      "extension": {
+        "movie": 100,
+        "anime": 100,
+        "show": 100
+      }
+    },
+    "pelisplushd": {
+      "extension": {
+        "movie": 15.8,
+        "anime": 0,
+        "show": 0
+      }
+    }
+  }
 };
