@@ -38,14 +38,10 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
             showTooltip
               ? large
                 ? "min-h-12"
-                : props.compact
-                  ? "min-h-[1.875rem]"
-                  : "min-h-10"
+                : "min-h-10"
               : large
                 ? "h-12"
-                : props.compact
-                  ? "h-[1.875rem]"
-                  : "h-10",
+                : "h-10",
             focused
               ? "bg-pill-background/80"
               : "bg-pill-background/50",
@@ -97,7 +93,7 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
                 large
                   ? "h-12 px-4 pl-11 text-base"
                   : props.compact
-                    ? "h-[1.875rem] px-2.5 pl-8 text-xs"
+                    ? "h-10 px-2.5 pl-8 text-xs"
                     : "h-10 px-4 pl-11 text-base",
                 "select-none",
               )}
@@ -136,7 +132,7 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
                   large
                     ? "h-9 w-9 text-base"
                     : props.compact
-                      ? "h-[1.875rem] w-[1.875rem] text-sm"
+                      ? "h-8 w-8 text-sm"
                       : "h-10 w-10",
                 )}
               >
