@@ -475,6 +475,25 @@ export const usePreferencesStore = create(
         if (!merged.preferredSourceByTitle) {
           merged.preferredSourceByTitle = {};
         }
+
+        // Goated was renamed to Reyna — rewrite saved prefs so scrapes still hit it.
+        const renameSourceId = (id: string) => (id === "goated" ? "reyna" : id);
+        if (Array.isArray(merged.sourceOrder)) {
+          merged.sourceOrder = merged.sourceOrder.map(renameSourceId);
+        }
+        if (merged.lastSuccessfulSource === "goated") {
+          merged.lastSuccessfulSource = "reyna";
+        }
+        if (merged.preferredSourceByTitle) {
+          for (const [tmdbId, sourceId] of Object.entries(
+            merged.preferredSourceByTitle,
+          )) {
+            if (sourceId === "goated") {
+              merged.preferredSourceByTitle[tmdbId] = "reyna";
+            }
+          }
+        }
+
         return merged;
       },
     },
