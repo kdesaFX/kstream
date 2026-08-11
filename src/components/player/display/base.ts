@@ -473,6 +473,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           "Failed to execute 'appendBuffer' on 'SourceBuffer': This SourceBuffer has been removed from the parent media source.",
         ];
         let mediaRecoveryAttempts = 0;
+        let fragSkipAttempts = 0;
+        const MAX_FRAG_SKIPS = 5;
         hls?.on(Hls.Events.ERROR, (event, data) => {
           console.error("HLS error", data);
 
@@ -503,21 +505,25 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           };
 
           // LookMovie/AES CDNs sometimes return an empty/corrupt TS segment.
-          // Skip past it instead of killing the whole playback session.
+          // Skip past a few; if the whole stream is unreadable, fail out so
+          // playback recovery can try another source instead of looping forever.
           if (
             data.fatal &&
             hls &&
             // String form — enum constant not present on all hls.js typings.
-            data.details === "fragParsingError"
+            data.details === "fragParsingError" &&
+            fragSkipAttempts < MAX_FRAG_SKIPS
           ) {
             const frag = data.frag;
             if (frag && typeof frag.start === "number") {
               const skipTo = frag.start + (frag.duration || 2) + 0.05;
+              fragSkipAttempts += 1;
               console.warn(
                 "[hls] skipping unreadable fragment",
                 frag.sn,
                 "→",
                 skipTo,
+                `(${fragSkipAttempts}/${MAX_FRAG_SKIPS})`,
               );
               try {
                 hls.startLoad(skipTo);
@@ -544,20 +550,28 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             }
           }
 
-          if (
-            data.fatal &&
-            src?.url === data.frag?.baseurl &&
-            !exceptions.includes(data.error.message)
-          ) {
+          // Always surface fatal HLS failures after recovery attempts.
+          // Do not require frag.baseurl === playlist URL — proxied Reyna/Orbit
+          // streams use a different origin for segments than the m3u8, so that
+          // check silently dropped fatal errors and left hls.js retrying forever.
+          if (data.fatal) {
+            const errMessage = data.error?.message || data.details || "HLS fatal error";
+            if (exceptions.includes(errMessage)) return;
             emit("error", {
-              message: data.error.message,
-              stackTrace: data.error.stack,
-              errorName: data.error.name,
+              message:
+                data.details === "manifestLoadError"
+                  ? "Failed to load HLS manifest"
+                  : errMessage,
+              stackTrace: data.error?.stack || "",
+              errorName:
+                data.details === "manifestLoadError"
+                  ? data.error?.name || "ManifestLoadError"
+                  : data.error?.name || "HlsFatalError",
               type: "hls",
               hls: hlsErrorInfo,
             });
           } else if (data.details === "manifestLoadError") {
-            // Handle manifest load errors specifically
+            // Non-fatal manifest failures still break playback — surface them.
             emit("error", {
               message: "Failed to load HLS manifest",
               stackTrace: data.error?.stack || "",
