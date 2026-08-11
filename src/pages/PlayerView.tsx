@@ -27,6 +27,7 @@ import { ResumePart } from "@/pages/parts/player/ResumePart";
 import { ScrapeErrorPart } from "@/pages/parts/player/ScrapeErrorPart";
 import { ScrapingPart } from "@/pages/parts/player/ScrapingPart";
 import { SourceSelectPart } from "@/pages/parts/player/SourceSelectPart";
+import { createPlaybackRetryBudget } from "@/pages/player/playbackRetryBudget";
 import { useLastNonPlayerLink } from "@/stores/history";
 import { PlayerMeta, getMediaKey, playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
@@ -101,7 +102,7 @@ export function RealPlayerView() {
   );
   const router = useOverlayRouter("settings");
   const openedWatchPartyRef = useRef<boolean>(false);
-  const autoResumeCount = useRef(0);
+  const playbackRetryBudget = useRef(createPlaybackRetryBudget());
   const progressItems = useProgressStore((s) => s.items);
 
   // Reset resume from source ID when leaving the player
@@ -120,7 +121,7 @@ export function RealPlayerView() {
   useEffect(() => {
     reset();
     openedWatchPartyRef.current = false;
-    autoResumeCount.current = 0;
+    playbackRetryBudget.current.setMedia(paramsData);
     return () => {
       reset();
     };
@@ -205,7 +206,7 @@ export function RealPlayerView() {
 
   const handleResumeScraping = useCallback(
     (startFromSourceId: string) => {
-      autoResumeCount.current += 1;
+      playbackRetryBudget.current.recordAttempt();
       setResumeFromSourceId(startFromSourceId);
       setResumeFromSourceIdInStore(startFromSourceId);
       setTimeout(() => {
@@ -217,7 +218,7 @@ export function RealPlayerView() {
 
   /** Retry scrape without skipping the current source (next TQQ mirror, etc.). */
   const handleRetrySource = useCallback(() => {
-    autoResumeCount.current += 1;
+    playbackRetryBudget.current.recordAttempt();
     setResumeFromSourceId(null);
     setResumeFromSourceIdInStore(null);
     setTimeout(() => {
@@ -250,8 +251,6 @@ export function RealPlayerView() {
         setScrapeNotFound();
         return;
       }
-
-      autoResumeCount.current = 0;
 
       let startAt: number | undefined;
       if (startAtParam) startAt = parseTimestamp(startAtParam) ?? undefined;
@@ -354,7 +353,9 @@ export function RealPlayerView() {
           onResume={handleResumeScraping}
           onRetrySource={handleRetrySource}
           currentSourceId={sourceId}
-          autoResumeExhausted={autoResumeCount.current >= getProviders().listSources().length}
+          autoResumeExhausted={playbackRetryBudget.current.isExhausted(
+            getProviders().listSources().length,
+          )}
         />
       ) : null}
     </PlayerPart>
