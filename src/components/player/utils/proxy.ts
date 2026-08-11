@@ -54,8 +54,17 @@ export function createMP4ProxyUrl(
  * @returns True if the URL is already proxied, false otherwise
  */
 export function isUrlAlreadyProxied(url: string): boolean {
-  // Check if URL contains the m3u8-proxy pattern (Airplay format)
+  // Same-origin / Airplay-style proxy
   if (url.includes("/m3u8-proxy?url=")) {
+    return true;
+  }
+
+  // External signed proxies (Reyna Valenox / midnightexpress, etc.)
+  if (
+    url.includes("/m3u8-proxy.m3u8?url=") ||
+    url.includes("m3u8-proxy.m3u8?") ||
+    /midnightexpress\.workers\.dev/i.test(url)
+  ) {
     return true;
   }
 
