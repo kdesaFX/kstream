@@ -31,10 +31,10 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
     }
 
     return (
-      <div ref={containerRef}>
+      <div ref={containerRef} className="w-full">
         <Flare.Base
           className={c(
-            "hover:flare-enabled group flex flex-col rounded-full transition-colors sm:flex-row sm:items-center relative backdrop-blur-lg",
+            "hover:flare-enabled group flex w-full flex-col rounded-full transition-colors sm:flex-row sm:items-center relative backdrop-blur-lg",
             showTooltip
               ? large
                 ? "min-h-12"
