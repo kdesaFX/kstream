@@ -173,7 +173,7 @@ export function Navigation(props: NavigationProps) {
 
       {/* backgrounds - these are seperate because of z-index issues */}
       <div
-        className="top-content fixed z-[20] pointer-events-none left-0 right-0 top-0 min-h-[150px]"
+        className="top-content fixed z-[20] pointer-events-none left-0 right-0 top-0 min-h-0 md:min-h-[150px]"
         style={{
           top: `${bannerHeight}px`,
         }}
@@ -190,12 +190,12 @@ export function Navigation(props: NavigationProps) {
               <BlurEllipsis positionClass="absolute" />
             </div>
           ) : null}
-          <div className="opacity-0 absolute inset-0 block h-20 pointer-events-auto" />
+          <div className="opacity-0 absolute inset-0 block h-14 md:h-20 pointer-events-auto" />
           <div
             className={classNames(
               "transition-[background-color,backdrop-filter,opacity] duration-300 ease-in-out",
               props.bg ? "opacity-100" : "opacity-0",
-              "absolute inset-0 block h-[11rem]",
+              "absolute inset-0 block h-16 md:h-[11rem]",
               // Stay transparent/clean — light blur only once scrolled, never a solid slab
               props.clearBackground
                 ? "bg-transparent"
@@ -221,7 +221,7 @@ export function Navigation(props: NavigationProps) {
 
       {/* content */}
       <div
-        className="top-content fixed pointer-events-none left-0 right-0 z-[500] top-0 min-h-[150px]"
+        className="top-content fixed pointer-events-none left-0 right-0 z-[500] top-0 min-h-0 md:min-h-[150px]"
         style={{
           top: `${bannerHeight}px`,
         }}
@@ -230,9 +230,10 @@ export function Navigation(props: NavigationProps) {
           {/*
             Always viewport-centered — ignore left/right control widths.
             Parent is full-bleed so left-1/2 is the browser center.
+            On mobile, pin vertically to the icon row (not mid 150px chrome).
           */}
           {props.showSearch ? (
-            <div className="pointer-events-none absolute left-1/2 top-1/2 z-[55] w-[min(100%-1rem,31.5rem)] -translate-x-1/2 -translate-y-1/2 md:w-[min(100%-2rem,36rem)]">
+            <div className="pointer-events-none absolute left-1/2 top-8 z-[55] w-[min(100%-7.5rem,31.5rem)] -translate-x-1/2 -translate-y-1/2 md:top-1/2 md:w-[min(100%-2rem,36rem)]">
               <NavSearchBar
                 lightOverHero={Boolean(props.clearBackground)}
                 className="!max-w-none"
@@ -240,7 +241,7 @@ export function Navigation(props: NavigationProps) {
             </div>
           ) : null}
 
-          <div className="px-2 ssm:px-7 py-3 md:py-5 relative z-[60] flex flex-1 items-center gap-1.5 ssm:gap-2 md:gap-3">
+          <div className="px-2 ssm:px-7 py-2 md:py-5 relative z-[60] flex flex-1 items-center gap-1.5 ssm:gap-2 md:gap-3">
             <div
               ref={leftRef}
               className="relative z-[60] flex items-center gap-1.5 ssm:gap-2 md:gap-3 pointer-events-auto shrink-0"
