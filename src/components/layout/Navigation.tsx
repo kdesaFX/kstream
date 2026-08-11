@@ -226,27 +226,21 @@ export function Navigation(props: NavigationProps) {
           top: `${bannerHeight}px`,
         }}
       >
-        <div className={classNames("fixed left-0 right-0 flex items-center")}>
-          <div className="px-2 ssm:px-7 py-3 md:py-5 relative z-[60] flex flex-1 items-center gap-1.5 ssm:gap-2 md:gap-3">
-            {/*
-              Desktop: search is absolutely viewport-centered.
-              Mobile: search stays in the flex row so everything shares one baseline.
-            */}
-            {props.showSearch ? (
-              <div
-                className="pointer-events-none absolute top-1/2 left-1/2 z-[55] hidden w-full -translate-x-1/2 -translate-y-1/2 md:block"
-                style={{
-                  width: `min(48rem, calc(100% - ${
-                    Math.max(leftWidth, rightWidth, 72) * 2 + 32
-                  }px))`,
-                }}
-              >
-                <NavSearchBar
-                  lightOverHero={Boolean(props.clearBackground)}
-                />
-              </div>
-            ) : null}
+        <div className="fixed left-0 right-0 flex items-center">
+          {/*
+            Always viewport-centered — ignore left/right control widths.
+            Parent is full-bleed so left-1/2 is the browser center.
+          */}
+          {props.showSearch ? (
+            <div className="pointer-events-none absolute left-1/2 top-1/2 z-[55] w-[min(100%-1rem,31.5rem)] -translate-x-1/2 -translate-y-1/2 md:w-[min(100%-2rem,36rem)]">
+              <NavSearchBar
+                lightOverHero={Boolean(props.clearBackground)}
+                className="!max-w-none"
+              />
+            </div>
+          ) : null}
 
+          <div className="px-2 ssm:px-7 py-3 md:py-5 relative z-[60] flex flex-1 items-center gap-1.5 ssm:gap-2 md:gap-3">
             <div
               ref={leftRef}
               className="relative z-[60] flex items-center gap-1.5 ssm:gap-2 md:gap-3 pointer-events-auto shrink-0"
@@ -305,18 +299,8 @@ export function Navigation(props: NavigationProps) {
               </div>
             </div>
 
-            {props.showSearch ? (
-              <>
-                <div className="relative z-[55] min-w-0 flex-1 pointer-events-auto md:hidden">
-                  <NavSearchBar
-                    lightOverHero={Boolean(props.clearBackground)}
-                  />
-                </div>
-                <div className="hidden min-w-0 flex-1 md:block" aria-hidden />
-              </>
-            ) : (
-              <div className="flex-1 min-w-0" aria-hidden />
-            )}
+            {/* Spacer keeps left/right pinned to the edges; search is layered above. */}
+            <div className="min-w-0 flex-1" aria-hidden />
 
             <div
               ref={rightRef}
