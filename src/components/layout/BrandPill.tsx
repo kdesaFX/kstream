@@ -38,7 +38,7 @@ export function BrandPill(props: {
         }
         draggable={false}
       />
-      <span className="hidden md:inline font-semibold text-white">
+      <span className="font-semibold text-white">
         {t("global.name")}
       </span>
     </div>
