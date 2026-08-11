@@ -83,12 +83,18 @@ export function HomePage() {
     (state) => state.homeSectionOrder,
   );
 
-  const [carouselContainerRef] = useAutoAnimate<HTMLDivElement>(
-    enableLowPerformanceMode ? false : undefined,
-  );
-  const [listContainerRef] = useAutoAnimate<HTMLDivElement>(
-    enableLowPerformanceMode ? false : undefined,
-  );
+  const [carouselContainerRef, enableCarouselAnimate] =
+    useAutoAnimate<HTMLDivElement>();
+  const [listContainerRef, enableListAnimate] = useAutoAnimate<HTMLDivElement>();
+
+  useEffect(() => {
+    enableCarouselAnimate(!enableLowPerformanceMode);
+    enableListAnimate(!enableLowPerformanceMode);
+  }, [
+    enableLowPerformanceMode,
+    enableCarouselAnimate,
+    enableListAnimate,
+  ]);
 
   const handleShowDetails = async (media: MediaItem | FeaturedMedia) => {
     showModal("details", {
