@@ -9,6 +9,10 @@ import {
   mergeAudioStreamOptions,
 } from "@/stores/player/utils/audioStreams";
 import {
+  mergeUniqueCaptions,
+  shouldStartExternalSubtitleScrape,
+} from "@/stores/player/utils/externalSubtitleCache";
+import {
   SourceQuality,
   SourceSliceSource,
   selectQuality,
@@ -123,6 +127,10 @@ export interface SourceSlice {
   currentAudioStreamId: string | null;
   captionList: CaptionListItem[];
   isLoadingExternalSubtitles: boolean;
+  /** Media key already scraped (or currently scraping) for external captions. */
+  externalSubtitlesMediaKey: string | null;
+  /** Cached external captions reused when playback switches streams. */
+  externalCaptionList: CaptionListItem[];
   caption: {
     selected: Caption | null;
     asTrack: boolean;
@@ -241,6 +249,8 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   audioStreamOptions: [],
   captionList: [],
   isLoadingExternalSubtitles: false,
+  externalSubtitlesMediaKey: null,
+  externalCaptionList: [],
   currentQuality: null,
   currentAudioTrack: null,
   currentAudioStreamId: null,
@@ -287,6 +297,9 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       if (!oldMediaKey || (newMediaKey && oldMediaKey !== newMediaKey)) {
         s.audioStreamOptions = [];
         s.currentAudioStreamId = null;
+        s.externalSubtitlesMediaKey = null;
+        s.externalCaptionList = [];
+        s.isLoadingExternalSubtitles = false;
         // Don't carry "start after source X" into the next episode — that
         // short-circuits anime mirrors (TQQ) and jumps to later sources.
         s.resumeFromSourceId = null;
@@ -362,10 +375,16 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     const loadableStream = selectQuality(stream, qualityPreferences.quality);
 
     set((s) => {
+      const mediaKey = getMediaKey(s.meta);
+      const cachedExternalCaptions =
+        mediaKey && s.externalSubtitlesMediaKey === mediaKey
+          ? s.externalCaptionList
+          : [];
+
       s.source = stream;
       s.qualities = qualities as SourceQuality[];
       s.currentQuality = loadableStream.quality;
-      s.captionList = captions;
+      s.captionList = mergeUniqueCaptions(captions, cachedExternalCaptions);
       s.interface.error = undefined;
       s.status = playerStatus.PLAYING;
       // Avoid one-frame idle player (play button + 00:00 controls) before
@@ -573,6 +592,8 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.audioStreamOptions = [];
       s.captionList = [];
       s.isLoadingExternalSubtitles = false;
+      s.externalSubtitlesMediaKey = null;
+      s.externalCaptionList = [];
       s.currentQuality = null;
       s.currentAudioTrack = null;
       s.currentAudioStreamId = null;
@@ -592,8 +613,21 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   async addExternalSubtitles() {
     const store = get();
     if (!store.meta) return;
+    const mediaKey = getMediaKey(store.meta);
+    if (
+      !shouldStartExternalSubtitleScrape(
+        mediaKey,
+        store.externalSubtitlesMediaKey,
+      )
+    ) {
+      return;
+    }
+    const meta = store.meta;
 
     set((s) => {
+      // Mark before starting so stream retries cannot launch overlapping
+      // subtitle fan-outs for the same title.
+      s.externalSubtitlesMediaKey = mediaKey;
       s.isLoadingExternalSubtitles = true;
     });
 
@@ -601,7 +635,10 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       const { scrapeExternalSubtitles } = await import(
         "@/utils/externalSubtitles"
       );
-      const externalCaptions = await scrapeExternalSubtitles(store.meta);
+      const externalCaptions = await scrapeExternalSubtitles(meta);
+
+      // Ignore a request that finished after the user changed media.
+      if (getMediaKey(get().meta) !== mediaKey) return;
 
       if (externalCaptions.length > 0) {
         set((s) => {
@@ -610,6 +647,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
           const newCaptions = externalCaptions.filter(
             (c) => !existingIds.has(c.id),
           );
+          s.externalCaptionList = externalCaptions;
           s.captionList = [...s.captionList, ...newCaptions];
         });
         console.log(`Added ${externalCaptions.length} external captions`);
@@ -619,7 +657,9 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       console.error("Failed to scrape external subtitles:", error);
     } finally {
       set((s) => {
-        s.isLoadingExternalSubtitles = false;
+        if (s.externalSubtitlesMediaKey === mediaKey) {
+          s.isLoadingExternalSubtitles = false;
+        }
       });
     }
   },
