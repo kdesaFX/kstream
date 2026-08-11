@@ -55,9 +55,28 @@ function isMobileBrowser(): boolean {
  * - Desktop browser + enabled extension: never
  * - Desktop browser without extension: yes
  * - Mobile: always
+ *
+ * Reyna/Orbit is an exception: segment CDN only allows CORS from goated.cx,
+ * so without a same-origin rewrite the browser cannot read fragments from
+ * kdesa.stream even when Referer is injected. Always proxy those playlists
+ * on the web; desktop still uses prepareStream headerDomains.
  */
-export function shouldUseSameOriginStreamProxy(): boolean {
+function isReynaOrbitPlaylist(playlist: string): boolean {
+  try {
+    const host = new URL(playlist).hostname.toLowerCase();
+    return (
+      host.includes("reallyfast") ||
+      host.includes("cutekitten") ||
+      host.includes("goated.cx")
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function shouldUseSameOriginStreamProxy(playlist?: string): boolean {
   if (isDesktopApp()) return false;
+  if (playlist && isReynaOrbitPlaylist(playlist)) return true;
   if (isMobileBrowser()) return true;
   return !isExtensionActiveCached();
 }
@@ -69,12 +88,16 @@ function maybeProxyHlsPlaylist(
   playlist: string,
   headers: Record<string, string>,
 ): string {
-  if (!shouldUseSameOriginStreamProxy()) return playlist;
+  if (!shouldUseSameOriginStreamProxy(playlist)) return playlist;
   if (isUrlAlreadyProxied(playlist)) return playlist;
 
-  // Mobile: always proxy HLS (CDN CORS / referer locks).
+  // Mobile / Reyna: always proxy HLS (CDN CORS / referer locks).
   // Browser without extension: proxy when the stream needs headers.
-  if (!isMobileBrowser() && Object.keys(headers).length === 0) {
+  if (
+    !isMobileBrowser() &&
+    !isReynaOrbitPlaylist(playlist) &&
+    Object.keys(headers).length === 0
+  ) {
     return playlist;
   }
 

@@ -12,15 +12,32 @@ function extractDomain(url: string): string | null {
 }
 
 function extractDomainsFromStream(stream: Stream): string[] {
+  const domains = new Set<string>();
+
+  const extras = (stream as Stream & { headerDomains?: string[] }).headerDomains;
+  if (Array.isArray(extras)) {
+    for (const host of extras) {
+      if (typeof host === "string" && host.trim()) domains.add(host.trim());
+    }
+  }
+
   if (stream.type === "hls") {
-    return [extractDomain(stream.playlist)].filter((v): v is string => !!v);
+    const host = extractDomain(stream.playlist);
+    if (host) domains.add(host);
+    // Reyna/Orbit: playlist on reallyfast, segments on cutekitten — both need headers.
+    if (host?.includes("reallyfast")) {
+      domains.add("a.cutekitten.workers.dev");
+      domains.add("cdn.reallyfast.xyz");
+      domains.add("proxy.reallyfast.xyz");
+    }
+  } else if (stream.type === "file") {
+    for (const q of Object.values(stream.qualities)) {
+      const host = extractDomain(q.url);
+      if (host) domains.add(host);
+    }
   }
-  if (stream.type === "file") {
-    return Object.values(stream.qualities)
-      .map((v) => extractDomain(v.url))
-      .filter((v): v is string => !!v);
-  }
-  return [];
+
+  return [...domains];
 }
 
 function buildHeadersFromStream(stream: Stream): Record<string, string> {
