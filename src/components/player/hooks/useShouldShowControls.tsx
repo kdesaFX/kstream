@@ -1,4 +1,5 @@
 import { PlayerHoverState } from "@/stores/player/slices/interface";
+import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 
 export function useShouldShowControls() {
@@ -13,18 +14,24 @@ export function useShouldShowControls() {
   const isHoveringControls = usePlayerStore(
     (s) => s.interface.isHoveringControls,
   );
+  const status = usePlayerStore((s) => s.status);
 
   const isUsingTouch = lastHoveringState === PlayerHoverState.MOBILE_TAPPED;
   const isHovering = hovering !== PlayerHoverState.NOT_HOVERING;
 
-  // Initial source lock: paused+loading before first frame — don't flash chrome.
+  // Keep chrome visible while scraping / buffering first frame so Back to home
+  // never hides mid-click under the video hit target.
   const awaitingFirstFrame = isLoading && !hasPlayedOnce;
+  const forceChromeVisible =
+    awaitingFirstFrame || status !== playerStatus.PLAYING;
 
-  // when using touch, pause screens can be dismissed by tapping
   const showTargetsWithoutPause =
-    isHovering || (isHoveringControls && !isUsingTouch) || hasOpenOverlay;
+    forceChromeVisible ||
+    isHovering ||
+    (isHoveringControls && !isUsingTouch) ||
+    hasOpenOverlay;
   const showTargetsIncludingPause =
-    showTargetsWithoutPause || (isPaused && !awaitingFirstFrame);
+    showTargetsWithoutPause || isPaused || forceChromeVisible;
   const showTargets = isUsingTouch
     ? showTargetsWithoutPause
     : showTargetsIncludingPause;

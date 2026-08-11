@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/buttons/Button";
 import { Icons } from "@/components/Icon";
@@ -24,6 +25,7 @@ export interface PlaybackErrorPartProps {
 
 export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const playbackError = usePlayerStore((s) => s.interface.error);
   const currentSourceId = usePlayerStore((s) => s.sourceId);
   const currentEmbedId = usePlayerStore((s) => s.embedId);
@@ -170,10 +172,17 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
         </div>
         <div className="flex gap-3">
           <Button
-            href="/"
             theme="secondary"
             padding="md:px-12 p-2.5"
             className="mt-6"
+            onClick={() => {
+              try {
+                usePlayerStore.getState().reset();
+              } catch {
+                // still leave
+              }
+              navigate("/", { replace: true });
+            }}
           >
             {t("player.playbackError.homeButton")}
           </Button>

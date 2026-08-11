@@ -2,6 +2,7 @@ import { ProviderControls, ScrapeMedia } from "@p-stream/providers";
 import classNames from "classnames";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { useMountedState } from "react-use";
 import type { AsyncReturnType } from "type-fest";
 
@@ -191,14 +192,22 @@ export function ScrapingPart(props: ScrapingProps) {
 
 export function ScrapingPartInterruptButton() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   return (
     <div className="flex gap-3 pb-3">
       <Button
-        href="/"
         theme="secondary"
         padding="md:px-17 p-3"
         className="mt-6"
+        onClick={() => {
+          try {
+            usePlayerStore.getState().reset();
+          } catch {
+            // still leave
+          }
+          navigate("/", { replace: true });
+        }}
       >
         {t("notFound.goHome")}
       </Button>
