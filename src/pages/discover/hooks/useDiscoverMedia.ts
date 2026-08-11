@@ -50,7 +50,7 @@ import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { detectUserLanguage, detectUserRegion } from "@/utils/locale/userRegion";
 
 const DISCOVER_OPTIONS_LIMIT = 50;
-const TMDB_CACHE_TTL_MS = 2 * 60 * 1000;
+const TMDB_CACHE_TTL_MS = 15 * 60 * 1000;
 
 const discoverOptionsCache = new Map<string, Genre[]>();
 const discoverOptionsInFlight = new Map<string, Promise<Genre[]>>();
@@ -193,8 +193,8 @@ function recentReleaseDateParams(
 }
 
 /** Enough items for a full carousel after genre filter + cross-row dedupe. */
-const CAROUSEL_POOL_SIZE = 100;
-const CAROUSEL_MAX_PAGES = 8;
+const CAROUSEL_POOL_SIZE = 28;
+const CAROUSEL_MAX_PAGES = 3;
 
 export function useDiscoverOptions(mediaType: MediaType) {
   const [genres, setGenres] = useState<Genre[]>([]);

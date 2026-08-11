@@ -39,7 +39,9 @@ function Child(props: { className?: string; children?: ReactNode }) {
 }
 
 function Light(props: FlareProps) {
-  const { enableLowPerformanceMode } = usePreferencesStore();
+  const enableLowPerformanceMode = usePreferencesStore(
+    (s) => s.enableLowPerformanceMode,
+  );
 
   const outerRef = useRef<HTMLDivElement>(null);
   const size = props.flareSize ?? SIZE_DEFAULT;

@@ -56,13 +56,12 @@ export function DiscoverContent() {
 
   // Render Movies content with lazy loading. Earlier rows keep overlapping
   // titles; later rows drop them so each poster shows once (All and genre).
-  // Under a genre chip, eager-load every row so claim order is stable
-  // (lazy mount races were leaving duplicates and starving later carousels).
+  // Keep first two rows priority; never eager-mount the whole page under a
+  // genre chip (that used to fire every carousel's TMDB fetch at once).
   const renderMoviesContent = () => {
     const carousels = [];
     let dedupe = 0;
-    const eager = Boolean(selectedGenreId);
-    const rowPriority = () => eager || carousels.length < 2;
+    const rowPriority = () => carousels.length < 2;
 
     // Because You Watched — All only (not under a genre chip)
     if (movieProgressItems.length > 0 && !selectedGenreId) {
@@ -176,8 +175,7 @@ export function DiscoverContent() {
   const renderTVShowsContent = () => {
     const carousels = [];
     let dedupe = 0;
-    const eager = Boolean(selectedGenreId);
-    const rowPriority = () => eager || carousels.length < 2;
+    const rowPriority = () => carousels.length < 2;
 
     // Because You Watched — All only (not under a genre chip)
     if (tvProgressItems.length > 0 && !selectedGenreId) {

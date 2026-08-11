@@ -141,26 +141,47 @@ export function BookmarksGrid({
     const missing = ids.filter((id) => !(id in runtimeData));
     if (missing.length === 0) return;
 
-    Promise.all(
-      missing.map(async (id) => {
-        const type = bookmarks[id].type === "movie" ? TMDBContentTypes.MOVIE : TMDBContentTypes.TV;
-        try {
-          const data = await getMediaDetails(id, type, false);
-          const value = type === TMDBContentTypes.MOVIE
-            ? (data as any).runtime ?? 0
-            : (data as any).number_of_episodes ?? 0;
-          return [id, value] as [string, number];
-        } catch {
-          return [id, 0] as [string, number];
-        }
-      }),
-    ).then((results) => {
+    let cancelled = false;
+    const CONCURRENCY = 4;
+
+    (async () => {
+      const results: [string, number][] = [];
+      for (let i = 0; i < missing.length; i += CONCURRENCY) {
+        if (cancelled) return;
+        const batch = missing.slice(i, i + CONCURRENCY);
+        const batchResults = await Promise.all(
+          batch.map(async (id) => {
+            const type =
+              bookmarks[id].type === "movie"
+                ? TMDBContentTypes.MOVIE
+                : TMDBContentTypes.TV;
+            try {
+              const data = await getMediaDetails(id, type, false);
+              const value =
+                type === TMDBContentTypes.MOVIE
+                  ? ((data as any).runtime ?? 0)
+                  : ((data as any).number_of_episodes ?? 0);
+              return [id, value] as [string, number];
+            } catch {
+              return [id, 0] as [string, number];
+            }
+          }),
+        );
+        results.push(...batchResults);
+      }
+      if (cancelled) return;
       setRuntimeData((prev: Record<string, number>) => {
         const next = { ...prev };
-        results.forEach(([id, val]) => { next[id] = val; });
+        results.forEach(([id, val]) => {
+          next[id] = val;
+        });
         return next;
       });
-    });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [sortBy, bookmarks, runtimeData]);
 
   const { allGroups, rootMediaItems } = useMemo(() => {

@@ -5,7 +5,7 @@ import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useAuthStore } from "@/stores/auth";
 import { useGroupOrderStore } from "@/stores/groupOrder";
 
-const syncIntervalMs = 5 * 1000;
+const SYNC_DEBOUNCE_MS = 1_500;
 
 export function GroupSyncer() {
   const url = useBackendUrl();
@@ -21,35 +21,39 @@ export function GroupSyncer() {
     }
   }, [groupOrder]);
 
+  // Sync only when order actually changes (debounced) — not on a forever poll.
   useEffect(() => {
-    const interval = setInterval(() => {
-      (async () => {
-        if (!url) return;
+    if (!isInitialized.current) return;
+    if (!url) return;
 
+    const hasChanged =
+      JSON.stringify(groupOrder) !== JSON.stringify(lastSyncedOrder.current);
+    if (!hasChanged) return;
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
         const user = useAuthStore.getState();
-        if (!user.account) return; // not logged in, dont sync to server
+        if (!user.account) return;
 
-        // Check if group order has changed since last sync
         const currentOrder = useGroupOrderStore.getState().groupOrder;
-        const hasChanged =
-          JSON.stringify(currentOrder) !==
-          JSON.stringify(lastSyncedOrder.current);
+        if (
+          JSON.stringify(currentOrder) ===
+          JSON.stringify(lastSyncedOrder.current)
+        ) {
+          return;
+        }
 
-        if (hasChanged) {
-          try {
-            await updateGroupOrder(url, user.account, currentOrder);
-            lastSyncedOrder.current = [...currentOrder];
-          } catch (err) {
-            console.error("Failed to sync group order:", err);
-          }
+        try {
+          await updateGroupOrder(url, user.account, currentOrder);
+          lastSyncedOrder.current = [...currentOrder];
+        } catch (err) {
+          console.error("Failed to sync group order:", err);
         }
       })();
-    }, syncIntervalMs);
+    }, SYNC_DEBOUNCE_MS);
 
-    return () => {
-      clearInterval(interval);
-    };
-  }, [url]);
+    return () => window.clearTimeout(timer);
+  }, [url, groupOrder]);
 
   return null;
 }

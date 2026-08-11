@@ -75,7 +75,7 @@ export function useDedupedCarouselMedia(
     attemptsRef.current = round;
 
     let cancelled = false;
-    const pageCount = 6;
+    const pageCount = 2;
     const startPage = Math.min(1 + priority * 2 + (round - 1) * pageCount, 30);
     const pages = Array.from({ length: pageCount }, (_, i) => startPage + i);
 

@@ -5,7 +5,6 @@ import { formatSeconds } from "@/utils/format/formatSeconds";
 
 export function Title() {
   const title = usePlayerStore((s) => s.meta?.title);
-  const { time } = usePlayerStore((s) => s.progress);
   const [isShifting, setIsShifting] = useState(false);
 
   useEffect(() => {
@@ -32,6 +31,8 @@ export function Title() {
 
   const handleTitleClick = () => {
     const baseLink = window.location.href;
+    // Read time on click — don't subscribe to timeupdate (was re-rendering every tick).
+    const time = usePlayerStore.getState().progress.time;
     const timeStamp = formatSeconds(time, time >= 3600);
 
     if (isShifting) {

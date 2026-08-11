@@ -47,7 +47,6 @@ export function usePlayer() {
   const reset = usePlayerStore((s) => s.reset);
   const meta = usePlayerStore((s) => s.meta);
   const { init } = useInitializePlayer();
-  const progressStore = useProgressStore();
 
   return {
     meta,
@@ -65,7 +64,9 @@ export function usePlayer() {
       sourceId: string | null,
       startAtOverride?: number,
     ) {
-      const start = startAtOverride ?? getProgress(progressStore.items, meta);
+      const start =
+        startAtOverride ??
+        getProgress(useProgressStore.getState().items, meta);
       setCaption(null);
       setEmbedId(null);
       setSource(source, captions, start);
