@@ -47,7 +47,20 @@ async function sendMessage<MessageKey extends keyof MessagesMetadata>(
   // Desktop: call Electron main directly — do not depend on Plasmo postMessage relay.
   if (typeof window !== "undefined" && window.__KSTREAM_DESKTOP_IPC__?.invoke) {
     try {
-      const res = await window.__KSTREAM_DESKTOP_IPC__.invoke(message, payload);
+      const invoke = window.__KSTREAM_DESKTOP_IPC__.invoke(message, payload);
+      const res =
+        timeout >= 0
+          ? await Promise.race([
+              invoke,
+              new Promise<null>((resolve) => {
+                setTimeout(() => resolve(null), timeout);
+              }),
+            ])
+          : await invoke;
+      if (res == null && timeout >= 0) {
+        activeExtension = false;
+        return null;
+      }
       activeExtension = true;
       return res as MessagesMetadata[MessageKey]["res"];
     } catch {
@@ -93,7 +106,8 @@ async function sendMessage<MessageKey extends keyof MessagesMetadata>(
 export async function sendExtensionRequest<T>(
   ops: MessagesMetadata["makeRequest"]["req"],
 ): Promise<ExtensionMakeRequestResponse<T> | null> {
-  return sendMessage("makeRequest", ops);
+  // Never hang scrape/playback on a silent extension; 20s matches proxy fetch budgets.
+  return sendMessage("makeRequest", ops, 20_000);
 }
 
 export async function setDomainRule(
