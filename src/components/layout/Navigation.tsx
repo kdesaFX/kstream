@@ -125,6 +125,8 @@ export function Navigation(props: NavigationProps) {
   const [rightRef, { width: rightWidth }] = useMeasure<HTMLDivElement>();
   const setLeftWidth = useNavLayoutStore((s) => s.setLeftWidth);
   const setRightWidth = useNavLayoutStore((s) => s.setRightWidth);
+  const storedLeftWidth = useNavLayoutStore((s) => s.leftWidth);
+  const storedRightWidth = useNavLayoutStore((s) => s.rightWidth);
 
   useEffect(() => {
     setLeftWidth(leftWidth);
@@ -228,23 +230,38 @@ export function Navigation(props: NavigationProps) {
       >
         <div className="fixed left-0 right-0 flex items-center">
           {/*
-            Always viewport-centered — ignore left/right control widths.
-            Parent is full-bleed so left-1/2 is the browser center.
-            On mobile, pin vertically to the icon row (not mid 150px chrome).
+            Desktop: viewport-centered search.
+            Mobile: sit in the measured gap between left/right clusters so the
+            pill never overlaps brand/bell/menu (was ~267px wide on 390px).
           */}
           {props.showSearch ? (
-            <div className="pointer-events-none absolute left-1/2 top-8 z-[55] w-[min(100%-7.5rem,31.5rem)] -translate-x-1/2 -translate-y-1/2 md:top-1/2 md:w-[min(100%-2rem,36rem)]">
-              <NavSearchBar
-                lightOverHero={Boolean(props.clearBackground)}
-                className="!max-w-none"
-              />
-            </div>
+            isMobile ? (
+              <div
+                className="pointer-events-none absolute z-[55] top-8 flex -translate-y-1/2 justify-center"
+                style={{
+                  left: Math.max((storedLeftWidth || leftWidth) + 12, 56),
+                  right: Math.max((storedRightWidth || rightWidth) + 12, 52),
+                }}
+              >
+                <NavSearchBar
+                  lightOverHero={Boolean(props.clearBackground)}
+                  className="!max-w-[11.25rem] w-full"
+                />
+              </div>
+            ) : (
+              <div className="pointer-events-none absolute left-1/2 top-1/2 z-[55] w-[min(100%-2rem,36rem)] -translate-x-1/2 -translate-y-1/2">
+                <NavSearchBar
+                  lightOverHero={Boolean(props.clearBackground)}
+                  className="!max-w-none"
+                />
+              </div>
+            )
           ) : null}
 
-          <div className="px-2 ssm:px-7 py-2 md:py-5 relative z-[60] flex flex-1 items-center gap-1.5 ssm:gap-2 md:gap-3">
+          <div className="px-2.5 ssm:px-7 py-2 md:py-5 relative z-[60] flex flex-1 items-center gap-1.5 ssm:gap-2 md:gap-3">
             <div
               ref={leftRef}
-              className="relative z-[60] flex items-center gap-1.5 ssm:gap-2 md:gap-3 pointer-events-auto shrink-0"
+              className="relative z-[60] flex items-center gap-1 ssm:gap-2 md:gap-3 pointer-events-auto shrink-0"
             >
               <Link
                 className="block tabbable rounded-full text-xs ssm:text-base"
