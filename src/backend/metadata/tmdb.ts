@@ -558,7 +558,8 @@ export function getMediaBackdrop(
   backdropPath: string | null,
 ): string | undefined {
   const shouldProxyTmdb = usePreferencesStore.getState().proxyTmdb;
-  const imgUrl = `https://image.tmdb.org/t/p/original${backdropPath}`;
+  // w1280 is sharp enough for full-bleed UI; original is often multi-MB.
+  const imgUrl = `https://image.tmdb.org/t/p/w1280${backdropPath}`;
   const proxyUrl = getProxyUrls()[0];
   if (proxyUrl && shouldProxyTmdb) {
     return `${proxyUrl}/?destination=${imgUrl}`;

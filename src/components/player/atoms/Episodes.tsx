@@ -171,6 +171,8 @@ function EpisodeItem({
             <img
               src={episode.still_path.startsWith("http") ? episode.still_path : `https://image.tmdb.org/t/p/w300${episode.still_path}`}
               alt={episode.title}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover"
             />
           ) : (
@@ -314,6 +316,8 @@ function EpisodeItem({
               <img
                 src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
                 alt={episode.title}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
             ) : (

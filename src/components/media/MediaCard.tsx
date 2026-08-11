@@ -29,35 +29,46 @@ import { IconPatch } from "../buttons/IconPatch";
 import { Icon, Icons } from "../Icon";
 
 const EMPTY_GROUPS: string[] = [];
-// Simple Intersection Observer Hook
-function useIntersectionObserver(options: IntersectionObserverInit = {}) {
-  const [isIntersecting, setIsIntersecting] = useState(false);
-  const targetRef = useRef<Element | null>(null);
+const LAZY_ROOT_MARGIN = "400px";
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsIntersecting(entry.isIntersecting);
-      },
-      {
-        ...options,
-        rootMargin: options.rootMargin || "300px",
-      },
-    );
+/** Observe once — stay loaded after first intersection (stable, callback ref). */
+function useLazyVisible() {
+  const [isVisible, setIsVisible] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
-    const currentTarget = targetRef.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
+  const targetRef = useCallback(
+    (node: Element | null) => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
       }
-    };
-  }, [options]);
+      if (!node || isVisible) return;
 
-  return { targetRef, isIntersecting };
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.disconnect();
+            observerRef.current = null;
+          }
+        },
+        { rootMargin: LAZY_ROOT_MARGIN },
+      );
+      observer.observe(node);
+      observerRef.current = observer;
+    },
+    [isVisible],
+  );
+
+  useEffect(
+    () => () => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+    },
+    [],
+  );
+
+  return { targetRef, isVisible };
 }
 
 // Skeleton Component
@@ -162,16 +173,14 @@ function MediaCardContent({
   const enableMinimalCards = usePreferencesStore((s) => s.enableMinimalCards);
 
   // Simple intersection observer for lazy loading images
-  const { targetRef, isIntersecting } = useIntersectionObserver({
-    rootMargin: "300px",
-  });
+  const { targetRef, isVisible: isIntersecting } = useLazyVisible();
 
   // Show skeleton if forced or if media hasn't loaded yet (empty title/poster)
   const shouldShowSkeleton = forceSkeleton || (!media.title && !media.poster);
 
   if (shouldShowSkeleton) {
     return (
-      <div ref={targetRef as React.RefObject<HTMLDivElement>}>
+      <div ref={targetRef}>
         <MediaCardSkeleton />
       </div>
     );
@@ -186,7 +195,7 @@ function MediaCardContent({
   }
 
   return (
-    <div ref={targetRef as React.RefObject<HTMLDivElement>}>
+    <div ref={targetRef}>
       <Flare.Base
         className={`group -m-[0.705em] rounded-xl bg-background-main transition-colors duration-300 focus:relative focus:z-10 ${
           canLink ? "hover:bg-mediaCard-hoverBackground tabbable" : ""

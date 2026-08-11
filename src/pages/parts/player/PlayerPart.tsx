@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { BrandPill } from "@/components/layout/BrandPill";
@@ -52,17 +52,20 @@ export function PlayerPart(props: PlayerPartProps) {
   const [isHoldingFullscreen, setIsHoldingFullscreen] = useState(false);
   const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Shift") {
-      setIsShifting(true);
-    }
-  });
-
-  document.addEventListener("keyup", (event) => {
-    if (event.key === "Shift") {
-      setIsShifting(false);
-    }
-  });
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Shift") setIsShifting(true);
+    };
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key === "Shift") setIsShifting(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keyup", onKeyUp);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("keyup", onKeyUp);
+    };
+  }, []);
 
   const handleTouchStart = () => {
     if (holdTimeoutRef.current) {

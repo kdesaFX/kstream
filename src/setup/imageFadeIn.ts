@@ -3,15 +3,16 @@
  * Automatically adds 'loaded' class to images when they finish loading
  */
 export function initializeImageFadeIn() {
+  const markIfReady = (img: HTMLImageElement) => {
+    if (img.complete && img.naturalHeight !== 0) {
+      img.classList.add("loaded");
+    }
+  };
+
   // Handle images that are already loaded (cached)
   const handleExistingImages = () => {
     const images = document.querySelectorAll(`img:not(.no-fade):not([src=""]`);
-    images.forEach((img) => {
-      const htmlImg = img as HTMLImageElement;
-      if (htmlImg.complete && htmlImg.naturalHeight !== 0) {
-        htmlImg.classList.add("loaded");
-      }
-    });
+    images.forEach((img) => markIfReady(img as HTMLImageElement));
   };
 
   // Handle images that load after DOM is ready
@@ -32,24 +33,12 @@ export function initializeImageFadeIn() {
     handleExistingImages();
   }
 
-  // Also check periodically for images that might have loaded
-  // This handles edge cases where the load event might not fire
+  // Light safety net for edge cases where load never fires (cached/broken).
+  // Avoid the old 100ms busy loop — it was scanning the whole DOM constantly.
+  let passes = 0;
   const checkInterval = setInterval(() => {
-    const images = document.querySelectorAll(`img:not(.no-fade):not([src=""]`);
-    if (images.length === 0) {
-      clearInterval(checkInterval);
-      return;
-    }
-    images.forEach((img) => {
-      const htmlImg = img as HTMLImageElement;
-      if (htmlImg.complete && htmlImg.naturalHeight !== 0) {
-        htmlImg.classList.add("loaded");
-      }
-    });
-  }, 100);
-
-  // Clean up interval after 10 seconds to avoid memory leaks
-  setTimeout(() => {
-    clearInterval(checkInterval);
-  }, 10000);
+    passes += 1;
+    handleExistingImages();
+    if (passes >= 6) clearInterval(checkInterval);
+  }, 1_000);
 }

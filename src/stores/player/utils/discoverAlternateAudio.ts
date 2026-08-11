@@ -10,7 +10,10 @@ import {
 import { usePlayerStore } from "@/stores/player/store";
 import { streamsToAudioOptions } from "@/stores/player/utils/audioStreams";
 
-const DEFAULT_MAX_SOURCE_ATTEMPTS = 8;
+const DEFAULT_MAX_SOURCE_ATTEMPTS = 5;
+/** Let the primary stream buffer before burning bandwidth on alt audio. */
+const DISCOVERY_START_DELAY_MS = 4_000;
+const BETWEEN_SOURCE_YIELD_MS = 350;
 
 /** Sources known to often provide Spanish audio — try early when `es` is missing. */
 const SPANISH_LEANING_SOURCES = new Set([
@@ -93,6 +96,11 @@ export async function discoverAlternateAudioLanguages(opts: {
   skipSourceId: string;
   maxAttempts?: number;
 }): Promise<void> {
+  await new Promise<void>((resolve) => {
+    window.setTimeout(resolve, DISCOVERY_START_DELAY_MS);
+  });
+  if (!stillSameMedia(opts.mediaKey)) return;
+
   const maxAttempts = opts.maxAttempts ?? DEFAULT_MAX_SOURCE_ATTEMPTS;
   const providers = getProviders();
   const failed =
@@ -131,31 +139,36 @@ export async function discoverAlternateAudioLanguages(opts: {
           null,
           have,
         );
-        continue;
-      }
-
-      for (const embed of result.embeds ?? []) {
-        if (!stillSameMedia(opts.mediaKey)) return;
-        if (haveEnoughLanguages(have)) return;
-
-        try {
-          const embedResult = await providers.runEmbedScraper({
-            id: embed.embedId,
-            url: embed.url,
-          });
+      } else {
+        for (const embed of result.embeds ?? []) {
           if (!stillSameMedia(opts.mediaKey)) return;
-          have = await registerTaggedStreams(
-            embedResult.stream,
-            sourceId,
-            embed.embedId,
-            have,
-          );
-        } catch {
-          // try next embed
+          if (haveEnoughLanguages(have)) return;
+
+          try {
+            const embedResult = await providers.runEmbedScraper({
+              id: embed.embedId,
+              url: embed.url,
+            });
+            if (!stillSameMedia(opts.mediaKey)) return;
+            have = await registerTaggedStreams(
+              embedResult.stream,
+              sourceId,
+              embed.embedId,
+              have,
+            );
+          } catch {
+            // try next embed
+          }
         }
       }
     } catch {
       // try next source
     }
+
+    if (!stillSameMedia(opts.mediaKey)) return;
+    if (haveEnoughLanguages(have)) return;
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, BETWEEN_SOURCE_YIELD_MS);
+    });
   }
 }

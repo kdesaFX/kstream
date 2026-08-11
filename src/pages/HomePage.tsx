@@ -83,8 +83,12 @@ export function HomePage() {
     (state) => state.homeSectionOrder,
   );
 
-  const [carouselContainerRef] = useAutoAnimate<HTMLDivElement>();
-  const [listContainerRef] = useAutoAnimate<HTMLDivElement>();
+  const [carouselContainerRef] = useAutoAnimate<HTMLDivElement>(
+    enableLowPerformanceMode ? false : undefined,
+  );
+  const [listContainerRef] = useAutoAnimate<HTMLDivElement>(
+    enableLowPerformanceMode ? false : undefined,
+  );
 
   const handleShowDetails = async (media: MediaItem | FeaturedMedia) => {
     showModal("details", {

@@ -48,25 +48,28 @@ function Light(props: FlareProps) {
   const spread = props.gradientSpread ?? 70;
 
   useEffect(() => {
-    // Only add mouse listener if not in low performance mode
+    // Only track while the pointer is over this card — never register a
+    // document-wide mousemove per card (that used to stack dozens of listeners).
     if (enableLowPerformanceMode) return;
+    const el = outerRef.current;
+    const host = el?.parentElement;
+    if (!el || !host) return;
 
     function mouseMove(e: MouseEvent) {
-      if (!outerRef.current) return;
-      const rect = outerRef.current.getBoundingClientRect();
+      const rect = el!.getBoundingClientRect();
       const halfSize = size / 2;
-      outerRef.current.style.setProperty(
+      el!.style.setProperty(
         "--bg-x",
         `${(e.clientX - rect.left - halfSize).toFixed(0)}px`,
       );
-      outerRef.current.style.setProperty(
+      el!.style.setProperty(
         "--bg-y",
         `${(e.clientY - rect.top - halfSize).toFixed(0)}px`,
       );
     }
-    document.addEventListener("mousemove", mouseMove);
 
-    return () => document.removeEventListener("mousemove", mouseMove);
+    host.addEventListener("mousemove", mouseMove, { passive: true });
+    return () => host.removeEventListener("mousemove", mouseMove);
   }, [size, enableLowPerformanceMode]);
 
   // Disable flare effect when low performance mode is enabled

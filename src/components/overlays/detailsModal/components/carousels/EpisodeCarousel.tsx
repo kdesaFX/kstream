@@ -538,6 +538,8 @@ export function EpisodeCarousel({
                           <img
                             src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
                             alt={episode.name}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover"
                           />
                         ) : (

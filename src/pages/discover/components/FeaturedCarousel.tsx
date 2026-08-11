@@ -701,23 +701,36 @@ export function FeaturedCarousel({
           searchClasses,
         )}
       >
-        {media.map((item, index) => (
-          <div
-            key={item.id}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
-              index === currentIndex ? "opacity-100" : "opacity-0"
-            }`}
-            style={{
-              backgroundImage: `url(https://image.tmdb.org/t/p/original${item.backdrop_path})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center top",
-              maskImage:
-                "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
-              WebkitMaskImage:
-                "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
-            }}
-          />
-        ))}
+        {media.map((item, index) => {
+          // Only paint nearby slides — loading all 12 as original TMDB
+          // backdrops was a multi‑MB hit on every home visit.
+          const dist = Math.min(
+            Math.abs(index - currentIndex),
+            media.length - Math.abs(index - currentIndex),
+          );
+          const shouldLoad = dist <= 1;
+          return (
+            <div
+              key={item.id}
+              className={`absolute inset-0 transition-opacity duration-1000 ${
+                index === currentIndex ? "opacity-100" : "opacity-0"
+              }`}
+              style={
+                shouldLoad
+                  ? {
+                      backgroundImage: `url(https://image.tmdb.org/t/p/w1280${item.backdrop_path})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center top",
+                      maskImage:
+                        "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
+                      WebkitMaskImage:
+                        "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
+                    }
+                  : undefined
+              }
+            />
+          );
+        })}
       </div>
 
       {/* Navigation Buttons */}
