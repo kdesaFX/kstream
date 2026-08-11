@@ -1,5 +1,5 @@
 import { iso6393To1 } from "iso-639-3";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { FlagIcon } from "@/components/FlagIcon";
@@ -45,15 +45,15 @@ export function AudioView({ id }: { id: string }) {
   const currentAudioTrack = usePlayerStore((s) => s.currentAudioTrack);
   const audioStreamOptions = usePlayerStore((s) => s.audioStreamOptions);
   const currentAudioStreamId = usePlayerStore((s) => s.currentAudioStreamId);
-  const changeAudioTrack = usePlayerStore((s) => s.display?.changeAudioTrack);
+  const selectHlsAudioTrack = usePlayerStore((s) => s.selectHlsAudioTrack);
   const switchAudioStream = usePlayerStore((s) => s.switchAudioStream);
 
   const changeHlsTrack = useCallback(
     (track: AudioTrack) => {
-      changeAudioTrack?.(track);
+      selectHlsAudioTrack(track);
       router.close();
     },
-    [router, changeAudioTrack],
+    [router, selectHlsAudioTrack],
   );
 
   const changeStreamAudio = useCallback(
@@ -64,58 +64,49 @@ export function AudioView({ id }: { id: string }) {
     [router, switchAudioStream],
   );
 
-  const hasStreamOptions = audioStreamOptions.length > 1;
-  const hasHlsTracks = audioTracks.length > 1;
+  // One flat list: cross-source streams + in-manifest HLS tracks, no dividers.
+  const streamOptions = audioStreamOptions;
+  const hlsTracks = audioTracks;
+  const hasAny = streamOptions.length + hlsTracks.length > 0;
 
-  const trackSectionTitle = useMemo(
-    () => t("player.menus.audio.trackLanguages", "Audio tracks"),
-    [t],
+  // Stream-option selection wins until the user picks an HLS track (which
+  // clears currentAudioStreamId). Avoids dual checkmarks / stale Korean ticks.
+  const streamSelected = Boolean(
+    currentAudioStreamId &&
+      streamOptions.some((opt) => opt.id === currentAudioStreamId),
   );
 
   return (
     <>
       <Menu.BackLink onClick={() => router.navigate("/")}>Audio</Menu.BackLink>
       <Menu.Section className="flex flex-col pb-4 !pt-0">
-        {hasStreamOptions && (
-          <>
-            {audioStreamOptions.map((opt) => (
-              <AudioOption
-                key={opt.id}
-                selected={opt.id === currentAudioStreamId}
-                langCode={flagCode(opt.language)}
-                onClick={() => changeStreamAudio(opt)}
-              >
-                {opt.label ||
-                  getPrettyLanguageNameFromLocale(opt.language) ||
-                  unknownChoice}
-              </AudioOption>
-            ))}
-          </>
-        )}
+        {streamOptions.map((opt) => (
+          <AudioOption
+            key={`stream:${opt.id}`}
+            selected={opt.id === currentAudioStreamId}
+            langCode={flagCode(opt.language)}
+            onClick={() => changeStreamAudio(opt)}
+          >
+            {opt.label ||
+              getPrettyLanguageNameFromLocale(opt.language) ||
+              unknownChoice}
+          </AudioOption>
+        ))}
 
-        {hasHlsTracks && (
-          <>
-            {hasStreamOptions && (
-              <Menu.SectionTitle className="mb-1 mt-3">
-                {trackSectionTitle}
-              </Menu.SectionTitle>
-            )}
-            {audioTracks.map((v) => (
-              <AudioOption
-                key={v.id}
-                selected={v.id === currentAudioTrack?.id}
-                langCode={flagCode(v.language)}
-                onClick={() => changeHlsTrack(v)}
-              >
-                {getPrettyLanguageNameFromLocale(v.language) ??
-                  v.label ??
-                  unknownChoice}
-              </AudioOption>
-            ))}
-          </>
-        )}
+        {hlsTracks.map((v) => (
+          <AudioOption
+            key={`hls:${v.id}`}
+            selected={!streamSelected && v.id === currentAudioTrack?.id}
+            langCode={flagCode(v.language)}
+            onClick={() => changeHlsTrack(v)}
+          >
+            {getPrettyLanguageNameFromLocale(v.language) ??
+              v.label ??
+              unknownChoice}
+          </AudioOption>
+        ))}
 
-        {!hasStreamOptions && !hasHlsTracks && (
+        {!hasAny && (
           <p className="text-type-secondary text-sm px-1 py-2">
             {t(
               "player.menus.audio.noneAvailable",

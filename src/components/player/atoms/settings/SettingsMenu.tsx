@@ -96,6 +96,14 @@ export function SettingsMenu({ id }: { id: string }) {
     : undefined;
 
   const selectedAudioLanguagePretty = (() => {
+    // Prefer HLS track when the user left cross-source selection (or never had one).
+    if (!currentAudioStreamId && currentAudioTrack) {
+      return (
+        getPrettyLanguageNameFromLocale(currentAudioTrack.language) ??
+        currentAudioTrack.label ??
+        t("player.menus.subtitles.unknownLanguage")
+      );
+    }
     const streamOpt = audioStreamOptions.find(
       (o) => o.id === currentAudioStreamId,
     );
@@ -142,6 +150,9 @@ export function SettingsMenu({ id }: { id: string }) {
   })();
 
   const selectedAudioLangCode = (() => {
+    if (!currentAudioStreamId && currentAudioTrack?.language) {
+      return audioFlagCode(currentAudioTrack.language);
+    }
     const streamOpt = audioStreamOptions.find(
       (o) => o.id === currentAudioStreamId,
     );
@@ -167,7 +178,7 @@ export function SettingsMenu({ id }: { id: string }) {
   );
 
   const hasAudioChoices =
-    audioStreamOptions.length > 1 || audioTracks.length > 1;
+    audioStreamOptions.length + audioTracks.length > 1;
 
   const downloadable = source?.type === "file" || source?.type === "hls";
 

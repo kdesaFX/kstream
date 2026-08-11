@@ -162,6 +162,8 @@ export interface SourceSlice {
   registerAudioStreamOptions(options: AudioStreamOption[]): void;
   clearAudioStreamOptions(): void;
   switchAudioStream(optionId: string): void;
+  /** Switch HLS in-manifest audio; clears cross-source stream selection. */
+  selectHlsAudioTrack(track: AudioTrack): void;
   reset(): void;
 }
 
@@ -546,6 +548,19 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     });
     usePreferencesStore.getState().setPreferredAudioLanguage(option.language);
     store.setSource(option.source, option.captions, startAt);
+  },
+  selectHlsAudioTrack(track) {
+    const store = get();
+    // Cross-source option is no longer the active choice — otherwise the menu
+    // keeps a stale checkmark (e.g. Korean) while HLS English is playing.
+    set((s) => {
+      s.currentAudioStreamId = null;
+      s.currentAudioTrack = track;
+    });
+    if (track.language) {
+      usePreferencesStore.getState().setPreferredAudioLanguage(track.language);
+    }
+    store.display?.changeAudioTrack(track);
   },
   reset() {
     get().clearSkipSegments?.();

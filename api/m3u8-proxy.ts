@@ -67,7 +67,7 @@ function isAvcCodecs(info: string): boolean {
 
 /**
  * Reorder master playlist variants so native Safari / hls.js start on a
- * playable AVC ≤1080p rung instead of 4K HEVC (common Goated hang).
+ * playable AVC ≤1080p rung instead of 4K HEVC (common Reyna hang).
  */
 function preferBrowserVariants(body: string): string {
   const lines = body.split(/\r?\n/);
