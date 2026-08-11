@@ -84,7 +84,7 @@ function NavSearchBar(props: { lightOverHero?: boolean; className?: string }) {
   return (
     <div
       className={classNames(
-        "pointer-events-auto w-full max-w-2xl md:max-w-3xl",
+        "pointer-events-auto w-full max-w-[31.5rem] md:max-w-[36rem]",
         props.className,
       )}
     >

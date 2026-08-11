@@ -15,7 +15,7 @@ export interface SearchBarProps {
   isInFeatured?: boolean;
   hideTooltip?: boolean;
   compact?: boolean;
-  /** Larger control for the main nav (≈2× default height). */
+  /** Larger control for the main nav (scaled ~0.75× from the prior oversized size). */
   large?: boolean;
 }
 
@@ -37,11 +37,15 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
             "hover:flare-enabled group flex flex-col rounded-full transition-colors sm:flex-row sm:items-center relative backdrop-blur-lg",
             showTooltip
               ? large
-                ? "min-h-16"
-                : "min-h-10"
+                ? "min-h-12"
+                : props.compact
+                  ? "min-h-[1.875rem]"
+                  : "min-h-10"
               : large
-                ? "h-16"
-                : "h-10",
+                ? "h-12"
+                : props.compact
+                  ? "h-[1.875rem]"
+                  : "h-10",
             focused
               ? "bg-pill-background/80"
               : "bg-pill-background/50",
@@ -60,7 +64,11 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
             <div
               className={c(
                 "absolute bottom-0 top-0 flex items-center text-search-icon cursor-pointer z-10",
-                large ? "left-5 text-xl" : props.compact ? "left-3" : "left-4",
+                large
+                  ? "left-4 text-base"
+                  : props.compact
+                    ? "left-2.5 text-sm"
+                    : "left-4",
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -87,9 +95,9 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
                 // Near-white placeholder so it stays readable on dark pill backgrounds
                 "placeholder:text-white/70",
                 large
-                  ? "h-16 px-5 pl-14 text-lg"
+                  ? "h-12 px-4 pl-11 text-base"
                   : props.compact
-                    ? "h-10 px-3 pl-10 text-sm"
+                    ? "h-[1.875rem] px-2.5 pl-8 text-xs"
                     : "h-10 px-4 pl-11 text-base",
                 "select-none",
               )}
@@ -124,8 +132,12 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
                   }
                 }}
                 className={c(
-                  "cursor-pointer hover:text-white absolute bottom-0 right-2 top-0 flex justify-center my-auto items-center hover:bg-search-hoverBackground active:scale-110 text-search-icon rounded-full transition-[transform,background-color] duration-200",
-                  large ? "h-12 w-12 text-xl" : "h-10 w-10",
+                  "cursor-pointer hover:text-white absolute bottom-0 right-1.5 top-0 flex justify-center my-auto items-center hover:bg-search-hoverBackground active:scale-110 text-search-icon rounded-full transition-[transform,background-color] duration-200",
+                  large
+                    ? "h-9 w-9 text-base"
+                    : props.compact
+                      ? "h-[1.875rem] w-[1.875rem] text-sm"
+                      : "h-10 w-10",
                 )}
               >
                 <Icon
