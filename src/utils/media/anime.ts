@@ -2,7 +2,7 @@
  * Provider source ids that only make sense for anime titles.
  * Hidden on movies/shows. On anime they compete by hit rate and win ties.
  */
-export const ANIME_SOURCE_IDS = new Set(["tqq", "myanime"]);
+export const ANIME_SOURCE_IDS = new Set(["tqq", "myanime", "anidap"]);
 
 export const TMDB_ANIMATION_GENRE_ID = 16;
 

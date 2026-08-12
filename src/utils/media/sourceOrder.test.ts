@@ -9,10 +9,11 @@ import type { SourceScoreMatrix } from "@/utils/media/sourcePerformance.generate
 
 const matrix: SourceScoreMatrix = {
   updatedAt: "test",
-  animeOnly: ["tqq", "myanime"],
+  animeOnly: ["tqq", "myanime", "anidap"],
   scores: {
     tqq: { browser: { anime: 100 }, extension: { anime: 100 } },
     myanime: { browser: { anime: 10 }, extension: { anime: 10 } },
+    anidap: { browser: { anime: 90 }, extension: { anime: 90 } },
     vidrock: {
       browser: { movie: 90, show: 80, anime: 70 },
       extension: { movie: 95, show: 85, anime: 75 },
@@ -46,7 +47,7 @@ const westernMeta = {
 
 describe("orderSourceIdsForPlayback", () => {
   it("puts TQQ first on anime and hides it on western movies", () => {
-    const ids = ["reyna", "vidrock", "tqq", "fsonline"];
+    const ids = ["reyna", "vidrock", "tqq", "anidap", "fsonline"];
     const animeOrder = orderSourceIdsForPlayback(
       ids,
       { env: "browser", mediaType: "movie", meta: animeMeta },
@@ -60,6 +61,7 @@ describe("orderSourceIdsForPlayback", () => {
       matrix,
     );
     expect(movieOrder).not.toContain("tqq");
+    expect(movieOrder).not.toContain("anidap");
     expect(movieOrder[0]).toBe("vidrock");
   });
 

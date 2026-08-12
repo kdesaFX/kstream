@@ -222,7 +222,7 @@ function buildMatrix(attempts) {
     scores[sourceId][env][bucket] = Math.round((1000 * c.hits) / c.n) / 10;
   }
 
-  const animeOnly = ["tqq", "myanime"];
+  const animeOnly = ["tqq", "myanime", "anidap"];
   // Anime specialists must not lead movie/show queues if genre detection fails open.
   for (const id of animeOnly) {
     if (!scores[id]) continue;
