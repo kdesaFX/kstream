@@ -78,7 +78,7 @@ function useObjectUrl(cb: () => string | null, deps: any[]) {
 }
 
 function VideoElement() {
-  const videoEl = useRef<HTMLVideoElement>(null);
+  const videoEl = useRef<HTMLVideoElement | null>(null);
   const trackEl = useRef<HTMLTrackElement>(null);
   const display = usePlayerStore((s) => s.display);
   const srtData = usePlayerStore((s) => s.caption.selected?.srtData);
