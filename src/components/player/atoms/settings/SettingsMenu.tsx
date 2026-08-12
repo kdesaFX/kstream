@@ -164,16 +164,44 @@ export function SettingsMenu({ id }: { id: string }) {
     );
   })();
 
+  const otherAudioFlagCodes = useMemo(() => {
+    const selected = selectedAudioLangCode?.toLowerCase().slice(0, 2);
+    const codes: string[] = [];
+    const seen = new Set<string>();
+
+    const push = (language?: string) => {
+      const code = audioFlagCode(language);
+      if (!code) return;
+      const key = code.toLowerCase().slice(0, 2);
+      if (!key || key === "un" || key === selected || seen.has(key)) return;
+      seen.add(key);
+      codes.push(code);
+    };
+
+    for (const opt of audioStreamOptions) push(opt.language);
+    for (const track of audioTracks) push(track.language);
+
+    return codes.slice(0, 4);
+  }, [audioStreamOptions, audioTracks, selectedAudioLangCode]);
+
   const audioLanguageLabel = (
-    <span className="text-type-secondary text-sm leading-5 h-5 flex items-center justify-center gap-1.5">
-      {selectedAudioLangCode ? (
-        <span className="inline-flex scale-75 origin-center">
-          <FlagIcon langCode={selectedAudioLangCode} />
-        </span>
-      ) : null}
-      <span>
+    <span className="text-type-secondary text-sm leading-5 min-h-5 flex flex-wrap items-center justify-center gap-1 px-0.5">
+      <span className="truncate max-w-full">
         {selectedAudioLanguagePretty ?? t("player.menus.audio.default")}
       </span>
+      {otherAudioFlagCodes.length > 0 ? (
+        <span className="inline-flex items-center gap-0.5 text-[10px] leading-none text-type-secondary/80">
+          <span>+</span>
+          {otherAudioFlagCodes.map((code) => (
+            <span
+              key={code}
+              className="inline-flex scale-[0.55] origin-center -mx-0.5"
+            >
+              <FlagIcon langCode={code} />
+            </span>
+          ))}
+        </span>
+      ) : null}
     </span>
   );
 
