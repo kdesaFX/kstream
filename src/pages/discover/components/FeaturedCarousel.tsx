@@ -756,7 +756,9 @@ export function FeaturedCarousel({
                   alt=""
                   className="h-full w-full object-cover object-top"
                   loading={index === currentIndex ? "eager" : "lazy"}
-                  fetchPriority={index === currentIndex ? "high" : "low"}
+                  {...{
+                    fetchPriority: index === currentIndex ? "high" : "low",
+                  }}
                   decoding="async"
                 />
               )}
