@@ -14,9 +14,9 @@ export const CAROUSEL_DISPLAY_TARGET = 20;
 export type CarouselBackfillMode = "none" | "popular" | "recent";
 
 /**
- * Dedupes `rawMedia`, then — when a genre chip is active and the row is
- * still short — pulls more discover titles (skipping ones already claimed
- * by earlier rows) so the carousel fills without doubles.
+ * Dedupes `rawMedia`, then — when the row is still short — pulls more
+ * discover titles (skipping ones already claimed by earlier rows) so the
+ * carousel fills without doubles. Works on All and under a genre chip.
  */
 export function useDedupedCarouselMedia(
   priority: number | undefined,
@@ -66,7 +66,7 @@ export function useDedupedCarouselMedia(
   const media = useDedupedMedia(priority, pooled);
 
   useEffect(() => {
-    if (!enabled || isLoading || !genreId || priority === undefined) return;
+    if (!enabled || isLoading || priority === undefined) return;
     if (backfillMode === "none") return;
     if (media.length >= CAROUSEL_DISPLAY_TARGET) return;
     if (attemptsRef.current >= 3) return;
@@ -75,8 +75,11 @@ export function useDedupedCarouselMedia(
     attemptsRef.current = round;
 
     let cancelled = false;
-    const pageCount = 2;
-    const startPage = Math.min(1 + priority * 2 + (round - 1) * pageCount, 30);
+    const pageCount = 4;
+    const startPage = Math.min(
+      1 + (priority + round - 1) * pageCount,
+      41 - pageCount,
+    );
     const pages = Array.from({ length: pageCount }, (_, i) => startPage + i);
 
     (async () => {
@@ -90,10 +93,10 @@ export function useDedupedCarouselMedia(
         language: formattedLanguage,
         region: detectUserRegion(),
         sort_by: "popularity.desc",
-        with_genres: genreId,
         include_adult: false,
         "vote_count.gte": 20,
       };
+      if (genreId) baseParams.with_genres = genreId;
 
       if (backfillMode === "recent" && mediaType === "movie") {
         baseParams.with_release_type = "2|3";

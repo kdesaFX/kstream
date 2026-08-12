@@ -192,9 +192,12 @@ function recentReleaseDateParams(
       };
 }
 
-/** Enough items for a full carousel after genre filter + cross-row dedupe. */
-const CAROUSEL_POOL_SIZE = 28;
-const CAROUSEL_MAX_PAGES = 3;
+/**
+ * Enough items for a full carousel after unreleased-filter + cross-row
+ * dedupe. 28/3 looked cheap but later rows collapsed to ~6 posters.
+ */
+const CAROUSEL_POOL_SIZE = 80;
+const CAROUSEL_MAX_PAGES = 5;
 
 export function useDiscoverOptions(mediaType: MediaType) {
   const [genres, setGenres] = useState<Genre[]>([]);
