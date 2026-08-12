@@ -201,6 +201,19 @@ function VideoElement() {
   const shouldUseNativeTrack = (enableNativeSubtitles || captionAsTrack) && source !== null;
 
 
+  const setVideoRef = (el: HTMLVideoElement | null) => {
+    videoEl.current = el;
+    if (!el) return;
+    // React often drops the muted attribute on <video>; Safari then treats
+    // autoPlay as unmuted, rejects it, and locks play() until a tap.
+    el.defaultMuted = true;
+    el.muted = true;
+    el.playsInline = true;
+    el.setAttribute("muted", "");
+    el.setAttribute("playsinline", "");
+    el.setAttribute("webkit-playsinline", "");
+  };
+
   useEffect(() => {
     if (display && videoEl.current) {
       display.processVideoElement(videoEl.current);
@@ -235,10 +248,10 @@ function VideoElement() {
       id="video-element"
       className="absolute inset-0 w-full h-screen bg-black"
       style={{ filter: filterStr }}
-      autoPlay
+      muted
       playsInline
-      ref={videoEl}
-      preload="metadata"
+      ref={setVideoRef}
+      preload="auto"
       onContextMenu={(e) => e.preventDefault()}
     >
       {subtitleTrack}

@@ -177,6 +177,12 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     };
   }
 
+  function muteForAutoplay(vid: HTMLVideoElement) {
+    vid.defaultMuted = true;
+    vid.muted = true;
+    vid.setAttribute("muted", "");
+  }
+
   /**
    * After async scrapes the click gesture is gone, so unmuted play is blocked.
    * Start muted (always allowed), emit playing, then unmute when possible.
@@ -197,7 +203,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     };
 
     // Keep muted through play() — setVolume/init must not unmute mid-attempt.
-    videoElement.muted = true;
+    muteForAutoplay(videoElement);
     const playPromise = videoElement.play();
     if (playPromise === undefined) {
       finishOk();
@@ -215,19 +221,23 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           if (unmuteSettled) return;
           unmuteSettled = true;
           vid.removeEventListener("pause", keepPlayingMuted);
-          vid.muted = true;
+          muteForAutoplay(vid);
           emit("volumechange", 0);
           vid.play().catch(() => undefined);
           armUnmuteOnGesture();
         };
 
         vid.addEventListener("pause", keepPlayingMuted);
+        // Unmute can pause iOS — don't let that flip the UI to "tap play".
+        suppressPlaybackEvents = true;
         vid.muted = false;
+        vid.removeAttribute("muted");
         vid.volume = lastVolume;
         emit("volumechange", lastVolume);
 
         // If unmute didn't force a pause, drop the listener shortly after.
         window.setTimeout(() => {
+          suppressPlaybackEvents = false;
           if (unmuteSettled) return;
           if (vid.paused) {
             keepPlayingMuted();
@@ -243,7 +253,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           err && typeof err === "object" && "name" in err
             ? String((err as { name: string }).name)
             : "";
-        // AbortError / not ready — retry on next canplay/manifest event.
+        // AbortError / not ready — retry on next canplay/manifest/unstick tick.
         if (name === "AbortError" || name === "NotSupportedError") return;
         // Even muted play blocked — show the tap-to-play overlay.
         emit("pause", undefined);
@@ -701,6 +711,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
   function setSource() {
     if (!videoElement || !source) return;
+    if (shouldAutoplayAfterLoad) muteForAutoplay(videoElement);
     setupSource(videoElement, source);
 
     videoElement.addEventListener("play", () => {
@@ -1083,20 +1094,36 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       }
       setSource();
 
-      // Mobile native HLS can sit paused without canplay — unstick UI only there.
+      // Mobile native HLS can sit paused without canplay. Retry muted play;
+      // never treat an in-flight play() as "blocked" (that flashed the button).
       if (autoplayUnstickTimer) clearTimeout(autoplayUnstickTimer);
       if (isMobileBrowser()) {
-        autoplayUnstickTimer = setTimeout(() => {
+        let kicks = 0;
+        const kick = () => {
           autoplayUnstickTimer = null;
           if (!shouldAutoplayAfterLoad) return;
-          if (!videoElement || !videoElement.paused) return;
+          if (!videoElement) return;
+          if (!videoElement.paused) return;
+          if (autoplayInFlight) {
+            autoplayUnstickTimer = setTimeout(kick, 800);
+            return;
+          }
+          kicks += 1;
           tryAutoplay();
-          // If still blocked after fallback, show the play control.
-          if (shouldAutoplayAfterLoad && videoElement?.paused) {
+          if (kicks < 5) {
+            autoplayUnstickTimer = setTimeout(kick, 1200);
+            return;
+          }
+          if (
+            shouldAutoplayAfterLoad &&
+            videoElement.paused &&
+            !autoplayInFlight
+          ) {
             emit("pause", undefined);
             emit("loading", false);
           }
-        }, 2500);
+        };
+        autoplayUnstickTimer = setTimeout(kick, 1200);
       }
     },
     changeQuality(newAutomaticQuality, newPreferredQuality) {
@@ -1145,6 +1172,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     processVideoElement(video) {
       destroyVideoElement();
       videoElement = video;
+      muteForAutoplay(video);
       setSource();
       this.setVolume(lastVolume);
     },
@@ -1158,10 +1186,17 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       videoElement?.pause();
     },
     play() {
+      shouldAutoplayAfterLoad = false;
+      autoplayInFlight = false;
+      if (autoplayUnstickTimer) {
+        clearTimeout(autoplayUnstickTimer);
+        autoplayUnstickTimer = null;
+      }
       if (audioCtx?.state === "suspended") audioCtx.resume().catch(() => {});
       clearUnmuteGesture();
       if (videoElement && lastVolume > 0) {
         videoElement.muted = false;
+        videoElement.removeAttribute("muted");
         videoElement.volume = lastVolume;
         emit("volumechange", lastVolume);
       }

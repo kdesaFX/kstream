@@ -163,6 +163,14 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
 
   const handlePointerDown = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
+      // iOS only treats play() as a user gesture on the same tick as touch.
+      // Don't wait for the 250ms double-tap timer or autoplay stays locked.
+      const playing = usePlayerStore.getState().mediaPlaying;
+      if (!playing.hasPlayedOnce) {
+        display?.play();
+        return;
+      }
+
       if (
         ((e.pointerType === "mouse" && e.button === 0) ||
           e.pointerType === "touch") &&
