@@ -61,12 +61,13 @@ export function HomePage() {
   // the ad script's dedupe-by-id guard, so whichever one mounts first can
   // "win" the real script even while sitting in a display:none container,
   // leaving the visible copy permanently empty.
-  const [hasWideMargins, setHasWideMargins] = useState(false);
+  const [hasWideMargins, setHasWideMargins] = useState(
+    () => window.innerWidth >= 1536,
+  );
   useEffect(() => {
     function onResize() {
       setHasWideMargins(window.innerWidth >= 1536);
     }
-    onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
@@ -166,11 +167,6 @@ export function HomePage() {
           </div>
         )}
         <Helmet>
-          <style type="text/css">{`
-            html, body {
-              scrollbar-gutter: stable;
-            }
-          `}</style>
           <title>{t("global.name")}</title>
         </Helmet>
 
