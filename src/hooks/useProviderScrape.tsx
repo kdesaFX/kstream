@@ -8,6 +8,13 @@ import {
   setCachedMetadata,
 } from "@/backend/helpers/providerApi";
 import { getProviders } from "@/backend/providers/providers";
+import {
+  currentSourceAfterUpdate,
+  currentSourceOnStart,
+  shouldIgnoreStaleProgress,
+  type ScrapingItems,
+  type ScrapingSegment,
+} from "@/hooks/scrapeEvents";
 import { getMediaKey } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import {
@@ -16,20 +23,7 @@ import {
 } from "@/stores/preferences";
 import { orderSourceIdsForPlayback, detectPlaybackEnv } from "@/utils/media/sourceOrder";
 
-export interface ScrapingItems {
-  id: string;
-  children: string[];
-}
-
-export interface ScrapingSegment {
-  name: string;
-  id: string;
-  embedId?: string;
-  status: "failure" | "pending" | "notfound" | "success" | "waiting";
-  reason?: string;
-  error?: any;
-  percentage: number;
-}
+export type { ScrapingItems, ScrapingSegment } from "@/hooks/scrapeEvents";
 
 const sourceQualityScore: Record<string, number> = {
   unknown: 0,
@@ -70,11 +64,30 @@ function useBaseScrape() {
   const [sources, setSources] = useState<Record<string, ScrapingSegment>>({});
   const [sourceOrder, setSourceOrder] = useState<ScrapingItems[]>([]);
   const [currentSource, setCurrentSource] = useState<string>();
-  const lastId = useRef<string | null>(null);
+  const sourcesRef = useRef(sources);
+  const sourceOrderRef = useRef(sourceOrder);
+  sourcesRef.current = sources;
+  sourceOrderRef.current = sourceOrder;
 
   const initEvent = useCallback((evt: ScraperEvent<"init">) => {
-    setSources(
-      evt.sourceIds
+    // A second runAll (min-resolution loop) must not wipe in-flight cards —
+    // that restarts the scrape animation from waiting/0%.
+    setSources((existing) => {
+      if (Object.keys(existing).length > 0) {
+        const next = { ...existing };
+        for (const id of evt.sourceIds) {
+          if (next[id]) continue;
+          const source = getCachedMetadata().find((s) => s.id === id);
+          next[id] = {
+            name: source?.name ?? id,
+            id,
+            status: "waiting",
+            percentage: 0,
+          };
+        }
+        return next;
+      }
+      return evt.sourceIds
         .map((v) => {
           const source = getCachedMetadata().find((s) => s.id === v);
           const out: ScrapingSegment = {
@@ -88,75 +101,98 @@ function useBaseScrape() {
         .reduce<Record<string, ScrapingSegment>>((a, v) => {
           a[v.id] = v;
           return a;
-        }, {}),
-    );
-    setSourceOrder(evt.sourceIds.map((v) => ({ id: v, children: [] })));
+        }, {});
+    });
+    setSourceOrder((existing) => {
+      if (existing.length > 0) return existing;
+      return evt.sourceIds.map((v) => ({ id: v, children: [] }));
+    });
   }, []);
 
   const startEvent = useCallback((id: ScraperEvent<"start">) => {
-    const lastIdTmp = lastId.current;
     setSources((s) => {
-      if (s[id]) s[id].status = "pending";
-      if (lastIdTmp && s[lastIdTmp] && s[lastIdTmp].status === "pending")
-        s[lastIdTmp].status = "success";
-      return { ...s };
+      if (!s[id]) return s;
+      return { ...s, [id]: { ...s[id], status: "pending" } };
     });
-    setCurrentSource(id);
-    lastId.current = id;
+    setCurrentSource((current) =>
+      currentSourceOnStart(current, id, sourcesRef.current, sourceOrderRef.current),
+    );
   }, []);
 
   const updateEvent = useCallback((evt: ScraperEvent<"update">) => {
     setSources((s) => {
-      if (s[evt.id]) {
-        s[evt.id].status = evt.status;
-        s[evt.id].reason = evt.reason;
-        s[evt.id].error = evt.error;
-        s[evt.id].percentage = evt.percentage;
-      }
-      return { ...s };
+      const existing = s[evt.id];
+      if (shouldIgnoreStaleProgress(existing, evt.status)) return s;
+      if (!existing) return s;
+      return {
+        ...s,
+        [evt.id]: {
+          ...existing,
+          status: evt.status,
+          reason: evt.reason,
+          error: evt.error,
+          percentage: evt.percentage,
+        },
+      };
     });
   }, []);
+
+  useEffect(() => {
+    setCurrentSource((current) =>
+      currentSourceAfterUpdate(current, sources, sourceOrder),
+    );
+  }, [sources, sourceOrder]);
 
   const discoverEmbedsEvent = useCallback(
     (evt: ScraperEvent<"discoverEmbeds">) => {
       setSources((s) => {
+        const next = { ...s };
         evt.embeds.forEach((v) => {
           const source = getCachedMetadata().find(
             (src) => src.id === v.embedScraperId,
           );
-          const out: ScrapingSegment = {
+          next[v.id] = {
             embedId: v.embedScraperId,
             name: source?.name ?? v.embedScraperId,
             id: v.id,
             status: "waiting",
             percentage: 0,
           };
-          s[v.id] = out;
         });
-        return { ...s };
+        return next;
       });
-      setSourceOrder((s) => {
-        const source = s.find((v) => v.id === evt.sourceId);
-        if (!source) return s;
-        source.children = evt.embeds.map((v) => v.id);
-        return [...s];
-      });
+      setSourceOrder((s) =>
+        s.map((source) =>
+          source.id === evt.sourceId
+            ? { ...source, children: evt.embeds.map((v) => v.id) }
+            : source,
+        ),
+      );
     },
     [],
   );
 
   const startScrape = useCallback(() => {
-    lastId.current = null;
+    // Race-safe: per-source progress lives on the runner now, not a shared lastId.
   }, []);
 
   const getResult = useCallback((output: RunOutput | null) => {
-    if (output && lastId.current) {
-      setSources((s) => {
-        if (!lastId.current) return s;
-        if (s[lastId.current]) s[lastId.current].status = "success";
-        return { ...s };
-      });
-    }
+    if (!output) return output;
+    setSources((s) => {
+      const next = { ...s };
+      if (next[output.sourceId]) {
+        next[output.sourceId] = { ...next[output.sourceId], status: "success" };
+      }
+      if (output.embedId) {
+        for (const [id, seg] of Object.entries(next)) {
+          if (seg.embedId === output.embedId && seg.status === "pending") {
+            next[id] = { ...seg, status: "success" };
+          }
+        }
+      }
+      return next;
+    });
+    setCurrentSource(output.sourceId);
     return output;
   }, []);
 

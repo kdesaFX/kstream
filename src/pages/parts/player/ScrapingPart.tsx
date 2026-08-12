@@ -41,7 +41,6 @@ export function ScrapingPart(props: ScrapingProps) {
     useScrape();
   const isMounted = useMountedState();
   const { t } = useTranslation();
-  const setStatus = usePlayerStore((s) => s.setStatus);
   const addFailedSource = usePlayerStore((s) => s.addFailedSource);
   const sourceId = usePlayerStore((s) => s.sourceId);
 
@@ -93,10 +92,9 @@ export function ScrapingPart(props: ScrapingProps) {
       if (!isMounted()) return;
       // Treat scraping failure as fatal error
       // Mark current source as failed if we have one
-      if (sourceId) {
-        addFailedSource(sourceId);
-      } else if (currentSource) {
-        addFailedSource(currentSource);
+      const failedId = sourceId || currentSource;
+      if (failedId) {
+        addFailedSource(failedId);
       }
       // Set error and status to trigger PlaybackErrorPart
       usePlayerStore.setState((s) => {
@@ -108,17 +106,9 @@ export function ScrapingPart(props: ScrapingProps) {
         s.status = playerStatus.PLAYBACK_ERROR;
       });
     });
-  }, [
-    startScraping,
-    resumeScraping,
-    props,
-    report,
-    isMounted,
-    setStatus,
-    addFailedSource,
-    sourceId,
-    currentSource,
-  ]);
+    // currentSource/sourceId change as the race runs — do not re-fire scrape.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startScraping, resumeScraping, props.startFromSourceId, props.media]);
 
   let currentProviderIndex = sourceOrder.findIndex(
     (s) => s.id === currentSource || s.children.includes(currentSource ?? ""),
