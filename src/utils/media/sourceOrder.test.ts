@@ -9,9 +9,10 @@ import type { SourceScoreMatrix } from "@/utils/media/sourcePerformance.generate
 
 const matrix: SourceScoreMatrix = {
   updatedAt: "test",
-  animeOnly: ["tqq"],
+  animeOnly: ["tqq", "myanime"],
   scores: {
     tqq: { browser: { anime: 100 }, extension: { anime: 100 } },
+    myanime: { browser: { anime: 10 }, extension: { anime: 10 } },
     vidrock: {
       browser: { movie: 90, show: 80, anime: 70 },
       extension: { movie: 95, show: 85, anime: 75 },
@@ -23,6 +24,10 @@ const matrix: SourceScoreMatrix = {
     fsonline: {
       browser: { movie: 70, show: 70, anime: 60 },
       extension: { movie: 70, show: 70, anime: 60 },
+    },
+    oneembed: {
+      browser: { movie: 95, show: 95, anime: 100 },
+      extension: { movie: 95, show: 90, anime: 90 },
     },
   },
 };
@@ -72,5 +77,23 @@ describe("orderSourceIdsForPlayback", () => {
     expect(getMediaBucket("movie", animeMeta)).toBe("anime");
     expect(getMediaBucket("show", westernMeta)).toBe("show");
     expect(getMediaBucket("movie", westernMeta)).toBe("movie");
+  });
+
+  it("on anime, ranks by anime hit rate and only lets specialists win ties", () => {
+    const ids = ["myanime", "fsonline", "oneembed", "tqq", "reyna"];
+    const animeOrder = orderSourceIdsForPlayback(
+      ids,
+      { env: "browser", mediaType: "movie", meta: animeMeta },
+      matrix,
+    );
+    // TQQ and 1Embed both 100 — specialist wins the tie.
+    expect(animeOrder.slice(0, 2)).toEqual(["tqq", "oneembed"]);
+    // Weak anime-only source does not jump ahead of stronger generals.
+    expect(animeOrder.indexOf("fsonline")).toBeLessThan(
+      animeOrder.indexOf("myanime"),
+    );
+    expect(animeOrder.indexOf("fsonline")).toBeLessThan(
+      animeOrder.indexOf("reyna"),
+    );
   });
 });

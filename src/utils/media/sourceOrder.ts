@@ -78,9 +78,10 @@ function scoreFor(
 
 /**
  * Order source ids for the current playback environment + title.
- * - Anime-only sources (TQQ, …) only appear on anime titles, and lead there.
- * - Remaining sources sorted by goon-test hit rate for this env × bucket.
- * - Unknown sources keep relative input order after scored ones (stable).
+ * - Anime-only sources (TQQ, …) only appear on anime titles.
+ * - On anime, every source is ranked by anime hit rate; specialists win ties.
+ * - Movies / shows: sort by that bucket’s score for the current env.
+ * - Unknown sources keep relative input order when scores tie / are missing.
  */
 export function orderSourceIdsForPlayback(
   sourceIds: string[],
@@ -97,16 +98,7 @@ export function orderSourceIdsForPlayback(
 
   if (hasAnimeDetectionData(ctx.meta)) {
     if (bucket === "anime") {
-      const specialists = pool.filter(
-        (id) => isAnimeSourceId(id) || animeOnly.has(id),
-      );
-      const general = pool.filter(
-        (id) => !isAnimeSourceId(id) && !animeOnly.has(id),
-      );
-      return [
-        ...sortByScore(specialists, ctx.env, "anime", matrix),
-        ...sortByScore(general, ctx.env, "anime", matrix),
-      ];
+      return sortByScore(pool, ctx.env, "anime", matrix, animeOnly);
     }
     pool = pool.filter((id) => !isAnimeSourceId(id) && !animeOnly.has(id));
   }
@@ -135,6 +127,7 @@ function sortByScore(
   env: PlaybackEnv,
   bucket: MediaBucket,
   matrix: SourceScoreMatrix,
+  specialistIds?: Set<string>,
 ): string[] {
   return [...ids].sort((a, b) => {
     const sa = scoreFor(matrix, a, env, bucket);
@@ -142,6 +135,12 @@ function sortByScore(
     const na = sa == null ? -1 : sa;
     const nb = sb == null ? -1 : sb;
     if (nb !== na) return nb - na;
+    // Same hit rate: anime specialists (TQQ) before general sources.
+    if (specialistIds) {
+      const specA = specialistIds.has(a) ? 1 : 0;
+      const specB = specialistIds.has(b) ? 1 : 0;
+      if (specB !== specA) return specB - specA;
+    }
     // Stable-ish: keep original relative order when tied / missing.
     return ids.indexOf(a) - ids.indexOf(b);
   });
