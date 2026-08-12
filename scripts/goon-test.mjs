@@ -5,6 +5,7 @@
  * Usage:
  *   node scripts/goon-test.mjs
  *   node scripts/goon-test.mjs --quick   # smaller catalog
+ *   node scripts/goon-test.mjs --from-results  # rebuild matrix from last JSON (no scrape)
  *
  * Envs tested:
  *   browser   → targets.BROWSER (CORS-only sources, site proxy)
@@ -12,7 +13,7 @@
  *
  * Buckets: movie | show | anime (anime = JP Animation titles)
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -29,6 +30,7 @@ const {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const QUICK = process.argv.includes("--quick");
+const FROM_RESULTS = process.argv.includes("--from-results");
 
 const SITE = "https://kdesa.stream";
 const PROXY = `${SITE}/api/proxy`;
@@ -201,17 +203,46 @@ function classifyError(err) {
   return "error";
 }
 
+function median(values) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor((sorted.length - 1) / 2)];
+}
+
+/** Extra hop after an embed-only hit (TQQ etc.) before a playlist exists. */
+const EMBED_HOP_MS = 2000;
+const MIN_COST_MS = 200;
+
+/**
+ * Rank by p / expected-try-cost so a slightly lower hit rate that returns
+ * in ~1s beats a 95% source that takes 8s, while slow misses (35s timeouts)
+ * sink even if they sometimes hit.
+ */
+function latencyScore(hitRate, hitMs, missMs) {
+  const p = hitRate / 100;
+  const cost = p * (hitMs ?? 3000) + (1 - p) * (missMs ?? 8000);
+  return Math.round((p / Math.max(cost, MIN_COST_MS)) * 1e6);
+}
+
 function buildMatrix(attempts) {
   /** @type {Record<string, any>} */
   const scores = {};
+  /** @type {Record<string, { n: number, hits: number, hitMs: number[], missMs: number[] }>} */
   const counters = {};
 
   for (const a of attempts) {
     if (a.status === "skip") continue;
     const key = `${a.sourceId}|${a.env}|${a.bucket}`;
-    if (!counters[key]) counters[key] = { hits: 0, n: 0 };
+    if (!counters[key]) counters[key] = { n: 0, hits: 0, hitMs: [], missMs: [] };
     counters[key].n += 1;
-    if (a.status === "hit") counters[key].hits += 1;
+    const ms = Number(a.ms) || 0;
+    if (a.status === "hit") {
+      counters[key].hits += 1;
+      const embedOnly = (a.embeds || 0) > 0 && !(a.streams > 0);
+      counters[key].hitMs.push(ms + (embedOnly ? EMBED_HOP_MS : 0));
+    } else {
+      counters[key].missMs.push(ms);
+    }
   }
 
   for (const [key, c] of Object.entries(counters)) {
@@ -219,7 +250,14 @@ function buildMatrix(attempts) {
     const [sourceId, env, bucket] = key.split("|");
     if (!scores[sourceId]) scores[sourceId] = {};
     if (!scores[sourceId][env]) scores[sourceId][env] = {};
-    scores[sourceId][env][bucket] = Math.round((1000 * c.hits) / c.n) / 10;
+    const hit = Math.round((1000 * c.hits) / c.n) / 10;
+    const hitMs = median(c.hitMs) ?? 0;
+    const missMs = median(c.missMs);
+    scores[sourceId][env][bucket] = {
+      hit,
+      hitMs,
+      score: latencyScore(hit, hitMs || MIN_COST_MS, missMs),
+    };
   }
 
   const animeOnly = ["tqq", "myanime", "anidap"];
@@ -227,8 +265,11 @@ function buildMatrix(attempts) {
   for (const id of animeOnly) {
     if (!scores[id]) continue;
     for (const env of Object.keys(scores[id])) {
-      scores[id][env].movie = 0;
-      scores[id][env].show = 0;
+      for (const bucket of ["movie", "show"]) {
+        if (scores[id][env][bucket]) {
+          scores[id][env][bucket] = { hit: 0, hitMs: 0, score: 0 };
+        }
+      }
     }
   }
 
@@ -249,18 +290,27 @@ function renderGeneratedTs(matrix) {
 export type PlaybackEnvScore = "browser" | "extension";
 export type MediaBucketScore = "movie" | "show" | "anime";
 
+export type SourceBucketStats = {
+  /** Hit rate 0–100 */
+  hit: number;
+  /** Median scrape+validate ms on hits (embed-only hits include a hop penalty) */
+  hitMs: number;
+  /** Ranking score: hit-rate / expected try cost. Higher = try sooner. */
+  score: number;
+};
+
 export type SourceScoreMatrix = {
   updatedAt: string;
   /** Sources that should only run for anime titles. */
   animeOnly: string[];
   /**
-   * Hit-rate 0–100 per source → env → media bucket.
-   * Missing buckets mean insufficient samples.
+   * Per source → env → media bucket.
+   * Legacy matrices may store a bare hit-rate number instead of SourceBucketStats.
    */
   scores: Record<
     string,
     Partial<
-      Record<PlaybackEnvScore, Partial<Record<MediaBucketScore, number>>>
+      Record<PlaybackEnvScore, Partial<Record<MediaBucketScore, SourceBucketStats | number>>>
     >
   >;
 };
@@ -285,7 +335,59 @@ function disableRecommendations(attempts) {
     .map((s) => `${s.name} (${s.id}): 0/${s.n} — consider disabled: true`);
 }
 
+function writeMatrixOutputs(matrix, extra = {}) {
+  const resultsPath = path.join(__dirname, "goon-test-results.json");
+  const generatedPath = path.join(
+    ROOT,
+    "src/utils/media/sourcePerformance.generated.ts",
+  );
+  const summary = {
+    generatedAt: matrix.updatedAt,
+    ...extra,
+    matrix,
+  };
+  if (extra.attempts) {
+    writeFileSync(resultsPath, JSON.stringify(summary, null, 2));
+    console.log(`Wrote ${resultsPath}`);
+  }
+  writeFileSync(generatedPath, renderGeneratedTs(matrix));
+  console.log(`Wrote ${generatedPath}`);
+  console.log("\nRank (hit% / hitMs → score) by source × env × bucket:");
+  for (const [id, envs] of Object.entries(matrix.scores)) {
+    console.log(`  ${id}`);
+    for (const [env, buckets] of Object.entries(envs)) {
+      const parts = Object.entries(buckets).map(([b, v]) => {
+        if (v && typeof v === "object") {
+          return `${b}=${v.hit}%/${v.hitMs}ms→${v.score}`;
+        }
+        return `${b}=${v}%`;
+      });
+      console.log(`    ${env}: ${parts.join(" ")}`);
+    }
+  }
+  if (extra.disableRecommendations?.length) {
+    console.log("\nDisable candidates:");
+    for (const line of extra.disableRecommendations) console.log(`  - ${line}`);
+  }
+}
+
 async function main() {
+  if (FROM_RESULTS) {
+    const resultsPath = path.join(__dirname, "goon-test-results.json");
+    console.log(`Rebuilding matrix from ${resultsPath}\n`);
+    const prev = JSON.parse(readFileSync(resultsPath, "utf8"));
+    const matrix = buildMatrix(prev.attempts || []);
+    writeMatrixOutputs(matrix, {
+      proxy: prev.proxy,
+      titleCount: prev.titleCount,
+      attemptCount: prev.attemptCount,
+      hitCount: prev.hitCount,
+      disableRecommendations: disableRecommendations(prev.attempts || []),
+      attempts: prev.attempts,
+    });
+    return;
+  }
+
   console.log(`GOON TEST ${QUICK ? "(quick)" : "(full)"} — ${CATALOG.length} titles × ${ENVS.length} envs\n`);
 
   console.log("Building media catalog…");
@@ -379,42 +481,14 @@ async function main() {
   }
 
   const matrix = buildMatrix(attempts);
-  const resultsPath = path.join(__dirname, "goon-test-results.json");
-  const generatedPath = path.join(
-    ROOT,
-    "src/utils/media/sourcePerformance.generated.ts",
-  );
-
-  const summary = {
-    generatedAt: matrix.updatedAt,
+  writeMatrixOutputs(matrix, {
     proxy: PROXY,
     titleCount: mediaItems.length,
     attemptCount: attempts.filter((a) => a.status !== "skip").length,
     hitCount: attempts.filter((a) => a.status === "hit").length,
-    matrix,
     disableRecommendations: disableRecommendations(attempts),
     attempts,
-  };
-
-  writeFileSync(resultsPath, JSON.stringify(summary, null, 2));
-  writeFileSync(generatedPath, renderGeneratedTs(matrix));
-
-  console.log(`\nWrote ${resultsPath}`);
-  console.log(`Wrote ${generatedPath}`);
-  console.log("\nHit rates by source × env × bucket:");
-  for (const [id, envs] of Object.entries(matrix.scores)) {
-    console.log(`  ${id}`);
-    for (const [env, buckets] of Object.entries(envs)) {
-      const parts = Object.entries(buckets)
-        .map(([b, v]) => `${b}=${v}%`)
-        .join(" ");
-      console.log(`    ${env}: ${parts}`);
-    }
-  }
-  if (summary.disableRecommendations.length) {
-    console.log("\nDisable candidates:");
-    for (const line of summary.disableRecommendations) console.log(`  - ${line}`);
-  }
+  });
 }
 
 main().catch((e) => {

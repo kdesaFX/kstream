@@ -81,6 +81,31 @@ describe("orderSourceIdsForPlayback", () => {
     expect(getMediaBucket("movie", westernMeta)).toBe("movie");
   });
 
+  it("prefers a slightly lower hit rate when scrape+load is much faster", () => {
+    const speedMatrix: SourceScoreMatrix = {
+      updatedAt: "test",
+      animeOnly: [],
+      scores: {
+        slowreliable: {
+          browser: { movie: { hit: 95, hitMs: 8000, score: 120 } },
+        },
+        fasthit: {
+          browser: { movie: { hit: 85, hitMs: 900, score: 480 } },
+        },
+        vidrock: {
+          browser: { movie: { hit: 90, hitMs: 3000, score: 220 } },
+        },
+      },
+    };
+    const order = orderSourceIdsForPlayback(
+      ["slowreliable", "vidrock", "fasthit"],
+      { env: "browser", mediaType: "movie", meta: westernMeta },
+      speedMatrix,
+    );
+    expect(order[0]).toBe("fasthit");
+    expect(order.indexOf("vidrock")).toBeLessThan(order.indexOf("slowreliable"));
+  });
+
   it("on anime, ranks by anime hit rate and only lets specialists win ties", () => {
     const ids = ["myanime", "fsonline", "oneembed", "tqq", "reyna"];
     const animeOrder = orderSourceIdsForPlayback(

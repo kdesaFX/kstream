@@ -17,6 +17,7 @@ import {
 } from "@/utils/media/anime";
 import {
   SOURCE_SCORE_MATRIX,
+  SourceBucketStats,
   SourceScoreMatrix,
 } from "@/utils/media/sourcePerformance.generated";
 
@@ -50,6 +51,16 @@ export function getMediaBucket(
   return "movie";
 }
 
+function rankValue(
+  stat: SourceBucketStats | number | null | undefined,
+): number | null {
+  if (stat == null) return null;
+  if (typeof stat === "number") return stat;
+  if (typeof stat.score === "number") return stat.score;
+  if (typeof stat.hit === "number") return stat.hit;
+  return null;
+}
+
 function scoreFor(
   matrix: SourceScoreMatrix,
   sourceId: string,
@@ -64,22 +75,24 @@ function scoreFor(
   const byBucket = byEnv[envKey] ?? byEnv.browser ?? byEnv.extension;
   if (!byBucket) return null;
 
-  if (typeof byBucket[bucket] === "number") return byBucket[bucket]!;
+  const direct = rankValue(byBucket[bucket]);
+  if (direct != null) return direct;
 
   // Soft fallbacks so a show-specialist still ranks before unknowns on movies.
   if (bucket === "anime") {
-    return byBucket.show ?? byBucket.movie ?? null;
+    return rankValue(byBucket.show) ?? rankValue(byBucket.movie);
   }
   if (bucket === "show") {
-    return byBucket.movie ?? null;
+    return rankValue(byBucket.movie);
   }
-  return byBucket.show ?? null;
+  return rankValue(byBucket.show);
 }
 
 /**
  * Order source ids for the current playback environment + title.
  * - Anime-only sources (TQQ, …) only appear on anime titles.
- * - On anime, every source is ranked by anime hit rate; specialists win ties.
+ * - Ranked by goon score (hit-rate / expected scrape+load time).
+ * - On anime, specialists win remaining ties.
  * - Movies / shows: sort by that bucket’s score for the current env.
  * - Unknown sources keep relative input order when scores tie / are missing.
  */
