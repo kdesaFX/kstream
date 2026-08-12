@@ -20,7 +20,10 @@ export function corsHeaders(extra: Record<string, string> = {}): Headers {
     "Access-Control-Allow-Methods": "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS",
     "Access-Control-Allow-Headers": "*",
     "Access-Control-Expose-Headers": "*",
-    Vary: "Origin",
+    Vary: "Origin, Accept-Encoding",
+    // Never let CDN cache scrape/proxy GETs — destination is in the query string
+    // and a shared cache was serving one Vidrock payload for every title.
+    "Cache-Control": "no-store, no-cache, must-revalidate",
     ...extra,
   });
 }
