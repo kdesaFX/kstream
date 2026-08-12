@@ -78,7 +78,9 @@ export function AudioView({ id }: { id: string }) {
 
   return (
     <>
-      <Menu.BackLink onClick={() => router.navigate("/")}>Audio</Menu.BackLink>
+      <Menu.BackLink onClick={() => router.navigate("/")}>
+        {t("player.menus.settings.audioItem")}
+      </Menu.BackLink>
       <Menu.Section className="flex flex-col pb-4 !pt-0">
         {streamOptions.map((opt) => (
           <AudioOption
