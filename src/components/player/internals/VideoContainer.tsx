@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useRef } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 
 import { makeVideoElementDisplayInterface } from "@/components/player/display/base";
 import { convertSubtitlesToObjectUrl } from "@/components/player/utils/captions";
@@ -201,31 +201,32 @@ function VideoElement() {
   const shouldUseNativeTrack = (enableNativeSubtitles || captionAsTrack) && source !== null;
 
 
-  const setVideoRef = (el: HTMLVideoElement | null) => {
+  // Stable callback so React does not re-invoke on every hover re-render.
+  // A fresh callback remutes the element and undoes the volume button.
+  const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
     videoEl.current = el;
     if (!el) return;
-    // React often drops the muted attribute on <video>; Safari then treats
-    // autoPlay as unmuted, rejects it, and locks play() until a tap.
+    // Prime muted once for Safari autoplay. Playback code owns mute after this.
     el.defaultMuted = true;
     el.muted = true;
     el.playsInline = true;
     el.setAttribute("muted", "");
     el.setAttribute("playsinline", "");
     el.setAttribute("webkit-playsinline", "");
-  };
+  }, []);
 
   useEffect(() => {
     if (display && videoEl.current) {
       display.processVideoElement(videoEl.current);
     }
-  }, [display, videoEl]);
+  }, [display]);
 
 
   useEffect(() => {
     if (trackEl.current) {
       trackEl.current.track.mode = shouldUseNativeTrack ? "showing" : "hidden";
     }
-  }, [shouldUseNativeTrack, trackEl]);
+  }, [shouldUseNativeTrack]);
 
 
 
@@ -248,7 +249,6 @@ function VideoElement() {
       id="video-element"
       className="absolute inset-0 w-full h-screen bg-black"
       style={{ filter: filterStr }}
-      muted
       playsInline
       ref={setVideoRef}
       preload="auto"
