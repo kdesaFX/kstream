@@ -117,7 +117,13 @@ export function CaptionOption(props: CaptionOptionProps) {
     const parts = [];
 
     if (props.subtitleSource) {
-      parts.push(`Source: ${props.subtitleSource}`);
+      parts.push(
+        `Source: ${
+          props.subtitleSource === "granite"
+            ? "Mai Sakurajima"
+            : props.subtitleSource
+        }`,
+      );
     }
 
     if (props.subtitleEncoding) {
@@ -222,7 +228,9 @@ export function CaptionOption(props: CaptionOptionProps) {
                   },
                 )}
               >
-                {props.subtitleSource.toUpperCase()}
+                {props.subtitleSource === "granite"
+                  ? "Mai Sakurajima"
+                  : props.subtitleSource.toUpperCase()}
               </span>
             )}
             {props.isHearingImpaired && (

@@ -102,7 +102,7 @@ export async function scrapeExternalSubtitles(
       //   return captions;
       // }),
       Promise.race([vdrkPromise, timeoutPromise]).then((captions) => {
-        handleSourceCompletion("Granite", captions);
+        handleSourceCompletion("Mai Sakurajima", captions);
         return captions;
       }),
     ];

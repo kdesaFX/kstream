@@ -63,7 +63,7 @@ describe("orderSourceIdsForPlayback", () => {
     expect(movieOrder[0]).toBe("vidrock");
   });
 
-  it("ranks Reyna above Granite on shows when show score is higher", () => {
+  it("ranks Reyna above Mai Sakurajima on shows when show score is higher", () => {
     const ids = ["vidrock", "reyna", "fsonline"];
     const showOrder = orderSourceIdsForPlayback(
       ids,
