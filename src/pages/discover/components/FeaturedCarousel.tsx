@@ -70,6 +70,20 @@ const SLIDE_DURATION = 8000;
 const FEATURED_RECENT_KEY = "kstream::featured-recent-ids";
 const FEATURED_RECENT_MAX = 48;
 
+function getCarouselHeightClass({
+  searching,
+  shorter,
+  windowHeight,
+}: {
+  searching?: boolean;
+  shorter?: boolean;
+  windowHeight: number;
+}) {
+  if (searching) return "h-24";
+  if (!shorter) return "h-[40rem] md:h-[100vh]";
+  return windowHeight > 600 ? "h-[40rem] md:h-[85vh]" : "h-[100vh]";
+}
+
 function shuffleList<T>(items: T[]): T[] {
   const arr = [...items];
   for (let i = arr.length - 1; i > 0; i -= 1) {
@@ -124,12 +138,20 @@ function isFeatureWorthy(item: { backdrop_path?: string | null; overview?: strin
   return Boolean(item?.backdrop_path && item?.overview?.trim());
 }
 
-function FeaturedCarouselSkeleton({ shorter }: { shorter?: boolean }) {
+function FeaturedCarouselSkeleton({
+  searching,
+  shorter,
+  windowHeight,
+}: {
+  searching?: boolean;
+  shorter?: boolean;
+  windowHeight: number;
+}) {
   return (
     <div
       className={classNames(
         "relative w-full transition-[height] duration-300 ease-in-out",
-        shorter ? "h-[75vh]" : "h-[75vh] md:h-[100vh]",
+        getCarouselHeightClass({ searching, shorter, windowHeight }),
       )}
     >
       <div className="relative w-full h-full overflow-hidden">
@@ -629,11 +651,23 @@ export function FeaturedCarousel({
   }, [currentMedia?.id]);
 
   if (isLoading) {
-    return <FeaturedCarouselSkeleton shorter={shorter} />;
+    return (
+      <FeaturedCarouselSkeleton
+        searching={searching}
+        shorter={shorter}
+        windowHeight={windowHeight}
+      />
+    );
   }
 
   if (media.length === 0) {
-    return <FeaturedCarouselSkeleton shorter={shorter} />;
+    return (
+      <FeaturedCarouselSkeleton
+        searching={searching}
+        shorter={shorter}
+        windowHeight={windowHeight}
+      />
+    );
   }
 
   const mediaTitle = currentMedia.title || currentMedia.name;
@@ -683,13 +717,7 @@ export function FeaturedCarousel({
     <div
       className={classNames(
         "relative w-full transition-[height] duration-300 ease-in-out",
-        searching
-          ? "h-24"
-          : shorter
-            ? windowHeight > 600
-              ? "h-[40rem] md:h-[85vh]"
-              : "h-[100vh]"
-            : "h-[40rem] md:h-[100vh]",
+        getCarouselHeightClass({ searching, shorter, windowHeight }),
       )}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -715,20 +743,24 @@ export function FeaturedCarousel({
               className={`absolute inset-0 transition-opacity duration-1000 ${
                 index === currentIndex ? "opacity-100" : "opacity-0"
               }`}
-              style={
-                shouldLoad
-                  ? {
-                      backgroundImage: `url(https://image.tmdb.org/t/p/w1280${item.backdrop_path})`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center top",
-                      maskImage:
-                        "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
-                      WebkitMaskImage:
-                        "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
-                    }
-                  : undefined
-              }
-            />
+              style={{
+                maskImage:
+                  "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
+                WebkitMaskImage:
+                  "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
+              }}
+            >
+              {shouldLoad && (
+                <img
+                  src={`https://image.tmdb.org/t/p/w1280${item.backdrop_path}`}
+                  alt=""
+                  className="h-full w-full object-cover object-top"
+                  loading={index === currentIndex ? "eager" : "lazy"}
+                  fetchPriority={index === currentIndex ? "high" : "low"}
+                  decoding="async"
+                />
+              )}
+            </div>
           );
         })}
       </div>
