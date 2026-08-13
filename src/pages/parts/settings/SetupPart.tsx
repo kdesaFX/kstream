@@ -385,7 +385,7 @@ export function SetupPart() {
                 {t("settings.connections.setup.items.proxy")}
               </SetupCheckList>
               <SetupCheckList
-                grey
+                grey={setupStates.defaultProxy !== "success"}
                 highlight={globalState === "unset"}
                 status={setupStates.defaultProxy}
               >
