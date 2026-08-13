@@ -20,6 +20,7 @@ import { Heading3 } from "@/components/utils/Text";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 import { conf } from "@/setup/config";
 import { useAuthStore } from "@/stores/auth";
+import { useOnboardingStore } from "@/stores/onboarding";
 import { usePreferencesStore } from "@/stores/preferences";
 
 const testUrl = "https://postman-echo.com/get";
@@ -46,6 +47,26 @@ type SetupData = {
   febboxKeyTest?: Status;
   debridTokenTest?: Status;
 };
+
+export function getGlobalSetupState(value?: SetupData): Status {
+  let globalState: Status = "unset";
+  if (
+    value?.extension === "success" ||
+    value?.proxy === "success" ||
+    value?.defaultProxy === "success" ||
+    value?.febboxKeyTest === "success" ||
+    value?.debridTokenTest === "success"
+  )
+    globalState = "success";
+  if (
+    value?.proxy === "error" ||
+    value?.extension === "error" ||
+    value?.febboxKeyTest === "error" ||
+    value?.debridTokenTest === "error"
+  )
+    globalState = "error";
+  return globalState;
+}
 
 function testProxy(url: string) {
   return new Promise<void>((resolve, reject) => {
@@ -188,6 +209,7 @@ export async function testTorboxToken(
 
 function useIsSetup() {
   const proxyUrls = useAuthStore((s) => s.proxySet);
+  const onboardingCompleted = useOnboardingStore((s) => s.completed);
   const febboxKey = usePreferencesStore((s) => s.febboxKey);
   const debridToken = usePreferencesStore((s) => s.debridToken);
   const debridService = usePreferencesStore((s) => s.debridService);
@@ -214,29 +236,21 @@ function useIsSetup() {
     return {
       extension: extensionStatus,
       proxy: proxyStatus,
-      defaultProxy: "success",
+      defaultProxy: onboardingCompleted ? "success" : "unset",
       ...(conf().ALLOW_FEBBOX_KEY && {
         febboxKeyTest: febboxKeyStatus,
       }),
       debridTokenTest: debridTokenStatus,
     };
-  }, [proxyUrls, febboxKey, debridToken, debridService]);
+  }, [
+    proxyUrls,
+    onboardingCompleted,
+    febboxKey,
+    debridToken,
+    debridService,
+  ]);
 
-  let globalState: Status = "unset";
-  if (
-    value?.extension === "success" ||
-    value?.proxy === "success" ||
-    value?.febboxKeyTest === "success" ||
-    value?.debridTokenTest === "success"
-  )
-    globalState = "success";
-  if (
-    value?.proxy === "error" ||
-    value?.extension === "error" ||
-    value?.febboxKeyTest === "error" ||
-    value?.debridTokenTest === "error"
-  )
-    globalState = "error";
+  const globalState = getGlobalSetupState(value);
 
   return {
     setupStates: value,
