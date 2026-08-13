@@ -713,7 +713,7 @@
       "linkFirefox": "Install Firefox extension",
       "linkUserscript": "Alternative Userscript",
       "userscriptNote": "(The extension is more reliable than the userscript!)",
-      "notDetecting": "Installed on Chrome, but the site isn't detecting it? Try reloading the page!",
+      "notDetecting": "Installed on {{browser}}, but the site isn't detecting it? Try reloading the page!",
       "notDetectingAction": "Reload page",
       "status": {
         "disallowed": "Extension is not enabled for this page",

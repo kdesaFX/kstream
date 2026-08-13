@@ -367,7 +367,7 @@
       "extensionHelp": "If you've instawwed the extension but it's nyot detected, <bold>open the extension thwough youw bwowsews extension menyu</bold> and fowwow the steps on scween.",
       "linkChrome": "Instaww Chwome extension",
       "linkFirefox": "Instaww Firefox extension",
-      "notDetecting": "I-Instawwed on Chwome, but the site isn't detecting it?!?1 Twy wewoading the page?!?",
+      "notDetecting": "I-Instawwed on {{browser}}, but the site isn't detecting it?!?1 Twy wewoading the page?!?",
       "notDetectingAction": "Weowoad da page",
       "status": {
         "disallowed": "Extension is nyot enyabwed fow this page (,,>﹏<,,)",
