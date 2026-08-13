@@ -64,15 +64,13 @@ function isAvcLevel(level: Level): boolean {
 }
 
 /**
- * Prefer a fast, playable start level.
- * - No extension (browser proxy): cap at 720p AVC — 1080p init through the
- *   proxy is multi‑MB and slows first frame.
- * - Extension or Windows app: prefer 1080p AVC — direct fetches can take it.
+ * Best AVC (then non-HEVC) rung at or under maxHeight.
  */
-function pickBrowserStartLevel(levels: Level[]): Level | null {
+function pickBestLevelAtOrBelow(
+  levels: Level[],
+  maxHeight: number,
+): Level | null {
   if (!levels.length) return null;
-
-  const maxHeight = isExtensionActiveCached() ? 1080 : 720;
 
   const avc = levels.filter((l) => isAvcLevel(l) && (l.height || 0) > 0);
   const avcUpToCap = avc
@@ -100,7 +98,32 @@ function pickBrowserStartLevel(levels: Level[]): Level | null {
     .sort((a, b) => (b.height || 0) - (a.height || 0));
   if (upToCap[0]) return upToCap[0];
 
-  return sortLevelsByQuality(levels)[0] ?? null;
+  return null;
+}
+
+/**
+ * Prefer a fast, playable start level.
+ * - No extension (browser proxy): cap at 720p AVC — 1080p init through the
+ *   proxy is multi‑MB and slows first frame.
+ * - Extension or Windows app: prefer 1080p AVC — direct fetches can take it.
+ */
+function pickBrowserStartLevel(levels: Level[]): Level | null {
+  if (!levels.length) return null;
+  const maxHeight = isExtensionActiveCached() ? 1080 : 720;
+  return (
+    pickBestLevelAtOrBelow(levels, maxHeight) ??
+    sortLevelsByQuality(levels)[0] ??
+    null
+  );
+}
+
+/**
+ * Max quality Auto is allowed to climb to.
+ * Browser/proxy: 1080p (start 720, seamless upgrade). Extension: no cap.
+ */
+function pickBrowserAutoCapLevel(levels: Level[]): Level | null {
+  if (!levels.length || isExtensionActiveCached()) return null;
+  return pickBestLevelAtOrBelow(levels, 1080);
 }
 
 export function makeVideoElementDisplayInterface(): DisplayInterface {
@@ -117,6 +140,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let isQualitySwitching = false;
   let suppressPlaybackEvents = false;
   let qualitySwitchCleanup: (() => void) | null = null;
+  let qualityClimbCleanup: (() => void) | null = null;
   let startAt = 0;
   let automaticQuality = false;
   let preferenceQuality: SourceQuality | null = null;
@@ -387,13 +411,72 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     };
   }
 
+  function clearQualityClimb() {
+    qualityClimbCleanup?.();
+    qualityClimbCleanup = null;
+  }
+
+  /**
+   * After Auto starts at 720, wait until we have a healthy buffer, then ask
+   * hls.js to load the next fragments at the upgrade rung (1080). Playback
+   * keeps using already-buffered 720 until the switch point — no pause/spinner.
+   */
+  function armSeamlessQualityClimb() {
+    clearQualityClimb();
+    if (!hls || !automaticQuality || isExtensionActiveCached()) return;
+
+    const startLevel = pickBrowserStartLevel(hls.levels);
+    const capLevel = pickBrowserAutoCapLevel(hls.levels);
+    if (!startLevel || !capLevel) return;
+    if ((startLevel.height || 0) >= (capLevel.height || 0)) return;
+
+    const capIndex = hls.levels.indexOf(capLevel);
+    if (capIndex < 0) return;
+
+    const hlsRef = hls;
+    const onFragBuffered = () => {
+      if (!hls || hls !== hlsRef || !automaticQuality || !videoElement) return;
+      if (videoElement.buffered.length === 0) return;
+      const bufferedAhead =
+        videoElement.buffered.end(videoElement.buffered.length - 1) -
+        videoElement.currentTime;
+      // Overlap: keep ~4s of 720 playing while 1080 fragments load ahead.
+      if (bufferedAhead < 4) return;
+
+      hlsRef.off(Hls.Events.FRAG_BUFFERED, onFragBuffered);
+      // nextLevel only affects upcoming downloads — no freeze, no seek.
+      hls.nextLevel = capIndex;
+
+      const onSwitched = (_event: string, data: { level: number }) => {
+        if (!hls || hls !== hlsRef) return;
+        if (data.level !== capIndex) return;
+        hlsRef.off(Hls.Events.LEVEL_SWITCHED, onSwitched);
+        // Hand control back to ABR under the 1080 autoLevelCapping.
+        hls.nextLevel = -1;
+        qualityClimbCleanup = null;
+      };
+      hlsRef.on(Hls.Events.LEVEL_SWITCHED, onSwitched);
+      qualityClimbCleanup = () => {
+        hlsRef.off(Hls.Events.FRAG_BUFFERED, onFragBuffered);
+        hlsRef.off(Hls.Events.LEVEL_SWITCHED, onSwitched);
+      };
+    };
+
+    hlsRef.on(Hls.Events.FRAG_BUFFERED, onFragBuffered);
+    qualityClimbCleanup = () => {
+      hlsRef.off(Hls.Events.FRAG_BUFFERED, onFragBuffered);
+    };
+  }
+
   function setupQualityForHls() {
     if (videoElement && canPlayHlsNatively(videoElement)) {
       return; // nothing to change
     }
 
     if (!hls) return;
+    clearQualityClimb();
     if (!automaticQuality) {
+      hls.autoLevelCapping = -1;
       const sortedLevels = sortLevelsByQuality(hls.levels);
       const qualities = hlsLevelsToQualities(sortedLevels);
       const availableQuality = getPreferredQuality(qualities, {
@@ -416,20 +499,26 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         }
       }
     } else {
-      // Auto: start on a playable AVC rung (720p proxy / 1080p extension+desktop).
+      // Auto: first fragment at a fast rung (720 proxy / 1080 extension), then
+      // unlock ABR so higher rungs preload and switch at fragment boundaries.
       const startLevel = pickBrowserStartLevel(hls.levels);
       const topIndex = startLevel ? hls.levels.indexOf(startLevel) : -1;
       if (topIndex !== -1) {
         hls.startLevel = topIndex;
-        hls.nextLevel = topIndex;
-        hls.loadLevel = topIndex;
-        hls.currentLevel = topIndex;
-      } else {
-        hls.currentLevel = -1;
-        hls.loadLevel = -1;
       }
-    }
 
+      const capLevel = pickBrowserAutoCapLevel(hls.levels);
+      const capIndex = capLevel ? hls.levels.indexOf(capLevel) : -1;
+      hls.autoLevelCapping = capIndex;
+
+      // -1 = ABR. Do not lock current/load/next to the start rung or Auto
+      // never climbs (720 stayed forever).
+      hls.currentLevel = -1;
+      hls.loadLevel = -1;
+      hls.nextLevel = -1;
+
+      armSeamlessQualityClimb();
+    }
   }
 
   function setupSource(vid: HTMLVideoElement, src: LoadableSource) {
@@ -965,6 +1054,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       clearTimeout(qualityChangeTimeout);
       qualityChangeTimeout = null;
     }
+    clearQualityClimb();
     qualitySwitchCleanup?.();
     qualitySwitchCleanup = null;
     isQualitySwitching = false;
@@ -1140,27 +1230,30 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       automaticQuality = newAutomaticQuality;
       preferenceQuality = newPreferredQuality;
 
-      // Freeze playback until the new level is ready — switching while playing
-      // causes stutter / double-decode weirdness.
-      pauseForQualitySwitch();
+      // Manual quality locks a level — pause until that rung is ready.
+      // Auto unlocks ABR / soft-climbs 720→1080 without freezing playback.
+      const freezeForManual = !newAutomaticQuality;
+      if (freezeForManual) {
+        pauseForQualitySwitch();
+      }
 
       // Debounce quality changes to prevent rapid switching issues
       qualityChangeTimeout = setTimeout(() => {
         qualityChangeTimeout = null;
         if (!hls || !videoElement) {
-          resumeAfterQualitySwitch();
+          if (freezeForManual) resumeAfterQualitySwitch();
           return;
         }
 
         const previousLevel = hls.currentLevel;
         setupQualityForHls();
 
+        if (automaticQuality) {
+          return;
+        }
+
         // Manual pick landed on the same level — nothing to wait for.
-        if (
-          !automaticQuality &&
-          previousLevel !== -1 &&
-          hls.currentLevel === previousLevel
-        ) {
+        if (previousLevel !== -1 && hls.currentLevel === previousLevel) {
           resumeAfterQualitySwitch();
           return;
         }
