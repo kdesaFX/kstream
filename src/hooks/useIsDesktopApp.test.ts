@@ -1,3 +1,4 @@
+/* eslint-disable import/no-extraneous-dependencies */
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 
