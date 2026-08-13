@@ -21,6 +21,13 @@ declare global {
   }
 }
 
+export function isDesktopApp(): boolean {
+  return Boolean(
+    typeof window !== "undefined" &&
+      (window.__PSTREAM_DESKTOP__ || window.__KSTREAM_DESKTOP_IPC__),
+  );
+}
+
 export function useIsDesktopApp(): boolean {
-  return Boolean(window.__PSTREAM_DESKTOP__ || window.__KSTREAM_DESKTOP_IPC__);
+  return isDesktopApp();
 }

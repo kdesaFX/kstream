@@ -13,6 +13,7 @@ import { MinimalPageLayout } from "@/pages/layouts/MinimalPageLayout";
 import {
   useNavigateOnboarding,
   useRedirectBack,
+  useSkipOnboarding,
 } from "@/pages/onboarding/onboardingHooks";
 import { Card, Link } from "@/pages/onboarding/utils";
 import { PageTitle } from "@/pages/parts/util/PageTitle";
@@ -241,6 +242,7 @@ export function OnboardingExtensionPage() {
   const { t } = useTranslation();
   const navigate = useNavigateOnboarding();
   const { completeAndRedirect } = useRedirectBack();
+  const shouldSkipOnboarding = useSkipOnboarding();
   const extensionSupport = useMemo(() => detectExtensionInstall(), []);
 
   const [{ loading, value }, exec] = useAsyncFn(
@@ -252,6 +254,8 @@ export function OnboardingExtensionPage() {
     [completeAndRedirect],
   );
   useInterval(exec, 1000);
+
+  if (shouldSkipOnboarding) return null;
 
   const componentMap: Record<
     ExtensionDetectionResult,

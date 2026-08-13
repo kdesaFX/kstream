@@ -1,8 +1,10 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { isDesktopApp } from "@/hooks/useIsDesktopApp";
 import { useQueryParam } from "@/hooks/useQueryParams";
 import { useOnboardingStore } from "@/stores/onboarding";
+import { isMobileOnboardingClient } from "@/utils/hosting/onboarding";
 
 export function useRedirectBack() {
   const [url] = useQueryParam("redirect");
@@ -34,4 +36,15 @@ export function useNavigateOnboarding() {
     [navigate, loc],
   );
   return nav;
+}
+
+export function useSkipOnboarding(): boolean {
+  const { completeAndRedirect } = useRedirectBack();
+  const shouldSkip = isDesktopApp() || isMobileOnboardingClient();
+
+  useEffect(() => {
+    if (shouldSkip) completeAndRedirect();
+  }, [completeAndRedirect, shouldSkip]);
+
+  return shouldSkip;
 }

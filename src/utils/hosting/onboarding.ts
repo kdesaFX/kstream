@@ -1,4 +1,5 @@
 import { isExtensionActive } from "@/backend/extension/messaging";
+import { isDesktopApp } from "@/hooks/useIsDesktopApp";
 import { conf } from "@/setup/config";
 import { useAuthStore } from "@/stores/auth";
 import { useOnboardingStore } from "@/stores/onboarding";
@@ -16,8 +17,9 @@ export async function needsOnboarding(): Promise<boolean> {
   // if onboarding is dislabed, no onboarding needed
   if (!conf().HAS_ONBOARDING) return false;
 
-  // Phones/tablets can't run the extension; use default proxy path silently.
-  if (isMobileOnboardingClient()) {
+  // Mobile clients use the default proxy and the desktop app has its own
+  // built-in proxy, so neither needs the browser setup flow.
+  if (isMobileOnboardingClient() || isDesktopApp()) {
     const store = useOnboardingStore.getState();
     if (!store.completed) store.setCompleted(true);
     return false;

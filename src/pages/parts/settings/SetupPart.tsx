@@ -394,11 +394,13 @@ export function SetupPart() {
             </SetupCheckList>
           )}
         </div>
-        <div className="md:mt-5">
-          <Button theme="purple" onClick={() => navigate("/onboarding")}>
-            {t(textLookupMap[globalState].button)}
-          </Button>
-        </div>
+        {!isDesktopApp ? (
+          <div className="md:mt-5">
+            <Button theme="purple" onClick={() => navigate("/onboarding")}>
+              {t(textLookupMap[globalState].button)}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </SettingsCard>
   );

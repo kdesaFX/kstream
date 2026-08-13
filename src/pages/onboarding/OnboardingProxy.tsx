@@ -16,6 +16,7 @@ import { MinimalPageLayout } from "@/pages/layouts/MinimalPageLayout";
 import {
   useNavigateOnboarding,
   useRedirectBack,
+  useSkipOnboarding,
 } from "@/pages/onboarding/onboardingHooks";
 import { Link } from "@/pages/onboarding/utils";
 import { PageTitle } from "@/pages/parts/util/PageTitle";
@@ -28,6 +29,7 @@ export function OnboardingProxyPage() {
   const { t } = useTranslation();
   const navigate = useNavigateOnboarding();
   const { completeAndRedirect } = useRedirectBack();
+  const shouldSkipOnboarding = useSkipOnboarding();
   const [url, setUrl] = useState("");
   const setProxySet = useAuthStore((s) => s.setProxySet);
   const installLink = conf().ONBOARDING_PROXY_INSTALL_LINK;
@@ -54,6 +56,8 @@ export function OnboardingProxyPage() {
       throw new Error("onboarding.proxy.input.errorConnection");
     }
   }, [url, completeAndRedirect, setProxySet]);
+
+  if (shouldSkipOnboarding) return null;
 
   return (
     <MinimalPageLayout>

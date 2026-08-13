@@ -1,5 +1,4 @@
 import { Trans, useTranslation } from "react-i18next";
-import { useEffect } from "react";
 
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
 import { Button } from "@/components/buttons/Button";
@@ -26,6 +25,7 @@ import { MinimalPageLayout } from "@/pages/layouts/MinimalPageLayout";
 import {
   useNavigateOnboarding,
   useRedirectBack,
+  useSkipOnboarding,
 } from "@/pages/onboarding/onboardingHooks";
 import {
   Card,
@@ -36,7 +36,6 @@ import {
 import { PageTitle } from "@/pages/parts/util/PageTitle";
 import { conf } from "@/setup/config";
 import { usePreferencesStore } from "@/stores/preferences";
-import { isMobileOnboardingClient } from "@/utils/hosting/onboarding";
 import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 
 import { DebridEdit, FebboxSetup } from "../parts/settings/ConnectionsPart";
@@ -56,6 +55,7 @@ export function OnboardingPage() {
   const infoModal = useModal("info");
   const { openDownloadModal } = useDownloadModal();
   const { completeAndRedirect } = useRedirectBack();
+  const shouldSkipOnboarding = useSkipOnboarding();
   const { t } = useTranslation();
   const noProxies = getProxyUrls().length === 0;
 
@@ -67,12 +67,7 @@ export function OnboardingPage() {
   const setdebridService = usePreferencesStore((s) => s.setdebridService);
   const isFebboxSetup = febboxKey !== "";
 
-  // Mobile can't install the extension — finish with default setup immediately.
-  useEffect(() => {
-    if (isMobileOnboardingClient()) completeAndRedirect();
-  }, [completeAndRedirect]);
-
-  if (isMobileOnboardingClient()) return null;
+  if (shouldSkipOnboarding) return null;
 
   return (
     <MinimalPageLayout>
