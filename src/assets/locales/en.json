@@ -789,10 +789,10 @@
           "title": "Browser extension"
         },
         "desktopapp": {
-          "action": "Install Desktop app",
-          "description": "Install desktop app and gain access to additional sources! Simple and easy to use!",
-          "quality": "Best quality + Even more sources",
-          "title": "kstream Desktop app"
+          "action": "Download Windows app",
+          "description": "Install the Windows app for native streaming, additional sources, and the best kstream experience.",
+          "quality": "Best quality + More sources",
+          "title": "Windows app"
         },
         "proxy": {
           "action": "Setup proxy",

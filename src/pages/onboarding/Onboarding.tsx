@@ -13,6 +13,7 @@ import {
   ModalCard,
   useModal,
 } from "@/components/overlays/Modal";
+import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { Divider } from "@/components/utils/Divider";
 import { Ol } from "@/components/utils/Ol";
 import {
@@ -53,6 +54,7 @@ export function OnboardingPage() {
   const navigate = useNavigateOnboarding();
   const skipModal = useModal("skip");
   const infoModal = useModal("info");
+  const { openDownloadModal } = useDownloadModal();
   const { completeAndRedirect } = useRedirectBack();
   const { t } = useTranslation();
   const noProxies = getProxyUrls().length === 0;
@@ -195,9 +197,21 @@ export function OnboardingPage() {
 
         {/* Desktop Cards */}
         <div className="hidden md:flex w-full flex-row gap-3 pb-6">
+          <Card onClick={openDownloadModal} className="min-w-0 flex-1">
+            <CardContent
+              colorClass="!text-onboarding-best"
+              title={t("onboarding.start.options.desktopapp.title")}
+              subtitle={t("onboarding.start.options.desktopapp.quality")}
+              description={t("onboarding.start.options.desktopapp.description")}
+            >
+              <Link className="!text-onboarding-best">
+                {t("onboarding.start.options.desktopapp.action")}
+              </Link>
+            </CardContent>
+          </Card>
           <Card
             onClick={() => navigate("/onboarding/extension")}
-            className="w-1/3"
+            className="min-w-0 flex-1"
           >
             <CardContent
               colorClass="!text-onboarding-good"
@@ -223,7 +237,7 @@ export function OnboardingPage() {
                 ? () => completeAndRedirect()
                 : skipModal.show
             }
-            className="w-1/3"
+            className="min-w-0 flex-1"
           >
             <CardContent
               colorClass="!text-onboarding-bad"
