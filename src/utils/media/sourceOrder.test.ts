@@ -123,4 +123,22 @@ describe("orderSourceIdsForPlayback", () => {
       animeOrder.indexOf("reyna"),
     );
   });
+
+  it("still ranks TQQ first when anime meta only has Animation + JP country", () => {
+    const ids = ["reyna", "oneembed", "tqq", "fsonline"];
+    const order = orderSourceIdsForPlayback(
+      ids,
+      {
+        env: "browser",
+        mediaType: "movie",
+        meta: {
+          genreIds: [16, 878],
+          originalLanguage: "ja",
+          originCountry: ["JP"],
+        },
+      },
+      matrix,
+    );
+    expect(order[0]).toBe("tqq");
+  });
 });

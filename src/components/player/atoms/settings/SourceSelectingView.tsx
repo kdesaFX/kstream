@@ -17,6 +17,7 @@ import {
   getPreferredSourceForTitle,
   usePreferencesStore,
 } from "@/stores/preferences";
+import { isAnimeSourceId, isAnimeTitle } from "@/utils/media/anime";
 import { orderSourcesForPlayback, detectPlaybackEnv } from "@/utils/media/sourceOrder";
 
 export interface SourceSelectionViewProps {
@@ -244,8 +245,17 @@ export function SourceSelectionView({
       },
     });
 
-    // Re-apply title pin after goon ordering so Find-next / remembered source stays first.
-    if (prioritizeSource) {
+    // Re-apply title pin after goon ordering — but never let a non-anime
+    // remembered source jump ahead of TQQ on anime titles.
+    const animeMeta = {
+      genreIds: metaGenreIds,
+      originalLanguage: metaOriginalLanguage,
+      originCountry: metaOriginCountry,
+    };
+    if (
+      prioritizeSource &&
+      (!isAnimeTitle(animeMeta) || isAnimeSourceId(prioritizeSource))
+    ) {
       const pinIndex = orderedSources.findIndex((s) => s.id === prioritizeSource);
       if (pinIndex > 0) {
         const pinned = orderedSources.splice(pinIndex, 1)[0];

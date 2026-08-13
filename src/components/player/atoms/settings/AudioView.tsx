@@ -8,6 +8,7 @@ import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { AudioTrack } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { AudioStreamOption } from "@/stores/player/utils/audioStreams";
+import { formatAudioTrackLabel } from "@/utils/media/formatAudioTrackLabel";
 import { getPrettyLanguageNameFromLocale } from "@/utils/locale/language";
 
 import { SelectableLink } from "../../internals/ContextMenu/Links";
@@ -89,9 +90,13 @@ export function AudioView({ id }: { id: string }) {
             langCode={flagCode(opt.language)}
             onClick={() => changeStreamAudio(opt)}
           >
-            {opt.label ||
-              getPrettyLanguageNameFromLocale(opt.language) ||
-              unknownChoice}
+            {formatAudioTrackLabel(
+              opt.language,
+              opt.label ||
+                getPrettyLanguageNameFromLocale(opt.language) ||
+                undefined,
+              unknownChoice,
+            )}
           </AudioOption>
         ))}
 
@@ -99,12 +104,16 @@ export function AudioView({ id }: { id: string }) {
           <AudioOption
             key={`hls:${v.id}`}
             selected={!streamSelected && v.id === currentAudioTrack?.id}
-            langCode={flagCode(v.language)}
+            langCode={
+              v.language &&
+              v.language !== "unknown" &&
+              v.language !== "und"
+                ? flagCode(v.language)
+                : undefined
+            }
             onClick={() => changeHlsTrack(v)}
           >
-            {getPrettyLanguageNameFromLocale(v.language) ??
-              v.label ??
-              unknownChoice}
+            {formatAudioTrackLabel(v.language, v.label, unknownChoice)}
           </AudioOption>
         ))}
 

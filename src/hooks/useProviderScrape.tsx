@@ -21,6 +21,7 @@ import {
   getPreferredSourceForTitle,
   usePreferencesStore,
 } from "@/stores/preferences";
+import { isAnimeSourceId, isAnimeTitle } from "@/utils/media/anime";
 import { orderSourceIdsForPlayback, detectPlaybackEnv } from "@/utils/media/sourceOrder";
 
 export type { ScrapingItems, ScrapingSegment } from "@/hooks/scrapeEvents";
@@ -298,9 +299,9 @@ export function useScrape() {
         meta: playerState.meta,
       });
 
-      // Prefer the source that worked for this title; fall back to last global.
-      // Always apply the same pin for full scrapes AND Find-next/resume slices so
-      // resume walks the same ordered list that produced the current source.
+      // Prefer the source that worked for this title.
+      // On anime, never let a remembered general source (Reyna, etc.) jump
+      // ahead of TQQ / other anime specialists.
       if (enableLastSuccessfulSource) {
         const prioritizeSource = getPreferredSourceForTitle(
           preferredSourceByTitle,
@@ -308,10 +309,13 @@ export function useScrape() {
           lastSuccessfulSource,
         );
         if (prioritizeSource && baseSourceOrder.includes(prioritizeSource)) {
-          baseSourceOrder = [
-            prioritizeSource,
-            ...baseSourceOrder.filter((id) => id !== prioritizeSource),
-          ];
+          const anime = isAnimeTitle(playerState.meta);
+          if (!anime || isAnimeSourceId(prioritizeSource)) {
+            baseSourceOrder = [
+              prioritizeSource,
+              ...baseSourceOrder.filter((id) => id !== prioritizeSource),
+            ];
+          }
         }
       }
 
