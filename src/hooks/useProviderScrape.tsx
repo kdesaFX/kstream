@@ -178,21 +178,41 @@ function useBaseScrape() {
   }, []);
 
   const getResult = useCallback((output: RunOutput | null) => {
-    if (!output) return output;
     setSources((s) => {
       const next = { ...s };
+      // Clear cards still spinning when the run ends (parents left pending
+      // after embeds missed, race losers). On total miss, also settle waiting.
+      for (const [id, seg] of Object.entries(next)) {
+        const stuckPending = seg.status === "pending";
+        const stuckWaiting = !output && seg.status === "waiting";
+        if (stuckPending || stuckWaiting) {
+          next[id] = {
+            ...seg,
+            status: "notfound",
+            percentage: 100,
+            reason: seg.reason ?? "No streams found",
+          };
+        }
+      }
+      if (!output) return next;
       if (next[output.sourceId]) {
         next[output.sourceId] = { ...next[output.sourceId], status: "success" };
       }
       if (output.embedId) {
         for (const [id, seg] of Object.entries(next)) {
-          if (seg.embedId === output.embedId && seg.status === "pending") {
-            next[id] = { ...seg, status: "success" };
+          if (
+            seg.embedId === output.embedId &&
+            (seg.status === "pending" ||
+              seg.status === "waiting" ||
+              seg.status === "notfound")
+          ) {
+            next[id] = { ...seg, status: "success", percentage: 100 };
           }
         }
       }
       return next;
     });
+    if (!output) return output;
     setCurrentSource(output.sourceId);
     return output;
   }, []);
