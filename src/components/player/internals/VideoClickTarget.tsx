@@ -40,6 +40,7 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
   const isHoldingRef = useRef(false);
   const speedIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const boostTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const resumeOnPointerDownRef = useRef(false);
   const [isPendingBoost, setIsPendingBoost] = useState(false);
   const [seekDirection, setSeekDirection] = useState<SeekDirection | null>(
     null,
@@ -96,6 +97,12 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
       // Don't toggle pause if holding for speed change
       if (isHoldingRef.current) {
         isHoldingRef.current = false;
+        return;
+      }
+
+      // Already resumed on pointerdown — don't pause again after the tap delay.
+      if (resumeOnPointerDownRef.current) {
+        resumeOnPointerDownRef.current = false;
         return;
       }
 
@@ -163,13 +170,16 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
 
   const handlePointerDown = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
-      // iOS only treats play() as a user gesture on the same tick as touch.
-      // Don't wait for the 250ms double-tap timer or autoplay stays locked.
+      // Keep play() on the same tick as the gesture. Delaying behind the
+      // double-tap timer drops user-activation and unmuted play() fails.
       const playing = usePlayerStore.getState().mediaPlaying;
-      if (!playing.hasPlayedOnce) {
+      if (!playing.hasPlayedOnce || playing.isPaused) {
+        resumeOnPointerDownRef.current = true;
         display?.play();
         return;
       }
+
+      resumeOnPointerDownRef.current = false;
 
       if (
         ((e.pointerType === "mouse" && e.button === 0) ||
@@ -177,8 +187,6 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
         !isInWatchParty &&
         enableHoldToBoost
       ) {
-        if (isPaused) return; // Don't boost if video is paused
-
         // Store current rate before changing
         previousRateRef.current = playbackRate;
 
@@ -211,7 +219,6 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
     [
       display,
       playbackRate,
-      isPaused,
       setSpeedBoosted,
       setShowSpeedIndicator,
       setCurrentOverlay,

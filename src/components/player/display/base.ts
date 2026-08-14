@@ -1287,14 +1287,62 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       }
       if (audioCtx?.state === "suspended") audioCtx.resume().catch(() => {});
       clearUnmuteGesture();
-      if (videoElement && lastVolume > 0) {
-        videoElement.muted = false;
-        videoElement.removeAttribute("muted");
-        videoElement.volume = lastVolume;
-        emit("volumechange", lastVolume);
+      if (!videoElement) return;
+
+      const vid = videoElement;
+      const wantSound = lastVolume > 0;
+
+      // Prefer playing first, then unmute. Unmuting *before* play() fails when
+      // the call is delayed (double-tap timer) and the user-gesture is gone.
+      const finishPlaying = () => {
+        emit("play", undefined);
+        emit("loading", false);
+        initAudioAnalysis();
+      };
+
+      const playMutedThenArmUnmute = () => {
+        muteForAutoplay(vid);
+        const mutedPlay = vid.play();
+        if (mutedPlay === undefined) {
+          finishPlaying();
+          emit("volumechange", 0);
+          if (wantSound) armUnmuteOnGesture();
+          return;
+        }
+        mutedPlay
+          .then(() => {
+            finishPlaying();
+            emit("volumechange", 0);
+            if (wantSound) armUnmuteOnGesture();
+          })
+          .catch(() => {
+            emit("pause", undefined);
+            emit("loading", false);
+          });
+      };
+
+      if (wantSound) {
+        vid.muted = false;
+        vid.removeAttribute("muted");
+        vid.volume = lastVolume;
       }
-      videoElement?.play();
-      initAudioAnalysis();
+
+      const playPromise = vid.play();
+      if (playPromise === undefined) {
+        if (wantSound) emit("volumechange", lastVolume);
+        finishPlaying();
+        return;
+      }
+
+      playPromise
+        .then(() => {
+          if (wantSound) emit("volumechange", lastVolume);
+          finishPlaying();
+        })
+        .catch(() => {
+          // NotAllowedError / autoplay policy — fall back to muted play.
+          playMutedThenArmUnmute();
+        });
     },
     setSeeking(active) {
       if (active === isSeeking) return;
