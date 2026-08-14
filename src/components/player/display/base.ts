@@ -146,6 +146,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let preferenceQuality: SourceQuality | null = null;
   let lastVolume = 1;
   let lastInferredQuality: SourceQuality | null = null;
+  /** Ignore pause for a short window after play() so resume isn't aborted. */
+  let ignorePauseUntil = 0;
 
 
   let audioCtx: AudioContext | null = null;
@@ -823,6 +825,13 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     });
     videoElement.addEventListener("pause", () => {
       if (suppressPlaybackEvents) return;
+      // Spurious pause during resume (unmute / competing pointerup) — stay playing.
+      if (Date.now() < ignorePauseUntil) {
+        if (videoElement?.paused) {
+          videoElement.play().catch(() => undefined);
+        }
+        return;
+      }
       emit("pause", undefined);
     });
     videoElement.addEventListener("loadedmetadata", () => {
@@ -1277,8 +1286,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
     pause() {
       if (!videoElement) return;
+      if (Date.now() < ignorePauseUntil) return;
       videoElement.pause();
-      // Keep UI in sync even if the pause event was suppressed earlier.
       emit("pause", undefined);
     },
     play() {
@@ -1294,6 +1303,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
       const vid = videoElement;
       const wantSound = lastVolume > 0;
+      // Block competing pause (control-bar pointerup → video layer) briefly.
+      ignorePauseUntil = Date.now() + 500;
 
       const markPlaying = () => {
         if (vid.paused) {
@@ -1322,32 +1333,64 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             markPlaying();
           })
           .catch(() => {
+            ignorePauseUntil = 0;
             emit("pause", undefined);
             emit("loading", false);
           });
       };
 
-      // Try with sound first when the caller has a user gesture. If the browser
-      // blocks unmuted playback, fall back to muted rather than dead UI.
-      if (wantSound) {
-        vid.muted = false;
-        vid.removeAttribute("muted");
-        vid.volume = lastVolume;
-      }
-
+      // Play first with the current mute state, then unmute. Unmuting *before*
+      // play() is what got AbortError'd when a stray pause arrived.
       const playPromise = vid.play();
       if (playPromise === undefined) {
-        if (wantSound) emit("volumechange", lastVolume);
+        if (wantSound && vid.paused === false) {
+          vid.muted = false;
+          vid.removeAttribute("muted");
+          vid.volume = lastVolume;
+          emit("volumechange", lastVolume);
+        }
         markPlaying();
         return;
       }
 
       playPromise
         .then(() => {
-          if (wantSound) emit("volumechange", lastVolume);
-          markPlaying();
+          if (!wantSound) {
+            markPlaying();
+            return;
+          }
+          suppressPlaybackEvents = true;
+          vid.muted = false;
+          vid.removeAttribute("muted");
+          vid.volume = lastVolume;
+          emit("volumechange", lastVolume);
+          window.setTimeout(() => {
+            suppressPlaybackEvents = false;
+            if (vid.paused) {
+              // Unmute forced a pause — keep playback muted instead of dying.
+              muteForAutoplay(vid);
+              vid.play()
+                .then(() => {
+                  emit("volumechange", 0);
+                  armUnmuteOnGesture();
+                  markPlaying();
+                })
+                .catch(() => playMutedFallback());
+              return;
+            }
+            markPlaying();
+          }, 50);
         })
-        .catch(() => {
+        .catch((err: unknown) => {
+          const name =
+            err && typeof err === "object" && "name" in err
+              ? String((err as { name: string }).name)
+              : "";
+          // Interrupted by a pause race — retry once muted.
+          if (name === "AbortError") {
+            playMutedFallback();
+            return;
+          }
           playMutedFallback();
         });
     },

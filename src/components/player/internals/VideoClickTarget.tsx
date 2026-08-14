@@ -13,8 +13,8 @@ import { useWatchPartyStore } from "@/stores/watchParty";
 /**
  * Full-surface click target for play/pause, double-click seek, and hold-to-boost.
  *
- * Play/resume MUST run on pointerdown (user-activation). Pause runs on the
- * single-tap path after the double-tap window so seeks still work.
+ * Only completes a gesture if pointerdown happened on this surface — stray
+ * pointerups from the control bar must not pause right after resume.
  */
 export function VideoClickTarget(props: { showingControls: boolean }) {
   const show = useShouldShowVideoElement();
@@ -45,6 +45,7 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
   const isHoldingRef = useRef(false);
   const speedIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const boostTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const activePointerIdRef = useRef<number | null>(null);
   const resumedOnPointerDownRef = useRef(false);
   const [isPendingBoost, setIsPendingBoost] = useState(false);
   const [seekDirection, setSeekDirection] = useState<SeekDirection | null>(
@@ -104,7 +105,6 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
       setIsPendingBoost(false);
       isHoldingRef.current = false;
     }
-    // Live state — don't trust a stale isPaused from the last render.
     if (!usePlayerStore.getState().mediaPlaying.isPaused) {
       display?.pause();
     }
@@ -112,7 +112,7 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
 
   const handleSingleTap = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
-      // We already started/resumed on pointerdown — don't immediately pause.
+      // Resume already happened on pointerdown — never pause that same tap.
       if (resumedOnPointerDownRef.current) {
         resumedOnPointerDownRef.current = false;
         return;
@@ -124,7 +124,6 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
         return;
       }
 
-      // Touch: first tap shows controls, second tap pauses (unless seeking).
       if (isSeeking) return;
       if (hovering !== PlayerHoverState.MOBILE_TAPPED) {
         updateInterfaceHovering(PlayerHoverState.MOBILE_TAPPED);
@@ -168,6 +167,13 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
   const handlePointerDown = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
       if (e.button !== 0 && e.pointerType === "mouse") return;
+
+      activePointerIdRef.current = e.pointerId;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // Capture is best-effort (some browsers / modes).
+      }
 
       const playing = usePlayerStore.getState().mediaPlaying;
 
@@ -228,6 +234,23 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
 
   const handlePointerUp = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
+      // Ignore pointerups that didn't start on this surface (e.g. play button
+      // released over the video) — those were pausing right after resume.
+      if (
+        activePointerIdRef.current === null ||
+        activePointerIdRef.current !== e.pointerId
+      ) {
+        return;
+      }
+      activePointerIdRef.current = null;
+      try {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        // ignore
+      }
+
       if (isPendingBoost) {
         clearTimeout(boostTimeoutRef.current!);
         setIsPendingBoost(false);
@@ -249,13 +272,27 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
     [isPendingBoost, enableHoldToBoost, handleTap, endBoost],
   );
 
+  const handlePointerCancel = useCallback(
+    (e: PointerEvent<HTMLDivElement>) => {
+      if (activePointerIdRef.current === e.pointerId) {
+        activePointerIdRef.current = null;
+      }
+      if (isPendingBoost) {
+        clearTimeout(boostTimeoutRef.current!);
+        setIsPendingBoost(false);
+      }
+      if (isHoldingRef.current) endBoost();
+    },
+    [isPendingBoost, endBoost],
+  );
+
   const handlePointerLeave = useCallback(() => {
-    if (isPendingBoost) {
+    // Don't clear active pointer here — capture keeps up events coming back.
+    if (isPendingBoost && activePointerIdRef.current === null) {
       clearTimeout(boostTimeoutRef.current!);
       setIsPendingBoost(false);
     }
-    if (isHoldingRef.current) endBoost();
-  }, [isPendingBoost, endBoost]);
+  }, [isPendingBoost]);
 
   if (!show) return null;
 
@@ -275,11 +312,12 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
         </div>
       ) : null}
       <div
-        className={classNames("absolute inset-0", {
+        className={classNames("absolute inset-0 z-0", {
           "cursor-none": !props.showingControls,
         })}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         onPointerLeave={handlePointerLeave}
         onContextMenu={(e) => e.preventDefault()}
       />
