@@ -10,11 +10,16 @@ import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useWatchPartyStore } from "@/stores/watchParty";
 
+/**
+ * Full-surface click target for play/pause, double-click seek, and hold-to-boost.
+ *
+ * Play/resume MUST run on pointerdown (user-activation). Pause runs on the
+ * single-tap path after the double-tap window so seeks still work.
+ */
 export function VideoClickTarget(props: { showingControls: boolean }) {
   const show = useShouldShowVideoElement();
   const display = usePlayerStore((s) => s.display);
   const time = usePlayerStore((s) => s.progress.time);
-  const isPaused = usePlayerStore((s) => s.mediaPlaying.isPaused);
   const playbackRate = usePlayerStore((s) => s.mediaPlaying.playbackRate);
   const updateInterfaceHovering = usePlayerStore(
     (s) => s.updateInterfaceHovering,
@@ -40,7 +45,7 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
   const isHoldingRef = useRef(false);
   const speedIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const boostTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const resumeOnPointerDownRef = useRef(false);
+  const resumedOnPointerDownRef = useRef(false);
   const [isPendingBoost, setIsPendingBoost] = useState(false);
   const [seekDirection, setSeekDirection] = useState<SeekDirection | null>(
     null,
@@ -82,68 +87,58 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
   );
 
   useEffect(() => {
-    if (isSeeking) {
-      if (seekTimeoutRef.current) {
-        clearTimeout(seekTimeoutRef.current);
-      }
-      seekTimeoutRef.current = setTimeout(() => {
-        setIsSeeking(false);
-      }, 400);
-    }
+    if (!isSeeking) return;
+    if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
+    seekTimeoutRef.current = setTimeout(() => {
+      setIsSeeking(false);
+    }, 400);
   }, [seekId, isSeeking]);
 
-  const togglePause = useCallback(
+  const pauseIfPlaying = useCallback(() => {
+    if (isHoldingRef.current) {
+      isHoldingRef.current = false;
+      return;
+    }
+    if (isPendingBoost) {
+      clearTimeout(boostTimeoutRef.current!);
+      setIsPendingBoost(false);
+      isHoldingRef.current = false;
+    }
+    // Live state — don't trust a stale isPaused from the last render.
+    if (!usePlayerStore.getState().mediaPlaying.isPaused) {
+      display?.pause();
+    }
+  }, [display, isPendingBoost]);
+
+  const handleSingleTap = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
-      // Don't toggle pause if holding for speed change
-      if (isHoldingRef.current) {
-        isHoldingRef.current = false;
+      // We already started/resumed on pointerdown — don't immediately pause.
+      if (resumedOnPointerDownRef.current) {
+        resumedOnPointerDownRef.current = false;
         return;
       }
 
-      // Already resumed on pointerdown — don't pause again after the tap delay.
-      if (resumeOnPointerDownRef.current) {
-        resumeOnPointerDownRef.current = false;
-        return;
-      }
-
-      // Cancel any pending boost if we're clicking to pause
-      if (isPendingBoost) {
-        clearTimeout(boostTimeoutRef.current!);
-        setIsPendingBoost(false);
-        isHoldingRef.current = false;
-      }
-
-      // pause on mouse click
       if (e.pointerType === "mouse") {
         if (e.button !== 0) return;
-        if (isPaused) display?.play();
-        else display?.pause();
+        pauseIfPlaying();
         return;
       }
 
-      // First tap on mobile while waiting to start: begin playback (user gesture).
-      const hasPlayedOnce = usePlayerStore.getState().mediaPlaying.hasPlayedOnce;
-      if (isPaused && !hasPlayedOnce) {
-        display?.play();
-        return;
-      }
-
-      // toggle on other types of clicks
+      // Touch: first tap shows controls, second tap pauses (unless seeking).
       if (isSeeking) return;
       if (hovering !== PlayerHoverState.MOBILE_TAPPED) {
         updateInterfaceHovering(PlayerHoverState.MOBILE_TAPPED);
         reset();
-      } else {
-        updateInterfaceHovering(PlayerHoverState.NOT_HOVERING);
-        cancel();
+        return;
       }
+      pauseIfPlaying();
+      updateInterfaceHovering(PlayerHoverState.NOT_HOVERING);
+      cancel();
     },
     [
-      display,
-      isPaused,
-      hovering,
-      isPendingBoost,
+      pauseIfPlaying,
       isSeeking,
+      hovering,
       updateInterfaceHovering,
       reset,
       cancel,
@@ -157,63 +152,53 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
       if (singleTapTimeout.current) {
         clearTimeout(singleTapTimeout.current);
         singleTapTimeout.current = null;
+        resumedOnPointerDownRef.current = false;
         handleDoubleClick(e);
-      } else {
-        singleTapTimeout.current = setTimeout(() => {
-          togglePause(e);
-          singleTapTimeout.current = null;
-        }, 250);
+        return;
       }
+
+      singleTapTimeout.current = setTimeout(() => {
+        singleTapTimeout.current = null;
+        handleSingleTap(e);
+      }, 250);
     },
-    [handleDoubleClick, togglePause],
+    [handleDoubleClick, handleSingleTap],
   );
 
   const handlePointerDown = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
-      // Keep play() on the same tick as the gesture. Delaying behind the
-      // double-tap timer drops user-activation and unmuted play() fails.
+      if (e.button !== 0 && e.pointerType === "mouse") return;
+
       const playing = usePlayerStore.getState().mediaPlaying;
+
+      // Play/resume on the gesture tick — never behind the double-tap timer.
       if (!playing.hasPlayedOnce || playing.isPaused) {
-        resumeOnPointerDownRef.current = true;
+        resumedOnPointerDownRef.current = true;
         display?.play();
         return;
       }
 
-      resumeOnPointerDownRef.current = false;
+      resumedOnPointerDownRef.current = false;
 
       if (
-        ((e.pointerType === "mouse" && e.button === 0) ||
-          e.pointerType === "touch") &&
+        (e.pointerType === "mouse" || e.pointerType === "touch") &&
         !isInWatchParty &&
         enableHoldToBoost
       ) {
-        // Store current rate before changing
         previousRateRef.current = playbackRate;
-
-        // Set a timeout before actually boosting speed
-        if (boostTimeoutRef.current) {
-          clearTimeout(boostTimeoutRef.current);
-        }
-
+        if (boostTimeoutRef.current) clearTimeout(boostTimeoutRef.current);
         setIsPendingBoost(true);
-
         boostTimeoutRef.current = setTimeout(() => {
-          // Only apply boost if we're still holding down
           isHoldingRef.current = true;
           setIsPendingBoost(false);
-
-          // Show speed indicator
           setSpeedBoosted(true);
           setShowSpeedIndicator(true);
           setCurrentOverlay("speed");
-
           if (speedIndicatorTimeoutRef.current) {
             clearTimeout(speedIndicatorTimeoutRef.current);
           }
-
-          // Set to 2x speed
           display?.setPlaybackRate(2);
-        }, 300); // 300ms delay before boost takes effect
+        }, 300);
       }
     },
     [
@@ -227,9 +212,22 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
     ],
   );
 
+  const endBoost = useCallback(() => {
+    display?.setPlaybackRate(previousRateRef.current);
+    isHoldingRef.current = false;
+    setSpeedBoosted(false);
+    if (speedIndicatorTimeoutRef.current) {
+      clearTimeout(speedIndicatorTimeoutRef.current);
+    }
+    speedIndicatorTimeoutRef.current = setTimeout(() => {
+      setShowSpeedIndicator(false);
+      setCurrentOverlay(null);
+      speedIndicatorTimeoutRef.current = null;
+    }, 1500);
+  }, [display, setSpeedBoosted, setShowSpeedIndicator, setCurrentOverlay]);
+
   const handlePointerUp = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
-      // If we have a pending boost that hasn't activated yet, clear it
       if (isPendingBoost) {
         clearTimeout(boostTimeoutRef.current!);
         setIsPendingBoost(false);
@@ -240,75 +238,24 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
       if (
         isHoldingRef.current &&
         enableHoldToBoost &&
-        ((e.pointerType === "mouse" && e.button === 0) ||
-          e.pointerType === "touch")
+        (e.pointerType === "mouse" || e.pointerType === "touch")
       ) {
-        // Restore previous rate
-        display?.setPlaybackRate(previousRateRef.current);
-        isHoldingRef.current = false;
-
-        // Update state for speed indicator
-        setSpeedBoosted(false);
-
-        // Set a timeout to hide the speed indicator
-        if (speedIndicatorTimeoutRef.current) {
-          clearTimeout(speedIndicatorTimeoutRef.current);
-        }
-
-        speedIndicatorTimeoutRef.current = setTimeout(() => {
-          setShowSpeedIndicator(false);
-          setCurrentOverlay(null);
-          speedIndicatorTimeoutRef.current = null;
-        }, 1500);
-      } else {
-        // Regular click handler
-        handleTap(e);
+        endBoost();
+        return;
       }
+
+      handleTap(e);
     },
-    [
-      display,
-      handleTap,
-      setSpeedBoosted,
-      setShowSpeedIndicator,
-      setCurrentOverlay,
-      isPendingBoost,
-      enableHoldToBoost,
-    ],
+    [isPendingBoost, enableHoldToBoost, handleTap, endBoost],
   );
 
-  // Handle case where mouse leaves the player while still pressed
   const handlePointerLeave = useCallback(() => {
-    // Clear pending boost if mouse leaves
     if (isPendingBoost) {
       clearTimeout(boostTimeoutRef.current!);
       setIsPendingBoost(false);
     }
-
-    if (isHoldingRef.current) {
-      display?.setPlaybackRate(previousRateRef.current);
-      isHoldingRef.current = false;
-
-      // Update state for speed indicator
-      setSpeedBoosted(false);
-
-      // Set a timeout to hide the speed indicator
-      if (speedIndicatorTimeoutRef.current) {
-        clearTimeout(speedIndicatorTimeoutRef.current);
-      }
-
-      speedIndicatorTimeoutRef.current = setTimeout(() => {
-        setShowSpeedIndicator(false);
-        setCurrentOverlay(null);
-        speedIndicatorTimeoutRef.current = null;
-      }, 1500);
-    }
-  }, [
-    display,
-    setSpeedBoosted,
-    setShowSpeedIndicator,
-    setCurrentOverlay,
-    isPendingBoost,
-  ]);
+    if (isHoldingRef.current) endBoost();
+  }, [isPendingBoost, endBoost]);
 
   if (!show) return null;
 
@@ -329,7 +276,6 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
       ) : null}
       <div
         className={classNames("absolute inset-0", {
-          "absolute inset-0": true,
           "cursor-none": !props.showingControls,
         })}
         onPointerDown={handlePointerDown}

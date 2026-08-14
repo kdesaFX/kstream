@@ -6,11 +6,13 @@ import { usePlayerStore } from "@/stores/player/store";
 
 export function Pause(props: { iconSizeClass?: string; className?: string }) {
   const display = usePlayerStore((s) => s.display);
-  const { isPaused } = usePlayerStore((s) => s.mediaPlaying);
-  const handledByPointerRef = useRef(false);
+  const isPaused = usePlayerStore((s) => s.mediaPlaying.isPaused);
+  const handledPointerRef = useRef(false);
 
   const toggle = () => {
-    if (isPaused) display?.play();
+    // Read live state — stale React closures flip the wrong way.
+    const paused = usePlayerStore.getState().mediaPlaying.isPaused;
+    if (paused) display?.play();
     else display?.pause();
   };
 
@@ -18,16 +20,16 @@ export function Pause(props: { iconSizeClass?: string; className?: string }) {
     <VideoPlayerButton
       className={props.className}
       iconSizeClass={props.iconSizeClass}
-      // pointerdown keeps user-activation for unmuted play(); click alone can
-      // lose it in Electron / strict autoplay policies.
       onPointerDown={(e) => {
+        // Same-tick gesture for unmuted play (Electron / Safari).
         if (e.button !== 0) return;
-        handledByPointerRef.current = true;
+        handledPointerRef.current = true;
         toggle();
       }}
       onClick={() => {
-        if (handledByPointerRef.current) {
-          handledByPointerRef.current = false;
+        // Keyboard / accessibility activation only — pointer already handled.
+        if (handledPointerRef.current) {
+          handledPointerRef.current = false;
           return;
         }
         toggle();

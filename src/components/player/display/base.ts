@@ -1276,7 +1276,10 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     setCaption() {},
 
     pause() {
-      videoElement?.pause();
+      if (!videoElement) return;
+      videoElement.pause();
+      // Keep UI in sync even if the pause event was suppressed earlier.
+      emit("pause", undefined);
     },
     play() {
       shouldAutoplayAfterLoad = false;
@@ -1292,28 +1295,31 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       const vid = videoElement;
       const wantSound = lastVolume > 0;
 
-      // Prefer playing first, then unmute. Unmuting *before* play() fails when
-      // the call is delayed (double-tap timer) and the user-gesture is gone.
-      const finishPlaying = () => {
+      const markPlaying = () => {
+        if (vid.paused) {
+          emit("pause", undefined);
+          emit("loading", false);
+          return;
+        }
         emit("play", undefined);
         emit("loading", false);
         initAudioAnalysis();
       };
 
-      const playMutedThenArmUnmute = () => {
+      const playMutedFallback = () => {
         muteForAutoplay(vid);
         const mutedPlay = vid.play();
         if (mutedPlay === undefined) {
-          finishPlaying();
           emit("volumechange", 0);
           if (wantSound) armUnmuteOnGesture();
+          markPlaying();
           return;
         }
         mutedPlay
           .then(() => {
-            finishPlaying();
             emit("volumechange", 0);
             if (wantSound) armUnmuteOnGesture();
+            markPlaying();
           })
           .catch(() => {
             emit("pause", undefined);
@@ -1321,6 +1327,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           });
       };
 
+      // Try with sound first when the caller has a user gesture. If the browser
+      // blocks unmuted playback, fall back to muted rather than dead UI.
       if (wantSound) {
         vid.muted = false;
         vid.removeAttribute("muted");
@@ -1330,18 +1338,17 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       const playPromise = vid.play();
       if (playPromise === undefined) {
         if (wantSound) emit("volumechange", lastVolume);
-        finishPlaying();
+        markPlaying();
         return;
       }
 
       playPromise
         .then(() => {
           if (wantSound) emit("volumechange", lastVolume);
-          finishPlaying();
+          markPlaying();
         })
         .catch(() => {
-          // NotAllowedError / autoplay policy — fall back to muted play.
-          playMutedThenArmUnmute();
+          playMutedFallback();
         });
     },
     setSeeking(active) {
@@ -1359,8 +1366,20 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     },
     setTime(t) {
       if (!videoElement) return;
-      // clamp time between 0 and max duration
-      let time = Math.min(t, videoElement.duration);
+      const duration =
+        Number.isFinite(videoElement.duration) && videoElement.duration > 0
+          ? videoElement.duration
+          : lastValidDuration;
+      if (!Number.isFinite(duration) || duration <= 0) {
+        // Duration unknown — still seek; the browser will clamp.
+        const time = Math.max(0, t);
+        if (Number.isNaN(time)) return;
+        emit("time", time);
+        videoElement.currentTime = time;
+        return;
+      }
+
+      let time = Math.min(t, duration);
       time = Math.max(0, time);
 
       if (Number.isNaN(time)) return;
