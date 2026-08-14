@@ -14,6 +14,7 @@ export function CenterMobileControls(props: {
       className="pointer-events-none"
     >
       <div
+        data-player-chrome="true"
         className={classNames([
           "absolute inset-0 flex space-x-6 items-center justify-center pointer-events-none [&>*]:pointer-events-auto",
           props.className,

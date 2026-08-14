@@ -43,6 +43,7 @@ export function TopControls(props: {
         onMouseOver={() => setHoveringAnyControls(true)}
         onMouseOut={() => setHoveringAnyControls(false)}
         className="pointer-events-auto z-40 pl-[calc(2rem+env(safe-area-inset-left))] pr-[calc(2rem+env(safe-area-inset-right))] pt-6 absolute top-0 w-full"
+        data-player-chrome="true"
         style={{
           top: `${bannerSize}px`,
         }}

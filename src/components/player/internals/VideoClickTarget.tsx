@@ -148,6 +148,32 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
     (e: PointerEvent<HTMLDivElement>) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
 
+      // Mouse: toggle immediately — the 250ms double-tap delay felt like lag.
+      // Double-click seek still works via a short follow-up window.
+      if (e.pointerType === "mouse") {
+        if (singleTapTimeout.current) {
+          clearTimeout(singleTapTimeout.current);
+          singleTapTimeout.current = null;
+          resumedOnPointerDownRef.current = false;
+          handleDoubleClick(e);
+          return;
+        }
+
+        if (resumedOnPointerDownRef.current) {
+          resumedOnPointerDownRef.current = false;
+        } else {
+          pauseIfPlaying();
+        }
+
+        if (enableDoubleClickToSeek) {
+          singleTapTimeout.current = setTimeout(() => {
+            singleTapTimeout.current = null;
+          }, 250);
+        }
+        return;
+      }
+
+      // Touch: keep a short window so double-tap seek / chrome toggle still work.
       if (singleTapTimeout.current) {
         clearTimeout(singleTapTimeout.current);
         singleTapTimeout.current = null;
@@ -159,9 +185,9 @@ export function VideoClickTarget(props: { showingControls: boolean }) {
       singleTapTimeout.current = setTimeout(() => {
         singleTapTimeout.current = null;
         handleSingleTap(e);
-      }, 250);
+      }, 200);
     },
-    [handleDoubleClick, handleSingleTap],
+    [handleDoubleClick, handleSingleTap, pauseIfPlaying, enableDoubleClickToSeek],
   );
 
   const handlePointerDown = useCallback(
