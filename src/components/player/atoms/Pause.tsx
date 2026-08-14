@@ -1,7 +1,3 @@
-import { Icons } from "@/components/Icon";
-import { VideoPlayerButton } from "@/components/player/internals/Button";
-import { usePlayerStore } from "@/stores/player/store";
-
 import { useRef } from "react";
 
 import { Icons } from "@/components/Icon";
