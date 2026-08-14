@@ -164,7 +164,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let qualityChangeTimeout: NodeJS.Timeout | null = null; // Timeout for debouncing rapid quality changes
   let autoplayUnstickTimer: ReturnType<typeof setTimeout> | null = null;
   let autoplayInFlight = false;
-  let unmuteGestureCleanup: (() => void) | null = null;
+  /** True while muted only for autoplay policy — UI must keep showing lastVolume. */
+  let policyMuted = false;
 
   const languagePromises = new Map<
     string,
@@ -178,52 +179,42 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     return ua.includes("Mac") && "ontouchend" in document;
   }
 
-  function clearUnmuteGesture() {
-    unmuteGestureCleanup?.();
-    unmuteGestureCleanup = null;
-  }
-
-  function isPlayerChromeTarget(target: EventTarget | null): boolean {
-    if (!(target instanceof Element)) return false;
-    return Boolean(
-      target.closest(
-        "button, a, input, textarea, select, [role='button'], [data-player-chrome]",
-      ),
+  function reportVolumeToUi() {
+    if (!videoElement) return;
+    if (policyMuted) {
+      // Policy mute is not user mute — don't yank the slider to 0.
+      emit("volumechange", lastVolume);
+      return;
+    }
+    emit(
+      "volumechange",
+      videoElement.muted ? 0 : videoElement.volume,
     );
   }
 
-  function armUnmuteOnGesture() {
-    clearUnmuteGesture();
-    if (lastVolume <= 0) return;
-    const unmute = (event: Event) => {
-      if (!videoElement) return;
-      // Pause/volume/seek clicks must not yank the slider to full volume.
-      if (isPlayerChromeTarget(event.target)) return;
-      // Only unmute while actually playing — pause clicks race this listener.
-      if (videoElement.paused) return;
-      videoElement.muted = false;
-      videoElement.removeAttribute("muted");
-      videoElement.volume = lastVolume;
-      emit("volumechange", lastVolume);
-      clearUnmuteGesture();
-    };
-    window.addEventListener("pointerdown", unmute, true);
-    window.addEventListener("keydown", unmute, true);
-    unmuteGestureCleanup = () => {
-      window.removeEventListener("pointerdown", unmute, true);
-      window.removeEventListener("keydown", unmute, true);
-    };
-  }
-
   function muteForAutoplay(vid: HTMLVideoElement) {
+    policyMuted = true;
     vid.defaultMuted = true;
     vid.muted = true;
     vid.setAttribute("muted", "");
   }
 
+  function clearPolicyMute(vid: HTMLVideoElement) {
+    policyMuted = false;
+    vid.defaultMuted = false;
+    vid.muted = lastVolume <= 0;
+    if (lastVolume > 0) {
+      vid.removeAttribute("muted");
+      vid.volume = lastVolume;
+    } else {
+      vid.setAttribute("muted", "");
+    }
+  }
+
   /**
    * After async scrapes the click gesture is gone, so unmuted play is blocked.
-   * Start muted (always allowed), emit playing, then unmute when possible.
+   * Start muted (always allowed). Do NOT try to unmute here — that raced with
+   * pause clicks and spiked the volume slider. User play() unmutes with gesture.
    */
   function tryAutoplay() {
     if (!shouldAutoplayAfterLoad || !videoElement || autoplayInFlight) return;
@@ -238,9 +229,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       }
       emit("play", undefined);
       emit("loading", false);
+      reportVolumeToUi();
     };
 
-    // Keep muted through play() — setVolume/init must not unmute mid-attempt.
     muteForAutoplay(videoElement);
     const playPromise = videoElement.play();
     if (playPromise === undefined) {
@@ -251,39 +242,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     playPromise
       .then(() => {
         finishOk();
-        if (lastVolume <= 0 || !videoElement) return;
-
-        const vid = videoElement;
-        let unmuteSettled = false;
-        const keepPlayingMuted = () => {
-          if (unmuteSettled) return;
-          unmuteSettled = true;
-          vid.removeEventListener("pause", keepPlayingMuted);
-          muteForAutoplay(vid);
-          emit("volumechange", 0);
-          vid.play().catch(() => undefined);
-          armUnmuteOnGesture();
-        };
-
-        vid.addEventListener("pause", keepPlayingMuted);
-        // Unmute can pause iOS — don't let that flip the UI to "tap play".
-        suppressPlaybackEvents = true;
-        vid.muted = false;
-        vid.removeAttribute("muted");
-        vid.volume = lastVolume;
-        emit("volumechange", lastVolume);
-
-        // If unmute didn't force a pause, drop the listener shortly after.
-        window.setTimeout(() => {
-          suppressPlaybackEvents = false;
-          if (unmuteSettled) return;
-          if (vid.paused) {
-            keepPlayingMuted();
-            return;
-          }
-          unmuteSettled = true;
-          vid.removeEventListener("pause", keepPlayingMuted);
-        }, 150);
       })
       .catch((err: unknown) => {
         autoplayInFlight = false;
@@ -886,12 +844,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         emit("loading", true);
       }
     });
-    videoElement.addEventListener("volumechange", () =>
-      emit(
-        "volumechange",
-        videoElement?.muted ? 0 : (videoElement?.volume ?? 0),
-      ),
-    );
+    videoElement.addEventListener("volumechange", () => {
+      reportVolumeToUi();
+    });
     videoElement.addEventListener("timeupdate", () => {
       const currentTime = videoElement?.currentTime ?? 0;
       // Always emit time updates when seeking to prevent subtitle freezing
@@ -1074,7 +1029,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     isQualitySwitching = false;
     suppressPlaybackEvents = false;
     autoplayInFlight = false;
-    clearUnmuteGesture();
 
     teardownAudioAnalysis();
 
@@ -1089,6 +1043,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     // Reset the last valid duration and time when unloading source
     lastValidDuration = 0;
     lastValidTime = 0;
+    policyMuted = false;
   }
 
   function destroyVideoElement() {
@@ -1281,7 +1236,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       videoElement = video;
       muteForAutoplay(video);
       setSource();
-      this.setVolume(lastVolume);
+      // Sync preferred volume onto the element without clearing policy mute.
+      if (lastVolume > 0) video.volume = lastVolume;
+      reportVolumeToUi();
     },
     processContainerElement(container) {
       containerElement = container;
@@ -1291,7 +1248,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
     pause() {
       if (!videoElement) return;
-      clearUnmuteGesture();
       videoElement.pause();
       emit("pause", undefined);
     },
@@ -1303,7 +1259,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         autoplayUnstickTimer = null;
       }
       if (audioCtx?.state === "suspended") audioCtx.resume().catch(() => {});
-      clearUnmuteGesture();
       if (!videoElement) return;
 
       const vid = videoElement;
@@ -1312,45 +1267,38 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       const markPlaying = () => {
         emit("play", undefined);
         emit("loading", false);
+        reportVolumeToUi();
         initAudioAnalysis();
       };
 
-      // Restore the user's volume, then play. Keep it simple — no delayed
-      // unmute timers (those caused volume flicker and sluggish toggles).
+      // User gesture path — clear policy mute and play with their volume.
       if (wantSound) {
-        vid.muted = false;
-        vid.removeAttribute("muted");
-        vid.volume = lastVolume;
+        clearPolicyMute(vid);
       } else {
+        policyMuted = false;
         vid.muted = true;
       }
 
       const playPromise = vid.play();
       if (playPromise === undefined) {
-        emit("volumechange", wantSound ? lastVolume : 0);
         markPlaying();
         return;
       }
 
       playPromise
         .then(() => {
-          emit("volumechange", wantSound ? lastVolume : 0);
           markPlaying();
         })
         .catch(() => {
-          // Autoplay policy blocked unmuted play — fall back to muted once.
+          // Still blocked — play muted but keep the slider on lastVolume.
           muteForAutoplay(vid);
           const mutedPlay = vid.play();
           if (mutedPlay === undefined) {
-            emit("volumechange", 0);
-            if (wantSound) armUnmuteOnGesture();
             markPlaying();
             return;
           }
           mutedPlay
             .then(() => {
-              emit("volumechange", 0);
-              if (wantSound) armUnmuteOnGesture();
               markPlaying();
             })
             .catch(() => {
@@ -1400,23 +1348,28 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       volume = Math.max(0, volume);
 
       // actually set
-      lastVolume = v;
+      lastVolume = volume;
       if (!videoElement) return;
 
-      // While kicking off autoplay, stay muted so setVolume(init) can't undo it.
+      // While loading autoplay, stay muted so init setVolume can't undo it.
       if (shouldAutoplayAfterLoad && volume > 0) {
         videoElement.volume = volume;
-        videoElement.muted = true;
+        muteForAutoplay(videoElement);
         emit("volumechange", volume);
         return;
       }
 
+      // Intentional volume change (slider / mute toggle) clears policy mute.
+      policyMuted = false;
       videoElement.muted = volume === 0; // Muted attribute is always supported
+      if (volume === 0) videoElement.setAttribute("muted", "");
+      else videoElement.removeAttribute("muted");
 
       // update state
       const isChangeable = await canChangeVolume();
       if (isChangeable) {
         videoElement.volume = volume;
+        emit("volumechange", volume);
       } else {
         // For browsers where it can't be changed
         emit("volumechange", volume === 0 ? 0 : 1);
