@@ -69,11 +69,15 @@ describe("policy mute volume UI", () => {
 });
 
 /** Mirrors the autoplay branch in tryAutoplay. */
-function shouldAutoplayWithSound(opts: {
-  lastVolume: number;
-  hasBeenActive: boolean;
-}): boolean {
-  return opts.lastVolume > 0 && opts.hasBeenActive;
+function shouldAutoplayWithSound(opts: { lastVolume: number }): boolean {
+  return opts.lastVolume > 0;
+}
+
+/** Mirrors how a rejected unmuted autoplay is handled. */
+function autoplayFallback(errName: string): "retry-later" | "play-muted" {
+  return errName === "AbortError" || errName === "NotSupportedError"
+    ? "retry-later"
+    : "play-muted";
 }
 
 /** Mirrors the gate in armUnmuteOnGesture's handler. */
@@ -99,22 +103,21 @@ function shouldRecoverMutedPlayback(opts: {
 }
 
 describe("starting playback with sound", () => {
-  it("autoplays unmuted when the page still has user activation", () => {
-    expect(
-      shouldAutoplayWithSound({ lastVolume: 0.6, hasBeenActive: true }),
-    ).toBe(true);
-  });
-
-  it("autoplays muted on a cold reload with no activation", () => {
-    expect(
-      shouldAutoplayWithSound({ lastVolume: 0.6, hasBeenActive: false }),
-    ).toBe(false);
+  it("asks for sound on autoplay rather than assuming it is blocked", () => {
+    expect(shouldAutoplayWithSound({ lastVolume: 0.6 })).toBe(true);
   });
 
   it("stays muted when the viewer's volume is zero", () => {
-    expect(shouldAutoplayWithSound({ lastVolume: 0, hasBeenActive: true })).toBe(
-      false,
-    );
+    expect(shouldAutoplayWithSound({ lastVolume: 0 })).toBe(false);
+  });
+
+  it("falls back to muted playback when sound is refused", () => {
+    expect(autoplayFallback("NotAllowedError")).toBe("play-muted");
+  });
+
+  it("waits for the next ready tick instead of fighting an aborted load", () => {
+    expect(autoplayFallback("AbortError")).toBe("retry-later");
+    expect(autoplayFallback("NotSupportedError")).toBe("retry-later");
   });
 
   it("unmutes on the first real gesture after a muted autoplay", () => {

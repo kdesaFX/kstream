@@ -206,15 +206,10 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     unmuteGestureCleanup = null;
   }
 
-  function userActivation():
-    | { isActive?: boolean; hasBeenActive?: boolean }
-    | undefined {
+  function userActivation(): { isActive?: boolean } | undefined {
     if (typeof navigator === "undefined") return undefined;
-    return (
-      navigator as Navigator & {
-        userActivation?: { isActive?: boolean; hasBeenActive?: boolean };
-      }
-    ).userActivation;
+    return (navigator as Navigator & { userActivation?: { isActive?: boolean } })
+      .userActivation;
   }
 
   function clearPolicyMute(vid: HTMLVideoElement) {
@@ -228,6 +223,24 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     } else {
       vid.setAttribute("muted", "");
     }
+  }
+
+  /**
+   * Some browsers answer an unwanted unmute by pausing rather than by failing,
+   * so drop back to muted playback instead of leaving the viewer on a stalled
+   * frame. Runs on a timer because that pause lands after the unmute returns.
+   */
+  function recoverIfSoundStoppedPlayback() {
+    window.setTimeout(() => {
+      suppressPlaybackEvents = false;
+      if (!videoElement || !videoElement.paused || videoElement.ended) return;
+      // The viewer pressed pause themselves — leave it paused.
+      if (Date.now() - userPausedAt < 500) return;
+      muteForAutoplay(videoElement);
+      reportVolumeToUi();
+      videoElement.play().catch(() => undefined);
+      armUnmuteOnGesture();
+    }, 150);
   }
 
   /**
@@ -254,23 +267,11 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       }
 
       const wasPlaying = !vid.paused;
-      // Unmuting can force a pause on iOS — don't let that flip the UI to
-      // "tap to play" before we've recovered.
+      // Don't let a forced pause flip the UI to "tap to play" mid-recovery.
       suppressPlaybackEvents = wasPlaying;
       clearPolicyMute(vid);
       reportVolumeToUi();
-      if (!wasPlaying) return;
-
-      window.setTimeout(() => {
-        suppressPlaybackEvents = false;
-        if (!videoElement || !videoElement.paused || videoElement.ended) return;
-        // The gesture that unmuted us was the viewer pausing — leave it paused.
-        if (Date.now() - userPausedAt < 500) return;
-        muteForAutoplay(videoElement);
-        reportVolumeToUi();
-        videoElement.play().catch(() => undefined);
-        armUnmuteOnGesture();
-      }, 120);
+      if (wasPlaying) recoverIfSoundStoppedPlayback();
     };
 
     const events = ["pointerdown", "keydown", "touchstart"] as const;
@@ -286,15 +287,11 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       : "";
   }
 
-  /** The click that opened this title still counts — sound can start straight away. */
-  function hasStickyActivation(): boolean {
-    return userActivation()?.hasBeenActive === true;
-  }
-
   /**
    * After async scrapes the click gesture is gone, so unmuted play may be
-   * blocked. Try with sound first when the document still has user activation,
-   * otherwise start muted and unmute on the viewer's next gesture.
+   * blocked. Ask for sound anyway — browsers allow it for sites the viewer
+   * uses, and a refusal costs nothing but a rejected promise. Only fall back
+   * to muted playback (plus unmute on the next gesture) if it really is.
    */
   function tryAutoplay() {
     if (!shouldAutoplayAfterLoad || !videoElement || autoplayInFlight) return;
@@ -333,25 +330,32 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       });
     };
 
-    if (lastVolume > 0 && hasStickyActivation()) {
+    const playWithSound = () => {
       clearPolicyMute(vid);
-      const playPromise = vid.play();
-      if (playPromise === undefined) {
+      const soundPlay = vid.play();
+      if (soundPlay === undefined) {
         finishOk();
         return;
       }
-      playPromise.then(finishOk).catch((err: unknown) => {
-        const name = errorName(err);
-        if (name === "AbortError" || name === "NotSupportedError") {
-          autoplayInFlight = false;
-          return;
-        }
-        playMuted();
-      });
-      return;
-    }
+      soundPlay
+        .then(() => {
+          finishOk();
+          // A browser that dislikes the unmuted start pauses us a tick later.
+          suppressPlaybackEvents = true;
+          recoverIfSoundStoppedPlayback();
+        })
+        .catch((err: unknown) => {
+          const name = errorName(err);
+          if (name === "AbortError" || name === "NotSupportedError") {
+            autoplayInFlight = false;
+            return;
+          }
+          playMuted();
+        });
+    };
 
-    playMuted();
+    if (lastVolume > 0) playWithSound();
+    else playMuted();
   }
 
   function reportLevels() {

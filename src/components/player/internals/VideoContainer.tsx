@@ -140,7 +140,7 @@ function VideoElement() {
   }, [meta, setVolumeBoost, volumeBoost, volumeBoostApplyMode, volumeBoostByTitle]);
 
   useEffect(() => {
-    if (!videoEl.current) return;
+    if (!videoEl.current) return undefined;
     const video = videoEl.current;
 
     const existingCtx: AudioContext | undefined = (video as any).__audioCtx;
@@ -150,11 +150,11 @@ function VideoElement() {
     if (volumeBoost <= 100) {
       if (existingGain) existingGain.gain.value = 1;
       video.removeAttribute("data-boosted");
-      return;
+      return undefined;
     }
 
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
+    if (!AudioCtx) return undefined;
 
     let ctx = existingCtx;
     let gainNode = existingGain;
@@ -187,10 +187,35 @@ function VideoElement() {
       (video as any).__gainNode = gainNode;
     }
 
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
-
     if (gainNode) gainNode.gain.value = Math.max(1, volumeBoost / 100);
     video.setAttribute("data-boosted", "true");
+
+    // The element's audio now runs through this graph, so a suspended context
+    // means total silence. Autoplay can start before the page has any user
+    // activation, so keep retrying the resume until a gesture lets it through.
+    const audioContext = ctx;
+    if (audioContext.state === "running") return undefined;
+
+    let disposed = false;
+    const resume = () => {
+      if (disposed) return;
+      audioContext.resume().catch(() => {});
+    };
+    const events = ["pointerdown", "keydown", "touchstart"] as const;
+    events.forEach((name) => window.addEventListener(name, resume, true));
+    const onStateChange = () => {
+      if (audioContext.state === "running") {
+        events.forEach((name) => window.removeEventListener(name, resume, true));
+      }
+    };
+    audioContext.addEventListener("statechange", onStateChange);
+    resume();
+
+    return () => {
+      disposed = true;
+      events.forEach((name) => window.removeEventListener(name, resume, true));
+      audioContext.removeEventListener("statechange", onStateChange);
+    };
   }, [volumeBoost]);
   const trackObjectUrl = useObjectUrl(
     () => (srtData ? convertSubtitlesToObjectUrl(srtData) : null),
