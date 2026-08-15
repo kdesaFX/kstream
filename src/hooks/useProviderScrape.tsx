@@ -358,6 +358,16 @@ export function useScrape() {
         (id) => !failedSources.includes(id)
       );
 
+      // Resuming past the last source leaves nothing behind it, and an empty
+      // order makes runAll return null — which the UI reports as "we couldn't
+      // find that" even though sources ahead of the resume point were never
+      // tried. Wrap around to those instead of claiming the title is gone.
+      if (filteredSourceOrder.length === 0) {
+        filteredSourceOrder = baseSourceOrder.filter(
+          (id) => !failedSources.includes(id)
+        );
+      }
+
       // Collect failed embed IDs for this media and always exclude them.
       // (Previously only applied when custom embed order was enabled, so TQQ
       // mirrors marked bad on playback were still retried / whole source skipped.)

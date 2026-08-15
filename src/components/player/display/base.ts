@@ -12,6 +12,7 @@ import {
   DisplayInterface,
   DisplayInterfaceEvents,
 } from "@/components/player/display/displayInterface";
+import { streamStartVerdict } from "@/components/player/display/streamStartWatchdog";
 import { handleBuffered } from "@/components/player/utils/handleBuffered";
 import { getMediaErrorDetails } from "@/components/player/utils/mediaErrorDetails";
 import { SpeechCapture } from "@/components/player/utils/speechCapture";
@@ -170,6 +171,16 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let userPausedAt = 0;
   /** Set when a tap on the video turned sound on, so it can't also pause. */
   let soundUnmutedAt = 0;
+  /**
+   * Some sources scrape fine and hand back a playable-looking manifest whose
+   * media never arrives. hls.js just keeps retrying, so nothing ever failed and
+   * the spinner ran forever. Give a stream a deadline to buffer its first
+   * frames; missing it is a playback error like any other, which lets the
+   * normal recovery move on to the next source.
+   */
+  const STREAM_START_TIMEOUT_MS = 30000;
+  let streamStartTimer: ReturnType<typeof setInterval> | null = null;
+  let streamStartDeadline = 0;
 
   const languagePromises = new Map<
     string,
@@ -203,6 +214,61 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   function clearUnmuteGesture() {
     unmuteGestureCleanup?.();
     unmuteGestureCleanup = null;
+  }
+
+  function clearStreamStartWatchdog() {
+    if (streamStartTimer) {
+      clearInterval(streamStartTimer);
+      streamStartTimer = null;
+    }
+  }
+
+  function reportStreamStartTimeout(src: LoadableSource) {
+    const message = `Stream did not start playing within ${Math.round(
+      STREAM_START_TIMEOUT_MS / 1000,
+    )}s`;
+    if (src.type === "hls") {
+      emit("error", {
+        message,
+        errorName: "StreamStartTimeout",
+        type: "hls",
+        // Fatal so recovery skips this source instead of retrying it.
+        hls: {
+          details: "streamStartTimeout",
+          fatal: true,
+          type: "networkError",
+        },
+      });
+      return;
+    }
+    emit("error", {
+      message,
+      errorName: "StreamStartTimeout",
+      type: "htmlvideo",
+    });
+  }
+
+  function armStreamStartWatchdog() {
+    clearStreamStartWatchdog();
+    if (!source) return;
+    streamStartDeadline = Date.now() + STREAM_START_TIMEOUT_MS;
+    streamStartTimer = setInterval(() => {
+      const vid = videoElement;
+      const src = source;
+      if (!vid || !src) {
+        clearStreamStartWatchdog();
+        return;
+      }
+      const verdict = streamStartVerdict({
+        readyState: vid.readyState,
+        paused: vid.paused,
+        autoplayPending: shouldAutoplayAfterLoad,
+        msRemaining: streamStartDeadline - Date.now(),
+      });
+      if (verdict === "waiting") return;
+      clearStreamStartWatchdog();
+      if (verdict === "timeout") reportStreamStartTimeout(src);
+    }, 1000);
   }
 
   function userActivation(): { isActive?: boolean } | undefined {
@@ -465,6 +531,11 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       videoElement.play().catch(() => {
         emit("pause", undefined);
       });
+    } else if (shouldAutoplayAfterLoad) {
+      // Changing quality before playback ever started counts as paused, so the
+      // resume above skips it and the stream sits there. Autoplay is still
+      // owed here, so take this chance to start it.
+      tryAutoplay();
     }
     isPausedBeforeQualityChange = true;
   }
@@ -763,6 +834,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             const errMessage =
               data.error?.message || data.details || "HLS fatal error";
             if (exceptions.includes(errMessage)) return;
+            clearStreamStartWatchdog();
             emit("error", {
               message:
                 data.details === "manifestLoadError"
@@ -778,6 +850,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             });
           } else if (data.details === "manifestLoadError") {
             // Non-fatal manifest failures still break playback — surface them.
+            clearStreamStartWatchdog();
             emit("error", {
               message: "Failed to load HLS manifest",
               stackTrace: data.error?.stack || "",
@@ -909,6 +982,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     if (!videoElement || !source) return;
     if (shouldAutoplayAfterLoad) muteForAutoplay(videoElement);
     setupSource(videoElement, source);
+    // Attaching the stream is the moment its clock starts. load() is too early:
+    // processVideoElement tears the element down and re-attaches afterwards.
+    armStreamStartWatchdog();
 
     videoElement.addEventListener("play", () => {
       emit("play", undefined);
@@ -917,6 +993,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     videoElement.addEventListener("error", () => {
       const err = videoElement?.error ?? null;
       const errorDetails = getMediaErrorDetails(err);
+      clearStreamStartWatchdog();
       emit("error", {
         errorName: errorDetails.name,
         key: errorDetails.key,
@@ -1163,6 +1240,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     suppressPlaybackEvents = false;
     autoplayInFlight = false;
     clearUnmuteGesture();
+    clearStreamStartWatchdog();
 
     teardownAudioAnalysis();
 
@@ -1401,6 +1479,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       }
       if (audioCtx?.state === "suspended") audioCtx.resume().catch(() => {});
       if (!videoElement) return;
+      // Pressing play on a stream that never buffers should not spin forever.
+      if (videoElement.readyState < 3) armStreamStartWatchdog();
 
       const vid = videoElement;
       const wantSound = lastVolume > 0;
