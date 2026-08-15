@@ -13,6 +13,7 @@ import { MinimalPageLayout } from "@/pages/layouts/MinimalPageLayout";
 import {
   useNavigateOnboarding,
   useRedirectBack,
+  useSkipOnboarding,
 } from "@/pages/onboarding/onboardingHooks";
 import { Card, Link } from "@/pages/onboarding/utils";
 import { PageTitle } from "@/pages/parts/util/PageTitle";
@@ -24,15 +25,24 @@ import {
 import { getExtensionState } from "@/utils/browser/extension";
 import type { ExtensionStatus } from "@/utils/browser/extension";
 
-function RefreshBar() {
+function getBrowserName(browser: ExtensionDetectionResult): string {
+  if (browser === "firefox") return "Firefox";
+  if (browser === "chrome") return "Chrome";
+  return "your browser";
+}
+
+function RefreshBar({ browser }: { browser: ExtensionDetectionResult }) {
   const { t } = useTranslation();
   const reload = useCallback(() => {
     window.location.reload();
   }, []);
+  const browserName = getBrowserName(browser);
   return (
     <Card className="mt-4">
       <div className="flex items-center space-x-7">
-        <p className="flex-1">{t("onboarding.extension.notDetecting")}</p>
+        <p className="flex-1">
+          {t("onboarding.extension.notDetecting", { browser: browserName })}
+        </p>
         <Button theme="secondary" onClick={reload}>
           {t("onboarding.extension.notDetectingAction")}
         </Button>
@@ -44,6 +54,7 @@ function RefreshBar() {
 export function ExtensionStatus(props: {
   status: ExtensionStatus;
   loading: boolean;
+  browser: ExtensionDetectionResult;
   showHelp?: boolean;
 }) {
   const { t } = useTranslation();
@@ -97,7 +108,9 @@ export function ExtensionStatus(props: {
           {content}
         </div>
       </Card>
-      {lastKnownStatus === "unknown" ? <RefreshBar /> : null}
+      {lastKnownStatus === "unknown" ? (
+        <RefreshBar browser={props.browser} />
+      ) : null}
       {props.showHelp && props.status !== "success" ? (
         <Card className="mt-4">
           <div className="flex items-center space-x-7">
@@ -208,7 +221,12 @@ function DefaultExtensionPage(props: ExtensionPageProps) {
         </div>
       </div>
 
-      <ExtensionStatus status={props.status} loading={props.loading} showHelp />
+      <ExtensionStatus
+        status={props.status}
+        loading={props.loading}
+        browser={browser}
+        showHelp
+      />
       <Link
         href="https://github.com/xp-technologies-dev/pstream-extension"
         target="_blank"
@@ -241,6 +259,7 @@ export function OnboardingExtensionPage() {
   const { t } = useTranslation();
   const navigate = useNavigateOnboarding();
   const { completeAndRedirect } = useRedirectBack();
+  const shouldSkipOnboarding = useSkipOnboarding();
   const extensionSupport = useMemo(() => detectExtensionInstall(), []);
 
   const [{ loading, value }, exec] = useAsyncFn(
@@ -252,6 +271,8 @@ export function OnboardingExtensionPage() {
     [completeAndRedirect],
   );
   useInterval(exec, 1000);
+
+  if (shouldSkipOnboarding) return null;
 
   const componentMap: Record<
     ExtensionDetectionResult,

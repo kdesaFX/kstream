@@ -181,7 +181,7 @@
       "extensionHelp": "If ye've installed the extension but 'tisn't detected, <bold>open the extension through yer browsers extension menu</bold> 'n follow the steps on screen.",
       "linkChrome": "Install Chrome extension",
       "linkFirefox": "Install Firefox extension",
-      "notDetecting": "Installed on Chrome, but the site ain't detecting it? Give the page a good reload!",
+      "notDetecting": "Installed on {{browser}}, but the site ain't detecting it? Give the page a good reload!",
       "notDetectingAction": "Reload page",
       "status": {
         "disallowed": "Extension ain't enabled fer this page",

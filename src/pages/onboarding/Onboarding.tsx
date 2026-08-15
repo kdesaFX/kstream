@@ -1,5 +1,4 @@
 import { Trans, useTranslation } from "react-i18next";
-import { useEffect } from "react";
 
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
 import { Button } from "@/components/buttons/Button";
@@ -13,6 +12,7 @@ import {
   ModalCard,
   useModal,
 } from "@/components/overlays/Modal";
+import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { Divider } from "@/components/utils/Divider";
 import { Ol } from "@/components/utils/Ol";
 import {
@@ -25,6 +25,7 @@ import { MinimalPageLayout } from "@/pages/layouts/MinimalPageLayout";
 import {
   useNavigateOnboarding,
   useRedirectBack,
+  useSkipOnboarding,
 } from "@/pages/onboarding/onboardingHooks";
 import {
   Card,
@@ -35,7 +36,6 @@ import {
 import { PageTitle } from "@/pages/parts/util/PageTitle";
 import { conf } from "@/setup/config";
 import { usePreferencesStore } from "@/stores/preferences";
-import { isMobileOnboardingClient } from "@/utils/hosting/onboarding";
 import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 
 import { DebridEdit, FebboxSetup } from "../parts/settings/ConnectionsPart";
@@ -53,7 +53,9 @@ export function OnboardingPage() {
   const navigate = useNavigateOnboarding();
   const skipModal = useModal("skip");
   const infoModal = useModal("info");
+  const { openDownloadModal } = useDownloadModal();
   const { completeAndRedirect } = useRedirectBack();
+  const shouldSkipOnboarding = useSkipOnboarding();
   const { t } = useTranslation();
   const noProxies = getProxyUrls().length === 0;
 
@@ -65,12 +67,7 @@ export function OnboardingPage() {
   const setdebridService = usePreferencesStore((s) => s.setdebridService);
   const isFebboxSetup = febboxKey !== "";
 
-  // Mobile can't install the extension — finish with default setup immediately.
-  useEffect(() => {
-    if (isMobileOnboardingClient()) completeAndRedirect();
-  }, [completeAndRedirect]);
-
-  if (isMobileOnboardingClient()) return null;
+  if (shouldSkipOnboarding) return null;
 
   return (
     <MinimalPageLayout>
@@ -195,9 +192,21 @@ export function OnboardingPage() {
 
         {/* Desktop Cards */}
         <div className="hidden md:flex w-full flex-row gap-3 pb-6">
+          <Card onClick={openDownloadModal} className="min-w-0 flex-1">
+            <CardContent
+              colorClass="!text-onboarding-best"
+              title={t("onboarding.start.options.desktopapp.title")}
+              subtitle={t("onboarding.start.options.desktopapp.quality")}
+              description={t("onboarding.start.options.desktopapp.description")}
+            >
+              <Link className="!text-onboarding-best">
+                {t("onboarding.start.options.desktopapp.action")}
+              </Link>
+            </CardContent>
+          </Card>
           <Card
             onClick={() => navigate("/onboarding/extension")}
-            className="w-1/3"
+            className="min-w-0 flex-1"
           >
             <CardContent
               colorClass="!text-onboarding-good"
@@ -223,7 +232,7 @@ export function OnboardingPage() {
                 ? () => completeAndRedirect()
                 : skipModal.show
             }
-            className="w-1/3"
+            className="min-w-0 flex-1"
           >
             <CardContent
               colorClass="!text-onboarding-bad"
