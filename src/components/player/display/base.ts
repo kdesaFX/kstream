@@ -144,6 +144,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let suppressPlaybackEvents = false;
   let qualitySwitchCleanup: (() => void) | null = null;
   let qualityClimbCleanup: (() => void) | null = null;
+  /** Aborts the media element listeners belonging to the attached stream. */
+  let mediaListeners: AbortController | null = null;
   let startAt = 0;
   let automaticQuality = false;
   let preferenceQuality: SourceQuality | null = null;
@@ -996,16 +998,27 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   function setSource() {
     if (!videoElement || !source) return;
     if (shouldAutoplayAfterLoad) muteForAutoplay(videoElement);
+
+    // Scope the listeners to this stream. Swapping source reuses the same
+    // element, so without a signal every switch stacks another full set and
+    // the dead stream's handlers keep emitting over the live one.
+    mediaListeners?.abort();
+    mediaListeners = new AbortController();
+    const { signal } = mediaListeners;
+    const element = videoElement;
+    const onMedia = (type: string, handler: EventListener) =>
+      element.addEventListener(type, handler, { signal });
+
     setupSource(videoElement, source);
     // Attaching the stream is the moment its clock starts. load() is too early:
     // processVideoElement tears the element down and re-attaches afterwards.
     armStreamStartWatchdog();
 
-    videoElement.addEventListener("play", () => {
+    onMedia("play", () => {
       emit("play", undefined);
       emit("loading", false);
     });
-    videoElement.addEventListener("error", () => {
+    onMedia("error", () => {
       const err = videoElement?.error ?? null;
       const errorDetails = getMediaErrorDetails(err);
       clearStreamStartWatchdog();
@@ -1015,16 +1028,16 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         type: "htmlvideo",
       });
     });
-    videoElement.addEventListener("playing", () => {
+    onMedia("playing", () => {
       emit("play", undefined);
       initAudioAnalysis();
       reportQualityFromVideoElement();
     });
-    videoElement.addEventListener("pause", () => {
+    onMedia("pause", () => {
       if (suppressPlaybackEvents) return;
       emit("pause", undefined);
     });
-    videoElement.addEventListener("loadedmetadata", () => {
+    onMedia("loadedmetadata", () => {
       if (
         source?.type === "hls" &&
         videoElement &&
@@ -1055,7 +1068,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       // Native HLS on iOS may not fire canplay until play() — try early.
       tryAutoplay();
     });
-    videoElement.addEventListener("canplay", () => {
+    onMedia("canplay", () => {
       reportQualityFromVideoElement();
       tryAutoplay();
       // Keep the spinner while muted autoplay is still pending — clearing
@@ -1064,17 +1077,17 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         emit("loading", false);
       }
     });
-    videoElement.addEventListener("waiting", () => {
+    onMedia("waiting", () => {
       // Don't treat pre-play buffering as a stuck loading state — that hid the
       // play button when autoplay was blocked by the browser.
       if (videoElement && !videoElement.paused) {
         emit("loading", true);
       }
     });
-    videoElement.addEventListener("volumechange", () => {
+    onMedia("volumechange", () => {
       reportVolumeToUi();
     });
-    videoElement.addEventListener("timeupdate", () => {
+    onMedia("timeupdate", () => {
       const currentTime = videoElement?.currentTime ?? 0;
       // Always emit time updates when seeking to prevent subtitle freezing
       // Also emit when progressing forward or when time changes significantly
@@ -1088,10 +1101,10 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         emit("time", currentTime);
       }
     });
-    videoElement.addEventListener("resize", () => {
+    onMedia("resize", () => {
       reportQualityFromVideoElement();
     });
-    videoElement.addEventListener("progress", () => {
+    onMedia("progress", () => {
       if (videoElement) {
         const bufferedTime = handleBuffered(
           videoElement.currentTime,
@@ -1125,20 +1138,17 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         }
       }
     });
-    videoElement.addEventListener("webkitendfullscreen", () => {
+    onMedia("webkitendfullscreen", () => {
       isFullscreen = false;
       emit("fullscreen", isFullscreen);
       if (!isFullscreen) emit("needstrack", false);
     });
-    videoElement.addEventListener(
-      "webkitpresentationmodechanged",
-      webkitPresentationModeChange,
-    );
-    videoElement.addEventListener("ratechange", () => {
+    onMedia("webkitpresentationmodechanged", webkitPresentationModeChange);
+    onMedia("ratechange", () => {
       if (videoElement) emit("playbackrate", videoElement.playbackRate);
     });
 
-    videoElement.addEventListener("durationchange", () => {
+    onMedia("durationchange", () => {
       // Only emit duration if it's a valid value (> 0) to prevent progress reset during source switches
       const duration = videoElement?.duration ?? 0;
       if (duration > 0) {
@@ -1242,7 +1252,13 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     }
   }
 
-  function unloadSource() {
+  /**
+   * Release the stream currently attached to the element. setupSource() only
+   * reassigns `hls`, so without destroying first the previous instance stays
+   * alive on the same element: both drive a media source, and the picture stops
+   * while the surviving audio buffer plays on.
+   */
+  function detachCurrentStream() {
     // Clear any pending quality change timeout
     if (qualityChangeTimeout) {
       clearTimeout(qualityChangeTimeout);
@@ -1252,20 +1268,29 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     qualitySwitchCleanup?.();
     qualitySwitchCleanup = null;
     isQualitySwitching = false;
+    clearStreamStartWatchdog();
+    mediaListeners?.abort();
+    mediaListeners = null;
+
+    // The analyser reads a captureStream() off the element, which dies with the
+    // old stream. Dropping it lets `playing` rebuild one for the new source.
+    teardownAudioAnalysis();
+
+    if (hls) {
+      hls.destroy();
+      hls = null;
+    }
+  }
+
+  function unloadSource() {
+    detachCurrentStream();
     suppressPlaybackEvents = false;
     autoplayInFlight = false;
     clearUnmuteGesture();
-    clearStreamStartWatchdog();
-
-    teardownAudioAnalysis();
 
     if (videoElement) {
       videoElement.removeAttribute("src");
       videoElement.load();
-    }
-    if (hls) {
-      hls.destroy();
-      hls = null;
     }
     // Reset the last valid duration and time when unloading source
     lastValidDuration = 0;
@@ -1364,7 +1389,10 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         }
       }
 
-      if (!ops.source) unloadSource();
+      // Swapping to another stream still has to release the old one; keep the
+      // duration/time/mute state so the UI doesn't flicker back to zero.
+      if (ops.source) detachCurrentStream();
+      else unloadSource();
       automaticQuality = ops.automaticQuality;
       preferenceQuality = ops.preferredQuality;
       lastInferredQuality = null;
