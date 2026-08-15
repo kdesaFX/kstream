@@ -42,8 +42,10 @@ export function QualityView({ id }: { id: string }) {
   const isIosHls = useIsIosHls();
   const sourceType = usePlayerStore((s) => s.source?.type);
   const availableQualities = usePlayerStore((s) => s.qualities);
+  const alternateQualityOptions = usePlayerStore((s) => s.qualityStreamOptions);
   const currentQuality = usePlayerStore((s) => s.currentQuality);
   const switchQuality = usePlayerStore((s) => s.switchQuality);
+  const switchQualityStream = usePlayerStore((s) => s.switchQualityStream);
   const enableAutomaticQuality = usePlayerStore(
     (s) => s.enableAutomaticQuality,
   );
@@ -52,17 +54,38 @@ export function QualityView({ id }: { id: string }) {
   const autoQuality = useQualityStore((s) => s.quality.automaticQuality);
   const lastChosenQuality = useQualityStore((s) => s.quality.lastChosenQuality);
 
+  const selectableQualities = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...availableQualities,
+          ...alternateQualityOptions.map((option) => option.quality),
+        ]),
+      ),
+    [availableQualities, alternateQualityOptions],
+  );
 
   const supportsAutoQuality = sourceType === "hls";
 
   const change = useCallback(
     (q: SourceQuality) => {
+      setAutomaticQuality(false);
       setLastChosenQuality(q);
-    
-      switchQuality(q);
+      if (availableQualities.includes(q)) {
+        switchQuality(q);
+      } else {
+        switchQualityStream(q);
+      }
       router.close();
     },
-    [router, switchQuality, setLastChosenQuality],
+    [
+      availableQualities,
+      router,
+      setAutomaticQuality,
+      setLastChosenQuality,
+      switchQuality,
+      switchQualityStream,
+    ],
   );
 
   const changeAutomatic = useCallback(() => {
@@ -72,9 +95,11 @@ export function QualityView({ id }: { id: string }) {
       enableAutomaticQuality();
       return;
     }
- 
+
     const target =
-      (currentQuality && currentQuality !== "unknown" ? currentQuality : null) ??
+      (currentQuality && currentQuality !== "unknown"
+        ? currentQuality
+        : null) ??
       lastChosenQuality ??
       availableQualities[0] ??
       null;
@@ -95,7 +120,7 @@ export function QualityView({ id }: { id: string }) {
 
   const visibleQualities = allQualities.filter((quality) => {
     if (alwaysVisibleQualities[quality]) return true;
-    if (availableQualities.includes(quality)) return true;
+    if (selectableQualities.includes(quality)) return true;
     return false;
   });
 
@@ -110,9 +135,9 @@ export function QualityView({ id }: { id: string }) {
             key={v}
             selected={v === currentQuality}
             onClick={
-              availableQualities.includes(v) ? () => change(v) : undefined
+              selectableQualities.includes(v) ? () => change(v) : undefined
             }
-            disabled={!availableQualities.includes(v)}
+            disabled={!selectableQualities.includes(v)}
           >
             {qualityToString(v)}
           </SelectableLink>

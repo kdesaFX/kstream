@@ -15,16 +15,14 @@ import { getProviders } from "@/backend/providers/providers";
 import { convertProviderCaption } from "@/components/player/utils/captions";
 import { convertRunoutputToSource } from "@/components/player/utils/convertRunoutputToSource";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
-import {
-  getMediaKey,
-  metaToScrapeMedia,
-} from "@/stores/player/slices/source";
+import { getMediaKey, metaToScrapeMedia } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import {
   pickPreferredAudioStream,
   streamsToAudioOptions,
 } from "@/stores/player/utils/audioStreams";
 import { discoverAlternateAudioLanguages } from "@/stores/player/utils/discoverAlternateAudio";
+import { streamsToQualityOptions } from "@/stores/player/utils/qualityStreams";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
 
@@ -50,6 +48,20 @@ function startAlternateAudioDiscovery(sourceId: string) {
     media: metaToScrapeMedia(store.meta),
     mediaKey,
     skipSourceId: sourceId,
+  });
+}
+
+function registerCurrentQualityOptions(
+  streams: Parameters<typeof streamsToQualityOptions>[0],
+  sourceId: string,
+  embedId?: string | null,
+) {
+  const mediaKey = getMediaKey(usePlayerStore.getState().meta);
+  if (!mediaKey) return;
+  void streamsToQualityOptions(streams, sourceId, embedId).then((options) => {
+    const store = usePlayerStore.getState();
+    if (getMediaKey(store.meta) !== mediaKey) return;
+    store.registerQualityStreamOptions(options);
   });
 }
 
@@ -116,6 +128,7 @@ export function useEmbedScraping(
       .registerAudioStreamOptions(
         streamsToAudioOptions(result.stream, sourceId, embedId),
       );
+    registerCurrentQualityOptions(result.stream, sourceId, embedId);
     setSource(
       convertRunoutputToSource({ stream: selectedStream }),
       convertProviderCaption(selectedStream.captions),
@@ -203,6 +216,7 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
         .registerAudioStreamOptions(
           streamsToAudioOptions(result.stream, sourceId, null),
         );
+      registerCurrentQualityOptions(result.stream, sourceId, null);
       setSource(
         convertRunoutputToSource({ stream: selectedStream }),
         convertProviderCaption(selectedStream.captions),
@@ -266,6 +280,11 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
             result.embeds[0].embedId,
           ),
         );
+      registerCurrentQualityOptions(
+        embedResult.stream,
+        sourceId,
+        result.embeds[0].embedId,
+      );
       setSource(
         convertRunoutputToSource({ stream: selectedStream }),
         convertProviderCaption(selectedStream.captions),

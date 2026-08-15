@@ -29,13 +29,18 @@ import { ScrapingPart } from "@/pages/parts/player/ScrapingPart";
 import { SourceSelectPart } from "@/pages/parts/player/SourceSelectPart";
 import { createPlaybackRetryBudget } from "@/pages/player/playbackRetryBudget";
 import { useLastNonPlayerLink } from "@/stores/history";
-import { PlayerMeta, getMediaKey, playerStatus } from "@/stores/player/slices/source";
+import {
+  PlayerMeta,
+  getMediaKey,
+  playerStatus,
+} from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import {
   pickPreferredAudioStream,
   streamsToAudioOptions,
 } from "@/stores/player/utils/audioStreams";
 import { discoverAlternateAudioLanguages } from "@/stores/player/utils/discoverAlternateAudio";
+import { streamsToQualityOptions } from "@/stores/player/utils/qualityStreams";
 import { usePreferencesStore } from "@/stores/preferences";
 import { getProgressPercentage, useProgressStore } from "@/stores/progress";
 import { needsOnboarding } from "@/utils/hosting/onboarding";
@@ -53,6 +58,20 @@ function startAlternateAudioDiscovery(
     media,
     mediaKey,
     skipSourceId: sourceId,
+  });
+}
+
+function registerCurrentQualityOptions(
+  streams: NonNullable<RunOutput["streams"]>,
+  sourceId: string,
+  embedId?: string | null,
+) {
+  const mediaKey = getMediaKey(usePlayerStore.getState().meta);
+  if (!mediaKey) return;
+  void streamsToQualityOptions(streams, sourceId, embedId).then((options) => {
+    const store = usePlayerStore.getState();
+    if (getMediaKey(store.meta) !== mediaKey) return;
+    store.registerQualityStreamOptions(options);
   });
 }
 
@@ -255,24 +274,26 @@ export function RealPlayerView() {
       let startAt: number | undefined;
       if (startAtParam) startAt = parseTimestamp(startAtParam) ?? undefined;
 
-      const availableStreams = out.streams?.length
-        ? out.streams
-        : [out.stream];
+      const availableStreams = out.streams?.length ? out.streams : [out.stream];
       const selectedStream = pickPreferredAudioStream(
         availableStreams,
         preferredAudioLanguage,
         out.stream,
       );
 
-      if (
-        isExtensionActiveCached() &&
-        selectedStream !== out.stream
-      ) {
+      if (isExtensionActiveCached() && selectedStream !== out.stream) {
         await prepareStream(selectedStream);
       }
 
-      usePlayerStore.getState().registerAudioStreamOptions(
-        streamsToAudioOptions(availableStreams, out.sourceId, out.embedId),
+      usePlayerStore
+        .getState()
+        .registerAudioStreamOptions(
+          streamsToAudioOptions(availableStreams, out.sourceId, out.embedId),
+        );
+      registerCurrentQualityOptions(
+        availableStreams,
+        out.sourceId,
+        out.embedId,
       );
 
       playMedia(

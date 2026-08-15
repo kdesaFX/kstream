@@ -3,12 +3,10 @@ import { ScrapeMedia, Stream } from "@p-stream/providers";
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
 import { prepareStream } from "@/backend/extension/streams";
 import { getProviders } from "@/backend/providers/providers";
-import {
-  getMediaKey,
-  playerStatus,
-} from "@/stores/player/slices/source";
+import { getMediaKey, playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { streamsToAudioOptions } from "@/stores/player/utils/audioStreams";
+import { streamsToQualityOptions } from "@/stores/player/utils/qualityStreams";
 
 const DEFAULT_MAX_SOURCE_ATTEMPTS = 5;
 /** Let the primary stream buffer before burning bandwidth on alt audio. */
@@ -25,6 +23,27 @@ const SPANISH_LEANING_SOURCES = new Set([
 function haveEnoughLanguages(languages: Set<string>): boolean {
   if (languages.has("en") && languages.has("es")) return true;
   return languages.size >= 2;
+}
+
+function currentQualities(): Set<string> {
+  const store = usePlayerStore.getState();
+  return new Set([
+    ...store.qualities,
+    ...store.qualityStreamOptions.map((option) => option.quality),
+  ]);
+}
+
+function haveEnoughQualities(qualities: Set<string>): boolean {
+  return ["360", "480", "720", "1080", "4k"].every((quality) =>
+    qualities.has(quality),
+  );
+}
+
+function haveEnoughAlternates(): boolean {
+  return (
+    haveEnoughLanguages(currentLanguages()) &&
+    haveEnoughQualities(currentQualities())
+  );
 }
 
 function currentLanguages(): Set<string> {
@@ -55,20 +74,20 @@ function orderCandidates(sourceIds: string[], have: Set<string>): string[] {
   return [...prefer, ...rest];
 }
 
-async function registerTaggedStreams(
+async function registerStreams(
   streams: Stream[],
   sourceId: string,
   embedId: string | null,
   have: Set<string>,
+  mediaKey: string,
 ): Promise<Set<string>> {
   const missing = streams.filter((stream) => {
     const lang = stream.audioLanguage?.trim();
     return lang && !have.has(lang);
   });
-  if (!missing.length) return have;
-
-  // One prepareStream call is enough for extension proxy warmup
-  if (isExtensionActiveCached()) {
+  // One prepareStream call is enough for extension proxy warmup when an
+  // alternate audio stream needs registering.
+  if (missing.length && isExtensionActiveCached()) {
     try {
       await prepareStream(missing[0]);
     } catch {
@@ -76,18 +95,26 @@ async function registerTaggedStreams(
     }
   }
 
-  usePlayerStore
-    .getState()
-    .registerAudioStreamOptions(
+  const store = usePlayerStore.getState();
+  if (missing.length) {
+    store.registerAudioStreamOptions(
       streamsToAudioOptions(missing, sourceId, embedId),
     );
+  }
+  const qualityOptions = await streamsToQualityOptions(
+    streams,
+    sourceId,
+    embedId,
+  );
+  if (!stillSameMedia(mediaKey)) return have;
+  usePlayerStore.getState().registerQualityStreamOptions(qualityOptions);
 
   return currentLanguages();
 }
 
 /**
  * After primary playback starts, quietly scrape other sources for streams that
- * expose a different audioLanguage (e.g. English while watching Spanish).
+ * expose a different audioLanguage or additional quality tiers.
  * Non-blocking; aborts if the user leaves the title.
  */
 export async function discoverAlternateAudioLanguages(opts: {
@@ -116,12 +143,12 @@ export async function discoverAlternateAudioLanguages(opts: {
 
   let attempts = 0;
   let have = currentLanguages();
-  if (haveEnoughLanguages(have)) return;
+  if (haveEnoughAlternates()) return;
 
   for (const sourceId of candidates) {
     if (attempts >= maxAttempts) break;
     if (!stillSameMedia(opts.mediaKey)) return;
-    if (haveEnoughLanguages(have)) return;
+    if (haveEnoughAlternates()) return;
 
     attempts += 1;
 
@@ -133,16 +160,17 @@ export async function discoverAlternateAudioLanguages(opts: {
       if (!stillSameMedia(opts.mediaKey)) return;
 
       if (result.stream?.length) {
-        have = await registerTaggedStreams(
+        have = await registerStreams(
           result.stream,
           sourceId,
           null,
           have,
+          opts.mediaKey,
         );
       } else {
         for (const embed of result.embeds ?? []) {
           if (!stillSameMedia(opts.mediaKey)) return;
-          if (haveEnoughLanguages(have)) return;
+          if (haveEnoughAlternates()) return;
 
           try {
             const embedResult = await providers.runEmbedScraper({
@@ -150,11 +178,12 @@ export async function discoverAlternateAudioLanguages(opts: {
               url: embed.url,
             });
             if (!stillSameMedia(opts.mediaKey)) return;
-            have = await registerTaggedStreams(
+            have = await registerStreams(
               embedResult.stream,
               sourceId,
               embed.embedId,
               have,
+              opts.mediaKey,
             );
           } catch {
             // try next embed
@@ -166,7 +195,7 @@ export async function discoverAlternateAudioLanguages(opts: {
     }
 
     if (!stillSameMedia(opts.mediaKey)) return;
-    if (haveEnoughLanguages(have)) return;
+    if (haveEnoughAlternates()) return;
     await new Promise<void>((resolve) => {
       window.setTimeout(resolve, BETWEEN_SOURCE_YIELD_MS);
     });

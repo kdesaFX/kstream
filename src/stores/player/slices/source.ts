@@ -17,6 +17,8 @@ import {
   SourceSliceSource,
   selectQuality,
 } from "@/stores/player/utils/qualities";
+import { mergeQualityStreamOptions } from "@/stores/player/utils/qualityStreams";
+import type { QualityStreamOption } from "@/stores/player/utils/qualityStreams";
 import { useQualityStore } from "@/stores/quality";
 import { usePreferencesStore } from "@/stores/preferences";
 import googletranslate from "@/utils/translation/googletranslate";
@@ -121,6 +123,8 @@ export interface SourceSlice {
   audioTracks: AudioTrack[];
   /** Cross-source / multi-stream audio languages available for this title. */
   audioStreamOptions: AudioStreamOption[];
+  /** Quality tiers found on the current and alternate sources. */
+  qualityStreamOptions: QualityStreamOption[];
   currentQuality: SourceQuality | null;
   currentAudioTrack: AudioTrack | null;
   /** Currently selected cross-stream audio option id, if any. */
@@ -170,6 +174,9 @@ export interface SourceSlice {
   registerAudioStreamOptions(options: AudioStreamOption[]): void;
   clearAudioStreamOptions(): void;
   switchAudioStream(optionId: string): void;
+  registerQualityStreamOptions(options: QualityStreamOption[]): void;
+  clearQualityStreamOptions(): void;
+  switchQualityStream(quality: SourceQuality): void;
   /** Switch HLS in-manifest audio; clears cross-source stream selection. */
   selectHlsAudioTrack(track: AudioTrack): void;
   reset(): void;
@@ -247,6 +254,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   qualities: [],
   audioTracks: [],
   audioStreamOptions: [],
+  qualityStreamOptions: [],
   captionList: [],
   isLoadingExternalSubtitles: false,
   externalSubtitlesMediaKey: null,
@@ -296,6 +304,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       // Fresh audio options whenever the watched media/episode changes
       if (!oldMediaKey || (newMediaKey && oldMediaKey !== newMediaKey)) {
         s.audioStreamOptions = [];
+        s.qualityStreamOptions = [];
         s.currentAudioStreamId = null;
         s.externalSubtitlesMediaKey = null;
         s.externalCaptionList = [];
@@ -568,6 +577,37 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     usePreferencesStore.getState().setPreferredAudioLanguage(option.language);
     store.setSource(option.source, option.captions, startAt);
   },
+  registerQualityStreamOptions(options) {
+    if (!options.length) return;
+    set((s) => {
+      s.qualityStreamOptions = mergeQualityStreamOptions(
+        s.qualityStreamOptions,
+        options,
+      );
+    });
+  },
+  clearQualityStreamOptions() {
+    set((s) => {
+      s.qualityStreamOptions = [];
+    });
+  },
+  switchQualityStream(quality) {
+    const store = get();
+    const option = store.qualityStreamOptions.find(
+      (candidate) => candidate.quality === quality,
+    );
+    if (!option) return;
+
+    const startAt = store.progress.time;
+    useQualityStore.getState().setAutomaticQuality(false);
+    useQualityStore.getState().setLastChosenQuality(quality);
+    set((s) => {
+      s.sourceId = option.sourceId;
+      s.embedId = option.embedId ?? null;
+      s.currentAudioStreamId = null;
+    });
+    store.setSource(option.source, option.captions, startAt);
+  },
   selectHlsAudioTrack(track) {
     const store = get();
     // Cross-source option is no longer the active choice — otherwise the menu
@@ -590,6 +630,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.qualities = [];
       s.audioTracks = [];
       s.audioStreamOptions = [];
+      s.qualityStreamOptions = [];
       s.captionList = [];
       s.isLoadingExternalSubtitles = false;
       s.externalSubtitlesMediaKey = null;
