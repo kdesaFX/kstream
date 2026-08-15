@@ -2,10 +2,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  firstNonEmptyQualities,
   mergeQualityStreamOptions,
   parseHlsQualities,
   QualityStreamOption,
 } from "@/stores/player/utils/qualityStreams";
+import type { SourceQuality } from "@/stores/player/utils/qualities";
 
 function option(
   quality: QualityStreamOption["quality"],
@@ -47,6 +49,46 @@ avc.m3u8
 hevc.m3u8`;
 
     expect(parseHlsQualities(playlist)).toEqual(["1080"]);
+  });
+});
+
+function later<T>(value: T, ms: number): Promise<T> {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(value), ms);
+  });
+}
+
+describe("firstNonEmptyQualities", () => {
+  it("answers as soon as one read has tiers, without waiting for the slow one", async () => {
+    const slow = later<SourceQuality[]>(["1080"], 5_000);
+
+    await expect(
+      firstNonEmptyQualities([later<SourceQuality[]>(["480"], 0), slow]),
+    ).resolves.toEqual(["480"]);
+  });
+
+  it("waits out an empty read for one that still might answer", async () => {
+    await expect(
+      firstNonEmptyQualities([
+        Promise.resolve([]),
+        later<SourceQuality[]>(["720"], 10),
+      ]),
+    ).resolves.toEqual(["720"]);
+  });
+
+  it("gives up only once every read came back empty", async () => {
+    await expect(
+      firstNonEmptyQualities([Promise.resolve([]), Promise.resolve([])]),
+    ).resolves.toEqual([]);
+  });
+
+  it("treats a rejected read as empty rather than failing the probe", async () => {
+    await expect(
+      firstNonEmptyQualities([
+        Promise.reject(new Error("cors")),
+        later<SourceQuality[]>(["360"], 0),
+      ]),
+    ).resolves.toEqual(["360"]);
   });
 });
 

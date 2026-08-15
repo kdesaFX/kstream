@@ -15,10 +15,12 @@ import type {
 } from "@/stores/player/utils/qualities";
 
 /**
- * A master playlist is a few KB of text. Waiting longer than this just delays
- * the quality list, since a slow answer means a proxy retry anyway.
+ * A safety net, not a latency control. The playlist is a few KB, but the CORS
+ * proxy has to fetch it from a cold origin first, which regularly takes several
+ * seconds — a tight budget here means no alternate qualities at all. Latency
+ * comes from racing the reads below instead.
  */
-const HLS_PROBE_TIMEOUT_MS = 4_000;
+const HLS_PROBE_TIMEOUT_MS = 10_000;
 
 export type QualityStreamOption = {
   id: string;
@@ -70,32 +72,62 @@ async function fetchHlsQualities(url: string): Promise<SourceQuality[]> {
   }
 }
 
+/**
+ * Settle on the first read that actually returned tiers rather than waiting for
+ * all of them, so one slow route can't hold up an answer another already has.
+ */
+export function firstNonEmptyQualities(
+  reads: Promise<SourceQuality[]>[],
+): Promise<SourceQuality[]> {
+  if (!reads.length) return Promise.resolve([]);
+  return new Promise((resolve) => {
+    let outstanding = reads.length;
+    let settled = false;
+    const give = (qualities: SourceQuality[]) => {
+      if (settled) return;
+      if (qualities.length) {
+        settled = true;
+        resolve(qualities);
+        return;
+      }
+      outstanding -= 1;
+      if (outstanding === 0) resolve([]);
+    };
+    for (const read of reads) read.then(give, () => give([]));
+  });
+}
+
 async function probeHlsQualities(
   source: SourceSliceSource,
 ): Promise<SourceQuality[]> {
   if (source.type !== "hls") return [];
 
-  const directQualities = await fetchHlsQualities(source.url);
-  if (directQualities.length || isUrlAlreadyProxied(source.url)) {
-    return directQualities;
-  }
+  const reads = [fetchHlsQualities(source.url)];
 
   // Extension-only streams can reject a normal page fetch even though the
-  // player loads them with injected headers. Probe through the configured
-  // proxy without replacing the active stream's extension rule.
-  try {
-    const proxyUrl = createM3U8ProxyUrl(
-      source.url,
-      {
-        ...(source.preferredHeaders ?? {}),
-        ...(source.headers ?? {}),
-      },
-      { requireProxy: true },
-    );
-    return fetchHlsQualities(proxyUrl);
-  } catch {
-    return [];
+  // player loads them with injected headers. Read through the configured proxy
+  // alongside the direct attempt rather than after it — running these in
+  // sequence meant a stream had to clear two timeouts before giving up.
+  if (!isUrlAlreadyProxied(source.url)) {
+    try {
+      reads.push(
+        fetchHlsQualities(
+          createM3U8ProxyUrl(
+            source.url,
+            {
+              ...(source.preferredHeaders ?? {}),
+              ...(source.headers ?? {}),
+            },
+            { requireProxy: true },
+          ),
+        ),
+      );
+    } catch {
+      // No proxy configured — the direct read is all this environment has.
+    }
   }
+
+  return firstNonEmptyQualities(reads);
 }
 
 async function streamQualities(
