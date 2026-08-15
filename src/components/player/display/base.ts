@@ -12,6 +12,7 @@ import {
   DisplayInterface,
   DisplayInterfaceEvents,
 } from "@/components/player/display/displayInterface";
+import { shouldClimbQuality } from "@/components/player/display/qualityClimb";
 import { streamStartVerdict } from "@/components/player/display/streamStartWatchdog";
 import { handleBuffered } from "@/components/player/utils/handleBuffered";
 import { getMediaErrorDetails } from "@/components/player/utils/mediaErrorDetails";
@@ -612,8 +613,16 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       const bufferedAhead =
         videoElement.buffered.end(videoElement.buffered.length - 1) -
         videoElement.currentTime;
-      // Overlap: keep ~4s of 720 playing while 1080 fragments load ahead.
-      if (bufferedAhead < 4) return;
+      // Stay put while the connection cannot feed the higher rung. The listener
+      // is still attached, so we climb later if throughput recovers.
+      if (
+        !shouldClimbQuality({
+          bufferedAhead,
+          bandwidthEstimate: hlsRef.bandwidthEstimate,
+          targetBitrate: capLevel.bitrate,
+        })
+      )
+        return;
 
       hlsRef.off(Hls.Events.FRAG_BUFFERED, onFragBuffered);
       // nextLevel only affects upcoming downloads — no freeze, no seek.
