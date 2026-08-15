@@ -1,4 +1,4 @@
-import { ReactElement, Suspense, lazy, useEffect, useState } from "react";
+import { ReactElement, Suspense, useEffect, useState } from "react";
 import { lazyWithPreload } from "react-lazy-with-preload";
 import {
   Navigate,
@@ -30,7 +30,6 @@ import { AboutPage } from "@/pages/About";
 import { AppsPage } from "@/pages/Apps";
 import { AdminPage } from "@/pages/admin/AdminPage";
 import { AllBookmarks } from "@/pages/bookmarks/AllBookmarks";
-import VideoTesterView from "@/pages/developer/VideoTesterView";
 import MaintenancePage from "@/pages/errors/MaintenancePage";
 import { NotFoundPage } from "@/pages/errors/NotFoundPage";
 import { HomePage } from "@/pages/HomePage";
@@ -58,8 +57,6 @@ import { useClearModalsOnNavigation } from "@/stores/interface/overlayStack";
 import { LanguageProvider } from "@/stores/language";
 import { conf } from "@/setup/config";
 
-const DeveloperPage = lazy(() => import("@/pages/DeveloperPage"));
-const TestView = lazy(() => import("@/pages/developer/TestView"));
 const PlayerView = lazyWithPreload(() => import("@/pages/PlayerView"));
 const SettingsPage = lazyWithPreload(() => import("@/pages/Settings"));
 
@@ -273,13 +270,6 @@ function App() {
           />
           {/* admin routes */}
           <Route path="/admin" element={<AdminPage />} />
-          {/* other */}
-          <Route path="/dev" element={<DeveloperPage />} />
-          <Route path="/dev/video" element={<VideoTesterView />} />
-          {/* developer routes that can abuse workers are disabled in production */}
-          {process.env.NODE_ENV === "development" ? (
-            <Route path="/dev/test" element={<TestView />} />
-          ) : null}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       )}
