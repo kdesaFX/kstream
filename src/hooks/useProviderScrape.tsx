@@ -368,6 +368,13 @@ export function useScrape() {
         );
       }
 
+      // Every source has failed at least once (a manual retry, or a title
+      // nothing carries). The order is an allow-list now, so an empty one
+      // would report "not found" without making a single request.
+      if (filteredSourceOrder.length === 0) {
+        filteredSourceOrder = [...baseSourceOrder];
+      }
+
       // Collect failed embed IDs for this media and always exclude them.
       // (Previously only applied when custom embed order was enabled, so TQQ
       // mirrors marked bad on playback were still retried / whole source skipped.)
@@ -407,6 +414,7 @@ export function useScrape() {
           media,
           sourceOrder: filteredSourceOrder,
           embedOrder: filteredEmbedOrder,
+          restrictToOrder: true,
           events: {
             init: initEvent,
             start: startEvent,
@@ -428,6 +436,7 @@ export function useScrape() {
           media,
           sourceOrder: remainingSourceOrder,
           embedOrder: filteredEmbedOrder,
+          restrictToOrder: true,
           events: {
             init: initEvent,
             start: startEvent,
