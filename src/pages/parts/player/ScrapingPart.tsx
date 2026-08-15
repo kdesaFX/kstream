@@ -46,6 +46,17 @@ function statusOpacity(status: ScrapingSegment["status"] | undefined): number {
   return 0.35; // queued, not started yet
 }
 
+/**
+ * Sources that came up empty sink below the ones still working, so the list
+ * always reads top-down as "searching now" before "already ruled out".
+ */
+function statusRank(status: ScrapingSegment["status"] | undefined): number {
+  if (status === "pending") return 0;
+  if (status === "success") return 1;
+  if (status === "notfound" || status === "failure") return 3;
+  return 2; // queued, not started yet
+}
+
 export function ScrapingPart(props: ScrapingProps) {
   const { report } = useReportProviders();
   const { startScraping, resumeScraping, sourceOrder, sources, currentSource } =
@@ -58,21 +69,18 @@ export function ScrapingPart(props: ScrapingProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // Anchor on the first source still running rather than whichever started
-  // most recently, or the list yanks around while a batch races.
-  const anchorSource = useMemo(() => {
-    const firstRunning = sourceOrder.find(
-      (order) => sources[order.id]?.status === "pending",
-    );
-    return firstRunning?.id ?? currentSource;
-  }, [sourceOrder, sources, currentSource]);
-
-  const renderedOnce = useListCenter(
-    containerRef,
-    listRef,
-    sourceOrder,
-    anchorSource,
+  // Array.prototype.sort is stable, so sources keep their scrape order within
+  // a status band.
+  const displayOrder = useMemo(
+    () =>
+      [...sourceOrder].sort(
+        (a, b) =>
+          statusRank(sources[a.id]?.status) - statusRank(sources[b.id]?.status),
+      ),
+    [sourceOrder, sources],
   );
+
+  const renderedOnce = useListCenter(containerRef, listRef, displayOrder);
 
   const resultRef = useRef({
     sourceOrder,
@@ -149,7 +157,7 @@ export function ScrapingPart(props: ScrapingProps) {
         })}
         ref={listRef}
       >
-        {sourceOrder.map((order) => {
+        {displayOrder.map((order) => {
           const source = sources[order.id];
           return (
             <div

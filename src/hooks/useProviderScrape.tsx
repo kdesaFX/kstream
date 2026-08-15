@@ -22,7 +22,10 @@ import {
   usePreferencesStore,
 } from "@/stores/preferences";
 import { isAnimeSourceId, isAnimeTitle } from "@/utils/media/anime";
-import { orderSourceIdsForPlayback, detectPlaybackEnv } from "@/utils/media/sourceOrder";
+import {
+  orderSourceIdsForPlayback,
+  detectPlaybackEnv,
+} from "@/utils/media/sourceOrder";
 
 export type { ScrapingItems, ScrapingSegment } from "@/hooks/scrapeEvents";
 
@@ -51,10 +54,13 @@ const ADAPTIVE_STREAM_RESOLUTION_SCORE = sourceQualityScore["4k"];
 function getRunOutputBestResolutionScore(output: RunOutput): number {
   if (output.stream.type !== "file") return ADAPTIVE_STREAM_RESOLUTION_SCORE;
 
-  return Object.entries(output.stream.qualities).reduce((best, [quality, stream]) => {
-    if (!stream?.url) return best;
-    return Math.max(best, sourceQualityScore[quality] ?? 0);
-  }, 0);
+  return Object.entries(output.stream.qualities).reduce(
+    (best, [quality, stream]) => {
+      if (!stream?.url) return best;
+      return Math.max(best, sourceQualityScore[quality] ?? 0);
+    },
+    0,
+  );
 }
 
 type ScraperEvent<Event extends keyof FullScraperEvents> = Parameters<
@@ -116,7 +122,12 @@ function useBaseScrape() {
       return { ...s, [id]: { ...s[id], status: "pending" } };
     });
     setCurrentSource((current) =>
-      currentSourceOnStart(current, id, sourcesRef.current, sourceOrderRef.current),
+      currentSourceOnStart(
+        current,
+        id,
+        sourcesRef.current,
+        sourceOrderRef.current,
+      ),
     );
   }, []);
 
@@ -355,7 +366,7 @@ export function useScrape() {
 
       // Now filter out the failed sources so we don't try them again
       filteredSourceOrder = filteredSourceOrder.filter(
-        (id) => !failedSources.includes(id)
+        (id) => !failedSources.includes(id),
       );
 
       // Resuming past the last source leaves nothing behind it, and an empty
@@ -364,7 +375,7 @@ export function useScrape() {
       // tried. Wrap around to those instead of claiming the title is gone.
       if (filteredSourceOrder.length === 0) {
         filteredSourceOrder = baseSourceOrder.filter(
-          (id) => !failedSources.includes(id)
+          (id) => !failedSources.includes(id),
         );
       }
 
@@ -401,7 +412,9 @@ export function useScrape() {
         }
         filteredEmbedOrder = ordered;
       } else if (failedEmbedIdSet.size > 0) {
-        filteredEmbedOrder = allEmbedIds.filter((id) => !failedEmbedIdSet.has(id));
+        filteredEmbedOrder = allEmbedIds.filter(
+          (id) => !failedEmbedIdSet.has(id),
+        );
       }
 
       const minimumResolutionScore =
@@ -458,9 +471,13 @@ export function useScrape() {
           return getResult(output);
         }
 
-        const currentSourceIndex = remainingSourceOrder.indexOf(output.sourceId);
+        const currentSourceIndex = remainingSourceOrder.indexOf(
+          output.sourceId,
+        );
         if (currentSourceIndex === -1) break;
-        remainingSourceOrder = remainingSourceOrder.slice(currentSourceIndex + 1);
+        remainingSourceOrder = remainingSourceOrder.slice(
+          currentSourceIndex + 1,
+        );
       }
 
       if (bestFallbackOutput && isExtensionActiveCached()) {
@@ -502,11 +519,15 @@ export function useScrape() {
   };
 }
 
+/**
+ * Centres the whole scrape list in its container. Anchoring on a single card
+ * left the list bottom-heavy once several sources raced at once, so the block
+ * is centred as a unit and pinned to the top only when it outgrows the frame.
+ */
 export function useListCenter(
   containerRef: RefObject<HTMLDivElement | null>,
   listRef: RefObject<HTMLDivElement | null>,
   sourceOrder: ScrapingItems[],
-  currentSource: string | undefined,
 ) {
   const [renderedOnce, setRenderedOnce] = useState(false);
 
@@ -514,38 +535,19 @@ export function useListCenter(
     if (!containerRef.current) return;
     if (!listRef.current) return;
 
-    const elements = [
-      ...listRef.current.querySelectorAll("div[data-source-id]"),
-    ] as HTMLDivElement[];
+    const container = containerRef.current.getBoundingClientRect();
+    const list = listRef.current.getBoundingClientRect();
 
-    const currentIndex = elements.findIndex(
-      (e) => e.getAttribute("data-source-id") === currentSource,
-    );
-
-    const currentElement = elements[currentIndex];
-
-    if (!currentElement) return;
-
-    const containerWidth = containerRef.current.getBoundingClientRect().width;
-    const listWidth = listRef.current.getBoundingClientRect().width;
-
-    const containerHeight = containerRef.current.getBoundingClientRect().height;
-
-    const listTop = listRef.current.getBoundingClientRect().top;
-
-    const currentTop = currentElement.getBoundingClientRect().top;
-    const currentHeight = currentElement.getBoundingClientRect().height;
-
-    const topDifference = currentTop - listTop;
-
-    const listNewLeft = containerWidth / 2 - listWidth / 2;
-    const listNewTop = containerHeight / 2 - topDifference - currentHeight / 2;
+    // translate() does not affect the measured box, so these stay stable
+    // across repositions.
+    const listNewLeft = container.width / 2 - list.width / 2;
+    const listNewTop = Math.max(0, container.height / 2 - list.height / 2);
 
     listRef.current.style.transform = `translateY(${listNewTop}px) translateX(${listNewLeft}px)`;
     setTimeout(() => {
       setRenderedOnce(true);
     }, 150);
-  }, [currentSource, containerRef, listRef, setRenderedOnce]);
+  }, [containerRef, listRef, setRenderedOnce]);
 
   const updatePositionRef = useRef(updatePosition);
 
@@ -563,6 +565,20 @@ export function useListCenter(
       window.removeEventListener("resize", resize);
     };
   }, []);
+
+  // Cards grow as embeds appear and statuses gain reason text — re-centre
+  // instead of drifting off-centre for the rest of the scrape.
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      updatePositionRef.current();
+    });
+    observer.observe(list);
+    return () => {
+      observer.disconnect();
+    };
+  }, [listRef]);
 
   return renderedOnce;
 }

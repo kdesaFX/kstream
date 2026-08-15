@@ -15,6 +15,7 @@ function option(
     id: `${sourceId}:${quality}`,
     quality,
     sourceId,
+    sourceName: sourceId,
     source: {
       type: "file",
       qualities: {

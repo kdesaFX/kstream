@@ -65,6 +65,17 @@ export function QualityView({ id }: { id: string }) {
     [availableQualities, alternateQualityOptions],
   );
 
+  // Only for tiers the active source cannot serve — those play by hopping to
+  // another provider, so name it instead of leaving the row blank.
+  const alternateSourceNames = useMemo(() => {
+    const names: Partial<Record<SourceQuality, string>> = {};
+    for (const option of alternateQualityOptions) {
+      if (availableQualities.includes(option.quality)) continue;
+      names[option.quality] = option.sourceName;
+    }
+    return names;
+  }, [alternateQualityOptions, availableQualities]);
+
   const supportsAutoQuality = sourceType === "hls";
 
   const change = useCallback(
@@ -138,6 +149,13 @@ export function QualityView({ id }: { id: string }) {
               selectableQualities.includes(v) ? () => change(v) : undefined
             }
             disabled={!selectableQualities.includes(v)}
+            rightSide={
+              alternateSourceNames[v] ? (
+                <span className="text-video-context-type-secondary text-sm">
+                  {alternateSourceNames[v]}
+                </span>
+              ) : undefined
+            }
           >
             {qualityToString(v)}
           </SelectableLink>

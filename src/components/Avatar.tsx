@@ -62,9 +62,7 @@ export function UserAvatar(props: {
       />
       {props.withName && nickname ? (
         <span>
-          {nickname.length >= 20
-            ? `${nickname.slice(0, 20 - 1)}…`
-            : nickname}
+          {nickname.length >= 20 ? `${nickname.slice(0, 20 - 1)}…` : nickname}
         </span>
       ) : null}
     </>
@@ -73,7 +71,7 @@ export function UserAvatar(props: {
 
 export function NoUserAvatar(props: { iconClass?: string }) {
   return (
-    <div className="relative inline-flex items-center justify-center text-type-dimmed">
+    <div className="relative inline-flex items-center justify-center text-white">
       <Icon
         className={props.iconClass ?? "text-base ssm:text-xl"}
         icon={Icons.MENU}

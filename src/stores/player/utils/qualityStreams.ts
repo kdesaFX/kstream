@@ -1,5 +1,6 @@
 import type { Stream } from "@p-stream/providers";
 
+import { getCachedMetadata } from "@/backend/helpers/providerApi";
 import { convertProviderCaption } from "@/components/player/utils/captions";
 import { convertRunoutputToSource } from "@/components/player/utils/convertRunoutputToSource";
 import {
@@ -19,10 +20,18 @@ export type QualityStreamOption = {
   id: string;
   quality: SourceQuality;
   sourceId: string;
+  /** Human-readable provider name shown next to a cross-source quality. */
+  sourceName: string;
   embedId?: string | null;
   source: SourceSliceSource;
   captions: CaptionListItem[];
 };
+
+export function sourceDisplayName(sourceId: string): string {
+  return (
+    getCachedMetadata().find((meta) => meta.id === sourceId)?.name ?? sourceId
+  );
+}
 
 export function parseHlsQualities(playlist: string): SourceQuality[] {
   const qualities = new Set<SourceQuality>();
@@ -106,10 +115,13 @@ export async function streamToQualityOptions(
   const qualities = await streamQualities(stream, source);
   const captions = convertProviderCaption(stream.captions);
 
+  const sourceName = sourceDisplayName(sourceId);
+
   return qualities.map((quality) => ({
     id: `${sourceId}:${embedId ?? "direct"}:${stream.id}:${quality}`,
     quality,
     sourceId,
+    sourceName,
     embedId: embedId ?? null,
     source,
     captions,
