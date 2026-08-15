@@ -74,10 +74,13 @@ function shouldAutoplayWithSound(opts: { lastVolume: number }): boolean {
 }
 
 /** Mirrors how a rejected unmuted autoplay is handled. */
-function autoplayFallback(errName: string): "retry-later" | "play-muted" {
-  return errName === "AbortError" || errName === "NotSupportedError"
-    ? "retry-later"
-    : "play-muted";
+function autoplayFallback(
+  errName: string,
+  isMobile = true,
+): "retry-later" | "play-muted" | "offer-play-button" {
+  if (errName === "AbortError" || errName === "NotSupportedError")
+    return "retry-later";
+  return isMobile ? "play-muted" : "offer-play-button";
 }
 
 /** Mirrors the gate in armUnmuteOnGesture's handler. */
@@ -124,8 +127,14 @@ describe("starting playback with sound", () => {
     expect(shouldAutoplayWithSound({ lastVolume: 0 })).toBe(false);
   });
 
-  it("falls back to muted playback when sound is refused", () => {
-    expect(autoplayFallback("NotAllowedError")).toBe("play-muted");
+  it("falls back to muted playback on mobile when sound is refused", () => {
+    expect(autoplayFallback("NotAllowedError", true)).toBe("play-muted");
+  });
+
+  it("waits behind the play button on desktop rather than starting silent", () => {
+    expect(autoplayFallback("NotAllowedError", false)).toBe(
+      "offer-play-button",
+    );
   });
 
   it("waits for the next ready tick instead of fighting an aborted load", () => {

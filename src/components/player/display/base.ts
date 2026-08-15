@@ -47,7 +47,6 @@ function hlsLevelsToQualities(levels: Level[]): SourceQuality[] {
     .filter((v): v is SourceQuality => !!v);
 }
 
-
 // Sort levels by quality (height) to ensure we can select the best one
 function sortLevelsByQuality(levels: Level[]): Level[] {
   return [...levels].sort((a, b) => (b.height || 0) - (a.height || 0));
@@ -55,12 +54,16 @@ function sortLevelsByQuality(levels: Level[]): Level[] {
 
 function isHevcLevel(level: Level): boolean {
   const codec = (level.videoCodec || "").toLowerCase();
-  return codec.includes("hev1") || codec.includes("hvc1") || codec.includes("hevc");
+  return (
+    codec.includes("hev1") || codec.includes("hvc1") || codec.includes("hevc")
+  );
 }
 
 function isAvcLevel(level: Level): boolean {
   const codec = (level.videoCodec || "").toLowerCase();
-  return codec.includes("avc1") || codec.includes("avc3") || codec.includes("avc");
+  return (
+    codec.includes("avc1") || codec.includes("avc3") || codec.includes("avc")
+  );
 }
 
 /**
@@ -86,9 +89,7 @@ function pickBestLevelAtOrBelow(
   const nonHevc = levels
     .filter(
       (l) =>
-        !isHevcLevel(l) &&
-        (l.height || 0) > 0 &&
-        (l.height || 0) <= maxHeight,
+        !isHevcLevel(l) && (l.height || 0) > 0 && (l.height || 0) <= maxHeight,
     )
     .sort((a, b) => (b.height || 0) - (a.height || 0));
   if (nonHevc[0]) return nonHevc[0];
@@ -147,7 +148,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let lastVolume = 1;
   let lastInferredQuality: SourceQuality | null = null;
 
-
   let audioCtx: AudioContext | null = null;
   let audioAnalyser: AnalyserNode | null = null;
   let audioStreamSource: MediaStreamAudioSourceNode | null = null;
@@ -190,10 +190,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       emit("volumechange", lastVolume);
       return;
     }
-    emit(
-      "volumechange",
-      videoElement.muted ? 0 : videoElement.volume,
-    );
+    emit("volumechange", videoElement.muted ? 0 : videoElement.volume);
   }
 
   function muteForAutoplay(vid: HTMLVideoElement) {
@@ -210,8 +207,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
   function userActivation(): { isActive?: boolean } | undefined {
     if (typeof navigator === "undefined") return undefined;
-    return (navigator as Navigator & { userActivation?: { isActive?: boolean } })
-      .userActivation;
+    return (
+      navigator as Navigator & { userActivation?: { isActive?: boolean } }
+    ).userActivation;
   }
 
   /** Controls carry their own intent; the bare video surface does not. */
@@ -307,8 +305,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   /**
    * After async scrapes the click gesture is gone, so unmuted play may be
    * blocked. Ask for sound anyway — browsers allow it for sites the viewer
-   * uses, and a refusal costs nothing but a rejected promise. Only fall back
-   * to muted playback (plus unmute on the next gesture) if it really is.
+   * uses, and a refusal costs nothing but a rejected promise. If it is
+   * refused, desktop waits behind the play button and mobile starts muted.
    */
   function tryAutoplay() {
     if (!shouldAutoplayAfterLoad || !videoElement || autoplayInFlight) return;
@@ -365,6 +363,19 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           const name = errorName(err);
           if (name === "AbortError" || name === "NotSupportedError") {
             autoplayInFlight = false;
+            return;
+          }
+          // Desktop refused sound. Starting silently just burns the opening
+          // minute and still needs a click, so offer the play button instead —
+          // that click starts it with sound from the first frame. Mobile keeps
+          // the muted start; Safari needs it to get going at all.
+          if (!isMobileBrowser()) {
+            shouldAutoplayAfterLoad = false;
+            autoplayInFlight = false;
+            clearPolicyMute(vid);
+            reportVolumeToUi();
+            emit("pause", undefined);
+            emit("loading", false);
             return;
           }
           playMuted();
@@ -654,7 +665,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           loader: ArtemisRetryLoader as any,
           xhrSetup: (xhr, url) => {
             if (typeof url === "string" && url.includes("erlook")) {
-              try { xhr.overrideMimeType("application/octet-stream"); } catch {}
+              try {
+                xhr.overrideMimeType("application/octet-stream");
+              } catch {}
             }
           },
         });
@@ -730,7 +743,10 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             mediaRecoveryAttempts < 2
           ) {
             mediaRecoveryAttempts += 1;
-            console.warn("[hls] attempting media error recovery", mediaRecoveryAttempts);
+            console.warn(
+              "[hls] attempting media error recovery",
+              mediaRecoveryAttempts,
+            );
             try {
               hls.recoverMediaError();
               return;
@@ -744,7 +760,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           // streams use a different origin for segments than the m3u8, so that
           // check silently dropped fatal errors and left hls.js retrying forever.
           if (data.fatal) {
-            const errMessage = data.error?.message || data.details || "HLS fatal error";
+            const errMessage =
+              data.error?.message || data.details || "HLS fatal error";
             if (exceptions.includes(errMessage)) return;
             emit("error", {
               message:
@@ -1067,11 +1084,10 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     audioInitAttempts = 0;
   }
 
-
   function initAudioAnalysis() {
-    if (audioAnalyser || !videoElement) return; 
+    if (audioAnalyser || !videoElement) return;
     if (audioInitAttempts >= AUDIO_INIT_MAX_ATTEMPTS) return;
-  
+
     if (!usePreferencesStore.getState().enableAutoSubtitleSync) {
       audioInitAttempts = AUDIO_INIT_MAX_ATTEMPTS;
       return;
@@ -1081,7 +1097,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       const el = videoElement as any;
       const stream: MediaStream | undefined =
         el.captureStream?.() ?? el.mozCaptureStream?.();
-      if (!stream || stream.getAudioTracks().length === 0) return; 
+      if (!stream || stream.getAudioTracks().length === 0) return;
 
       const Ctx = window.AudioContext || (window as any).webkitAudioContext;
       if (!Ctx) {
@@ -1093,10 +1109,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       audioStreamSource = audioCtx.createMediaStreamSource(stream);
       audioAnalyser = audioCtx.createAnalyser();
       audioAnalyser.fftSize = 2048;
-      
+
       audioStreamSource.connect(audioAnalyser);
 
-     
       if (usePreferencesStore.getState().enableAutoSubtitleSync) {
         try {
           speechCapture = new SpeechCapture(
@@ -1112,7 +1127,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
       const freqBuf = new Uint8Array(audioAnalyser.frequencyBinCount);
       const res = audioCtx.sampleRate / audioAnalyser.fftSize;
-      const lowBin = Math.max(1, Math.floor(300 / res)); 
+      const lowBin = Math.max(1, Math.floor(300 / res));
       const highBin = Math.min(freqBuf.length - 1, Math.ceil(3400 / res));
       audioSampleTimer = setInterval(() => {
         if (!videoElement || !audioAnalyser) return;
@@ -1120,7 +1135,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         audioAnalyser.getByteFrequencyData(freqBuf);
         let sum = 0;
         for (let i = lowBin; i <= highBin; i += 1) sum += freqBuf[i];
-       
+
         const e = sum / ((highBin - lowBin + 1) * 255);
         if (e > 1e-3) audioSyncAvailable = true;
         audioBuffer.push({ t: videoElement.currentTime, e });
@@ -1569,7 +1584,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       return hls?.subtitleTracks ?? [];
     },
     getAudioActivity() {
-
       if (speechCapture?.isReady()) return speechCapture.getActivitySamples();
       return audioBuffer;
     },

@@ -3,34 +3,20 @@ import { useInterval } from "react-use";
 
 import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
-import {
-  ProgressItem,
-  progressIsCompleted,
-  useProgressStore,
-} from "@/stores/progress";
+import { ProgressItem, useProgressStore } from "@/stores/progress";
 
 /** Save once past this so reloads can resume early in an episode. */
 const MIN_RESUME_SECONDS = 15;
 
-function shouldSaveProgress(
-  progress: ProgressItem,
-  lastSaved: ProgressItem | null,
-): boolean {
+/**
+ * Always keep the resume position current, including past the "completed"
+ * mark — that flag only decides what Continue Watching and the algorithm do
+ * with a title, and freezing saves there stranded reloads minutes behind.
+ * The store still records a finished watch exactly once on the crossing.
+ */
+export function shouldSaveProgress(progress: ProgressItem): boolean {
   const { duration, watched } = progress;
-  if (duration <= 0 || watched < MIN_RESUME_SECONDS) return false;
-
-  const isCompleted = progressIsCompleted(duration, watched);
-  const wasCompleted = lastSaved
-    ? progressIsCompleted(lastSaved.duration, lastSaved.watched)
-    : false;
-
-  // One save when crossing into completed (credits bail / finished signal).
-  if (isCompleted && !wasCompleted) return true;
-  if (isCompleted) return false;
-
-  // Persist in-progress position for resume. Continue Watching still uses
-  // MIN_WATCH_SECONDS separately so brief peeks don't clutter the home row.
-  return true;
+  return duration > 0 && watched >= MIN_RESUME_SECONDS;
 }
 
 function trySave(
@@ -59,7 +45,7 @@ function trySave(
     previousSaved.watched !== nextProgress.watched;
 
   if (!isDifferent) return;
-  if (!shouldSaveProgress(nextProgress, previousSaved)) return;
+  if (!shouldSaveProgress(nextProgress)) return;
 
   lastSavedRef.current = nextProgress;
   d.updateItem({

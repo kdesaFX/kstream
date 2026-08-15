@@ -7,11 +7,25 @@ import {
 } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { SourceSliceSource } from "@/stores/player/utils/qualities";
-import { ProgressMediaItem, useProgressStore } from "@/stores/progress";
+import {
+  ProgressItem,
+  ProgressMediaItem,
+  useProgressStore,
+} from "@/stores/progress";
 
 export interface Source {
   url: string;
   type: "hls" | "mp4";
+}
+
+/** Reopening something watched to the end should start it over, not park on the last frame. */
+const RESUME_END_SLACK_SECONDS = 10;
+
+export function resumePoint(progress: ProgressItem | undefined): number {
+  if (!progress) return 0;
+  const { watched, duration } = progress;
+  if (duration > 0 && watched >= duration - RESUME_END_SLACK_SECONDS) return 0;
+  return watched;
 }
 
 function getProgress(
@@ -20,14 +34,10 @@ function getProgress(
 ): number {
   const item = items[meta?.tmdbId ?? ""];
   if (!item || !meta) return 0;
-  if (meta.type === "movie") {
-    if (!item.progress) return 0;
-    return item.progress.watched;
-  }
+  if (meta.type === "movie") return resumePoint(item.progress);
 
   const ep = item.episodes[meta.episode?.tmdbId ?? ""];
-  if (!ep) return 0;
-  return ep.progress.watched;
+  return resumePoint(ep?.progress);
 }
 
 export function usePlayer() {
@@ -65,8 +75,7 @@ export function usePlayer() {
       startAtOverride?: number,
     ) {
       const start =
-        startAtOverride ??
-        getProgress(useProgressStore.getState().items, meta);
+        startAtOverride ?? getProgress(useProgressStore.getState().items, meta);
       setCaption(null);
       setEmbedId(null);
       setSource(source, captions, start);
