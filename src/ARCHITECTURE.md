@@ -55,8 +55,7 @@ src/
   hooks/.
 - **Components used by exactly one page** belong in `pages/parts/<page>/`,
   not `components/`.
-- **Ads code** (`pages/parts/home/AdsPart.tsx`, `HomeAd.tsx`) and
-  commented-out parts (e.g. `ProgressCleanupPart` in AdminPage) are
+- **Ads code** (`pages/parts/home/AdsPart.tsx`, `HomeAd.tsx`) are
   deliberate on/off toggles — do not remove them as "dead code".
 
 ## Fork note

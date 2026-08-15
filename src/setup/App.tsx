@@ -132,7 +132,8 @@ function App() {
 
   useEffect(() => {
     const cfg = conf();
-    if (!cfg.ENABLE_RYBBIT || !cfg.RYBBIT_SCRIPT_URL || !cfg.RYBBIT_SITE_ID) return;
+    if (!cfg.ENABLE_RYBBIT || !cfg.RYBBIT_SCRIPT_URL || !cfg.RYBBIT_SITE_ID)
+      return;
     if (typeof document === "undefined") return;
     if (document.querySelector("script[data-rybbit]")) return;
     const s = document.createElement("script");
@@ -147,14 +148,21 @@ function App() {
     if (isWatchPage) return;
     if (adsDisabled) return;
     const cfg = conf();
-    if (!cfg.ENABLE_POPUNDER || !cfg.POPUNDER_SCRIPT_URL || !cfg.POPUNDER_ZONE_ID) return;
+    if (
+      !cfg.ENABLE_POPUNDER ||
+      !cfg.POPUNDER_SCRIPT_URL ||
+      !cfg.POPUNDER_ZONE_ID
+    )
+      return;
     if (typeof document === "undefined") return;
 
     if (document.querySelector(`script[data-zone="${cfg.POPUNDER_ZONE_ID}"]`)) {
       return;
     }
 
-    const target = [document.documentElement, document.body].filter(Boolean).pop();
+    const target = [document.documentElement, document.body]
+      .filter(Boolean)
+      .pop();
     if (!target) return;
 
     const s = target.appendChild(document.createElement("script"));
@@ -192,7 +200,6 @@ function App() {
       <DetailsModal id="details" />
       <DetailsModal id="discover-details" />
       <DetailsModal id="player-details" />
-      {/* DebugFab: dev-only floating panel (cookie/ratings/local-data resets) */}
       {!showDowntime && (
         <Routes>
           {/* functional routes */}

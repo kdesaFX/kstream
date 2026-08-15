@@ -1,6 +1,6 @@
 import { ProviderControls, ScrapeMedia } from "@p-stream/providers";
 import classNames from "classnames";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useMountedState } from "react-use";
@@ -209,22 +209,6 @@ export function ScrapingPartInterruptButton() {
       >
         {t("notFound.reloadButton")}
       </Button>
-    </div>
-  );
-}
-
-export function Tips() {
-  const { t } = useTranslation();
-  const [tip] = useState(() => {
-    const randomIndex = Math.floor(Math.random() * 11) + 1;
-    return t(`player.scraping.tips.${randomIndex}`);
-  });
-
-  return (
-    <div className="flex flex-col gap-3">
-      <p className="text-type-secondary text-center text-sm text-bold">
-        Tip: {tip}
-      </p>
     </div>
   );
 }

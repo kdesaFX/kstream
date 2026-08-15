@@ -121,11 +121,7 @@ function WatchPartyInputLink() {
         typeof content?.type === "string" ? content.type.toLowerCase() : "";
 
       let targetUrl = "";
-      if (
-        contentType === "tv show" &&
-        content.seasonId &&
-        content.episodeId
-      ) {
+      if (contentType === "tv show" && content.seasonId && content.episodeId) {
         targetUrl = `/media/tmdb-tv-${content.tmdbId}/${content.seasonId}/${content.episodeId}`;
       } else {
         targetUrl = `/media/tmdb-movie-${content.tmdbId}`;
@@ -290,11 +286,6 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
           <DropdownLink href="/algorithm" icon={Icons.WAND}>
             {t("navigation.menu.algorithm")}
           </DropdownLink>
-          {process.env.NODE_ENV === "development" ? (
-            <DropdownLink href="/dev" icon={Icons.COMPRESS}>
-              {t("navigation.menu.development")}
-            </DropdownLink>
-          ) : null}
           <DropdownLink href="/about" icon={Icons.CIRCLE_QUESTION}>
             {t("navigation.menu.about")}
           </DropdownLink>

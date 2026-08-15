@@ -16,10 +16,9 @@ import { PauseOverlay } from "@/components/player/overlays/PauseOverlay";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { PlayerMeta, playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
-import { usePreferencesStore } from "@/stores/preferences";
 import { useWatchPartyStore } from "@/stores/watchParty";
 
-import { ScrapingPartInterruptButton} from "./ScrapingPart";
+import { ScrapingPartInterruptButton } from "./ScrapingPart";
 
 export interface PlayerPartProps {
   children?: ReactNode;
@@ -32,16 +31,12 @@ export function PlayerPart(props: PlayerPartProps) {
   const { showTargets, showTouchTargets } = useShouldShowControls();
   const status = usePlayerStore((s) => s.status);
   const { isMobile } = useIsMobile();
-  const manualSourceSelection = usePreferencesStore(
-    (s) => s.manualSourceSelection,
-  );
   const isLoading = usePlayerStore((s) => s.mediaPlaying.isLoading);
   const { isHost, enabled } = useWatchPartyStore();
   const { t } = useTranslation();
   const meta = usePlayerStore((s) => s.meta);
 
   const inControl = !enabled || isHost;
-
 
   useAutoSync();
 
@@ -184,7 +179,6 @@ export function PlayerPart(props: PlayerPartProps) {
       </Player.TopControls>
 
       <Player.BottomControls show={showTargets}>
-        {/*status !== playerStatus.PLAYING && !manualSourceSelection && <Tips />*/}
         <div className="flex items-center justify-center space-x-3 h-full">
           {status === playerStatus.SCRAPING ? (
             <ScrapingPartInterruptButton />

@@ -30,12 +30,7 @@ import {
 } from "@/backend/metadata/traktApi";
 import { paginateResults } from "@/backend/metadata/traktFunctions";
 import type { TraktListResponse } from "@/backend/metadata/types/trakt";
-import {
-  EDITOR_PICKS_MOVIES,
-  EDITOR_PICKS_TV_SHOWS,
-  MOVIE_PROVIDERS,
-  TV_PROVIDERS,
-} from "@/pages/discover/types/discover";
+import { MOVIE_PROVIDERS, TV_PROVIDERS } from "@/pages/discover/types/discover";
 import type {
   DiscoverContentType,
   DiscoverMedia,
@@ -47,7 +42,10 @@ import type {
 } from "@/pages/discover/types/discover";
 import { useLanguageStore } from "@/stores/language";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
-import { detectUserLanguage, detectUserRegion } from "@/utils/locale/userRegion";
+import {
+  detectUserLanguage,
+  detectUserRegion,
+} from "@/utils/locale/userRegion";
 
 const DISCOVER_OPTIONS_LIMIT = 50;
 const TMDB_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -112,12 +110,7 @@ export type {
 };
 
 // Re-export constants for backward compatibility
-export {
-  EDITOR_PICKS_MOVIES,
-  EDITOR_PICKS_TV_SHOWS,
-  MOVIE_PROVIDERS,
-  TV_PROVIDERS,
-};
+export { MOVIE_PROVIDERS, TV_PROVIDERS };
 
 // Marks a Trakt call skipped because Trakt is disabled for this deployment,
 // so callers can fall back to TMDB without logging it as a real failure.
@@ -571,10 +564,7 @@ export function useDiscoverMedia({
               results: filterReleasedDiscoverMedia(data.results, today),
             };
             // Pad if hype filtering emptied the row.
-            if (
-              isCarouselView &&
-              data.results.length < CAROUSEL_POOL_SIZE
-            ) {
+            if (isCarouselView && data.results.length < CAROUSEL_POOL_SIZE) {
               const fill = await fetchTMDBMedia(`/discover/${mediaType}`, {
                 sort_by: "popularity.desc",
                 ...recentReleaseDateParams(mediaType, today, 6),
@@ -694,8 +684,8 @@ export function useDiscoverMedia({
               });
               data = {
                 ...data,
-                results: data.results.filter(
-                  (item: DiscoverMedia) => Boolean(item.poster_path),
+                results: data.results.filter((item: DiscoverMedia) =>
+                  Boolean(item.poster_path),
                 ),
               };
             } else {

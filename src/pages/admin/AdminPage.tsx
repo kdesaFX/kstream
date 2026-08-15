@@ -48,7 +48,6 @@ export function AdminPage() {
           enableEmbedOrder={embedOrderState.enableEmbedOrder}
           setEnableEmbedOrder={embedOrderState.setEnableEmbedOrder}
         />
-        {/* <ProgressCleanupPart /> */}
       </ThinContainer>
 
       <Transition
