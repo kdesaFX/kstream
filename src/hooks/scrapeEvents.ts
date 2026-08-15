@@ -69,10 +69,33 @@ export function currentSourceAfterUpdate(
   );
   if (nextChild) return nextChild;
 
-  const nextSource = sourceOrder.find((s) =>
-    isInFlight(sources[s.id]?.status),
-  );
+  const nextSource = sourceOrder.find((s) => isInFlight(sources[s.id]?.status));
   return nextSource?.id ?? current;
+}
+
+/**
+ * A source that hands off to a single embed is plumbing, not a tree — showing
+ * the pair as parent and child says nothing the source name didn't. Fold the
+ * lone embed's progress into the source so it reads as one entry, and leave
+ * genuinely multi-embed sources (tqq and friends) nested.
+ */
+export function foldSingleEmbed(
+  parent: ScrapingSegment,
+  children: ScrapingSegment[],
+): ScrapingSegment {
+  if (children.length !== 1) return parent;
+  const [only] = children;
+  // The source sits on "pending" for as long as its embed works, and the run
+  // marks the winning source "success" directly, so prefer whichever of the two
+  // has actually moved on.
+  if (parent.status === "success" || only.status === "waiting") return parent;
+  return {
+    ...parent,
+    status: only.status,
+    percentage: only.percentage,
+    reason: only.reason ?? parent.reason,
+    error: only.error ?? parent.error,
+  };
 }
 
 export function shouldIgnoreStaleProgress(

@@ -4,15 +4,13 @@ import { describe, expect, it } from "vitest";
 import {
   currentSourceAfterUpdate,
   currentSourceOnStart,
+  foldSingleEmbed,
   parentSourceId,
   shouldIgnoreStaleProgress,
 } from "@/hooks/scrapeEvents";
 import type { ScrapingItems, ScrapingSegment } from "@/hooks/scrapeEvents";
 
-function seg(
-  id: string,
-  status: ScrapingSegment["status"],
-): ScrapingSegment {
+function seg(id: string, status: ScrapingSegment["status"]): ScrapingSegment {
   return { id, name: id, status, percentage: 0 };
 }
 
@@ -29,9 +27,9 @@ describe("scrape race focus", () => {
       reyna: seg("reyna", "waiting"),
       fsonline: seg("fsonline", "waiting"),
     };
-    expect(
-      currentSourceOnStart("oneembed", "reyna", sources, order),
-    ).toBe("oneembed");
+    expect(currentSourceOnStart("oneembed", "reyna", sources, order)).toBe(
+      "oneembed",
+    );
   });
 
   it("follows embed starts under the focused source", () => {
@@ -75,10 +73,46 @@ describe("scrape race focus", () => {
   });
 
   it("parentSourceId maps embed rows back to the source card", () => {
-    const embedOrder: ScrapingItems[] = [
-      { id: "tqq", children: ["tqq-0"] },
-    ];
+    const embedOrder: ScrapingItems[] = [{ id: "tqq", children: ["tqq-0"] }];
     expect(parentSourceId("tqq-0", embedOrder)).toBe("tqq");
     expect(parentSourceId("tqq", embedOrder)).toBe("tqq");
+  });
+});
+
+describe("foldSingleEmbed", () => {
+  it("reports the lone embed's outcome on the source itself", () => {
+    const parent = seg("reyna", "pending");
+    const child: ScrapingSegment = {
+      ...seg("reyna-0", "notfound"),
+      percentage: 100,
+      reason: "No streams found",
+    };
+
+    expect(foldSingleEmbed(parent, [child])).toMatchObject({
+      id: "reyna",
+      name: "reyna",
+      status: "notfound",
+      percentage: 100,
+      reason: "No streams found",
+    });
+  });
+
+  it("leaves a multi-embed source alone", () => {
+    const parent = seg("tqq", "pending");
+    const children = [seg("tqq-0", "notfound"), seg("tqq-1", "pending")];
+
+    expect(foldSingleEmbed(parent, children)).toBe(parent);
+  });
+
+  it("keeps the source spinning until its embed starts", () => {
+    const parent = seg("reyna", "pending");
+
+    expect(foldSingleEmbed(parent, [seg("reyna-0", "waiting")])).toBe(parent);
+  });
+
+  it("does not undo a source the run already settled as the winner", () => {
+    const parent = seg("reyna", "success");
+
+    expect(foldSingleEmbed(parent, [seg("reyna-0", "notfound")])).toBe(parent);
   });
 });

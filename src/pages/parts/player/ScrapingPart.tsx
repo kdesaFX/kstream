@@ -16,6 +16,7 @@ import {
   ScrapeCard,
   ScrapeItem,
 } from "@/components/player/internals/ScrapeCard";
+import { foldSingleEmbed } from "@/hooks/scrapeEvents";
 import {
   ScrapingItems,
   ScrapingSegment,
@@ -69,16 +70,31 @@ export function ScrapingPart(props: ScrapingProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // Array.prototype.sort is stable, so sources keep their scrape order within
-  // a status band.
-  const displayOrder = useMemo(
-    () =>
-      [...sourceOrder].sort(
-        (a, b) =>
-          statusRank(sources[a.id]?.status) - statusRank(sources[b.id]?.status),
-      ),
-    [sourceOrder, sources],
-  );
+  const cards = useMemo(() => {
+    const built = sourceOrder.flatMap((order) => {
+      const parent = sources[order.id];
+      if (!parent) return [];
+      const embeds = order.children
+        .map((id) => sources[id])
+        .filter((embed): embed is ScrapingSegment => Boolean(embed));
+      return [
+        {
+          order,
+          // One embed reads as the source itself, so only list them when the
+          // source really did fan out.
+          embeds: embeds.length > 1 ? embeds : [],
+          segment: foldSingleEmbed(parent, embeds),
+        },
+      ];
+    });
+    // Array.prototype.sort is stable, so sources keep their scrape order within
+    // a status band.
+    return built.sort(
+      (a, b) => statusRank(a.segment.status) - statusRank(b.segment.status),
+    );
+  }, [sourceOrder, sources]);
+
+  const displayOrder = useMemo(() => cards.map((card) => card.order), [cards]);
 
   const renderedOnce = useListCenter(containerRef, listRef, displayOrder);
 
@@ -157,43 +173,37 @@ export function ScrapingPart(props: ScrapingProps) {
         })}
         ref={listRef}
       >
-        {displayOrder.map((order) => {
-          const source = sources[order.id];
-          return (
-            <div
-              className="transition-opacity duration-200"
-              style={{ opacity: statusOpacity(source.status) }}
-              key={order.id}
+        {cards.map(({ order, segment, embeds }) => (
+          <div
+            className="transition-opacity duration-200"
+            style={{ opacity: statusOpacity(segment.status) }}
+            key={order.id}
+          >
+            <ScrapeCard
+              id={order.id}
+              name={segment.name}
+              status={segment.status}
+              hasChildren={embeds.length > 0}
+              percentage={segment.percentage}
             >
-              <ScrapeCard
-                id={order.id}
-                name={source.name}
-                status={source.status}
-                hasChildren={order.children.length > 0}
-                percentage={source.percentage}
+              <div
+                className={classNames({
+                  "space-y-6 mt-8": embeds.length > 0,
+                })}
               >
-                <div
-                  className={classNames({
-                    "space-y-6 mt-8": order.children.length > 0,
-                  })}
-                >
-                  {order.children.map((embedId) => {
-                    const embed = sources[embedId];
-                    return (
-                      <ScrapeItem
-                        id={embedId}
-                        name={embed.name}
-                        status={embed.status}
-                        percentage={embed.percentage}
-                        key={embedId}
-                      />
-                    );
-                  })}
-                </div>
-              </ScrapeCard>
-            </div>
-          );
-        })}
+                {embeds.map((embed) => (
+                  <ScrapeItem
+                    id={embed.id}
+                    name={embed.name}
+                    status={embed.status}
+                    percentage={embed.percentage}
+                    key={embed.id}
+                  />
+                ))}
+              </div>
+            </ScrapeCard>
+          </div>
+        ))}
       </div>
     </div>
   );
