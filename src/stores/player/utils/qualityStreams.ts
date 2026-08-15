@@ -14,7 +14,11 @@ import type {
   SourceSliceSource,
 } from "@/stores/player/utils/qualities";
 
-const HLS_PROBE_TIMEOUT_MS = 8_000;
+/**
+ * A master playlist is a few KB of text. Waiting longer than this just delays
+ * the quality list, since a slow answer means a proxy retry anyway.
+ */
+const HLS_PROBE_TIMEOUT_MS = 4_000;
 
 export type QualityStreamOption = {
   id: string;

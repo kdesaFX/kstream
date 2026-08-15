@@ -9,9 +9,25 @@ import { streamsToAudioOptions } from "@/stores/player/utils/audioStreams";
 import { streamsToQualityOptions } from "@/stores/player/utils/qualityStreams";
 
 const DEFAULT_MAX_SOURCE_ATTEMPTS = 5;
-/** Let the primary stream buffer before burning bandwidth on alt audio. */
-const DISCOVERY_START_DELAY_MS = 4_000;
+/**
+ * Let the primary stream get its first fragments away before scraping others.
+ * Scrapes are small API calls rather than media, so this only has to clear the
+ * initial burst — a longer head start just delays the alternate options.
+ */
+const DISCOVERY_START_DELAY_MS = 1_500;
 const BETWEEN_SOURCE_YIELD_MS = 350;
+/**
+ * Probe a few providers at once. Sequential scraping meant the first alternate
+ * option waited on the slowest earlier source, which took ~10s to surface.
+ */
+const DISCOVERY_CONCURRENCY = 3;
+const WORKER_STAGGER_MS = 150;
+
+function delay(ms: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 /** Sources known to often provide Spanish audio — try early when `es` is missing. */
 const SPANISH_LEANING_SOURCES = new Set([
@@ -78,9 +94,11 @@ async function registerStreams(
   streams: Stream[],
   sourceId: string,
   embedId: string | null,
-  have: Set<string>,
   mediaKey: string,
-): Promise<Set<string>> {
+): Promise<void> {
+  // Read languages live — workers run concurrently, so a captured snapshot
+  // goes stale as soon as a sibling registers something.
+  const have = currentLanguages();
   const missing = streams.filter((stream) => {
     const lang = stream.audioLanguage?.trim();
     return lang && !have.has(lang);
@@ -106,10 +124,44 @@ async function registerStreams(
     sourceId,
     embedId,
   );
-  if (!stillSameMedia(mediaKey)) return have;
+  if (!stillSameMedia(mediaKey)) return;
   usePlayerStore.getState().registerQualityStreamOptions(qualityOptions);
+}
 
-  return currentLanguages();
+async function scrapeCandidate(
+  sourceId: string,
+  media: ScrapeMedia,
+  mediaKey: string,
+): Promise<void> {
+  const providers = getProviders();
+  const result = await providers.runSourceScraper({ id: sourceId, media });
+  if (!stillSameMedia(mediaKey)) return;
+
+  if (result.stream?.length) {
+    await registerStreams(result.stream, sourceId, null, mediaKey);
+    return;
+  }
+
+  for (const embed of result.embeds ?? []) {
+    if (!stillSameMedia(mediaKey)) return;
+    if (haveEnoughAlternates()) return;
+
+    try {
+      const embedResult = await providers.runEmbedScraper({
+        id: embed.embedId,
+        url: embed.url,
+      });
+      if (!stillSameMedia(mediaKey)) return;
+      await registerStreams(
+        embedResult.stream,
+        sourceId,
+        embed.embedId,
+        mediaKey,
+      );
+    } catch {
+      // try next embed
+    }
+  }
 }
 
 /**
@@ -123,9 +175,7 @@ export async function discoverAlternateAudioLanguages(opts: {
   skipSourceId: string;
   maxAttempts?: number;
 }): Promise<void> {
-  await new Promise<void>((resolve) => {
-    window.setTimeout(resolve, DISCOVERY_START_DELAY_MS);
-  });
+  await delay(DISCOVERY_START_DELAY_MS);
   if (!stillSameMedia(opts.mediaKey)) return;
 
   const maxAttempts = opts.maxAttempts ?? DEFAULT_MAX_SOURCE_ATTEMPTS;
@@ -141,63 +191,38 @@ export async function discoverAlternateAudioLanguages(opts: {
     currentLanguages(),
   );
 
-  let attempts = 0;
-  let have = currentLanguages();
   if (haveEnoughAlternates()) return;
 
-  for (const sourceId of candidates) {
-    if (attempts >= maxAttempts) break;
-    if (!stillSameMedia(opts.mediaKey)) return;
-    if (haveEnoughAlternates()) return;
+  let cursor = 0;
+  let attempts = 0;
 
-    attempts += 1;
+  async function worker(stagger: number): Promise<void> {
+    await delay(stagger);
 
-    try {
-      const result = await providers.runSourceScraper({
-        id: sourceId,
-        media: opts.media,
-      });
+    for (;;) {
       if (!stillSameMedia(opts.mediaKey)) return;
+      if (haveEnoughAlternates()) return;
+      if (attempts >= maxAttempts) return;
 
-      if (result.stream?.length) {
-        have = await registerStreams(
-          result.stream,
-          sourceId,
-          null,
-          have,
-          opts.mediaKey,
-        );
-      } else {
-        for (const embed of result.embeds ?? []) {
-          if (!stillSameMedia(opts.mediaKey)) return;
-          if (haveEnoughAlternates()) return;
+      const sourceId = candidates[cursor];
+      if (!sourceId) return;
+      cursor += 1;
+      attempts += 1;
 
-          try {
-            const embedResult = await providers.runEmbedScraper({
-              id: embed.embedId,
-              url: embed.url,
-            });
-            if (!stillSameMedia(opts.mediaKey)) return;
-            have = await registerStreams(
-              embedResult.stream,
-              sourceId,
-              embed.embedId,
-              have,
-              opts.mediaKey,
-            );
-          } catch {
-            // try next embed
-          }
-        }
+      try {
+        await scrapeCandidate(sourceId, opts.media, opts.mediaKey);
+      } catch {
+        // try next source
       }
-    } catch {
-      // try next source
-    }
 
-    if (!stillSameMedia(opts.mediaKey)) return;
-    if (haveEnoughAlternates()) return;
-    await new Promise<void>((resolve) => {
-      window.setTimeout(resolve, BETWEEN_SOURCE_YIELD_MS);
-    });
+      await delay(BETWEEN_SOURCE_YIELD_MS);
+    }
   }
+
+  const workerCount = Math.min(DISCOVERY_CONCURRENCY, candidates.length);
+  await Promise.all(
+    Array.from({ length: workerCount }, (_, index) =>
+      worker(index * WORKER_STAGGER_MS),
+    ),
+  );
 }
