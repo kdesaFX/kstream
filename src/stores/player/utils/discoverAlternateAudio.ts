@@ -119,13 +119,14 @@ async function registerStreams(
       streamsToAudioOptions(missing, sourceId, embedId),
     );
   }
-  const qualityOptions = await streamsToQualityOptions(
-    streams,
-    sourceId,
-    embedId,
-  );
-  if (!stillSameMedia(mediaKey)) return;
-  usePlayerStore.getState().registerQualityStreamOptions(qualityOptions);
+  // Identifying which tiers a stream offers means reading the other source's
+  // manifest, and a cold origin can take its time. Nothing here depends on the
+  // answer — the menu just gains rows once it lands — so don't hold this
+  // source, or the ones queued behind it, waiting for the read.
+  void streamsToQualityOptions(streams, sourceId, embedId).then((options) => {
+    if (!stillSameMedia(mediaKey)) return;
+    usePlayerStore.getState().registerQualityStreamOptions(options);
+  });
 }
 
 async function scrapeCandidate(

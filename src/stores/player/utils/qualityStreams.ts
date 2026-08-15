@@ -97,7 +97,36 @@ export function firstNonEmptyQualities(
   });
 }
 
-async function probeHlsQualities(
+const identified = new Map<string, Promise<SourceQuality[]>>();
+const IDENTIFIED_MAX = 100;
+
+/**
+ * Which tiers a ladder offers can't change while the tab is open, so identify
+ * a playlist once and reuse the answer. Concurrent callers share the in-flight
+ * read; a read that came back with nothing is dropped so a blip doesn't hide a
+ * source for the rest of the session.
+ */
+export function rememberIdentifiedQualities(
+  key: string,
+  identify: () => Promise<SourceQuality[]>,
+): Promise<SourceQuality[]> {
+  const known = identified.get(key);
+  if (known) return known;
+
+  const pending = identify().then((qualities) => {
+    if (!qualities.length) identified.delete(key);
+    return qualities;
+  });
+
+  if (identified.size >= IDENTIFIED_MAX) {
+    const oldest = identified.keys().next();
+    if (!oldest.done) identified.delete(oldest.value);
+  }
+  identified.set(key, pending);
+  return pending;
+}
+
+async function readHlsQualities(
   source: SourceSliceSource,
 ): Promise<SourceQuality[]> {
   if (source.type !== "hls") return [];
@@ -134,12 +163,15 @@ async function streamQualities(
   stream: Stream,
   source: SourceSliceSource,
 ): Promise<SourceQuality[]> {
+  // A file stream already told us its tiers — nothing to go and read.
   if (source.type === "file") {
     return Object.entries(source.qualities)
       .filter(([, value]) => Boolean(value?.url))
       .map(([quality]) => quality as SourceQuality);
   }
-  return probeHlsQualities(source);
+  return rememberIdentifiedQualities(source.url, () =>
+    readHlsQualities(source),
+  );
 }
 
 export async function streamToQualityOptions(

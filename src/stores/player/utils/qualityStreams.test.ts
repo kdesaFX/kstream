@@ -6,6 +6,7 @@ import {
   mergeQualityStreamOptions,
   parseHlsQualities,
   QualityStreamOption,
+  rememberIdentifiedQualities,
 } from "@/stores/player/utils/qualityStreams";
 import type { SourceQuality } from "@/stores/player/utils/qualities";
 
@@ -89,6 +90,52 @@ describe("firstNonEmptyQualities", () => {
         later<SourceQuality[]>(["360"], 0),
       ]),
     ).resolves.toEqual(["360"]);
+  });
+});
+
+describe("rememberIdentifiedQualities", () => {
+  it("identifies a playlist once and reuses the answer", async () => {
+    let reads = 0;
+    const identify = async () => {
+      reads += 1;
+      return ["720"] as SourceQuality[];
+    };
+
+    await rememberIdentifiedQualities("playlist-a", identify);
+    await expect(
+      rememberIdentifiedQualities("playlist-a", identify),
+    ).resolves.toEqual(["720"]);
+    expect(reads).toBe(1);
+  });
+
+  it("shares one read between callers that ask at the same time", async () => {
+    let reads = 0;
+    const identify = () => {
+      reads += 1;
+      return later<SourceQuality[]>(["1080"], 5);
+    };
+
+    await Promise.all([
+      rememberIdentifiedQualities("playlist-b", identify),
+      rememberIdentifiedQualities("playlist-b", identify),
+    ]);
+    expect(reads).toBe(1);
+  });
+
+  it("retries later when a read came back with nothing", async () => {
+    let reads = 0;
+    const identify = async () => {
+      reads += 1;
+      return (reads === 1 ? [] : ["480"]) as SourceQuality[];
+    };
+
+    await expect(
+      rememberIdentifiedQualities("playlist-c", identify),
+    ).resolves.toEqual([]);
+    await expect(
+      rememberIdentifiedQualities("playlist-c", identify),
+    ).resolves.toEqual(["480"]);
+    expect(reads).toBe(2);
   });
 });
 
