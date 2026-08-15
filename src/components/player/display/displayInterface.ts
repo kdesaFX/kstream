@@ -84,6 +84,10 @@ export interface DisplayInterface extends Listener<DisplayInterfaceEvents> {
   changeAudioTrack(audioTrack: AudioTrack): void;
   processVideoElement(video: HTMLVideoElement): void;
   processContainerElement(container: HTMLElement): void;
+  // Stop playback and release the current stream without tearing down the
+  // whole interface, so a later play() can re-attach. Used when the video
+  // element leaves the DOM (e.g. scrape-not-found) so audio can't linger.
+  unload?(): void;
   toggleFullscreen(): void;
   togglePictureInPicture(): void;
   setSeeking(active: boolean): void;

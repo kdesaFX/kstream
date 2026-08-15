@@ -246,6 +246,15 @@ function VideoElement() {
     }
   }, [display]);
 
+  // The <video> only lives while status is PLAYING. When it unmounts (e.g. a
+  // re-scrape lands on not-found), release the stream so audio can't keep
+  // playing behind the error screen. A later play() re-attaches the source.
+  useEffect(() => {
+    return () => {
+      usePlayerStore.getState().display?.unload?.();
+    };
+  }, []);
+
 
   useEffect(() => {
     if (trackEl.current) {

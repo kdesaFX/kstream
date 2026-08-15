@@ -1464,6 +1464,19 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     processContainerElement(container) {
       containerElement = container;
     },
+    unload() {
+      // Pause before releasing so the element goes quiet instantly, even while
+      // a Web Audio boost graph is still wired to it.
+      if (videoElement && !videoElement.paused) {
+        suppressPlaybackEvents = true;
+        try {
+          videoElement.pause();
+        } finally {
+          suppressPlaybackEvents = false;
+        }
+      }
+      unloadSource();
+    },
     setMeta() {},
     setCaption() {},
 
