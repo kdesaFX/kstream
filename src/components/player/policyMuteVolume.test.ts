@@ -77,10 +77,14 @@ function shouldAutoplayWithSound(opts: { lastVolume: number }): boolean {
 function autoplayFallback(
   errName: string,
   isMobile = true,
+  hasInteracted = false,
 ): "retry-later" | "play-muted" | "offer-play-button" {
   if (errName === "AbortError" || errName === "NotSupportedError")
     return "retry-later";
-  return isMobile ? "play-muted" : "offer-play-button";
+  if (isMobile) return "play-muted";
+  // Desktop: a cold reload (no prior interaction) offers the play button, but
+  // in-app navigation keeps rolling muted and unmutes on the next gesture.
+  return hasInteracted ? "play-muted" : "offer-play-button";
 }
 
 /** Mirrors the gate in armUnmuteOnGesture's handler. */
@@ -131,9 +135,15 @@ describe("starting playback with sound", () => {
     expect(autoplayFallback("NotAllowedError", true)).toBe("play-muted");
   });
 
-  it("waits behind the play button on desktop rather than starting silent", () => {
-    expect(autoplayFallback("NotAllowedError", false)).toBe(
+  it("waits behind the play button on a cold desktop load rather than starting silent", () => {
+    expect(autoplayFallback("NotAllowedError", false, false)).toBe(
       "offer-play-button",
+    );
+  });
+
+  it("keeps rolling muted on desktop when the viewer navigated in-app", () => {
+    expect(autoplayFallback("NotAllowedError", false, true)).toBe(
+      "play-muted",
     );
   });
 

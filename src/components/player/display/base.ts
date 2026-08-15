@@ -432,11 +432,17 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             autoplayInFlight = false;
             return;
           }
-          // Desktop refused sound. Starting silently just burns the opening
-          // minute and still needs a click, so offer the play button instead —
-          // that click starts it with sound from the first frame. Mobile keeps
-          // the muted start; Safari needs it to get going at all.
-          if (!isMobileBrowser()) {
+          // Desktop refused an unmuted start. A cold page load with no prior
+          // interaction (a reload) gets the play button, so the first click
+          // starts with sound from the very first frame. But if the user has
+          // already interacted this session — i.e. they navigated here in-app
+          // (next/previous episode, picked a title) — freezing on a play button
+          // reads as "it's broken". Keep it rolling muted and unmute on their
+          // next gesture instead. Mobile always keeps the muted start.
+          const hasInteracted =
+            typeof navigator !== "undefined" &&
+            !!navigator.userActivation?.hasBeenActive;
+          if (!isMobileBrowser() && !hasInteracted) {
             shouldAutoplayAfterLoad = false;
             autoplayInFlight = false;
             clearPolicyMute(vid);
