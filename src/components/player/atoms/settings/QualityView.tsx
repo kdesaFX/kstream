@@ -44,6 +44,7 @@ export function QualityView({ id }: { id: string }) {
   const availableQualities = usePlayerStore((s) => s.qualities);
   const alternateQualityOptions = usePlayerStore((s) => s.qualityStreamOptions);
   const currentQuality = usePlayerStore((s) => s.currentQuality);
+  const currentSourceId = usePlayerStore((s) => s.sourceId);
   const switchQuality = usePlayerStore((s) => s.switchQuality);
   const switchQualityStream = usePlayerStore((s) => s.switchQualityStream);
   const enableAutomaticQuality = usePlayerStore(
@@ -65,16 +66,18 @@ export function QualityView({ id }: { id: string }) {
     [availableQualities, alternateQualityOptions],
   );
 
-  // Only for tiers the active source cannot serve — those play by hopping to
-  // another provider, so name it instead of leaving the row blank.
+  // Name the provider only when playing the tier means leaving the source
+  // you're on. A source can register tiers its own manifest didn't expose to
+  // the player, and labelling those with the current source reads as a bug.
   const alternateSourceNames = useMemo(() => {
     const names: Partial<Record<SourceQuality, string>> = {};
     for (const option of alternateQualityOptions) {
       if (availableQualities.includes(option.quality)) continue;
+      if (option.sourceId === currentSourceId) continue;
       names[option.quality] = option.sourceName;
     }
     return names;
-  }, [alternateQualityOptions, availableQualities]);
+  }, [alternateQualityOptions, availableQualities, currentSourceId]);
 
   const supportsAutoQuality = sourceType === "hls";
 
