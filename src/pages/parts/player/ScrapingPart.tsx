@@ -1,6 +1,6 @@
 import { ProviderControls, ScrapeMedia } from "@p-stream/providers";
 import classNames from "classnames";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useMountedState } from "react-use";
@@ -35,6 +35,17 @@ export interface ScrapingProps {
   startFromSourceId?: string;
 }
 
+/**
+ * Sources race in parallel, so several are genuinely searching at once. Keep
+ * every running one fully visible instead of spotlighting a single "current"
+ * source and dimming its equally-busy neighbours.
+ */
+function statusOpacity(status: ScrapingSegment["status"] | undefined): number {
+  if (status === "pending" || status === "success") return 1;
+  if (status === "notfound" || status === "failure") return 0.6;
+  return 0.35; // queued, not started yet
+}
+
 export function ScrapingPart(props: ScrapingProps) {
   const { report } = useReportProviders();
   const { startScraping, resumeScraping, sourceOrder, sources, currentSource } =
@@ -46,11 +57,21 @@ export function ScrapingPart(props: ScrapingProps) {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+
+  // Anchor on the first source still running rather than whichever started
+  // most recently, or the list yanks around while a batch races.
+  const anchorSource = useMemo(() => {
+    const firstRunning = sourceOrder.find(
+      (order) => sources[order.id]?.status === "pending",
+    );
+    return firstRunning?.id ?? currentSource;
+  }, [sourceOrder, sources, currentSource]);
+
   const renderedOnce = useListCenter(
     containerRef,
     listRef,
     sourceOrder,
-    currentSource,
+    anchorSource,
   );
 
   const resultRef = useRef({
@@ -110,12 +131,6 @@ export function ScrapingPart(props: ScrapingProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startScraping, resumeScraping, props.startFromSourceId, props.media]);
 
-  let currentProviderIndex = sourceOrder.findIndex(
-    (s) => s.id === currentSource || s.children.includes(currentSource ?? ""),
-  );
-  if (currentProviderIndex === -1)
-    currentProviderIndex = sourceOrder.length - 1;
-
   return (
     <div
       className="h-full w-full relative dir-neutral:origin-top-left flex"
@@ -136,14 +151,10 @@ export function ScrapingPart(props: ScrapingProps) {
       >
         {sourceOrder.map((order) => {
           const source = sources[order.id];
-          const distance = Math.abs(
-            sourceOrder.findIndex((o) => o.id === order.id) -
-              currentProviderIndex,
-          );
           return (
             <div
-              className="transition-opacity duration-100"
-              style={{ opacity: Math.max(0, 1 - distance * 0.3) }}
+              className="transition-opacity duration-200"
+              style={{ opacity: statusOpacity(source.status) }}
               key={order.id}
             >
               <ScrapeCard
