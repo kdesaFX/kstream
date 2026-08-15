@@ -166,6 +166,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let autoplayInFlight = false;
   /** True while muted only for autoplay policy — UI must keep showing lastVolume. */
   let policyMuted = false;
+  let unmuteGestureCleanup: (() => void) | null = null;
+  let userPausedAt = 0;
 
   const languagePromises = new Map<
     string,
@@ -199,7 +201,24 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     vid.setAttribute("muted", "");
   }
 
+  function clearUnmuteGesture() {
+    unmuteGestureCleanup?.();
+    unmuteGestureCleanup = null;
+  }
+
+  function userActivation():
+    | { isActive?: boolean; hasBeenActive?: boolean }
+    | undefined {
+    if (typeof navigator === "undefined") return undefined;
+    return (
+      navigator as Navigator & {
+        userActivation?: { isActive?: boolean; hasBeenActive?: boolean };
+      }
+    ).userActivation;
+  }
+
   function clearPolicyMute(vid: HTMLVideoElement) {
+    clearUnmuteGesture();
     policyMuted = false;
     vid.defaultMuted = false;
     vid.muted = lastVolume <= 0;
@@ -212,13 +231,76 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   }
 
   /**
-   * After async scrapes the click gesture is gone, so unmuted play is blocked.
-   * Start muted (always allowed). Do NOT try to unmute here — that raced with
-   * pause clicks and spiked the volume slider. User play() unmutes with gesture.
+   * Muted autoplay leaves the video silent until the page has user activation,
+   * so turn sound on at the first real gesture — otherwise the slider shows a
+   * volume the viewer can't hear until they nudge it.
+   *
+   * This is safe to run on any gesture because the UI already reports
+   * lastVolume while policy-muted: unmuting emits the same number instead of
+   * the jump-to-full-volume this used to cause on pause clicks.
+   */
+  function armUnmuteOnGesture() {
+    clearUnmuteGesture();
+    if (lastVolume <= 0) return;
+
+    const unmute = (event: Event) => {
+      // Without user activation the browser answers an unmute by pausing, so
+      // wait for an event that actually grants us permission to make sound.
+      if (!event.isTrusted && !userActivation()?.isActive) return;
+      const vid = videoElement;
+      if (!vid || !policyMuted) {
+        clearUnmuteGesture();
+        return;
+      }
+
+      const wasPlaying = !vid.paused;
+      // Unmuting can force a pause on iOS — don't let that flip the UI to
+      // "tap to play" before we've recovered.
+      suppressPlaybackEvents = wasPlaying;
+      clearPolicyMute(vid);
+      reportVolumeToUi();
+      if (!wasPlaying) return;
+
+      window.setTimeout(() => {
+        suppressPlaybackEvents = false;
+        if (!videoElement || !videoElement.paused || videoElement.ended) return;
+        // The gesture that unmuted us was the viewer pausing — leave it paused.
+        if (Date.now() - userPausedAt < 500) return;
+        muteForAutoplay(videoElement);
+        reportVolumeToUi();
+        videoElement.play().catch(() => undefined);
+        armUnmuteOnGesture();
+      }, 120);
+    };
+
+    const events = ["pointerdown", "keydown", "touchstart"] as const;
+    events.forEach((name) => window.addEventListener(name, unmute, true));
+    unmuteGestureCleanup = () => {
+      events.forEach((name) => window.removeEventListener(name, unmute, true));
+    };
+  }
+
+  function errorName(err: unknown): string {
+    return err && typeof err === "object" && "name" in err
+      ? String((err as { name: string }).name)
+      : "";
+  }
+
+  /** The click that opened this title still counts — sound can start straight away. */
+  function hasStickyActivation(): boolean {
+    return userActivation()?.hasBeenActive === true;
+  }
+
+  /**
+   * After async scrapes the click gesture is gone, so unmuted play may be
+   * blocked. Try with sound first when the document still has user activation,
+   * otherwise start muted and unmute on the viewer's next gesture.
    */
   function tryAutoplay() {
     if (!shouldAutoplayAfterLoad || !videoElement || autoplayInFlight) return;
     autoplayInFlight = true;
+
+    const vid = videoElement;
 
     const finishOk = () => {
       shouldAutoplayAfterLoad = false;
@@ -230,31 +312,46 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       emit("play", undefined);
       emit("loading", false);
       reportVolumeToUi();
+      if (policyMuted) armUnmuteOnGesture();
     };
 
-    muteForAutoplay(videoElement);
-    const playPromise = videoElement.play();
-    if (playPromise === undefined) {
-      finishOk();
-      return;
-    }
-
-    playPromise
-      .then(() => {
+    const playMuted = () => {
+      muteForAutoplay(vid);
+      const mutedPlay = vid.play();
+      if (mutedPlay === undefined) {
         finishOk();
-      })
-      .catch((err: unknown) => {
+        return;
+      }
+      mutedPlay.then(finishOk).catch((err: unknown) => {
         autoplayInFlight = false;
-        const name =
-          err && typeof err === "object" && "name" in err
-            ? String((err as { name: string }).name)
-            : "";
+        const name = errorName(err);
         // AbortError / not ready — retry on next canplay/manifest/unstick tick.
         if (name === "AbortError" || name === "NotSupportedError") return;
         // Even muted play blocked — show the tap-to-play overlay.
         emit("pause", undefined);
         emit("loading", false);
       });
+    };
+
+    if (lastVolume > 0 && hasStickyActivation()) {
+      clearPolicyMute(vid);
+      const playPromise = vid.play();
+      if (playPromise === undefined) {
+        finishOk();
+        return;
+      }
+      playPromise.then(finishOk).catch((err: unknown) => {
+        const name = errorName(err);
+        if (name === "AbortError" || name === "NotSupportedError") {
+          autoplayInFlight = false;
+          return;
+        }
+        playMuted();
+      });
+      return;
+    }
+
+    playMuted();
   }
 
   function reportLevels() {
@@ -1029,6 +1126,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     isQualitySwitching = false;
     suppressPlaybackEvents = false;
     autoplayInFlight = false;
+    clearUnmuteGesture();
 
     teardownAudioAnalysis();
 
@@ -1248,12 +1346,14 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
     pause() {
       if (!videoElement) return;
+      userPausedAt = Date.now();
       videoElement.pause();
       emit("pause", undefined);
     },
     play() {
       shouldAutoplayAfterLoad = false;
       autoplayInFlight = false;
+      userPausedAt = 0;
       if (autoplayUnstickTimer) {
         clearTimeout(autoplayUnstickTimer);
         autoplayUnstickTimer = null;
@@ -1275,6 +1375,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       if (wantSound) {
         clearPolicyMute(vid);
       } else {
+        clearUnmuteGesture();
         policyMuted = false;
         vid.muted = true;
       }
@@ -1295,11 +1396,13 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           const mutedPlay = vid.play();
           if (mutedPlay === undefined) {
             markPlaying();
+            armUnmuteOnGesture();
             return;
           }
           mutedPlay
             .then(() => {
               markPlaying();
+              armUnmuteOnGesture();
             })
             .catch(() => {
               emit("pause", undefined);
@@ -1360,6 +1463,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       }
 
       // Intentional volume change (slider / mute toggle) clears policy mute.
+      clearUnmuteGesture();
       policyMuted = false;
       videoElement.muted = volume === 0; // Muted attribute is always supported
       if (volume === 0) videoElement.setAttribute("muted", "");
