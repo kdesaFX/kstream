@@ -1,6 +1,6 @@
 import { registerSW } from "virtual:pwa-register";
 
-const intervalMS = 60 * 60 * 1000;
+const intervalMS = 5 * 60 * 1000;
 
 registerSW({
   immediate: true,
