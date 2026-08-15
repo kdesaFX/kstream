@@ -19,8 +19,10 @@ export function IconPatch(props: IconPatchProps) {
   const transparentClasses = props.transparent
     ? "bg-opacity-0 hover:bg-opacity-50"
     : "";
+  // Matches navControlSurface so the bell reads as the same material as the
+  // rest of the header controls.
   const navigationClasses = props.navigation
-    ? "bg-opacity-50 hover:bg-opacity-100"
+    ? "bg-opacity-50 hover:bg-opacity-80"
     : "";
   const activeClasses = props.active
     ? "bg-pill-backgroundHover text-white"
@@ -31,8 +33,7 @@ export function IconPatch(props: IconPatchProps) {
       ? "h-10 w-10"
       : "h-12 w-12";
   // Font Awesome bell hangs a bit low optically — nudge it up in the circle.
-  const iconNudge =
-    props.icon === Icons.BELL ? "relative -translate-y-px" : "";
+  const iconNudge = props.icon === Icons.BELL ? "relative -translate-y-px" : "";
 
   return (
     <div className={props.className || undefined} onClick={props.onClick}>

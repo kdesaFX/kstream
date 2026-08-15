@@ -1,6 +1,11 @@
 import classNames from "classnames";
 import { useTranslation } from "react-i18next";
 
+import {
+  navControlHover,
+  navControlSurface,
+} from "@/components/layout/navControl";
+
 export function BrandPill(props: {
   clickable?: boolean;
   header?: boolean;
@@ -15,14 +20,9 @@ export function BrandPill(props: {
         props.header
           ? "h-10 gap-1.5 px-2.5 text-sm md:h-[2.67rem] md:gap-2 md:px-3.5 md:text-base"
           : "px-4 py-2",
-        props.header
-          ? "bg-black/55 backdrop-blur-md border border-white/25 shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
-          : props.backgroundClass ??
-              "bg-pill-background bg-opacity-50 backdrop-blur-lg",
+        props.backgroundClass ?? navControlSurface,
         props.clickable
-          ? props.header
-            ? "transition-[transform,background-color,border-color,box-shadow] hover:scale-105 hover:bg-black/70 hover:border-white/40 hover:shadow-[0_0_0_1px_rgba(255,255,255,0.12)] hover:text-type-logo active:scale-95"
-            : "transition-[transform,background-color,border-color] hover:scale-105 hover:bg-black/35 hover:border-white/15 hover:text-type-logo active:scale-95"
+          ? classNames(navControlHover, "hover:text-type-logo")
           : "",
       )}
     >

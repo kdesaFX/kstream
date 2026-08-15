@@ -9,6 +9,10 @@ import { IconPatch } from "@/components/buttons/IconPatch";
 import { SearchBarInput } from "@/components/form/SearchBar";
 import { Icon, Icons } from "@/components/Icon";
 import { LinksDropdown } from "@/components/layout/LinksDropdown";
+import {
+  navControlHover,
+  navControlSurface,
+} from "@/components/layout/navControl";
 import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { useNotifications } from "@/components/overlays/notificationsModal";
 import { useSlashFocus } from "@/components/player/hooks/useSlashFocus";
@@ -41,7 +45,7 @@ function HomeLayoutCustomizerToggle() {
         className={`group flex items-center h-10 md:h-[2.67rem] rounded-full transition-all duration-300 ease-out overflow-hidden ${
           isOpen
             ? "bg-type-link text-white shadow-lg pr-4"
-            : "bg-pill-background bg-opacity-50 text-white hover:bg-pill-backgroundHover hover:bg-opacity-100 hover:pr-4 active:scale-105"
+            : `${navControlSurface} text-white hover:bg-pill-backgroundHover/80 hover:pr-4 active:scale-105`
         }`}
         title="Edit Layout"
       >
@@ -61,10 +65,7 @@ function HomeLayoutCustomizerToggle() {
           Layout
         </span>
       </button>
-      <HomeSectionCustomizer
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-      />
+      <HomeSectionCustomizer isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>
   );
 }
@@ -279,7 +280,13 @@ export function Navigation(props: NavigationProps) {
                     title="Download app"
                     aria-label="Download Windows app"
                   >
-                    <div className="flex h-[2.67rem] items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3.5 text-white backdrop-blur-md transition-[transform,background-color,border-color] hover:scale-105 hover:border-white/15 hover:bg-black/35 active:scale-95">
+                    <div
+                      className={classNames(
+                        "flex h-[2.67rem] items-center gap-2 rounded-full px-3.5 text-white",
+                        navControlSurface,
+                        navControlHover,
+                      )}
+                    >
                       <Icon
                         icon={Icons.DOWNLOAD}
                         className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none [&>svg]:block [&>svg]:h-5 [&>svg]:w-5"

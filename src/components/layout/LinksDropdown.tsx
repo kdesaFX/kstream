@@ -8,6 +8,7 @@ import { getBackendMeta } from "@/backend/accounts/meta";
 import { getRoomStatuses } from "@/backend/player/status";
 import { UserAvatar } from "@/components/Avatar";
 import { Icon, Icons } from "@/components/Icon";
+import { navControlSurface } from "@/components/layout/navControl";
 import { Spinner } from "@/components/layout/Spinner";
 import { useDesktopAppSettingsModal } from "@/components/overlays/desktopAppSettings";
 import { Transition } from "@/components/utils/Transition";
@@ -231,11 +232,13 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
     <div className="relative is-dropdown">
       <div
         className={classNames(
-          "cursor-pointer tabbable rounded-full flex text-white items-center overflow-hidden bg-black/25 hover:bg-black/40 border border-white/10 hover:border-white/15 backdrop-blur-md transition-all duration-100 hover:scale-105",
+          "cursor-pointer tabbable rounded-full flex text-white items-center overflow-hidden transition-all duration-100 hover:scale-105",
+          navControlSurface,
+          "hover:bg-pill-backgroundHover/80",
           isMobile
             ? "h-10 min-w-[2.75rem] justify-center gap-0 px-3"
             : "h-[2.67rem] min-w-[3.25rem] gap-1.5 px-3.5",
-          open ? "bg-black/40" : "",
+          open ? "bg-pill-backgroundHover/80" : "",
         )}
         tabIndex={0}
         onClick={toggleOpen}
