@@ -35,13 +35,16 @@ export function progressIsCompleted(
 
 /**
  * Seconds of playback before a title appears in Continue Watching /
- * Watch History. Caps via a small fraction so short episodes aren't
- * blocked for nearly their whole runtime.
+ * Watch History. Keep this below the old 90-second boundary: the UI rounds
+ * 89.x to 1:30, and the periodic saver can legitimately last flush at 87–89s.
+ * Caps via a small fraction so short episodes aren't blocked for nearly their
+ * whole runtime.
  */
-export const MIN_WATCH_SECONDS = 90;
+export const MIN_WATCH_SECONDS = 60;
 
 /** Fraction of runtime for recommendation / "Because You Watched" signal. */
 export const MIN_RECOMMENDATION_FRACTION = 0.15;
+const MIN_RECOMMENDATION_SECONDS = 180;
 
 export function progressIsNotStarted(
   duration: number,
@@ -65,7 +68,7 @@ function progressIsMeaningfulForRecommendations(
   if (progressIsCompleted(duration, watched)) return true;
   if (watched / duration >= MIN_RECOMMENDATION_FRACTION) return true;
   // Long titles: ~3 minutes is enough signal even under 15%.
-  return watched >= MIN_WATCH_SECONDS * 2;
+  return watched >= MIN_RECOMMENDATION_SECONDS;
 }
 
 /**

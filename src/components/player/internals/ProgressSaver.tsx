@@ -91,6 +91,9 @@ export function ProgressSaver() {
     window.addEventListener("pagehide", flush);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
+      // Client-side navigation does not fire pagehide. Flush before the player
+      // unmounts so leaving at 1:30 cannot leave the last interval save at 1:27.
+      flush();
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", onVisibility);
     };
