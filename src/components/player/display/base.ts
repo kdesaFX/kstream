@@ -168,6 +168,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let policyMuted = false;
   let unmuteGestureCleanup: (() => void) | null = null;
   let userPausedAt = 0;
+  /** Set when a tap on the video turned sound on, so it can't also pause. */
+  let soundUnmutedAt = 0;
 
   const languagePromises = new Map<
     string,
@@ -210,6 +212,16 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     if (typeof navigator === "undefined") return undefined;
     return (navigator as Navigator & { userActivation?: { isActive?: boolean } })
       .userActivation;
+  }
+
+  /** Controls carry their own intent; the bare video surface does not. */
+  function isPlayerControlTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof Element)) return false;
+    return Boolean(
+      target.closest(
+        "button, a, input, textarea, select, [role='button'], [data-player-chrome]",
+      ),
+    );
   }
 
   function clearPolicyMute(vid: HTMLVideoElement) {
@@ -271,7 +283,12 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       suppressPlaybackEvents = wasPlaying;
       clearPolicyMute(vid);
       reportVolumeToUi();
-      if (wasPlaying) recoverIfSoundStoppedPlayback();
+      if (!wasPlaying) return;
+
+      // A tap on the video meant "give me sound", so don't let the same tap
+      // pause it too — that reads as the player breaking on first contact.
+      if (!isPlayerControlTarget(event.target)) soundUnmutedAt = Date.now();
+      recoverIfSoundStoppedPlayback();
     };
 
     const events = ["pointerdown", "keydown", "touchstart"] as const;
@@ -1350,6 +1367,11 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
     pause() {
       if (!videoElement) return;
+      // Swallow only the pause belonging to the tap that just turned sound on.
+      if (soundUnmutedAt && Date.now() - soundUnmutedAt < 400) {
+        soundUnmutedAt = 0;
+        return;
+      }
       userPausedAt = Date.now();
       videoElement.pause();
       emit("pause", undefined);

@@ -92,6 +92,19 @@ function shouldUnmuteOnGesture(opts: {
   return opts.policyMuted;
 }
 
+/**
+ * Mirrors how the tap that turns sound on is kept from also pausing.
+ * Controls carry their own intent, so only the bare video surface claims it.
+ */
+function unmuteClaimsGesture(targetIsControl: boolean): boolean {
+  return !targetIsControl;
+}
+
+function shouldSwallowPause(msSinceSoundUnmute: number | null): boolean {
+  if (msSinceSoundUnmute === null) return false;
+  return msSinceSoundUnmute < 400;
+}
+
 /** Mirrors the post-unmute recovery timer. */
 function shouldRecoverMutedPlayback(opts: {
   paused: boolean;
@@ -151,6 +164,20 @@ describe("starting playback with sound", () => {
         lastVolume: 0.6,
       }),
     ).toBe(false);
+  });
+
+  it("does not pause on the same tap that turned sound on", () => {
+    expect(unmuteClaimsGesture(false)).toBe(true);
+    expect(shouldSwallowPause(30)).toBe(true);
+  });
+
+  it("still pauses on the next tap", () => {
+    expect(shouldSwallowPause(1500)).toBe(false);
+    expect(shouldSwallowPause(null)).toBe(false);
+  });
+
+  it("lets the pause button pause even while unmuting", () => {
+    expect(unmuteClaimsGesture(true)).toBe(false);
   });
 
   it("leaves playback paused when the unmuting gesture was a pause click", () => {
