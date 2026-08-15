@@ -223,7 +223,8 @@ export function HomePage() {
           </div>
         ) : null}
 
-        {enableDiscover && <div className="pb-4" />}
+        {/* Breathing room between the last home row and the discover tabs. */}
+        {enableDiscover && <div className="pb-12" />}
 
         {enableDiscover && !search && !enableLowPerformanceMode ? (
           <DiscoverContent />
