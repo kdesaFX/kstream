@@ -19,7 +19,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
-const providers = require("@p-stream/providers");
+const providers = require(
+  process.env.GOON_PROVIDERS_PATH || "@p-stream/providers",
+);
 const {
   makeProviders,
   makeStandardFetcher,
