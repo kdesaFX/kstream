@@ -201,8 +201,9 @@ export function SettingsPage() {
       if (subSectionToCategory[hashId]) {
         const categoryId = subSectionToCategory[hashId];
         setSelectedCategory(categoryId);
-        // Wait for the section to render, then scroll
-        scrollToHash(hash, { delay: 100 });
+        // Subsections sit below a fixed search bar. Centering keeps the linked
+        // row visible instead of pinning it underneath that bar.
+        scrollToHash(hash, { delay: 100, block: "center" });
       } else if (validCategories.includes(hashId)) {
         // It's a category hash
         setSelectedCategory(hashId);
@@ -250,7 +251,7 @@ export function SettingsPage() {
         if (subSectionToCategory[hashId]) {
           const categoryId = subSectionToCategory[hashId];
           setSelectedCategory(categoryId);
-          scrollToHash(hash, { delay: 100 });
+          scrollToHash(hash, { delay: 100, block: "center" });
         } else if (validCategories.includes(hashId)) {
           setSelectedCategory(hashId);
           scrollToHash(hash, { delay: 100 });
