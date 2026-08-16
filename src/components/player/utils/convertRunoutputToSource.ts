@@ -74,9 +74,28 @@ function isReynaOrbitPlaylist(playlist: string): boolean {
   }
 }
 
+/**
+ * Nova's edge workers 403 any origin except novahd.cc, and its segments are
+ * spread across many dynamic nova-edge-*.workers.dev hosts the extension can't
+ * enumerate. Always route through the same-origin m3u8 proxy so every nested
+ * URL is rewritten with the novahd headers.
+ */
+function isNovaEdgePlaylist(playlist: string): boolean {
+  try {
+    const host = new URL(playlist).hostname.toLowerCase();
+    return host.includes("nova-edge") && host.endsWith("workers.dev");
+  } catch {
+    return false;
+  }
+}
+
+function requiresSameOriginProxy(playlist: string): boolean {
+  return isReynaOrbitPlaylist(playlist) || isNovaEdgePlaylist(playlist);
+}
+
 export function shouldUseSameOriginStreamProxy(playlist?: string): boolean {
   if (isDesktopApp()) return false;
-  if (playlist && isReynaOrbitPlaylist(playlist)) return true;
+  if (playlist && requiresSameOriginProxy(playlist)) return true;
   if (isMobileBrowser()) return true;
   return !isExtensionActiveCached();
 }
@@ -95,7 +114,7 @@ function maybeProxyHlsPlaylist(
   // Browser without extension: proxy when the stream needs headers.
   if (
     !isMobileBrowser() &&
-    !isReynaOrbitPlaylist(playlist) &&
+    !requiresSameOriginProxy(playlist) &&
     Object.keys(headers).length === 0
   ) {
     return playlist;
