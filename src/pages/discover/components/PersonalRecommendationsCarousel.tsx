@@ -44,6 +44,7 @@ function discoverMediaToCardMedia(
       : item.release_date
         ? parseInt(item.release_date.split("-")[0]!, 10)
         : undefined,
+    adult: item.adult === true,
   };
 }
 

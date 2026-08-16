@@ -41,11 +41,16 @@ import type {
   UseDiscoverMediaReturn,
 } from "@/pages/discover/types/discover";
 import { useLanguageStore } from "@/stores/language";
+import { usePreferencesStore } from "@/stores/preferences";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import {
   detectUserLanguage,
   detectUserRegion,
 } from "@/utils/locale/userRegion";
+import {
+  filterOutMatureMedia,
+  tmdbIncludeAdult,
+} from "@/utils/media/mature";
 
 const DISCOVER_OPTIONS_LIMIT = 50;
 const TMDB_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -285,6 +290,7 @@ export function useDiscoverMedia({
   const { t } = useTranslation();
   const userLanguage = useLanguageStore((s) => s.language);
   const formattedLanguage = getTmdbLanguageCode(userLanguage);
+  const enableMatureTitles = usePreferencesStore((s) => s.enableMatureTitles);
 
   const fetchTMDBMedia = useCallback(
     async (endpoint: string, params: Record<string, any> = {}) => {
@@ -294,13 +300,19 @@ export function useDiscoverMedia({
         if (genreId && isDiscover && !params.with_genres) {
           params.with_genres = genreId;
         }
+        if (params.include_adult === undefined) {
+          params.include_adult = tmdbIncludeAdult();
+        }
 
         const region = detectUserRegion();
         const mapResults = (items: any[]) =>
-          items.map((item: any) => ({
-            ...item,
-            type: mediaType === "movie" ? "movie" : "show",
-          }));
+          filterOutMatureMedia(
+            items.map((item: any) => ({
+              ...item,
+              type: mediaType === "movie" ? "movie" : "show",
+              adult: item.adult === true,
+            })),
+          );
 
         // Non-carousel: single requested page (view-more / detail grids).
         if (!isCarouselView) {
@@ -376,7 +388,7 @@ export function useDiscoverMedia({
         throw err;
       }
     },
-    [formattedLanguage, page, mediaType, isCarouselView, genreId],
+    [formattedLanguage, page, mediaType, isCarouselView, genreId, enableMatureTitles],
   );
 
   const fetchTraktMedia = useCallback(
@@ -549,7 +561,7 @@ export function useDiscoverMedia({
                 sort_by: "popularity.desc",
                 ...recentReleaseDateParams(mediaType, today, 6),
                 "vote_count.gte": 10,
-                include_adult: false,
+                include_adult: tmdbIncludeAdult(),
               });
             } else {
               // TMDB trending includes hyped unreleased titles — filter those out.
@@ -569,7 +581,7 @@ export function useDiscoverMedia({
                 sort_by: "popularity.desc",
                 ...recentReleaseDateParams(mediaType, today, 6),
                 "vote_count.gte": 10,
-                include_adult: false,
+                include_adult: tmdbIncludeAdult(),
               });
               const seen = new Set(
                 data.results
@@ -616,7 +628,7 @@ export function useDiscoverMedia({
                   sort_by: "popularity.desc",
                   "vote_count.gte": mediaType === "movie" ? 300 : 150,
                   "vote_average.gte": 6,
-                  include_adult: false,
+                  include_adult: tmdbIncludeAdult(),
                   with_genres: genreId,
                 }),
               ),
@@ -680,7 +692,7 @@ export function useDiscoverMedia({
                 "first_air_date.gte": from.toISOString().slice(0, 10),
                 "first_air_date.lte": today,
                 "vote_count.gte": 10,
-                include_adult: false,
+                include_adult: tmdbIncludeAdult(),
               });
               data = {
                 ...data,
@@ -712,7 +724,7 @@ export function useDiscoverMedia({
                 "primary_release_date.lte": today,
                 sort_by: "popularity.desc",
                 "vote_count.gte": 20,
-                include_adult: false,
+                include_adult: tmdbIncludeAdult(),
               });
               setSectionTitle(t("discover.carousel.title.recentReleases"));
             } else {
@@ -872,12 +884,12 @@ export function useDiscoverMedia({
                 "primary_release_date.lte": today,
                 sort_by: "popularity.desc",
                 "vote_count.gte": 20,
-                include_adult: false,
+                include_adult: tmdbIncludeAdult(),
               };
             })()
           : {
               sort_by: "popularity.desc",
-              include_adult: false,
+              include_adult: tmdbIncludeAdult(),
               "vote_count.gte": 20,
               ...recentReleaseDateParams(mediaType, today, 24),
             };
@@ -904,8 +916,10 @@ export function useDiscoverMedia({
         contentType,
       );
       setMedia((prevMedia) => {
-        const valid = filterReleasedDiscoverMedia(
-          data.results.filter((item: DiscoverMedia) => item.id != null),
+        const valid = filterOutMatureMedia(
+          filterReleasedDiscoverMedia(
+            data.results.filter((item: DiscoverMedia) => item.id != null),
+          ),
         );
         return page === 1 ? valid : [...prevMedia, ...valid];
       });
@@ -926,9 +940,11 @@ export function useDiscoverMedia({
           );
           setActualContentType(fallbackType); // Set actual content type to fallback
           setMedia((prevMedia) => {
-            const valid = filterReleasedDiscoverMedia(
-              fallbackData.results.filter(
-                (item: DiscoverMedia) => item.id != null,
+            const valid = filterOutMatureMedia(
+              filterReleasedDiscoverMedia(
+                fallbackData.results.filter(
+                  (item: DiscoverMedia) => item.id != null,
+                ),
               ),
             );
             return page === 1 ? valid : [...prevMedia, ...valid];
@@ -959,13 +975,14 @@ export function useDiscoverMedia({
     t,
     page,
     getTraktProviderFunction,
+    enableMatureTitles,
   ]);
 
   useEffect(() => {
     // Keep resets in an effect to avoid state updates during render.
     setMedia([]);
     setActualContentType(contentType);
-  }, [contentType, id, mediaType, genreId]);
+  }, [contentType, id, mediaType, genreId, enableMatureTitles]);
 
   useEffect(() => {
     if (enabled) {

@@ -528,6 +528,12 @@
       "movie": "Movie",
       "show": "Show"
     },
+    "mature": {
+      "badge": "18+",
+      "title": "This is a mature title",
+      "description": "Adult titles stay hidden until you turn them on in settings.",
+      "openSettings": "Enable mature titles"
+    },
     "episodeShort": "E",
     "seasonShort": "S",
     "seasonWatched": "Are you sure you want to mark the season as watched?",
@@ -1369,6 +1375,8 @@
         "discover": "Discover section",
         "discoverDescription": "Show the Discover section on the Homepage below your bookmarked media.",
         "discoverLabel": "Discover section",
+        "matureTitlesLabel": "Mature titles",
+        "matureTitlesDescription": "Allow adult-rated titles in Discover and remove the 18+ gate from search results.",
         "featured": "Featured media",
         "featuredDescription": "Show a carousel of featured movies and shows at the top of your homepage.",
         "featuredLabel": "Featured media",

@@ -27,6 +27,7 @@ export type TMDBMediaResult = {
   object_type: TMDBContentTypes;
   seasons?: TMDBSeasonShort[];
   overview?: string;
+  adult?: boolean;
 };
 
 export type TMDBSeasonMetaResult = {
@@ -402,6 +403,7 @@ export interface TMDBPersonCreditItem {
   vote_average?: number;
   vote_count?: number;
   episode_count?: number;
+  adult?: boolean;
 }
 
 export interface TMDBPersonCombinedCredits {

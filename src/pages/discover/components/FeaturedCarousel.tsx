@@ -33,6 +33,7 @@ import { useRatingsStore } from "@/stores/ratings";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
 import { fetchImdbRating } from "@/utils/services/imdbRating";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
+import { shouldAllowMatureTitles } from "@/utils/media/mature";
 
 import { RandomMovieButton } from "./RandomMovieButton";
 
@@ -278,9 +279,11 @@ export function FeaturedCarousel({
       return details
         .filter((item): item is NonNullable<typeof item> => Boolean(item))
         .filter(isFeatureWorthy)
+        .filter((item) => shouldAllowMatureTitles() || item.adult !== true)
         .map((item) => ({
           ...item,
           type: mediaType as "movie" | "show",
+          adult: item.adult === true,
         }));
     };
 

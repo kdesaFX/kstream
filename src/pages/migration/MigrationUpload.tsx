@@ -409,6 +409,11 @@ export function MigrationUploadPage() {
             uploadedData.settings.enableDiscover,
           );
         }
+        if (uploadedData.settings.enableMatureTitles !== undefined) {
+          preferencesStore.setEnableMatureTitles(
+            uploadedData.settings.enableMatureTitles,
+          );
+        }
         if (uploadedData.settings.enableFeatured !== undefined) {
           preferencesStore.setEnableFeatured(
             uploadedData.settings.enableFeatured,

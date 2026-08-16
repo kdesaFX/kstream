@@ -6,6 +6,7 @@ import { usePreferencesStore } from "@/stores/preferences";
 import { SimpleCache } from "@/utils/common/cache";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { MediaItem } from "@/utils/media/mediaTypes";
+import { tmdbIncludeAdult, filterOutMatureMedia } from "@/utils/media/mature";
 import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 
 import { MWMediaMeta, MWMediaType, MWSeasonMeta } from "./types/mw";
@@ -140,6 +141,7 @@ export function formatTMDBMetaToMediaItem(media: TMDBMediaResult): MediaItem {
     release_date: media.original_release_date,
     poster: media.poster,
     type,
+    adult: media.adult === true,
   };
 }
 
@@ -378,7 +380,9 @@ export async function multiSearch(
 ): Promise<(TMDBMovieSearchResult | TMDBShowSearchResult)[]> {
   const data = await get<TMDBSearchResult>("search/multi", {
     query,
-    include_adult: false,
+    // Search always includes adult hits so the UI can gate them with an
+    // 18+ overlay until the user opts in via settings.
+    include_adult: true,
     page: 1,
   });
   // filter out results that aren't movies or shows
@@ -397,7 +401,7 @@ export async function searchMovies(
     results: TMDBMovieSearchResult[];
   }>("search/movie", {
     query,
-    include_adult: false,
+    include_adult: true,
     page: 1,
   });
   return data.results.map((result) => ({
@@ -413,7 +417,7 @@ export async function searchTVShows(
     results: TMDBShowSearchResult[];
   }>("search/tv", {
     query,
-    include_adult: false,
+    include_adult: true,
     page: 1,
   });
   return data.results.map((result) => ({
@@ -621,7 +625,7 @@ export async function searchCollections(
     "search/collection",
     {
       query,
-      include_adult: false,
+      include_adult: tmdbIncludeAdult(),
       page: 1,
     },
   );
@@ -712,6 +716,7 @@ export function formatTMDBSearchResult(
       id: show.id,
       original_release_date: new Date(show.first_air_date),
       object_type: mediatype,
+      adult: show.adult === true,
     };
   }
 
@@ -724,6 +729,7 @@ export function formatTMDBSearchResult(
     id: movie.id,
     original_release_date: new Date(movie.release_date),
     object_type: mediatype,
+    adult: movie.adult === true,
   };
 }
 
@@ -795,7 +801,14 @@ export async function getRelatedMedia(
     results: TMDBMovieSearchResult[] | TMDBShowSearchResult[];
   }>(`/${endpoint}/${id}/recommendations`);
 
-  return data.results.slice(0, limit);
+  const results = filterOutMatureMedia(
+    (data.results ?? []) as Array<
+      TMDBMovieSearchResult | TMDBShowSearchResult
+    >,
+  );
+  return results.slice(0, limit) as
+    | TMDBMovieSearchResult[]
+    | TMDBShowSearchResult[];
 }
 
 // How many popularity-sorted pages deep genre-filtered results are allowed
@@ -823,7 +836,7 @@ export async function getMediaByGenres(
     with_genres: genreIds.join(","),
     sort_by: "popularity.desc",
     "vote_count.gte": 200,
-    include_adult: false,
+    include_adult: tmdbIncludeAdult(),
   });
 
   // discover results lack media_type; stamp it back on.
@@ -931,7 +944,7 @@ export async function getAllTimeBestMovies(
         sort_by: "popularity.desc",
         "vote_count.gte": WELL_KNOWN_MOVIE_VOTE_COUNT,
         "vote_average.gte": WELL_KNOWN_MOVIE_VOTE_AVERAGE,
-        include_adult: false,
+        include_adult: tmdbIncludeAdult(),
       },
     );
     return data.results ?? [];
@@ -978,7 +991,7 @@ export async function getAllTimeBestShows(
         sort_by: "popularity.desc",
         "vote_count.gte": WELL_KNOWN_SHOW_VOTE_COUNT,
         "vote_average.gte": WELL_KNOWN_SHOW_VOTE_AVERAGE,
-        include_adult: false,
+        include_adult: tmdbIncludeAdult(),
       },
     );
     return data.results ?? [];
@@ -1018,7 +1031,7 @@ export async function getMediaByCompanies(
     with_companies: companyIds.join("|"),
     sort_by: "popularity.desc",
     "vote_count.gte": 200,
-    include_adult: false,
+    include_adult: tmdbIncludeAdult(),
   });
   return data.results.slice(0, limit).map((r) => ({
     ...r,

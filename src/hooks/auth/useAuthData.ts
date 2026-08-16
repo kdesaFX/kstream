@@ -151,6 +151,7 @@ export function useAuthData() {
       if (settings.enableAutoplay !== undefined) partial.enableAutoplay = settings.enableAutoplay;
       if (settings.enableSkipCredits !== undefined) partial.enableSkipCredits = settings.enableSkipCredits;
       if (settings.enableDiscover !== undefined) partial.enableDiscover = settings.enableDiscover;
+      if (settings.enableMatureTitles !== undefined) partial.enableMatureTitles = settings.enableMatureTitles;
       if (settings.enableFeatured !== undefined) partial.enableFeatured = settings.enableFeatured;
       if (settings.enableDetailsModal !== undefined) partial.enableDetailsModal = settings.enableDetailsModal;
       if (settings.enableImageLogos !== undefined) partial.enableImageLogos = settings.enableImageLogos;

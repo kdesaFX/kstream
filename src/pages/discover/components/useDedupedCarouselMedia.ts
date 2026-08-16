@@ -5,6 +5,10 @@ import type { DiscoverMedia, MediaType } from "@/pages/discover/types/discover";
 import { useLanguageStore } from "@/stores/language";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { detectUserRegion } from "@/utils/locale/userRegion";
+import {
+  filterOutMatureMedia,
+  tmdbIncludeAdult,
+} from "@/utils/media/mature";
 
 import { useDedupedMedia } from "./CarouselDedupeContext";
 
@@ -93,7 +97,7 @@ export function useDedupedCarouselMedia(
         language: formattedLanguage,
         region: detectUserRegion(),
         sort_by: "popularity.desc",
-        include_adult: false,
+        include_adult: tmdbIncludeAdult(),
         "vote_count.gte": 20,
       };
       if (genreId) baseParams.with_genres = genreId;
@@ -133,11 +137,12 @@ export function useDedupedCarouselMedia(
             candidates.push({
               ...item,
               type: mediaType === "movie" ? "movie" : "show",
+              adult: item.adult === true,
             });
           }
         }
 
-        const slice = candidates.slice(0, need + 50);
+        const slice = filterOutMatureMedia(candidates).slice(0, need + 50);
         setBackfill((prev) => {
           if (prev.length === 0) return slice;
           const have = new Set(prev.map((p) => p.id));

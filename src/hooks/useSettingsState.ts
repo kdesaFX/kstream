@@ -77,6 +77,7 @@ export const SETTINGS_FIELDS = [
   { key: "enableSkipCredits", backendKey: "enableSkipCredits" },
   { key: "enableAutoSkipSegments", backendKey: "enableAutoSkipSegments" },
   { key: "enableDiscover", backendKey: "enableDiscover" },
+  { key: "enableMatureTitles", backendKey: "enableMatureTitles" },
   { key: "enableFeatured", backendKey: "enableFeatured" },
   { key: "enableDetailsModal", backendKey: "enableDetailsModal" },
   { key: "enableImageLogos", backendKey: "enableImageLogos" },
@@ -140,6 +141,7 @@ export interface UseSettingsStateInput {
   enableSkipCredits: boolean;
   enableAutoSkipSegments: boolean;
   enableDiscover: boolean;
+  enableMatureTitles: boolean;
   enableFeatured: boolean;
   enableDetailsModal: boolean;
   sourceOrder: string[];
@@ -194,6 +196,7 @@ export function useSettingsState(input: UseSettingsStateInput) {
   field("enableSkipCredits", useDerived(input.enableSkipCredits), registry, resets);
   field("enableAutoSkipSegments", useDerived(input.enableAutoSkipSegments), registry, resets);
   field("enableDiscover", useDerived(input.enableDiscover), registry, resets);
+  field("enableMatureTitles", useDerived(input.enableMatureTitles), registry, resets);
   field("enableFeatured", useDerived(input.enableFeatured), registry, resets);
   field("enableDetailsModal", useDerived(input.enableDetailsModal), registry, resets);
   field("enableImageLogos", useDerived(input.enableImageLogos), registry, resets);

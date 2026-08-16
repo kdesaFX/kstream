@@ -58,6 +58,7 @@ function creditToMediaItem(c: TMDBPersonCreditItem): MediaItem {
       ? `https://image.tmdb.org/t/p/w342${c.poster_path}`
       : undefined,
     type: c.media_type === "tv" ? "show" : "movie",
+    adult: c.adult === true,
   };
 }
 

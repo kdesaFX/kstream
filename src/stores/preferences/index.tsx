@@ -28,6 +28,7 @@ export interface PreferencesStore {
   enableSkipCredits: boolean;
   enableAutoSkipSegments: boolean;
   enableDiscover: boolean;
+  enableMatureTitles: boolean;
   enableFeatured: boolean;
   enableDetailsModal: boolean;
   enableImageLogos: boolean;
@@ -80,6 +81,7 @@ export interface PreferencesStore {
   setEnableSkipCredits(v: boolean): void;
   setEnableAutoSkipSegments(v: boolean): void;
   setEnableDiscover(v: boolean): void;
+  setEnableMatureTitles(v: boolean): void;
   setEnableFeatured(v: boolean): void;
   setEnableDetailsModal(v: boolean): void;
   setEnableImageLogos(v: boolean): void;
@@ -137,6 +139,7 @@ export const usePreferencesStore = create(
       enableSkipCredits: true,
       enableAutoSkipSegments: false,
       enableDiscover: true,
+      enableMatureTitles: false,
       enableFeatured: false,
       enableDetailsModal: false,
       enableImageLogos: true,
@@ -204,6 +207,11 @@ export const usePreferencesStore = create(
       setEnableDiscover(v) {
         set((s) => {
           s.enableDiscover = v;
+        });
+      },
+      setEnableMatureTitles(v) {
+        set((s) => {
+          s.enableMatureTitles = v;
         });
       },
       setEnableFeatured(v) {

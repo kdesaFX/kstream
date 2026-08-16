@@ -100,6 +100,7 @@ export function SimilarMediaCarousel({
                     : media.first_air_date
                       ? new Date(media.first_air_date)
                       : undefined,
+                  adult: media.adult === true,
                 };
                 return (
                   <div

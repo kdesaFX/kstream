@@ -194,6 +194,7 @@ export function SettingsPage() {
       // Map sub-section hashes to their parent categories
       const subSectionToCategory: Record<string, string> = {
         "source-order": "settings-preferences",
+        "enable-mature-titles": "settings-appearance",
       };
 
       // Check if it's a sub-section hash
@@ -243,6 +244,7 @@ export function SettingsPage() {
         ];
         const subSectionToCategory: Record<string, string> = {
           "source-order": "settings-preferences",
+          "enable-mature-titles": "settings-appearance",
         };
 
         if (subSectionToCategory[hashId]) {
@@ -488,6 +490,11 @@ export function SettingsPage() {
   const enableDiscover = usePreferencesStore((s) => s.enableDiscover);
   const setEnableDiscover = usePreferencesStore((s) => s.setEnableDiscover);
 
+  const enableMatureTitles = usePreferencesStore((s) => s.enableMatureTitles);
+  const setEnableMatureTitles = usePreferencesStore(
+    (s) => s.setEnableMatureTitles,
+  );
+
   const enableFeatured = usePreferencesStore((s) => s.enableFeatured);
   const setEnableFeatured = usePreferencesStore((s) => s.setEnableFeatured);
 
@@ -629,6 +636,9 @@ export function SettingsPage() {
         if (settings.enableDiscover !== undefined) {
           setEnableDiscover(settings.enableDiscover);
         }
+        if (settings.enableMatureTitles !== undefined) {
+          setEnableMatureTitles(settings.enableMatureTitles);
+        }
         if (settings.enableFeatured !== undefined) {
           setEnableFeatured(settings.enableFeatured);
         }
@@ -753,6 +763,7 @@ export function SettingsPage() {
     setEnableSkipCredits,
     setEnableAutoSkipSegments,
     setEnableDiscover,
+    setEnableMatureTitles,
     setEnableFeatured,
     setEnableDetailsModal,
     setEnableImageLogos,
@@ -795,6 +806,7 @@ export function SettingsPage() {
     enableSkipCredits,
     enableAutoSkipSegments,
     enableDiscover,
+    enableMatureTitles,
     enableFeatured,
     enableDetailsModal,
     sourceOrder,
@@ -915,6 +927,7 @@ export function SettingsPage() {
     setEnableSkipCredits(state.enableSkipCredits.state);
     setEnableAutoSkipSegments(state.enableAutoSkipSegments.state);
     setEnableDiscover(state.enableDiscover.state);
+    setEnableMatureTitles(state.enableMatureTitles.state);
     setEnableFeatured(state.enableFeatured.state);
     setEnableDetailsModal(state.enableDetailsModal.state);
     setEnableImageLogos(state.enableImageLogos.state);
@@ -993,6 +1006,7 @@ export function SettingsPage() {
     setEnableSkipCredits,
     setEnableAutoSkipSegments,
     setEnableDiscover,
+    setEnableMatureTitles,
     setEnableFeatured,
     setEnableDetailsModal,
     setEnableImageLogos,
@@ -1126,6 +1140,8 @@ export function SettingsPage() {
               setTheme={setThemeWithPreview}
               enableDiscover={state.enableDiscover.state}
               setEnableDiscover={state.enableDiscover.set}
+              enableMatureTitles={state.enableMatureTitles.state}
+              setEnableMatureTitles={state.enableMatureTitles.set}
               enableFeatured={state.enableFeatured.state}
               setEnableFeatured={state.enableFeatured.set}
               enableDetailsModal={state.enableDetailsModal.state}

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { mediaItemToId } from "@/backend/metadata/tmdb";
+import { Button } from "@/components/buttons/Button";
 import { DotList } from "@/components/text/DotList";
 import {
   ContextMenu,
@@ -13,6 +14,8 @@ import {
   ContextMenuItem,
 } from "@/components/utils/ContextMenu";
 import { Flare } from "@/components/utils/Flare";
+import { Modal, ModalCard, useModal } from "@/components/overlays/Modal";
+import { Heading2 } from "@/components/utils/Text";
 import { useSearchQuery } from "@/hooks/useSearchQuery";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
@@ -22,6 +25,7 @@ import {
   createGroupString,
   parseGroupString,
 } from "@/utils/media/bookmarkModifications";
+import { isMatureMedia } from "@/utils/media/mature";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { MediaBookmarkButton } from "./MediaBookmark";
@@ -171,6 +175,8 @@ function MediaCardContent({
 
   const [searchQuery] = useSearchQuery();
   const enableMinimalCards = usePreferencesStore((s) => s.enableMinimalCards);
+  const enableMatureTitles = usePreferencesStore((s) => s.enableMatureTitles);
+  const matureLocked = isMatureMedia(media) && !enableMatureTitles;
 
   // Simple intersection observer for lazy loading images
   const { targetRef, isVisible: isIntersecting } = useLazyVisible();
@@ -218,20 +224,34 @@ function MediaCardContent({
         >
           <div
             className={classNames(
-              "relative pb-[150%] w-full overflow-hidden rounded-xl bg-mediaCard-hoverBackground bg-cover bg-center transition-[border-radius] duration-300",
+              "relative pb-[150%] w-full overflow-hidden rounded-xl bg-mediaCard-hoverBackground transition-[border-radius] duration-300",
               {
                 "group-hover:rounded-lg": canLink,
               },
               enableMinimalCards ? "" : "mb-4",
             )}
-            style={{
-              backgroundImage: isIntersecting
-                ? media.poster
-                  ? `url(${media.poster})`
-                  : "url(/placeholder.png)"
-                : "",
-            }}
           >
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{
+                backgroundImage: isIntersecting
+                  ? media.poster
+                    ? `url(${media.poster})`
+                    : "url(/placeholder.png)"
+                  : "",
+                filter: matureLocked
+                  ? "blur(14px) brightness(0.45)"
+                  : undefined,
+                transform: matureLocked ? "scale(1.08)" : undefined,
+              }}
+            />
+            {matureLocked ? (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/35">
+                <span className="rounded-md bg-black/70 px-2.5 py-1 text-sm font-bold tracking-wide text-white">
+                  {t("media.mature.badge")}
+                </span>
+              </div>
+            ) : null}
             {series ? (
               <div
                 className={[
@@ -366,6 +386,9 @@ export function MediaCard(props: MediaCardProps) {
   const enableDetailsModal = usePreferencesStore(
     (state) => state.enableDetailsModal,
   );
+  const enableMatureTitles = usePreferencesStore((s) => s.enableMatureTitles);
+  const matureLocked = isMatureMedia(media) && !enableMatureTitles;
+  const matureGateModal = useModal(`mature-gate-${media.id}`);
 
   const isReleased = useCallback(
     () => checkReleased(props.media),
@@ -388,6 +411,11 @@ export function MediaCard(props: MediaCardProps) {
   }
 
   const handleShowDetails = useCallback(async () => {
+    if (matureLocked) {
+      matureGateModal.show();
+      return;
+    }
+
     if (onShowDetails) {
       onShowDetails(media);
       return;
@@ -398,7 +426,7 @@ export function MediaCard(props: MediaCardProps) {
       id: Number(media.id),
       type: media.type === "movie" ? "movie" : "show",
     });
-  }, [media, showModal, onShowDetails]);
+  }, [media, showModal, onShowDetails, matureLocked, matureGateModal]);
 
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
@@ -471,6 +499,11 @@ export function MediaCard(props: MediaCardProps) {
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
+    if (matureLocked && canLink) {
+      e.preventDefault();
+      matureGateModal.show();
+      return;
+    }
     if (enableDetailsModal && canLink) {
       e.preventDefault();
       handleShowDetails();
@@ -620,18 +653,36 @@ export function MediaCard(props: MediaCardProps) {
   }
 
   return (
-    <Link
-      to={link}
-      tabIndex={-1}
-      className={classNames(
-        "tabbable relative block",
-        props.closable ? "hover:cursor-default" : "",
-      )}
-      onClick={handleCardClick}
-      onContextMenu={handleCardContextMenu}
-    >
-      {content}
-      {contextMenuEl}
-    </Link>
+    <>
+      <Link
+        to={link}
+        tabIndex={-1}
+        className={classNames(
+          "tabbable relative block",
+          props.closable ? "hover:cursor-default" : "",
+        )}
+        onClick={handleCardClick}
+        onContextMenu={handleCardContextMenu}
+      >
+        {content}
+        {contextMenuEl}
+      </Link>
+      <Modal id={matureGateModal.id}>
+        <ModalCard>
+          <Heading2 className="!mt-0 !mb-4">
+            {t("media.mature.title")}
+          </Heading2>
+          <p className="mb-6 text-type-text">{t("media.mature.description")}</p>
+          <div className="flex justify-end gap-3">
+            <Button theme="secondary" onClick={() => matureGateModal.hide()}>
+              {t("actions.cancel")}
+            </Button>
+            <Button theme="purple" href="/settings#enable-mature-titles">
+              {t("media.mature.openSettings")}
+            </Button>
+          </div>
+        </ModalCard>
+      </Modal>
+    </>
   );
 }

@@ -43,6 +43,8 @@ export interface DiscoverMedia {
   vote_count: number;
   type?: "movie" | "show";
   genre_ids?: number[];
+  /** TMDB adult flag — explicit adult content, not R/TV-MA. */
+  adult?: boolean;
   /** Raw recommendation score from fetchPersonalRecommendations, higher = stronger match. Only present on personalized results. */
   matchScore?: number;
 }

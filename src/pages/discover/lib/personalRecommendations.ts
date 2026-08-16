@@ -11,6 +11,7 @@ import type {
 } from "@/backend/metadata/types/tmdb";
 import type { DiscoverMedia } from "@/pages/discover/types/discover";
 import type { MediaRating } from "@/stores/ratings";
+import { filterOutMatureMedia } from "@/utils/media/mature";
 
 // Tuning constants for the recommendation algorithm
 export const MAX_LIKED_FOR_RELATED = 6;
@@ -363,6 +364,7 @@ function toDiscoverMedia(
       ? (item as TMDBShowSearchResult).first_air_date
       : undefined,
     genre_ids: item.genre_ids,
+    adult: item.adult === true,
   };
 }
 
@@ -582,8 +584,13 @@ export async function fetchPersonalRecommendations(
     }
   }
 
-  return picked
-    .concat(overflow)
-    .slice(0, MAX_RESULTS)
-    .map((s) => ({ ...toDiscoverMedia(s.item, isTVShow), matchScore: s.score }));
+  return filterOutMatureMedia(
+    picked
+      .concat(overflow)
+      .slice(0, MAX_RESULTS)
+      .map((s) => ({
+        ...toDiscoverMedia(s.item, isTVShow),
+        matchScore: s.score,
+      })),
+  );
 }

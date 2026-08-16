@@ -39,6 +39,7 @@ export interface SettingsInput {
   enableSkipCredits?: boolean;
   enableAutoSkipSegments?: boolean;
   enableDiscover?: boolean;
+  enableMatureTitles?: boolean;
   enableFeatured?: boolean;
   enableDetailsModal?: boolean;
   enableImageLogos?: boolean;
@@ -85,6 +86,7 @@ export interface SettingsResponse {
   enableSkipCredits?: boolean;
   enableAutoSkipSegments?: boolean;
   enableDiscover?: boolean;
+  enableMatureTitles?: boolean;
   enableFeatured?: boolean;
   enableDetailsModal?: boolean;
   enableImageLogos?: boolean;
@@ -163,6 +165,7 @@ export function buildFullSettingsInput(
     enableSkipCredits: preferences.enableSkipCredits,
     enableAutoSkipSegments: preferences.enableAutoSkipSegments,
     enableDiscover: preferences.enableDiscover,
+    enableMatureTitles: preferences.enableMatureTitles,
     enableFeatured: preferences.enableFeatured,
     enableDetailsModal: preferences.enableDetailsModal,
     enableImageLogos: preferences.enableImageLogos,

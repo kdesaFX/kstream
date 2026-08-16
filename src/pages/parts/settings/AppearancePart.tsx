@@ -341,6 +341,9 @@ export function AppearancePart(props: {
   enableDiscover: boolean;
   setEnableDiscover: (v: boolean) => void;
 
+  enableMatureTitles: boolean;
+  setEnableMatureTitles: (v: boolean) => void;
+
   enableFeatured: boolean;
   setEnableFeatured: (v: boolean) => void;
 
@@ -512,6 +515,16 @@ export function AppearancePart(props: {
               }}
               disabled={props.enableLowPerformanceMode}
             />
+            <div id="enable-mature-titles">
+              <ToggleRow
+                title={t("settings.appearance.options.matureTitlesLabel")}
+                description={t(
+                  "settings.appearance.options.matureTitlesDescription",
+                )}
+                enabled={props.enableMatureTitles}
+                onChange={(v) => props.setEnableMatureTitles(v)}
+              />
+            </div>
             <ToggleRow
               title={t("settings.appearance.options.modalLabel")}
               description={t("settings.appearance.options.modalDescription")}
