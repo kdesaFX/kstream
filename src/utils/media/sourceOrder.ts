@@ -30,6 +30,11 @@ export type SourceOrderContext = {
   meta?: AnimeDetectionInput | null;
 };
 
+// Keep this aligned with the provider runner's parallel source race. Reserve
+// one slot for a newly-added source that has not reached the goon matrix yet,
+// otherwise a slow scored source can prevent the new source from ever starting.
+const INITIAL_SOURCE_RACE_SIZE = 4;
+
 export function detectPlaybackEnv(): PlaybackEnv {
   if (
     typeof window !== "undefined" &&
@@ -142,7 +147,7 @@ function sortByScore(
   matrix: SourceScoreMatrix,
   specialistIds?: Set<string>,
 ): string[] {
-  return [...ids].sort((a, b) => {
+  const ordered = [...ids].sort((a, b) => {
     const sa = scoreFor(matrix, a, env, bucket);
     const sb = scoreFor(matrix, b, env, bucket);
     const na = sa == null ? -1 : sa;
@@ -157,4 +162,14 @@ function sortByScore(
     // Stable-ish: keep original relative order when tied / missing.
     return ids.indexOf(a) - ids.indexOf(b);
   });
+
+  const firstUnscored = ordered.findIndex(
+    (id) => scoreFor(matrix, id, env, bucket) == null,
+  );
+  if (firstUnscored >= INITIAL_SOURCE_RACE_SIZE) {
+    const [candidate] = ordered.splice(firstUnscored, 1);
+    ordered.splice(INITIAL_SOURCE_RACE_SIZE - 1, 0, candidate);
+  }
+
+  return ordered;
 }

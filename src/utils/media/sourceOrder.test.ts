@@ -106,6 +106,26 @@ describe("orderSourceIdsForPlayback", () => {
     expect(order.indexOf("vidrock")).toBeLessThan(order.indexOf("slowreliable"));
   });
 
+  it("gives one unbenchmarked source a slot in the initial parallel race", () => {
+    const scoredIds = ["oneembed", "reyna", "fsonline", "vidrock"];
+    const scoredOrder = orderSourceIdsForPlayback(
+      scoredIds,
+      { env: "browser", mediaType: "movie", meta: westernMeta },
+      matrix,
+    );
+    const order = orderSourceIdsForPlayback(
+      [...scoredIds, "nova"],
+      { env: "browser", mediaType: "movie", meta: westernMeta },
+      matrix,
+    );
+
+    expect(order).toEqual([
+      ...scoredOrder.slice(0, 3),
+      "nova",
+      ...scoredOrder.slice(3),
+    ]);
+  });
+
   it("on anime, ranks by anime hit rate and only lets specialists win ties", () => {
     const ids = ["myanime", "fsonline", "oneembed", "tqq", "reyna"];
     const animeOrder = orderSourceIdsForPlayback(
