@@ -1,0 +1,3 @@
+# Everything under api/ is deployed as a function, and a test file has no
+# request handler to export, so keep them out of the deployment.
+api/**/*.test.ts

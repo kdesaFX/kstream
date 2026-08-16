@@ -12,6 +12,7 @@ describe("stream start watchdog", () => {
         readyState: 0,
         paused: true,
         autoplayPending: true,
+        loading: true,
         msRemaining: 0,
       }),
     ).toBe("timeout");
@@ -23,6 +24,7 @@ describe("stream start watchdog", () => {
         readyState: 0,
         paused: true,
         autoplayPending: true,
+        loading: true,
         msRemaining: TIMEOUT - 1000,
       }),
     ).toBe("waiting");
@@ -34,6 +36,7 @@ describe("stream start watchdog", () => {
         readyState: 3,
         paused: false,
         autoplayPending: false,
+        loading: false,
         msRemaining: -5000,
       }),
     ).toBe("alive");
@@ -46,6 +49,7 @@ describe("stream start watchdog", () => {
         readyState: 4,
         paused: true,
         autoplayPending: false,
+        loading: false,
         msRemaining: -1000,
       }),
     ).toBe("alive");
@@ -57,6 +61,7 @@ describe("stream start watchdog", () => {
         readyState: 1,
         paused: true,
         autoplayPending: false,
+        loading: false,
         msRemaining: 5000,
       }),
     ).toBe("not-starting");
@@ -68,6 +73,7 @@ describe("stream start watchdog", () => {
         readyState: 2,
         paused: false,
         autoplayPending: false,
+        loading: true,
         msRemaining: 2000,
       }),
     ).toBe("waiting");
@@ -76,8 +82,26 @@ describe("stream start watchdog", () => {
         readyState: 2,
         paused: false,
         autoplayPending: false,
+        loading: true,
         msRemaining: -1,
       }),
     ).toBe("timeout");
+  });
+
+  it("faults a stream still showing a spinner with nothing left to start it", () => {
+    // Swapping quality or source while paused leaves the spinner up with no
+    // autoplay pending. Treating that as parked hung the player forever.
+    const starvedBehindSpinner = {
+      readyState: 0,
+      paused: true,
+      autoplayPending: false,
+      loading: true,
+    };
+    expect(
+      streamStartVerdict({ ...starvedBehindSpinner, msRemaining: 5000 }),
+    ).toBe("waiting");
+    expect(streamStartVerdict({ ...starvedBehindSpinner, msRemaining: 0 })).toBe(
+      "timeout",
+    );
   });
 });

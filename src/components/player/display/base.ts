@@ -185,6 +185,17 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let streamStartTimer: ReturnType<typeof setInterval> | null = null;
   let streamStartDeadline = 0;
 
+  /**
+   * Mirrors the last `loading` reported to the UI. A spinner promises the video
+   * is on its way; the play button asks the viewer to act instead. The watchdog
+   * above has to tell those two apart, so route every report through here.
+   */
+  let uiLoading = false;
+  function emitLoading(isLoading: boolean) {
+    uiLoading = isLoading;
+    emit("loading", isLoading);
+  }
+
   const languagePromises = new Map<
     string,
     (value: void | PromiseLike<void>) => void
@@ -266,6 +277,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         readyState: vid.readyState,
         paused: vid.paused,
         autoplayPending: shouldAutoplayAfterLoad,
+        loading: uiLoading,
         msRemaining: streamStartDeadline - Date.now(),
       });
       if (verdict === "waiting") return;
@@ -391,7 +403,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         autoplayUnstickTimer = null;
       }
       emit("play", undefined);
-      emit("loading", false);
+      emitLoading(false);
       reportVolumeToUi();
       if (policyMuted) armUnmuteOnGesture();
     };
@@ -410,7 +422,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         if (name === "AbortError" || name === "NotSupportedError") return;
         // Even muted play blocked — show the tap-to-play overlay.
         emit("pause", undefined);
-        emit("loading", false);
+        emitLoading(false);
       });
     };
 
@@ -450,7 +462,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             clearPolicyMute(vid);
             reportVolumeToUi();
             emit("pause", undefined);
-            emit("loading", false);
+            emitLoading(false);
             return;
           }
           playMuted();
@@ -519,7 +531,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       isPausedBeforeQualityChange = videoElement.paused;
       isQualitySwitching = true;
     }
-    emit("loading", true);
+    emitLoading(true);
     if (!videoElement.paused) {
       suppressPlaybackEvents = true;
       try {
@@ -535,7 +547,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     qualitySwitchCleanup?.();
     qualitySwitchCleanup = null;
     isQualitySwitching = false;
-    emit("loading", false);
+    emitLoading(false);
     if (!isPausedBeforeQualityChange && videoElement) {
       videoElement.play().catch(() => {
         emit("pause", undefined);
@@ -1013,7 +1025,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
     onMedia("play", () => {
       emit("play", undefined);
-      emit("loading", false);
+      emitLoading(false);
     });
     onMedia("error", () => {
       const err = videoElement?.error ?? null;
@@ -1071,14 +1083,14 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       // Keep the spinner while muted autoplay is still pending — clearing
       // loading here flashed the idle play button for a frame.
       if (!shouldAutoplayAfterLoad && videoElement?.paused) {
-        emit("loading", false);
+        emitLoading(false);
       }
     });
     onMedia("waiting", () => {
       // Don't treat pre-play buffering as a stuck loading state — that hid the
       // play button when autoplay was blocked by the browser.
       if (videoElement && !videoElement.paused) {
-        emit("loading", true);
+        emitLoading(true);
       }
     });
     onMedia("volumechange", () => {
@@ -1131,7 +1143,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         // If we're still loading but now have enough buffer, stop loading
         // This handles cases where canplay fired with insufficient buffer
         if (hasEnoughBuffer && videoElement.readyState >= 3) {
-          emit("loading", false);
+          emitLoading(false);
         }
       }
     });
@@ -1394,7 +1406,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       preferenceQuality = ops.preferredQuality;
       lastInferredQuality = null;
       source = ops.source;
-      emit("loading", true);
+      emitLoading(true);
       startAt = ops.startAt;
       if (hadActiveSource && ops.source) {
         shouldAutoplayAfterLoad = wasPlaying;
@@ -1431,7 +1443,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             !autoplayInFlight
           ) {
             emit("pause", undefined);
-            emit("loading", false);
+            emitLoading(false);
           }
         };
         autoplayUnstickTimer = setTimeout(kick, 1200);
@@ -1545,7 +1557,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
       const markPlaying = () => {
         emit("play", undefined);
-        emit("loading", false);
+        emitLoading(false);
         reportVolumeToUi();
         initAudioAnalysis();
       };
@@ -1585,7 +1597,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             })
             .catch(() => {
               emit("pause", undefined);
-              emit("loading", false);
+              emitLoading(false);
             });
         });
     },

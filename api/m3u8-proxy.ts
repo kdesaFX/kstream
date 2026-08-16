@@ -161,7 +161,19 @@ function preferBrowserVariants(body: string): string {
   return out.join("\n");
 }
 
-function rewritePlaylist(
+/**
+ * Tags whose URI attribute names another playlist. EXT-X-KEY, EXT-X-SESSION-KEY
+ * and EXT-X-MAP also use URI=, but those are a decryption key and an init
+ * segment, so they belong on the segment proxy.
+ */
+const PLAYLIST_URI_TAGS = ["#EXT-X-MEDIA:", "#EXT-X-I-FRAME-STREAM-INF:"];
+
+function tagNamesAPlaylist(line: string): boolean {
+  const upper = line.toUpperCase();
+  return PLAYLIST_URI_TAGS.some((tag) => upper.startsWith(tag));
+}
+
+export function rewritePlaylist(
   body: string,
   playlistUrl: string,
   requestOrigin: string,
@@ -170,10 +182,20 @@ function rewritePlaylist(
 ): string {
   const lines = body.split(/\r?\n/);
   const out: string[] = [];
+  /**
+   * HLS puts no meaning in file extensions, so the tag introducing a URI is the
+   * only reliable way to tell a nested playlist from a segment. Guessing from
+   * the URL sent extensionless variants (Nova serves them as
+   * `worker.dev/?e=<blob>`) to the segment proxy, which streams bytes through
+   * untouched — so their segment URLs stayed absolute and cross-origin, every
+   * one failed CORS, and hls.js retried forever without ever going fatal.
+   */
+  let afterStreamInf = false;
 
   for (const line of lines) {
     if (!line || line.startsWith("#")) {
       if (line.includes("URI=")) {
+        const namesAPlaylist = tagNamesAPlaylist(line);
         out.push(
           line.replace(/URI="([^"]+)"/g, (_m, uri: string) => {
             const absolute = resolvePlaylistUri(uri, playlistUrl);
@@ -182,7 +204,7 @@ function rewritePlaylist(
               absolute,
               requestOrigin,
               clientHeadersJson,
-              absolute.includes(".m3u8"),
+              namesAPlaylist || absolute.includes(".m3u8"),
               browserFriendly,
             );
             return `URI="${proxied}"`;
@@ -191,12 +213,16 @@ function rewritePlaylist(
       } else {
         out.push(line);
       }
+      if (line.toUpperCase().startsWith("#EXT-X-STREAM-INF:")) {
+        afterStreamInf = true;
+      }
       continue;
     }
 
     const absolute = resolvePlaylistUri(line.trim(), playlistUrl);
     if (!absolute) {
       out.push(line);
+      afterStreamInf = false;
       continue;
     }
 
@@ -205,10 +231,11 @@ function rewritePlaylist(
         absolute,
         requestOrigin,
         clientHeadersJson,
-        absolute.includes(".m3u8"),
+        afterStreamInf || absolute.includes(".m3u8"),
         browserFriendly,
       ),
     );
+    afterStreamInf = false;
   }
 
   let rewritten = out.join("\n");
