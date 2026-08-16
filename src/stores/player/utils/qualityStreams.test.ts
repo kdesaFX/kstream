@@ -2,11 +2,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  alternateSourceLabels,
   firstNonEmptyQualities,
   mergeQualityStreamOptions,
   parseHlsQualities,
   QualityStreamOption,
   rememberIdentifiedQualities,
+  selectableQualityTiers,
 } from "@/stores/player/utils/qualityStreams";
 import type { SourceQuality } from "@/stores/player/utils/qualities";
 
@@ -148,5 +150,68 @@ describe("mergeQualityStreamOptions", () => {
     expect(
       mergeQualityStreamOptions([primary], [alternate480, alternate4k]),
     ).toEqual([primary, alternate4k]);
+  });
+});
+
+describe("selectableQualityTiers", () => {
+  it("offers tiers another source can serve alongside the current ladder", () => {
+    expect(selectableQualityTiers(["480"], [option("1080", "reyna")])).toEqual([
+      "480",
+      "1080",
+    ]);
+  });
+
+  it("lists a shared tier once", () => {
+    expect(selectableQualityTiers(["720"], [option("720", "reyna")])).toEqual([
+      "720",
+    ]);
+  });
+});
+
+describe("alternateSourceLabels", () => {
+  it("names the source for a tier the current one cannot serve", () => {
+    expect(
+      alternateSourceLabels({
+        available: ["480"],
+        alternates: [option("1080", "reyna"), option("4k", "reyna")],
+        currentQuality: "480",
+        currentSourceId: "tqq",
+      }),
+    ).toEqual({ "1080": "reyna", "4k": "reyna" });
+  });
+
+  it("leaves the current source's own tiers unlabelled", () => {
+    expect(
+      alternateSourceLabels({
+        available: ["480", "720"],
+        alternates: [option("720", "reyna")],
+        currentQuality: "480",
+        currentSourceId: "tqq",
+      }),
+    ).toEqual({});
+  });
+
+  it("never labels the tier playing right now, so its tick still shows", () => {
+    // The player reports the chosen tier even when hls.js did not expose it,
+    // which used to put another source's name where the tick belongs.
+    expect(
+      alternateSourceLabels({
+        available: ["480"],
+        alternates: [option("720", "1embed")],
+        currentQuality: "720",
+        currentSourceId: "tqq",
+      }),
+    ).toEqual({});
+  });
+
+  it("does not treat the current source as an alternate to itself", () => {
+    expect(
+      alternateSourceLabels({
+        available: [],
+        alternates: [option("1080", "tqq")],
+        currentQuality: "720",
+        currentSourceId: "tqq",
+      }),
+    ).toEqual({});
   });
 });

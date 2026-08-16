@@ -208,6 +208,40 @@ export async function streamsToQualityOptions(
   return mergeQualityStreamOptions([], optionGroups.flat());
 }
 
+/** Every tier the menu can act on, whether it needs a source hop or not. */
+export function selectableQualityTiers(
+  available: SourceQuality[],
+  alternates: QualityStreamOption[],
+): SourceQuality[] {
+  return Array.from(
+    new Set([...available, ...alternates.map((option) => option.quality)]),
+  );
+}
+
+/**
+ * Which tiers need a different provider, and which one.
+ *
+ * The source you're on always wins, so a tier is only labelled when that source
+ * genuinely can't serve it: not in its ladder, not the tier playing right now,
+ * and not something it registered itself. A label also occupies the slot the
+ * selected tick draws in, so labelling the current row would hide the tick.
+ */
+export function alternateSourceLabels(opts: {
+  available: SourceQuality[];
+  alternates: QualityStreamOption[];
+  currentQuality: SourceQuality | null;
+  currentSourceId: string | null;
+}): Partial<Record<SourceQuality, string>> {
+  const labels: Partial<Record<SourceQuality, string>> = {};
+  for (const option of opts.alternates) {
+    if (option.quality === opts.currentQuality) continue;
+    if (opts.available.includes(option.quality)) continue;
+    if (option.sourceId === opts.currentSourceId) continue;
+    labels[option.quality] = option.sourceName;
+  }
+  return labels;
+}
+
 /** Prefer one provider per quality; the first (higher-ranked) source wins. */
 export function mergeQualityStreamOptions(
   existing: QualityStreamOption[],

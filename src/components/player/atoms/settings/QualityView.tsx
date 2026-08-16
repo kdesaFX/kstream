@@ -13,6 +13,10 @@ import {
   allQualities,
   qualityToString,
 } from "@/stores/player/utils/qualities";
+import {
+  alternateSourceLabels,
+  selectableQualityTiers,
+} from "@/stores/player/utils/qualityStreams";
 import { useQualityStore } from "@/stores/quality";
 import { canPlayHlsNatively } from "@/utils/browser/detectFeatures";
 
@@ -56,28 +60,25 @@ export function QualityView({ id }: { id: string }) {
   const lastChosenQuality = useQualityStore((s) => s.quality.lastChosenQuality);
 
   const selectableQualities = useMemo(
-    () =>
-      Array.from(
-        new Set([
-          ...availableQualities,
-          ...alternateQualityOptions.map((option) => option.quality),
-        ]),
-      ),
+    () => selectableQualityTiers(availableQualities, alternateQualityOptions),
     [availableQualities, alternateQualityOptions],
   );
 
-  // Name the provider only when playing the tier means leaving the source
-  // you're on. A source can register tiers its own manifest didn't expose to
-  // the player, and labelling those with the current source reads as a bug.
-  const alternateSourceNames = useMemo(() => {
-    const names: Partial<Record<SourceQuality, string>> = {};
-    for (const option of alternateQualityOptions) {
-      if (availableQualities.includes(option.quality)) continue;
-      if (option.sourceId === currentSourceId) continue;
-      names[option.quality] = option.sourceName;
-    }
-    return names;
-  }, [alternateQualityOptions, availableQualities, currentSourceId]);
+  const alternateSourceNames = useMemo(
+    () =>
+      alternateSourceLabels({
+        available: availableQualities,
+        alternates: alternateQualityOptions,
+        currentQuality,
+        currentSourceId,
+      }),
+    [
+      alternateQualityOptions,
+      availableQualities,
+      currentQuality,
+      currentSourceId,
+    ],
+  );
 
   const supportsAutoQuality = sourceType === "hls";
 

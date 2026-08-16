@@ -8,7 +8,13 @@ import { usePlayerStore } from "@/stores/player/store";
 import { streamsToAudioOptions } from "@/stores/player/utils/audioStreams";
 import { streamsToQualityOptions } from "@/stores/player/utils/qualityStreams";
 
-const DEFAULT_MAX_SOURCE_ATTEMPTS = 5;
+/**
+ * Discovery now feeds quality tiers as well as audio tracks, and identifying a
+ * ladder is a cached background read rather than something the loop waits on.
+ * A five-source budget was tuned for the old serial behaviour and left the
+ * higher tiers on later-ranked sources undiscovered.
+ */
+const DEFAULT_MAX_SOURCE_ATTEMPTS = 8;
 /**
  * Let the primary stream get its first fragments away before scraping others.
  * Scrapes are small API calls rather than media, so this only has to clear the
@@ -35,6 +41,12 @@ const SPANISH_LEANING_SOURCES = new Set([
   "cuevana3",
   "cinehdplus",
 ]);
+/**
+ * How many Spanish-leaning sources may jump the ranked order. Promoting all of
+ * them handed most of the budget to providers picked for their audio, so the
+ * ranked sources that carry 1080p and 4K never got looked at.
+ */
+const SPANISH_PRIORITY_SLOTS = 1;
 
 function haveEnoughLanguages(languages: Set<string>): boolean {
   if (languages.has("en") && languages.has("es")) return true;
@@ -79,13 +91,23 @@ function stillSameMedia(mediaKey: string): boolean {
   );
 }
 
-function orderCandidates(sourceIds: string[], have: Set<string>): string[] {
+export function orderCandidates(
+  sourceIds: string[],
+  have: Set<string>,
+): string[] {
+  if (have.has("es")) return [...sourceIds];
+
   const prefer: string[] = [];
   const rest: string[] = [];
   for (const id of sourceIds) {
-    const wantSpanish = !have.has("es") && SPANISH_LEANING_SOURCES.has(id);
-    if (wantSpanish) prefer.push(id);
-    else rest.push(id);
+    if (
+      SPANISH_LEANING_SOURCES.has(id) &&
+      prefer.length < SPANISH_PRIORITY_SLOTS
+    ) {
+      prefer.push(id);
+      continue;
+    }
+    rest.push(id);
   }
   return [...prefer, ...rest];
 }
