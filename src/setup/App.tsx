@@ -26,6 +26,7 @@ import { UpdateNotice } from "@/components/UpdateNotice";
 import { TraktAuthHandler } from "@/components/auth/TraktAuthHandler";
 import { useGlobalKeyboardEvents } from "@/hooks/useGlobalKeyboardEvents";
 import { useOnlineListener } from "@/hooks/usePing";
+import { useScrollLockRestore } from "@/hooks/useScrollLockRestore";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 import { AboutPage } from "@/pages/About";
 import { AppsPage } from "@/pages/Apps";
@@ -127,6 +128,7 @@ function App() {
 
   // Footer/nav Link navigations keep the previous scroll offset otherwise.
   useScrollRestoration();
+  useScrollLockRestore();
 
   useEffect(() => {
     const cfg = conf();
