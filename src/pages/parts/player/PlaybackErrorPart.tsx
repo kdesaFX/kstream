@@ -95,6 +95,19 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
     props.autoResumeExhausted,
   ]);
 
+  /**
+   * Whether the effect below is going to send us straight back to scraping.
+   * Mirrors its guard exactly, so we never hide the error without a retry
+   * actually being on the way.
+   */
+  const willAutoResume = Boolean(
+    playbackError &&
+      enableAutoResumeOnPlaybackError &&
+      !props.autoResumeExhausted &&
+      props.currentSourceId &&
+      (props.onRetrySource || props.onResume),
+  );
+
   // Automatically resume scraping if enabled
   useEffect(() => {
     if (
@@ -127,6 +140,12 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
     settingsRouter.open();
     settingsRouter.navigate("/source");
   };
+
+  // Trying the next source is recovery, not an outcome. Announcing a failure
+  // we're about to paper over just flashes a full-screen error between the
+  // dead stream and the search that replaces it, which reads as "it broke"
+  // rather than "still working on it". Stay dark until the searcher is back.
+  if (willAutoResume) return null;
 
   return (
     <ErrorLayout>

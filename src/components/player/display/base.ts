@@ -1507,6 +1507,11 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         }
       }
       unloadSource();
+      // Forget the stream too, not just its buffers. Leaving it here made the
+      // next load() read as a mid-playback switch and inherit "was playing"
+      // from a corpse that is paused by definition, so recovering from a dead
+      // source onto a working one always landed on the play button.
+      source = null;
     },
     setMeta() {},
     setCaption() {},
