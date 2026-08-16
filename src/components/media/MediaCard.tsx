@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 
 import { mediaItemToId } from "@/backend/metadata/tmdb";
 import { Button } from "@/components/buttons/Button";
+import { Modal, ModalCard, useModal } from "@/components/overlays/Modal";
 import { DotList } from "@/components/text/DotList";
 import {
   ContextMenu,
@@ -14,7 +15,6 @@ import {
   ContextMenuItem,
 } from "@/components/utils/ContextMenu";
 import { Flare } from "@/components/utils/Flare";
-import { Modal, ModalCard, useModal } from "@/components/overlays/Modal";
 import { Heading2 } from "@/components/utils/Text";
 import { useSearchQuery } from "@/hooks/useSearchQuery";
 import { useBookmarkStore } from "@/stores/bookmarks";
@@ -498,8 +498,13 @@ export function MediaCard(props: MediaCardProps) {
     setNewFolderName("");
   };
 
+  // Unreleased titles aren't linkable but still wear the 18+ cover, so they
+  // still owe the viewer an explanation when tapped. Delete mode is the one
+  // exception: there the click belongs to the X sitting over the poster.
+  const gateClicks = matureLocked && !props.closable;
+
   const handleCardClick = (e: React.MouseEvent) => {
-    if (matureLocked && canLink) {
+    if (gateClicks) {
       e.preventDefault();
       matureGateModal.show();
       return;
@@ -635,20 +640,38 @@ export function MediaCard(props: MediaCardProps) {
     </ContextMenu>
   );
 
+  // Only the covered titles need the dialog, and there can be hundreds of cards
+  // on a page — each one carries a portal, so don't mount what can't open.
+  const matureGateEl = matureLocked ? (
+    <Modal id={matureGateModal.id}>
+      <ModalCard>
+        <Heading2 className="!mt-0 !mb-4">{t("media.mature.title")}</Heading2>
+        <p className="mb-6 text-type-text">{t("media.mature.description")}</p>
+        <div className="flex justify-end gap-3">
+          <Button theme="secondary" onClick={() => matureGateModal.hide()}>
+            {t("actions.cancel")}
+          </Button>
+          <Button theme="purple" href="/settings#enable-mature-titles">
+            {t("media.mature.openSettings")}
+          </Button>
+        </div>
+      </ModalCard>
+    </Modal>
+  ) : null;
+
   if (!canLink) {
     return (
-      <span
-        className="relative block"
-        onClick={(e) => {
-          if (e.defaultPrevented) {
-            e.preventDefault();
-          }
-        }}
-        onContextMenu={handleCardContextMenu}
-      >
-        {content}
-        {contextMenuEl}
-      </span>
+      <>
+        <span
+          className="relative block"
+          onClick={handleCardClick}
+          onContextMenu={handleCardContextMenu}
+        >
+          {content}
+          {contextMenuEl}
+        </span>
+        {matureGateEl}
+      </>
     );
   }
 
@@ -667,22 +690,7 @@ export function MediaCard(props: MediaCardProps) {
         {content}
         {contextMenuEl}
       </Link>
-      <Modal id={matureGateModal.id}>
-        <ModalCard>
-          <Heading2 className="!mt-0 !mb-4">
-            {t("media.mature.title")}
-          </Heading2>
-          <p className="mb-6 text-type-text">{t("media.mature.description")}</p>
-          <div className="flex justify-end gap-3">
-            <Button theme="secondary" onClick={() => matureGateModal.hide()}>
-              {t("actions.cancel")}
-            </Button>
-            <Button theme="purple" href="/settings#enable-mature-titles">
-              {t("media.mature.openSettings")}
-            </Button>
-          </div>
-        </ModalCard>
-      </Modal>
+      {matureGateEl}
     </>
   );
 }

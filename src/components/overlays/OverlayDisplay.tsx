@@ -15,6 +15,25 @@ export interface OverlayProps {
   darken?: boolean;
 }
 
+/** How long after appearing the backdrop refuses to dismiss the overlay. */
+const BACKDROP_DISMISS_GRACE_MS = 300;
+
+/**
+ * Whether a click on the darkened backdrop should close the overlay.
+ *
+ * Double-clicking the thing that opened the overlay lands the second click
+ * here, on a backdrop that only exists because of the first one. Closing on
+ * that leaves nothing on screen, so the viewer reads the whole gesture as
+ * "my click did nothing" and tries again.
+ */
+export function shouldDismissOnBackdropClick(
+  clickCount: number,
+  msSinceShown: number,
+): boolean {
+  if (clickCount > 1) return false;
+  return msSinceShown >= BACKDROP_DISMISS_GRACE_MS;
+}
+
 export function OverlayDisplay(props: { children: ReactNode }) {
   const router = useInternalOverlayRouter("hello world :)");
   const refRouter = useRef(router);
@@ -41,8 +60,24 @@ export function OverlayPortal(props: {
   const [portalElement, setPortalElement] = useState<Element | null>(null);
   const [isReady, setIsReady] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const shownAt = useRef(0);
   const close = props.close;
   const zIndex = props.zIndex ?? 999;
+
+  useEffect(() => {
+    if (props.show) shownAt.current = Date.now();
+  }, [props.show]);
+
+  const closeFromBackdrop = useCallback(
+    (event: React.MouseEvent) => {
+      if (
+        !shouldDismissOnBackdropClick(event.detail, Date.now() - shownAt.current)
+      )
+        return;
+      close?.();
+    },
+    [close],
+  );
 
   useEffect(() => {
     const element = ref.current?.closest(".popout-location");
@@ -111,7 +146,7 @@ export function OverlayPortal(props: {
                 >
                   <Transition animation="fade" isChild>
                     <div
-                      onClick={close}
+                      onClick={closeFromBackdrop}
                       className={classNames({
                         "absolute inset-0": true,
                         "bg-black opacity-90": props.darken,

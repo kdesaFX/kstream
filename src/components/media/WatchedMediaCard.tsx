@@ -55,6 +55,11 @@ export function WatchedMediaCard(props: WatchedMediaCardProps) {
       },
     });
 
+  // Outside edit mode nothing here drags, and the drag attributes announce a
+  // role="button" tab stop that swallows focus ahead of the card's own link
+  // while doing nothing when activated.
+  const dragProps = props.editable ? { ...attributes, ...listeners } : {};
+
   const style = {
     // Only apply transform horizontally & vertically so it actually drags around
     transform: CSS.Translate.toString(transform),
@@ -67,9 +72,14 @@ export function WatchedMediaCard(props: WatchedMediaCardProps) {
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className={isDragging ? "pointer-events-none touch-none" : props.editable ? "touch-none" : ""}
+      {...dragProps}
+      className={
+        isDragging
+          ? "pointer-events-none touch-none"
+          : props.editable
+            ? "touch-none"
+            : ""
+      }
     >
       <MediaCard
         media={props.media}
