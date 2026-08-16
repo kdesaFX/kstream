@@ -3,7 +3,7 @@
 import classNames from "classnames";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { mediaItemToId } from "@/backend/metadata/tmdb";
 import { Button } from "@/components/buttons/Button";
@@ -387,8 +387,12 @@ export function MediaCard(props: MediaCardProps) {
     (state) => state.enableDetailsModal,
   );
   const enableMatureTitles = usePreferencesStore((s) => s.enableMatureTitles);
+  const setEnableMatureTitles = usePreferencesStore(
+    (s) => s.setEnableMatureTitles,
+  );
   const matureLocked = isMatureMedia(media) && !enableMatureTitles;
   const matureGateModal = useModal(`mature-gate-${media.id}`);
+  const navigate = useNavigate();
 
   const isReleased = useCallback(
     () => checkReleased(props.media),
@@ -410,12 +414,7 @@ export function MediaCard(props: MediaCardProps) {
     }
   }
 
-  const handleShowDetails = useCallback(async () => {
-    if (matureLocked) {
-      matureGateModal.show();
-      return;
-    }
-
+  const showDetails = useCallback(async () => {
     if (onShowDetails) {
       onShowDetails(media);
       return;
@@ -426,7 +425,15 @@ export function MediaCard(props: MediaCardProps) {
       id: Number(media.id),
       type: media.type === "movie" ? "movie" : "show",
     });
-  }, [media, showModal, onShowDetails, matureLocked, matureGateModal]);
+  }, [media, showModal, onShowDetails]);
+
+  const handleShowDetails = useCallback(async () => {
+    if (matureLocked) {
+      matureGateModal.show();
+      return;
+    }
+    await showDetails();
+  }, [showDetails, matureLocked, matureGateModal]);
 
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
@@ -502,6 +509,21 @@ export function MediaCard(props: MediaCardProps) {
   // still owe the viewer an explanation when tapped. Delete mode is the one
   // exception: there the click belongs to the X sitting over the poster.
   const gateClicks = matureLocked && !props.closable;
+
+  // Turning the preference on from here, rather than handing the viewer off to
+  // Settings, keeps the click they already made alive: they wanted this title,
+  // so open it. The old route lost their place in the page and made them find
+  // the poster a second time.
+  const allowMatureAndContinue = () => {
+    setEnableMatureTitles(true);
+    matureGateModal.hide();
+    if (!canLink) return;
+    if (enableDetailsModal) {
+      showDetails();
+      return;
+    }
+    navigate(link);
+  };
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (gateClicks) {
@@ -651,7 +673,7 @@ export function MediaCard(props: MediaCardProps) {
           <Button theme="secondary" onClick={() => matureGateModal.hide()}>
             {t("actions.cancel")}
           </Button>
-          <Button theme="purple" href="/settings#enable-mature-titles">
+          <Button theme="purple" onClick={allowMatureAndContinue}>
             {t("media.mature.openSettings")}
           </Button>
         </div>

@@ -31,10 +31,17 @@ function useSearch(search: string) {
   const [loading, setLoading] = useState<boolean>(false);
 
   const debouncedSearch = useDebounce<string>(search, 500);
+  const lastSearch = useRef<string | null>(null);
   useEffect(() => {
     setSearching(search !== "");
     setLoading(search !== "");
-    if (search !== "") {
+    // A brand new query belongs at the top of its results, but arriving on the
+    // page doesn't: this also ran on mount, so coming back from a title threw
+    // the viewer to the top of a list they'd scrolled deep into.
+    const isNewQuery =
+      lastSearch.current !== null && lastSearch.current !== search;
+    lastSearch.current = search;
+    if (search !== "" && isNewQuery) {
       window.scrollTo(0, 0);
     }
   }, [search]);

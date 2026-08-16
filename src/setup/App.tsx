@@ -26,6 +26,7 @@ import { UpdateNotice } from "@/components/UpdateNotice";
 import { TraktAuthHandler } from "@/components/auth/TraktAuthHandler";
 import { useGlobalKeyboardEvents } from "@/hooks/useGlobalKeyboardEvents";
 import { useOnlineListener } from "@/hooks/usePing";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 import { AboutPage } from "@/pages/About";
 import { AppsPage } from "@/pages/Apps";
 import { AdminPage } from "@/pages/admin/AdminPage";
@@ -125,10 +126,7 @@ function App() {
   const adsDisabled = useAdsStore((s) => s.adsDisabled);
 
   // Footer/nav Link navigations keep the previous scroll offset otherwise.
-  useEffect(() => {
-    if (location.hash) return;
-    window.scrollTo(0, 0);
-  }, [location.pathname, location.search, location.hash]);
+  useScrollRestoration();
 
   useEffect(() => {
     const cfg = conf();

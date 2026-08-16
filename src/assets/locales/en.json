@@ -531,7 +531,7 @@
     "mature": {
       "badge": "18+",
       "title": "This is a mature title",
-      "description": "Adult titles stay hidden until you turn them on in settings.",
+      "description": "Adult titles stay hidden until you turn them on. You can switch them back off under Settings › Appearance.",
       "openSettings": "Enable mature titles"
     },
     "episodeShort": "E",
