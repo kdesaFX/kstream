@@ -94,13 +94,10 @@ export function BookmarksCarousel({
   const { t } = useTranslation();
   const browser = !!window.chrome;
   let isScrolling = false;
-  const [editing, setEditing] = useState(() => {
-    return localStorage.getItem("__MW::bookmarksEditing") === "true";
-  });
-
-  useEffect(() => {
-    localStorage.setItem("__MW::bookmarksEditing", editing.toString());
-  }, [editing]);
+  // Not persisted, unlike the sort choice below: editing is something you're
+  // in the middle of, not a preference. Leaving it on meant coming back to a
+  // row full of delete buttons with no memory of having opened it.
+  const [editing, setEditing] = useState(false);
 
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     const saved = localStorage.getItem("__MW::bookmarksSort");

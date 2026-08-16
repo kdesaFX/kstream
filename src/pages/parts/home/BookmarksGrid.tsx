@@ -79,13 +79,10 @@ export function BookmarksGrid({
   const bookmarks = useBookmarkStore((s) => s.bookmarks);
   const groupOrder = useGroupOrderStore((s) => s.groupOrder);
   const removeBookmark = useBookmarkStore((s) => s.removeBookmark);
-  const [editing, setEditing] = useState(() => {
-    return localStorage.getItem("__MW::bookmarksEditing") === "true";
-  });
-  
-  useEffect(() => {
-    localStorage.setItem("__MW::bookmarksEditing", editing.toString());
-  }, [editing]);
+  // Not persisted: editing is something you're in the middle of, not a
+  // preference. Leaving it on meant coming back to a grid full of delete
+  // buttons with no memory of having opened it.
+  const [editing, setEditing] = useState(false);
 
   const bookmarkRowsToShow = usePreferencesStore((s) => s.bookmarkRowsToShow);
   const setBookmarkRowsToShow = usePreferencesStore((s) => s.setBookmarkRowsToShow);
