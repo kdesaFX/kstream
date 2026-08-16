@@ -75,42 +75,6 @@ export const SOURCE_SCORE_MATRIX: SourceScoreMatrix = {
         }
       }
     },
-    "ernax": {
-      "browser": {
-        "movie": {
-          "hit": 21.1,
-          "hitMs": 698,
-          "score": 681
-        },
-        "anime": {
-          "hit": 0,
-          "hitMs": 0,
-          "score": 0
-        },
-        "show": {
-          "hit": 0,
-          "hitMs": 0,
-          "score": 0
-        }
-      },
-      "extension": {
-        "movie": {
-          "hit": 0,
-          "hitMs": 0,
-          "score": 0
-        },
-        "anime": {
-          "hit": 0,
-          "hitMs": 0,
-          "score": 0
-        },
-        "show": {
-          "hit": 0,
-          "hitMs": 0,
-          "score": 0
-        }
-      }
-    },
     "oneembed": {
       "browser": {
         "movie": {
