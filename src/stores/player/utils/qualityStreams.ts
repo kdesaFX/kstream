@@ -174,6 +174,18 @@ async function streamQualities(
   );
 }
 
+/**
+ * "unknown" means the provider gave a quality label we couldn't read, not a
+ * tier worth switching to. Listing it turns the menu into a coin flip — the
+ * row says nothing about what you'd get, and it is usually a progressive MP4
+ * the player has no proxy for, so choosing it just kills playback. Sources may
+ * still play an unknown-quality stream as their own; it simply isn't offered
+ * as a destination.
+ */
+function isOfferableTier(quality: SourceQuality): boolean {
+  return quality !== "unknown";
+}
+
 export async function streamToQualityOptions(
   stream: Stream,
   sourceId: string,
@@ -185,7 +197,7 @@ export async function streamToQualityOptions(
 
   const sourceName = sourceDisplayName(sourceId);
 
-  return qualities.map((quality) => ({
+  return qualities.filter(isOfferableTier).map((quality) => ({
     id: `${sourceId}:${embedId ?? "direct"}:${stream.id}:${quality}`,
     quality,
     sourceId,

@@ -237,25 +237,6 @@ export const SOURCE_SCORE_MATRIX: SourceScoreMatrix = {
           "score": 0
         }
       }
-    },
-    "vidrock": {
-      "extension": {
-        "movie": {
-          "hit": 0,
-          "hitMs": 0,
-          "score": 0
-        },
-        "anime": {
-          "hit": 0,
-          "hitMs": 0,
-          "score": 0
-        },
-        "show": {
-          "hit": 0,
-          "hitMs": 0,
-          "score": 0
-        }
-      }
     }
   }
 };

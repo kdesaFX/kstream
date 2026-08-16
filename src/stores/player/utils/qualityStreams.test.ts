@@ -1,6 +1,8 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, expect, it } from "vitest";
 
+import type { Stream } from "@p-stream/providers";
+
 import {
   alternateSourceLabels,
   firstNonEmptyQualities,
@@ -9,6 +11,7 @@ import {
   QualityStreamOption,
   rememberIdentifiedQualities,
   selectableQualityTiers,
+  streamToQualityOptions,
 } from "@/stores/player/utils/qualityStreams";
 import type { SourceQuality } from "@/stores/player/utils/qualities";
 
@@ -138,6 +141,41 @@ describe("rememberIdentifiedQualities", () => {
       rememberIdentifiedQualities("playlist-c", identify),
     ).resolves.toEqual(["480"]);
     expect(reads).toBe(2);
+  });
+});
+
+describe("streamToQualityOptions", () => {
+  function fileStream(qualities: Record<string, string>): Stream {
+    return {
+      id: "nova-raven-16",
+      type: "file",
+      qualities: Object.fromEntries(
+        Object.entries(qualities).map(([q, url]) => [q, { type: "mp4", url }]),
+      ),
+      captions: [],
+      flags: [],
+    } as unknown as Stream;
+  }
+
+  it("skips the 'unknown' tier, which says nothing and usually cannot play", async () => {
+    const options = await streamToQualityOptions(
+      fileStream({
+        unknown: "https://example.com/unknown.mp4",
+        "720": "https://example.com/720.mp4",
+      }),
+      "nova",
+    );
+
+    expect(options.map((o) => o.quality)).toEqual(["720"]);
+  });
+
+  it("offers nothing rather than an unknown-only entry", async () => {
+    const options = await streamToQualityOptions(
+      fileStream({ unknown: "https://example.com/unknown.mp4" }),
+      "nova",
+    );
+
+    expect(options).toEqual([]);
   });
 });
 

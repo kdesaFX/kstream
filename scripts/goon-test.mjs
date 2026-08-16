@@ -26,6 +26,7 @@ const {
   makeProviders,
   makeStandardFetcher,
   makeSimpleProxyFetcher,
+  setM3U8ProxyUrl,
   targets,
 } = providers;
 
@@ -36,6 +37,11 @@ const FROM_RESULTS = process.argv.includes("--from-results");
 
 const SITE = "https://kdesa.stream";
 const PROXY = `${SITE}/api/proxy`;
+
+// Sources that hand back an already-proxied playlist (7Movies) build it from
+// this. Without it they'd point at the library's proxy.example.com placeholder
+// and score zero here while working fine in the app.
+setM3U8ProxyUrl(`${SITE}/api`);
 const TMDB = "https://api.themoviedb.org/3";
 const TMDB_TOKEN =
   "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJjYTg3NmZkYmVhMjNhMzI3ODY0ZjRjN2U5MzMwZTYxNiIsIm5iZiI6MTc4MjIwOTQ0NC45OTksInN1YiI6IjZhM2E1YmE0ZmMzZGFiNGNmYzMzNjIxMCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.WlSOswQDdxdbKu0jARJoruV6PlteoTXB1Oj4gRaibBI";

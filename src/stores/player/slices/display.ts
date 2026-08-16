@@ -63,6 +63,8 @@ export const createDisplaySlice: MakeSlice<DisplaySlice> = (set, get) => ({
     newDisplay.on("loading", (isLoading) =>
       set((s) => {
         s.mediaPlaying.isLoading = isLoading;
+        // Buffered means the tier we hopped to works — nothing left to undo.
+        if (!isLoading) s.qualityHopFallback = null;
       }),
     );
     newDisplay.on("qualities", (qualities) => {
@@ -96,6 +98,11 @@ export const createDisplaySlice: MakeSlice<DisplaySlice> = (set, get) => ({
       });
     });
     newDisplay.on("error", (err) => {
+      // A quality the user picked from another source failing is not the same
+      // as losing the stream they were watching. Put the old one back and stay
+      // in the player rather than falling through to the error screen, which
+      // auto-resumes into a full re-scrape.
+      if (get().restoreQualityHopFallback()) return;
       set((s) => {
         s.status = playerStatus.PLAYBACK_ERROR;
         s.interface.error = err;

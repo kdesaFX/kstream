@@ -36,6 +36,13 @@ export const playerStatus = {
 
 export type PlayerStatus = ValuesOf<typeof playerStatus>;
 
+/**
+ * How long a cross-source quality hop stays undoable. It has to outlast the
+ * player's 30s "stream never started" watchdog, since that timeout is the usual
+ * way a bad hop reports itself.
+ */
+const QUALITY_HOP_PROBATION_MS = 45_000;
+
 export interface PlayerMetaEpisode {
   number: number;
   tmdbId: string;
@@ -114,11 +121,27 @@ export interface TranslateTask {
   cancel: () => void;
 }
 
+/**
+ * The stream that was playing before a cross-source quality hop, kept just long
+ * enough to put it back if the new one doesn't start.
+ */
+export interface QualityHopFallback {
+  source: SourceSliceSource;
+  captions: CaptionListItem[];
+  sourceId: string | null;
+  embedId: string | null;
+  quality: SourceQuality | null;
+  startAt: number;
+  expiresAt: number;
+}
+
 export interface SourceSlice {
   status: PlayerStatus;
   source: SourceSliceSource | null;
   sourceId: string | null;
   embedId: string | null;
+  /** Set while a quality hop is on probation; see restoreQualityHopFallback. */
+  qualityHopFallback: QualityHopFallback | null;
   qualities: SourceQuality[];
   audioTracks: AudioTrack[];
   /** Cross-source / multi-stream audio languages available for this title. */
@@ -177,6 +200,8 @@ export interface SourceSlice {
   registerQualityStreamOptions(options: QualityStreamOption[]): void;
   clearQualityStreamOptions(): void;
   switchQualityStream(quality: SourceQuality): void;
+  /** Put back the pre-hop stream. Returns false when there's nothing to undo. */
+  restoreQualityHopFallback(): boolean;
   /** Switch HLS in-manifest audio; clears cross-source stream selection. */
   selectHlsAudioTrack(track: AudioTrack): void;
   reset(): void;
@@ -267,6 +292,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   failedSourcesPerMedia: {},
   failedEmbedsPerMedia: {},
   resumeFromSourceId: null,
+  qualityHopFallback: null,
   caption: {
     selected: null,
     asTrack: false,
@@ -601,12 +627,50 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     const startAt = store.progress.time;
     useQualityStore.getState().setAutomaticQuality(false);
     useQualityStore.getState().setLastChosenQuality(quality);
+
+    // Asking for a different tier is not the same as the current stream dying,
+    // so keep the working one on hand. If the tier we hop to never starts, we
+    // put this back instead of treating it as a dead source and restarting the
+    // whole scrape, which loses the user's place and their working stream.
+    const fallback: QualityHopFallback | null = store.source
+      ? {
+          source: store.source,
+          captions: store.captionList,
+          sourceId: store.sourceId,
+          embedId: store.embedId,
+          quality: store.currentQuality,
+          startAt,
+          expiresAt: Date.now() + QUALITY_HOP_PROBATION_MS,
+        }
+      : null;
+
     set((s) => {
       s.sourceId = option.sourceId;
       s.embedId = option.embedId ?? null;
       s.currentAudioStreamId = null;
+      s.qualityHopFallback = fallback;
     });
     store.setSource(option.source, option.captions, startAt);
+  },
+  restoreQualityHopFallback() {
+    const fallback = get().qualityHopFallback;
+    if (!fallback) return false;
+
+    set((s) => {
+      s.qualityHopFallback = null;
+    });
+    if (Date.now() > fallback.expiresAt) return false;
+
+    // The tier the user asked for can't be served, so stop pinning it —
+    // otherwise the restored stream gets asked for the same missing rung.
+    useQualityStore.getState().setLastChosenQuality(fallback.quality);
+    set((s) => {
+      s.sourceId = fallback.sourceId;
+      s.embedId = fallback.embedId;
+      s.currentAudioStreamId = null;
+    });
+    get().setSource(fallback.source, fallback.captions, fallback.startAt);
+    return true;
   },
   selectHlsAudioTrack(track) {
     const store = get();
@@ -643,6 +707,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.failedSourcesPerMedia = {};
       s.failedEmbedsPerMedia = {};
       s.resumeFromSourceId = null;
+      s.qualityHopFallback = null;
       this.clearTranslateTask();
       s.caption = {
         selected: null,
