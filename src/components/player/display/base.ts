@@ -944,15 +944,12 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
           const currentLevel = hls.levels[hls.currentLevel];
           const currentQuality = hlsLevelToQuality(currentLevel);
-
-          if (automaticQuality) {
-            // Only emit quality changes when automatic quality is enabled
-            emit("changedquality", currentQuality);
-          } else {
-            // For manual quality selection, emit the user's preferred quality
-            // This ensures the UI shows the selected quality, not the actual playing quality
-            emit("changedquality", preferenceQuality);
-          }
+          // Report the level this source actually selected. A manual preference
+          // can be unavailable on a newly selected source (for example, 480p
+          // exists on Mai Sakurajima but not Reyna). Reporting that stale
+          // preference made the menu check 480p while hls.js had correctly
+          // fallen back to one of Reyna's real levels.
+          emit("changedquality", currentQuality);
         });
         hls.on(Hls.Events.SUBTITLE_TRACK_LOADED, () => {
           for (const [lang, resolve] of languagePromises) {
