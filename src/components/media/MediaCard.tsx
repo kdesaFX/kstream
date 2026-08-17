@@ -139,6 +139,9 @@ export interface MediaCardProps {
 }
 
 function checkReleased(media: MediaItem): boolean {
+  // MangaDex titles are always readable when listed — they may lack a year.
+  if (media.type === "manga") return true;
+
   const isReleasedYear = Boolean(
     media.year && media.year <= new Date().getFullYear(),
   );
@@ -297,7 +300,7 @@ function MediaCardContent({
               </>
             ) : null}
 
-            {!closable && (
+            {!closable && media.type !== "manga" && (
               <div
                 className="absolute bookmark-button"
                 onClick={(e) => e.preventDefault()}
@@ -306,7 +309,7 @@ function MediaCardContent({
               </div>
             )}
 
-            {searchQuery.length > 0 && !closable ? (
+            {searchQuery.length > 0 && !closable && media.type !== "manga" ? (
               <div className="absolute" onClick={(e) => e.preventDefault()}>
                 <MediaBookmarkButton media={media} />
               </div>
@@ -401,10 +404,14 @@ export function MediaCard(props: MediaCardProps) {
 
   const canLink = props.linkable && !props.closable && isReleased();
 
-  let link = canLink
-    ? `/media/${encodeURIComponent(mediaItemToId(props.media))}`
-    : "#";
-  if (canLink && props.series) {
+  let link = "#";
+  if (canLink) {
+    link =
+      media.type === "manga"
+        ? `/manga/${encodeURIComponent(mediaItemToId(media))}`
+        : `/media/${encodeURIComponent(mediaItemToId(media))}`;
+  }
+  if (canLink && props.series && media.type !== "manga") {
     if (props.series.season === 0 && !props.series.episodeId) {
       link += `/${encodeURIComponent(props.series.seasonId)}`;
     } else {
@@ -417,6 +424,15 @@ export function MediaCard(props: MediaCardProps) {
   const showDetails = useCallback(async () => {
     if (onShowDetails) {
       onShowDetails(media);
+      return;
+    }
+
+    if (media.type === "manga") {
+      showModal("manga-details", {
+        id: media.id as unknown as number,
+        mangaId: media.id,
+        type: "manga",
+      });
       return;
     }
 
@@ -469,15 +485,14 @@ export function MediaCard(props: MediaCardProps) {
   }, [bookmarksForMenu]);
 
   const meta: PlayerMeta | undefined = useMemo(() => {
-    return media.year !== undefined
-      ? {
-          type: media.type,
-          title: media.title,
-          tmdbId: media.id,
-          releaseYear: media.year,
-          poster: media.poster,
-        }
-      : undefined;
+    if (media.type === "manga" || media.year === undefined) return undefined;
+    return {
+      type: media.type,
+      title: media.title,
+      tmdbId: media.id,
+      releaseYear: media.year,
+      poster: media.poster,
+    };
   }, [media]);
 
   const toggleGroup = (groupName: string) => {

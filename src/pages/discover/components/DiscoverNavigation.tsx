@@ -10,6 +10,7 @@ import {
 } from "@/pages/discover/hooks/useDiscoverMedia";
 import { getGenreIcon } from "@/pages/discover/lib/genreIcons";
 import { useDiscoverStore } from "@/stores/discover";
+import { usePreferencesStore } from "@/stores/preferences";
 
 interface DiscoverNavigationProps {
   selectedCategory: string;
@@ -17,7 +18,7 @@ interface DiscoverNavigationProps {
 }
 
 const VISIBLE_GENRE_BREAKPOINT = 850;
-const CATEGORIES = ["movies", "tvshows"] as const;
+const CATEGORIES = ["movies", "tvshows", "manga"] as const;
 
 const chipBase =
   "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide whitespace-nowrap shrink-0 select-none transition-all duration-300 ease-out-quint hover:-translate-y-0.5 active:translate-y-0 active:scale-95";
@@ -39,6 +40,7 @@ export function DiscoverNavigation({
   const { width: windowWidth } = useWindowSize();
   const selectedGenreId = useDiscoverStore((s) => s.selectedGenreId);
   const setSelectedGenreId = useDiscoverStore((s) => s.setSelectedGenreId);
+  const enableMangaDiscover = usePreferencesStore((s) => s.enableMangaDiscover);
   const [genresExpanded, setGenresExpanded] = useState(false);
 
   const showGenreBar =
@@ -46,6 +48,9 @@ export function DiscoverNavigation({
   const mediaType: MediaType =
     selectedCategory === "tvshows" ? "tv" : "movie";
   const { genres } = useDiscoverOptions(mediaType);
+  const tabs = CATEGORIES.filter(
+    (c) => c !== "manga" || enableMangaDiscover,
+  );
 
   const visibleCount = windowWidth > VISIBLE_GENRE_BREAKPOINT ? 5 : 0;
   const hasOverflow = genres.length > visibleCount;
@@ -77,7 +82,7 @@ export function DiscoverNavigation({
     <div className="pb-4 w-full max-w-screen-xl mx-auto">
       <div className="relative flex justify-center">
         <div className="flex space-x-4">
-          {CATEGORIES.map((category) => (
+          {tabs.map((category) => (
             <button
               key={category}
               type="button"

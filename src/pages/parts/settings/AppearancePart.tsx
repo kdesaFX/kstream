@@ -14,6 +14,7 @@ import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useAuthStore } from "@/stores/auth";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useGroupOrderStore } from "@/stores/groupOrder";
+import { usePreferencesStore } from "@/stores/preferences";
 import { SavedCustomTheme } from "@/stores/theme";
 
 function Section({
@@ -376,6 +377,10 @@ export function AppearancePart(props: {
   setHiddenDefaultThemes: (v: string[]) => void;
 }) {
   const { t } = useTranslation();
+  const enableMangaDiscover = usePreferencesStore((s) => s.enableMangaDiscover);
+  const setEnableMangaDiscover = usePreferencesStore(
+    (s) => s.setEnableMangaDiscover,
+  );
 
   const customThemeModal = useModal("create-custom-theme");
   const [editingTheme, setEditingTheme] = useState<any>(null);
@@ -515,6 +520,15 @@ export function AppearancePart(props: {
               }}
               disabled={props.enableLowPerformanceMode}
             />
+            <ToggleRow
+              title={t("settings.appearance.options.mangaDiscoverLabel")}
+              description={t(
+                "settings.appearance.options.mangaDiscoverDescription",
+              )}
+              enabled={enableMangaDiscover}
+              onChange={setEnableMangaDiscover}
+              disabled={props.enableLowPerformanceMode || !props.enableDiscover}
+            />
             <div id="enable-mature-titles">
               <ToggleRow
                 title={t("settings.appearance.options.matureTitlesLabel")}
@@ -565,7 +579,19 @@ export function AppearancePart(props: {
               </p>
               <div className="pt-2">
                 <SortableList
-                  items={props.homeSectionOrder.map((section) => ({
+                  items={(props.homeSectionOrder.includes("reading")
+                    ? props.homeSectionOrder
+                    : (() => {
+                        const order = [...props.homeSectionOrder];
+                        const watchingIdx = order.indexOf("watching");
+                        order.splice(
+                          watchingIdx >= 0 ? watchingIdx + 1 : 0,
+                          0,
+                          "reading",
+                        );
+                        return order;
+                      })()
+                  ).map((section) => ({
                     id: section,
                     name: t(`settings.appearance.sections.${section}`),
                   }))}

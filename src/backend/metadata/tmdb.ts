@@ -1,5 +1,7 @@
 import slugify from "slugify";
 
+import { mangaIdToUrlId } from "@/backend/manga/ids";
+
 import { conf } from "@/setup/config";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -47,6 +49,18 @@ export function mediaItemTypeToMediaType(type: MediaItem["type"]): MWMediaType {
   if (type === "movie") return MWMediaType.MOVIE;
   if (type === "show") return MWMediaType.SERIES;
   throw new Error("unsupported type");
+}
+
+/** URL id for cards — manga uses MangaDex ids, everything else TMDB. */
+export function mediaItemToId(media: MediaItem): string {
+  if (media.type === "manga") {
+    return mangaIdToUrlId(media.id, media.title);
+  }
+  return TMDBIdToUrlId(
+    mediaItemTypeToMediaType(media.type),
+    media.id,
+    media.title,
+  );
 }
 
 export function TMDBMediaToMediaType(type: TMDBContentTypes): MWMediaType {
@@ -160,14 +174,6 @@ export function TMDBIdToUrlId(
 
 export function TMDBMediaToId(media: MWMediaMeta): string {
   return TMDBIdToUrlId(media.type, media.id, media.title);
-}
-
-export function mediaItemToId(media: MediaItem): string {
-  return TMDBIdToUrlId(
-    mediaItemTypeToMediaType(media.type),
-    media.id,
-    media.title,
-  );
 }
 
 export function decodeTMDBId(

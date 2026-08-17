@@ -19,15 +19,14 @@ export function MediaBookmarkButton({ media, group }: MediaBookmarkProps) {
   );
   const removeBookmark = useBookmarkStore((s) => s.removeBookmark);
   const meta: PlayerMeta | undefined = useMemo(() => {
-    return media.year !== undefined
-      ? {
-          type: media.type,
-          title: media.title,
-          tmdbId: media.id,
-          releaseYear: media.year,
-          poster: media.poster,
-        }
-      : undefined;
+    if (media.type === "manga" || media.year === undefined) return undefined;
+    return {
+      type: media.type,
+      title: media.title,
+      tmdbId: media.id,
+      releaseYear: media.year,
+      poster: media.poster,
+    };
   }, [media]);
   // Subscribe to this card only — a full `bookmarks` subscription re-rendered
   // every poster in every carousel on each save.

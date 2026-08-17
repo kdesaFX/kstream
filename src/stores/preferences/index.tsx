@@ -28,6 +28,9 @@ export interface PreferencesStore {
   enableSkipCredits: boolean;
   enableAutoSkipSegments: boolean;
   enableDiscover: boolean;
+  enableMangaDiscover: boolean;
+  mangaReaderMode: "vertical" | "paged";
+  mangaPreferredLanguage: string;
   enableMatureTitles: boolean;
   enableFeatured: boolean;
   enableDetailsModal: boolean;
@@ -81,6 +84,9 @@ export interface PreferencesStore {
   setEnableSkipCredits(v: boolean): void;
   setEnableAutoSkipSegments(v: boolean): void;
   setEnableDiscover(v: boolean): void;
+  setEnableMangaDiscover(v: boolean): void;
+  setMangaReaderMode(v: "vertical" | "paged"): void;
+  setMangaPreferredLanguage(v: string): void;
   setEnableMatureTitles(v: boolean): void;
   setEnableFeatured(v: boolean): void;
   setEnableDetailsModal(v: boolean): void;
@@ -139,6 +145,9 @@ export const usePreferencesStore = create(
       enableSkipCredits: true,
       enableAutoSkipSegments: false,
       enableDiscover: true,
+      enableMangaDiscover: true,
+      mangaReaderMode: "vertical",
+      mangaPreferredLanguage: "en",
       enableMatureTitles: false,
       enableFeatured: false,
       enableDetailsModal: false,
@@ -165,7 +174,7 @@ export const usePreferencesStore = create(
       enableNativeSubtitles: false,
       enableAutoSubtitleSync: false,
       enableHoldToBoost: true,
-      homeSectionOrder: ["watching"],
+      homeSectionOrder: ["watching", "reading"],
       bookmarkRowsToShow: 1,
       watchingRowsToShow: 1,
       manualSourceSelection: false,
@@ -207,6 +216,21 @@ export const usePreferencesStore = create(
       setEnableDiscover(v) {
         set((s) => {
           s.enableDiscover = v;
+        });
+      },
+      setEnableMangaDiscover(v) {
+        set((s) => {
+          s.enableMangaDiscover = v;
+        });
+      },
+      setMangaReaderMode(v) {
+        set((s) => {
+          s.mangaReaderMode = v;
+        });
+      },
+      setMangaPreferredLanguage(v) {
+        set((s) => {
+          s.mangaPreferredLanguage = v;
         });
       },
       setEnableMatureTitles(v) {

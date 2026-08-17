@@ -24,6 +24,7 @@ import { SubPageLayout } from "@/pages/layouts/SubPageLayout";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { useRatingsStore } from "@/stores/ratings";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
+import { MediaItem } from "@/utils/media/mediaTypes";
 
 // Validated categorical palette for dark surfaces.
 const GENRE_COLORS = [
@@ -363,10 +364,11 @@ export function MyAlgorithmPage() {
   const { showModal } = useOverlayStack();
   const carouselRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-  const handleShowDetails = (media: { id: string; type: "movie" | "show" }) => {
+  const handleShowDetails = (media: MediaItem) => {
+    if (media.type === "manga") return;
     showModal("discover-details", {
       id: Number(media.id),
-      type: media.type,
+      type: media.type === "movie" ? "movie" : "show",
     });
   };
 

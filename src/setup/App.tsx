@@ -13,6 +13,7 @@ import { convertLegacyUrl, isLegacyUrl } from "@/backend/metadata/getmeta";
 import { generateQuickSearchMediaUrl } from "@/backend/metadata/tmdb";
 import { DesktopChromeBridge } from "@/components/DesktopChromeBridge";
 import { DetailsModal } from "@/components/overlays/detailsModal";
+import { MangaDetailsModal } from "@/components/overlays/mangaDetails/MangaDetailsModal";
 import { DownloadModal } from "@/components/overlays/downloadModal";
 import { DesktopAppSettingsModal } from "@/components/overlays/desktopAppSettings";
 import { GamepadControlsModal } from "@/components/overlays/GamepadControlsModal";
@@ -35,6 +36,7 @@ import { AllBookmarks } from "@/pages/bookmarks/AllBookmarks";
 import MaintenancePage from "@/pages/errors/MaintenancePage";
 import { NotFoundPage } from "@/pages/errors/NotFoundPage";
 import { HomePage } from "@/pages/HomePage";
+import { MangaReaderView } from "@/pages/manga/MangaReaderView";
 import { PersonView } from "@/pages/PersonView";
 import { CelPage } from "@/pages/Cel";
 import { LegalPage, shouldHaveLegalPage } from "@/pages/Legal";
@@ -200,6 +202,7 @@ function App() {
       <DetailsModal id="details" />
       <DetailsModal id="discover-details" />
       <DetailsModal id="player-details" />
+      <MangaDetailsModal id="manga-details" />
       {!showDowntime && (
         <Routes>
           {/* functional routes */}
@@ -225,6 +228,22 @@ function App() {
                   <PlayerView />
                 </Suspense>
               </LegacyUrlView>
+            }
+          />
+          <Route
+            path="/manga/:media"
+            element={
+              <Suspense fallback={null}>
+                <MangaReaderView />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/manga/:media/:chapter"
+            element={
+              <Suspense fallback={null}>
+                <MangaReaderView />
+              </Suspense>
             }
           />
           <Route path="/browse/:query?" element={<HomePage />} />

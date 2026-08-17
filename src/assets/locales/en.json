@@ -426,6 +426,9 @@
         }
       }
     },
+    "continueReading": {
+      "sectionTitle": "Continue Reading..."
+    },
     "mediaList": {
       "stopEditing": "Stop editing",
       "editMode": "Edit"
@@ -458,7 +461,8 @@
           "Such emptiness."
         ]
       },
-      "sectionTitle": "Search results",
+      "sectionTitle": "Movies & TV Shows",
+      "mangaSectionTitle": "Manga",
       "discoverMore": "Discover more",
       "discover": "Discover"
     },
@@ -524,9 +528,10 @@
   "media": {
     "episodeDisplay": "S{{season}} - E{{episode}}",
     "unreleased": "Unreleased",
-    "types": {
+      "types": {
       "movie": "Movie",
-      "show": "Show"
+      "show": "Show",
+      "manga": "Manga"
     },
     "mature": {
       "badge": "18+",
@@ -1376,6 +1381,8 @@
         "discover": "Discover section",
         "discoverDescription": "Show the Discover section on the Homepage below your bookmarked media.",
         "discoverLabel": "Discover section",
+        "mangaDiscoverLabel": "Manga in Discover",
+        "mangaDiscoverDescription": "Show a Manga tab next to Movies and TV Shows, powered by MangaDex.",
         "matureTitlesLabel": "Mature titles",
         "matureTitlesDescription": "Allow adult-rated titles in Discover and remove the 18+ gate from search results.",
         "featured": "Featured media",
@@ -1410,6 +1417,7 @@
       },
       "sections": {
         "watching": "Currently Watching",
+        "reading": "Continue Reading",
         "bookmarks": "Bookmarks"
       }
     },
@@ -1578,6 +1586,7 @@
       "foryou": "For You",
       "movies": "Movies",
       "tvshows": "TV Shows",
+      "manga": "Manga",
       "editorpicks": "Editor Picks"
     },
     "genres": {
@@ -1610,7 +1619,13 @@
         "genreShows": "{{genre}} Shows",
         "categoryMovies": "{{category}} Movies",
         "categoryShows": "{{category}} Shows",
-        "top10": "Top 10"
+        "top10": "Top 10",
+        "manga": {
+          "popular": "Popular Manga",
+          "topRated": "Top Rated Manga",
+          "latest": "Latest Updates",
+          "recentlyAdded": "Recently Added"
+        }
       },
       "change": "Change",
       "more": "View more"
@@ -1726,5 +1741,25 @@
     "linkCopied": "Copied!",
     "backendRequirement": "Watch parties need backend version 2.0.1+. Update your backend to use this feature.",
     "activeBackend": "Active Backend: {{backend}}"
+  },
+  "manga": {
+    "details": {
+      "loading": "Loading manga…",
+      "read": "Read",
+      "continue": "Continue reading",
+      "chapters": "Chapters",
+      "noChapters": "No chapters available yet."
+    },
+    "reader": {
+      "loading": "Loading pages…",
+      "retry": "Retry",
+      "noChapters": "This title has no readable chapters.",
+      "emptyChapter": "This chapter has no pages (it may be hosted elsewhere). Try another chapter.",
+      "modePaged": "Page mode",
+      "modeVertical": "Scroll mode",
+      "prevChapter": "Prev",
+      "nextChapter": "Next",
+      "scrollHint": "Scroll to read · arrows change chapter"
+    }
   }
 }

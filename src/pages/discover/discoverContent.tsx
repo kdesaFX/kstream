@@ -3,6 +3,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { WideContainer } from "@/components/layout/WideContainer";
 import { useDiscoverStore } from "@/stores/discover";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
+import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
 import { progressHasMeaningfulWatch } from "@/stores/progress/utils";
 import { MediaItem } from "@/utils/media/mediaTypes";
@@ -11,6 +12,7 @@ import { DiscoverNavigation } from "./components/DiscoverNavigation";
 import type { FeaturedMedia } from "./components/FeaturedCarousel";
 import { CarouselDedupeProvider } from "./components/CarouselDedupeContext";
 import { LazyMediaCarousel } from "./components/LazyMediaCarousel";
+import { MangaCarousel } from "./components/MangaCarousel";
 import { ScrollToTopButton } from "./components/ScrollToTopButton";
 
 export function DiscoverContent() {
@@ -20,17 +22,27 @@ export function DiscoverContent() {
     selectedGenreId,
   } = useDiscoverStore();
   const { showModal } = useOverlayStack();
+  const enableMangaDiscover = usePreferencesStore((s) => s.enableMangaDiscover);
   const carouselRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const progressItems = useProgressStore((state) => state.items);
 
   const isMoviesTab = selectedCategory === "movies";
   const isTVShowsTab = selectedCategory === "tvshows";
+  const isMangaTab = selectedCategory === "manga";
 
   const handleCategoryChange = useCallback((category: string) => {
-    setSelectedCategory(category as "movies" | "tvshows");
+    setSelectedCategory(category as "movies" | "tvshows" | "manga");
   }, [setSelectedCategory]);
 
   const handleShowDetails = useCallback((media: MediaItem | FeaturedMedia) => {
+    if ("type" in media && media.type === "manga") {
+      showModal("manga-details", {
+        id: media.id,
+        mangaId: media.id,
+        type: "manga",
+      });
+      return;
+    }
     showModal("discover-details", {
       id: Number(media.id),
       type: media.type === "movie" ? "movie" : "show",
@@ -285,6 +297,35 @@ export function DiscoverContent() {
     );
   };
 
+  const renderMangaContent = () => (
+    <div className="flex flex-col gap-2 px-4 md:px-8">
+      <MangaCarousel
+        kind="popular"
+        enabled={isMangaTab}
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+      />
+      <MangaCarousel
+        kind="topRated"
+        enabled={isMangaTab}
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+      />
+      <MangaCarousel
+        kind="latest"
+        enabled={isMangaTab}
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+      />
+      <MangaCarousel
+        kind="recentlyAdded"
+        enabled={isMangaTab}
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+      />
+    </div>
+  );
+
   return (
     <div className="relative min-h-screen">
       <DiscoverNavigation
@@ -302,6 +343,13 @@ export function DiscoverContent() {
         <div style={{ display: isTVShowsTab ? "block" : "none" }}>
           {renderTVShowsContent()}
         </div>
+
+        {/* Manga Tab */}
+        {enableMangaDiscover ? (
+          <div style={{ display: isMangaTab ? "block" : "none" }}>
+            {renderMangaContent()}
+          </div>
+        ) : null}
       </WideContainer>
 
       <ScrollToTopButton />

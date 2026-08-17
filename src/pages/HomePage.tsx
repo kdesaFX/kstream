@@ -13,6 +13,7 @@ import DiscoverContent from "@/pages/discover/discoverContent";
 import { HomeLayout } from "@/pages/layouts/HomeLayout";
 import { BookmarksCarousel } from "@/pages/parts/home/BookmarksCarousel";
 import { BookmarksGrid } from "@/pages/parts/home/BookmarksGrid";
+import { ReadingCarousel } from "@/pages/parts/home/ReadingCarousel";
 import { WatchingCarousel } from "@/pages/parts/home/WatchingCarousel";
 import { WatchingGrid } from "@/pages/parts/home/WatchingGrid";
 import { SearchListPart } from "@/pages/parts/search/SearchListPart";
@@ -104,6 +105,14 @@ export function HomePage() {
   ]);
 
   const handleShowDetails = async (media: MediaItem | FeaturedMedia) => {
+    if ("type" in media && media.type === "manga") {
+      showModal("manga-details", {
+        id: media.id,
+        mangaId: media.id,
+        type: "manga",
+      });
+      return;
+    }
     showModal("details", {
       id: Number(media.id),
       type: media.type === "movie" ? "movie" : "show",
@@ -111,7 +120,15 @@ export function HomePage() {
   };
 
   const renderHomeSections = () => {
-    const sections = homeSectionOrder.map((section) => {
+    // Ensure Continue Reading sits under Continue Watching even for
+    // profiles that saved an older homeSectionOrder without "reading".
+    let order = [...homeSectionOrder];
+    if (!order.includes("reading")) {
+      const watchingIdx = order.indexOf("watching");
+      order.splice(watchingIdx >= 0 ? watchingIdx + 1 : 0, 0, "reading");
+    }
+
+    const sections = order.map((section) => {
       switch (section) {
         case "watching":
           return enableCarouselView ? (
@@ -126,6 +143,10 @@ export function HomePage() {
               onItemsChange={setShowWatching}
               onShowDetails={handleShowDetails}
             />
+          );
+        case "reading":
+          return (
+            <ReadingCarousel key="reading" carouselRefs={carouselRefs} />
           );
         case "bookmarks":
           return enableCarouselView ? (

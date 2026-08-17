@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-type Category = "movies" | "tvshows";
+type Category = "movies" | "tvshows" | "manga";
 
 interface DiscoverView {
   url: string;
@@ -24,7 +24,11 @@ interface DiscoverState {
 }
 
 function normalizeCategory(category: unknown): Category {
-  if (category === "movies" || category === "tvshows") {
+  if (
+    category === "movies" ||
+    category === "tvshows" ||
+    category === "manga"
+  ) {
     return category;
   }
   // Drop legacy "foryou" / "editorpicks" (and anything else) onto movies
