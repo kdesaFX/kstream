@@ -97,7 +97,6 @@ function NavSearchBar(props: { lightOverHero?: boolean; className?: string }) {
         placeholder={placeholder ?? ""}
         isSticky={!props.lightOverHero}
         isInFeatured={props.lightOverHero}
-        compact={isMobile}
         large={!isMobile}
         hideTooltip={isMobile}
       />
@@ -246,7 +245,7 @@ export function Navigation(props: NavigationProps) {
               >
                 <NavSearchBar
                   lightOverHero={Boolean(props.clearBackground)}
-                  className="!max-w-[11.25rem] w-full"
+                  className="w-full !max-w-[11.25rem] ssm:!max-w-[20rem] md:!max-w-[24rem]"
                 />
               </div>
             ) : (
