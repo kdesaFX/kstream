@@ -976,6 +976,7 @@
         "default": "Default",
         "streamLanguages": "Audio language",
         "trackLanguages": "Audio tracks",
+        "numberedTrack": "Track {{number}}",
         "noneAvailable": "No alternate audio languages available for this title."
       }
     },

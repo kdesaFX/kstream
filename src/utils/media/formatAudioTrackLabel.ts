@@ -2,9 +2,32 @@ import { getPrettyLanguageNameFromLocale } from "@/utils/locale/language";
 
 const CHANNEL_RE = /\b(5\.1|7\.1|2\.0|atmos|dts|surround|stereo)\b/i;
 
+/**
+ * Manifest names that name nothing: "Audio 1", "Track 2", "A1", "default".
+ * Packagers emit these when no language was set, and passing them through
+ * turned the language menu into a list of numbers.
+ */
+const PLACEHOLDER_LABEL_RE = /^(?:audio|track|stream|a|und|unknown|default)?[\s._-]*\d*$/i;
+
 function isBlankLanguage(language?: string | null): boolean {
   const lang = language?.trim().toLowerCase();
   return !lang || lang === "unknown" || lang === "und";
+}
+
+function isPlaceholderLabel(label?: string | null): boolean {
+  const trimmed = label?.trim();
+  if (!trimmed) return true;
+  return PLACEHOLDER_LABEL_RE.test(trimmed);
+}
+
+/** True when a track tells the viewer nothing: no language, no real name. */
+export function isUninformativeAudioTrack(
+  language?: string,
+  label?: string,
+): boolean {
+  if (!isBlankLanguage(language)) return false;
+  if (CHANNEL_RE.test(label ?? "")) return false;
+  return isPlaceholderLabel(label);
 }
 
 /**
@@ -33,14 +56,14 @@ export function formatAudioTrackLabel(
       .replace(/[()[\]]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-    if (cleaned && !/^unknown$/i.test(cleaned)) {
+    if (!isPlaceholderLabel(cleaned)) {
       return `${cleaned} (${channel})`;
     }
     return `Surround (${channel})`;
   }
 
   const trimmedLabel = label?.trim();
-  if (trimmedLabel && !/^unknown$/i.test(trimmedLabel)) {
+  if (trimmedLabel && !isPlaceholderLabel(trimmedLabel)) {
     return trimmedLabel;
   }
 

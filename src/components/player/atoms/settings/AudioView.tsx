@@ -8,7 +8,10 @@ import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { AudioTrack } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { AudioStreamOption } from "@/stores/player/utils/audioStreams";
-import { formatAudioTrackLabel } from "@/utils/media/formatAudioTrackLabel";
+import {
+  formatAudioTrackLabel,
+  isUninformativeAudioTrack,
+} from "@/utils/media/formatAudioTrackLabel";
 import { getPrettyLanguageNameFromLocale } from "@/utils/locale/language";
 
 import { SelectableLink } from "../../internals/ContextMenu/Links";
@@ -67,7 +70,13 @@ export function AudioView({ id }: { id: string }) {
 
   // One flat list: cross-source streams + in-manifest HLS tracks, no dividers.
   const streamOptions = audioStreamOptions;
-  const hlsTracks = audioTracks;
+  // A single track the manifest never named isn't a choice, it's a riddle:
+  // there's nothing to switch to, so say so rather than listing "Audio 1".
+  const soleUnnamedTrack =
+    streamOptions.length === 0 &&
+    audioTracks.length === 1 &&
+    isUninformativeAudioTrack(audioTracks[0].language, audioTracks[0].label);
+  const hlsTracks = soleUnnamedTrack ? [] : audioTracks;
   const hasAny = streamOptions.length + hlsTracks.length > 0;
 
   // Stream-option selection wins until the user picks an HLS track (which
@@ -100,7 +109,7 @@ export function AudioView({ id }: { id: string }) {
           </AudioOption>
         ))}
 
-        {hlsTracks.map((v) => (
+        {hlsTracks.map((v, index) => (
           <AudioOption
             key={`hls:${v.id}`}
             selected={!streamSelected && v.id === currentAudioTrack?.id}
@@ -113,7 +122,13 @@ export function AudioView({ id }: { id: string }) {
             }
             onClick={() => changeHlsTrack(v)}
           >
-            {formatAudioTrackLabel(v.language, v.label, unknownChoice)}
+            {formatAudioTrackLabel(
+              v.language,
+              v.label,
+              // Ordinal beats the manifest's own numbering, which is arbitrary
+              // and often starts at 1 on the second track.
+              t("player.menus.audio.numberedTrack", { number: index + 1 }),
+            )}
           </AudioOption>
         ))}
 
