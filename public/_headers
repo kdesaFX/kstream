@@ -3,11 +3,21 @@
   X-XSS-Protection: 1; mode=block
   X-Content-Type-Options: nosniff
   Referrer-Policy: origin-when-cross-origin
-  Cache-Control: public, max-age=0, s-maxage=0, must-revalidate
+  Cache-Control: private, no-cache, no-store, must-revalidate
+  CDN-Cache-Control: no-store
+
+/index.html
+  Cache-Control: private, no-cache, no-store, must-revalidate
+  CDN-Cache-Control: no-store
+
+/version.json
+  Cache-Control: private, no-cache, no-store, must-revalidate
+  CDN-Cache-Control: no-store
 
 /manifest.webmanifest
   Content-Type: application/manifest+json
 
-# assets get a long cache instead of no cache
+# Hashed assets stay immutable — only the HTML shell must stay fresh.
 /assets/*
   Cache-Control: public, max-age=31536000, s-maxage=31536000, immutable
+  CDN-Cache-Control: public, max-age=31536000

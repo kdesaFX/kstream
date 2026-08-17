@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   decodeHtmlEntities,
+  isUsableWeebCentralHtml,
   normalizeMangaTitle,
   parseChapterImages,
   parseChapterList,
@@ -107,5 +108,15 @@ describe("weebcentral parsers", () => {
     expect(decodeHtmlEntities("Jinwoo &amp; the dungeon")).toBe(
       "Jinwoo & the dungeon",
     );
+  });
+
+  it("rejects challenge pages so a blocked proxy cannot count as a hit", () => {
+    expect(isUsableWeebCentralHtml("<article>nope</article>")).toBe(false);
+    expect(isUsableWeebCentralHtml('{"error":"blocked"}')).toBe(false);
+    expect(
+      isUsableWeebCentralHtml(
+        '<a href="https://weebcentral.com/series/01J76XYCPSY3C4BNPBRY8JMCBE/Solo-Leveling">Solo Leveling</a>',
+      ),
+    ).toBe(true);
   });
 });

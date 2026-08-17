@@ -1,7 +1,7 @@
 import { ofetch } from "ofetch";
 
 import { isWeebCentralId } from "@/backend/manga/ids";
-import { proxiedMangaUrl, requestNeverLanded } from "@/backend/manga/mangadex";
+import { proxiedMangaUrl } from "@/backend/manga/mangadex";
 import type {
   MangaChapter,
   MangaChapterGroup,
@@ -10,7 +10,7 @@ import type {
   MangaReadingDirection,
   MangaStatus,
 } from "@/backend/manga/types";
-import { getProxyUrls } from "@/utils/hosting/proxyUrls";
+import { getProxyUrls, resolveProxyUrl } from "@/utils/hosting/proxyUrls";
 import {
   filterOutMatureMedia,
   shouldAllowMatureTitles,
@@ -27,36 +27,68 @@ export interface WeebCentralSearchHit {
 }
 
 const wcFetch = ofetch.create({
-  retry: 1,
+  retry: 0,
   timeout: 20000,
   parseResponse: (text) => text,
 });
 
-let proxyRequired = false;
+/** Cloudflare challenge pages and JSON proxy errors must not be treated as a series list. */
+export function isUsableWeebCentralHtml(html: string): boolean {
+  if (!html || html.length < 80) return false;
+  const trimmed = html.trimStart();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) return false;
+  if (
+    /just a moment|cf-challenge|attention required|enable javascript/i.test(
+      html,
+    )
+  ) {
+    return false;
+  }
+  return /weebcentral\.com|\/chapters\/|chapter-images|planeptune/i.test(html);
+}
 
-async function wcGet(url: string, htmx = false): Promise<string> {
+function wcHeaders(htmx: boolean): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: htmx ? "*/*" : "text/html,application/xhtml+xml",
     "Accept-Language": "en-US,en;q=0.9",
   };
   if (htmx) headers["HX-Request"] = "true";
-  const viaProxy = () => proxiedMangaUrl(url, getProxyUrls());
+  return headers;
+}
 
-  if (proxyRequired) {
-    const proxied = viaProxy();
-    if (!proxied) throw new Error("No proxy configured for WeebCentral");
-    return wcFetch<string>(proxied, { headers });
+function candidateUrls(url: string): string[] {
+  const out: string[] = [];
+  const add = (value?: string) => {
+    if (value && !out.includes(value)) out.push(value);
+  };
+  // Same-origin proxy first. Direct WeebCentral is CORS-blocked on the
+  // deployed site, and a configured worker is often the wrong first hop.
+  if (typeof window !== "undefined") {
+    add(proxiedMangaUrl(url, [resolveProxyUrl("/api/proxy")]));
   }
+  for (const proxy of getProxyUrls()) {
+    add(proxiedMangaUrl(url, [proxy]));
+  }
+  add(url);
+  return out;
+}
 
-  try {
-    return await wcFetch<string>(url, { headers, retry: 0 });
-  } catch (err) {
-    const proxied = viaProxy();
-    if (!proxied || !requestNeverLanded(err)) throw err;
-    const result = await wcFetch<string>(proxied, { headers });
-    proxyRequired = true;
-    return result;
+async function wcGet(url: string, htmx = false): Promise<string> {
+  const headers = wcHeaders(htmx);
+  let lastError: unknown;
+  for (const target of candidateUrls(url)) {
+    try {
+      const html = await wcFetch<string>(target, { headers });
+      if (typeof html === "string" && isUsableWeebCentralHtml(html)) {
+        return html;
+      }
+    } catch (err) {
+      lastError = err;
+    }
   }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("WeebCentral request failed");
 }
 
 export function decodeHtmlEntities(value: string): string {
@@ -264,7 +296,9 @@ export async function searchWeebCentral(
           const url = `${ORIGIN}/search/data?limit=${limit}&text=${encodeURIComponent(q)}&sort=Best%20Match&order=Descending&official=Any&display_mode=Full%20Display`;
           const html = await wcGet(url, true);
           const parsed = parseSearchResults(html);
-          searchCache.set(key, { at: Date.now(), hits: parsed });
+          if (parsed.length > 0) {
+            searchCache.set(key, { at: Date.now(), hits: parsed });
+          }
           return parsed;
         })();
 

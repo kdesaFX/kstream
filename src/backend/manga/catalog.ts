@@ -49,9 +49,10 @@ export async function getMangaDetails(
   const details = await getMangaDexDetails(mangaId, preferredLanguage);
   if (details.chapters.length > 0) return details;
 
-  const chapters = await findWeebCentralChapters(details.title).catch(
-    () => null,
-  );
+  const chapters = await findWeebCentralChapters(details.title).catch((err) => {
+    console.warn("WeebCentral chapter fallback failed:", details.title, err);
+    return null;
+  });
   if (!chapters?.length) return details;
   return {
     ...details,
