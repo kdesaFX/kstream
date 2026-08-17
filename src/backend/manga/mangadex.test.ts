@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   chapterBadge,
   pickMangaTitle,
+  proxiedMangaCoverUrl,
   proxiedMangaUrl,
   requestNeverLanded,
 } from "@/backend/manga/mangadex";
@@ -95,6 +96,26 @@ describe("proxiedMangaUrl", () => {
     expect(proxiedMangaUrl("https://api.mangadex.org/manga", [])).toBe(
       undefined,
     );
+  });
+});
+
+describe("proxiedMangaCoverUrl", () => {
+  it("builds a fallback for MangaDex cover images", () => {
+    const cover =
+      "https://uploads.mangadex.org/covers/manga-id/cover.jpg.256.jpg";
+    expect(
+      proxiedMangaCoverUrl(cover, ["https://kdesa.stream/api/proxy"]),
+    ).toBe(
+      `https://kdesa.stream/api/proxy?destination=${encodeURIComponent(cover)}`,
+    );
+  });
+
+  it("does not send unrelated images through the cover fallback", () => {
+    expect(
+      proxiedMangaCoverUrl("https://example.com/image.jpg", [
+        "https://kdesa.stream/api/proxy",
+      ]),
+    ).toBe(undefined);
   });
 });
 

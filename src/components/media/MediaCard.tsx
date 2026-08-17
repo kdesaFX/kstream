@@ -29,6 +29,7 @@ import { isMatureMedia } from "@/utils/media/mature";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { MediaBookmarkButton } from "./MediaBookmark";
+import { MangaImage } from "./MangaImage";
 import { IconPatch } from "../buttons/IconPatch";
 import { Icon, Icons } from "../Icon";
 
@@ -228,10 +229,9 @@ function MediaCardContent({
               // MangaDex swaps covers for a "read this at mangadex.org" card
               // when a foreign referrer comes along, and CSS backgrounds have
               // no say in what gets sent — an element does.
-              <img
+              <MangaImage
                 src={media.poster}
                 alt=""
-                referrerPolicy="no-referrer"
                 decoding="async"
                 className="absolute inset-0 h-full w-full object-cover"
                 style={{
