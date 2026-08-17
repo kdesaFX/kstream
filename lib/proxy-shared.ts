@@ -76,6 +76,7 @@ const PASSTHROUGH_HEADERS = new Set([
   "accept-language",
   // Anikoto / TQQ ajax endpoints require this; browsers send it as-is (not X-*)
   "x-requested-with",
+  "hx-request",
   "range",
 ]);
 
@@ -116,7 +117,10 @@ export function afterResponseHeaders(
 }
 
 /** Resolve relative playlist URIs against a base playlist URL. */
-export function resolvePlaylistUri(uri: string, baseUrl: string): string | null {
+export function resolvePlaylistUri(
+  uri: string,
+  baseUrl: string,
+): string | null {
   try {
     return new URL(uri, baseUrl).href;
   } catch {

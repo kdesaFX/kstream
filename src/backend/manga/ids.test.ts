@@ -17,4 +17,14 @@ describe("manga ids", () => {
   it("rejects non-manga prefixes", () => {
     expect(decodeMangaId("tmdb-movie-123-foo")).toBeNull();
   });
+
+  it("round-trips a WeebCentral series id", () => {
+    const id = "01J76XYCPSY3C4BNPBRY8JMCBE";
+    const encoded = mangaIdToUrlId(id, "Solo Leveling");
+    expect(encoded.startsWith("weebcentral-")).toBe(true);
+    expect(decodeMangaId(encoded)).toEqual({
+      id,
+      slug: "solo-leveling",
+    });
+  });
 });

@@ -35,6 +35,71 @@ function emitVersionJSON(): PluginOption {
   };
 }
 
+/** Vite would otherwise serve api/proxy.ts as source text. Forward it. */
+function devApiProxy(): PluginOption {
+  return {
+    name: "dev-api-proxy",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        const raw = req.url || "";
+        if (!raw.startsWith("/api/proxy")) return next();
+        const destination = new URL(raw, "http://localhost").searchParams.get(
+          "destination",
+        );
+        if (!destination) {
+          res.statusCode = 400;
+          res.setHeader("Content-Type", "application/json");
+          res.end(
+            JSON.stringify({ error: "Missing destination query parameter" }),
+          );
+          return;
+        }
+        let target: URL;
+        try {
+          target = new URL(destination);
+          if (target.protocol !== "http:" && target.protocol !== "https:") {
+            throw new Error("Destination must be http(s)");
+          }
+        } catch {
+          res.statusCode = 400;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "Invalid destination URL" }));
+          return;
+        }
+        try {
+          const headers: Record<string, string> = {
+            "User-Agent": String(req.headers["user-agent"] || "Mozilla/5.0"),
+            Accept: String(req.headers.accept || "*/*"),
+            "Accept-Language": String(req.headers["accept-language"] || "en"),
+          };
+          if (req.headers["hx-request"]) {
+            headers["HX-Request"] = String(req.headers["hx-request"]);
+          }
+          const upstream = await fetch(target.href, {
+            headers,
+            redirect: "follow",
+          });
+          res.statusCode = upstream.status;
+          const contentType = upstream.headers.get("content-type");
+          if (contentType) res.setHeader("Content-Type", contentType);
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          res.setHeader("Cache-Control", "no-store");
+          res.end(Buffer.from(await upstream.arrayBuffer()));
+        } catch (err) {
+          res.statusCode = 502;
+          res.setHeader("Content-Type", "application/json");
+          res.end(
+            JSON.stringify({
+              error:
+                err instanceof Error ? err.message : "Proxy request failed",
+            }),
+          );
+        }
+      });
+    },
+  };
+}
+
 const captioningPackages = [
   "dompurify",
   "htmlparser2",
@@ -52,6 +117,7 @@ export default defineConfig(({ mode }) => {
       __BUILD_ID__: JSON.stringify(BUILD_ID),
     },
     plugins: [
+      devApiProxy(),
       emitVersionJSON(),
       handlebars({
         vars: {

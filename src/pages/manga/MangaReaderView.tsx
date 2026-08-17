@@ -4,8 +4,10 @@ import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { getChapterPages, getMangaDetails } from "@/backend/manga/catalog";
 import {
   decodeMangaId,
+  isWeebCentralId,
   mangaChapterLink,
   mangaMediaLink,
 } from "@/backend/manga/ids";
@@ -13,7 +15,6 @@ import {
   chapterLabel,
   chapterPageUrls,
   getChapterAtHome,
-  getMangaDetails,
 } from "@/backend/manga/mangadex";
 import type { MangaChapter, MangaDetails } from "@/backend/manga/types";
 import { Icon, Icons } from "@/components/Icon";
@@ -23,10 +24,12 @@ import { usePreferencesStore } from "@/stores/preferences";
 function PageImage({
   src,
   alt,
+  referrerPolicy,
   onError,
 }: {
   src: string;
   alt: string;
+  referrerPolicy: "origin" | "no-referrer";
   onError: () => void;
 }) {
   return (
@@ -36,10 +39,10 @@ function PageImage({
       className="max-w-full h-auto mx-auto block bg-black/40"
       loading="lazy"
       decoding="async"
-      // The MangaDex image nodes drop image requests that carry no referrer at
-      // all, so send the bare origin — enough to be served, and it still keeps
-      // the chapter path we're on to ourselves.
-      referrerPolicy="origin"
+      // MangaDex image nodes drop requests that carry no referrer at all, so
+      // send the bare origin. WeebCentral's CDN is the opposite: a foreign
+      // referrer can get you a placeholder, so those pages go out with none.
+      referrerPolicy={referrerPolicy}
       onError={onError}
       draggable={false}
     />
@@ -78,6 +81,8 @@ export function MangaReaderView() {
   const retried = useRef(false);
 
   const chapterId = chapterParam ? decodeURIComponent(chapterParam) : undefined;
+  const pageReferrer =
+    chapterId && isWeebCentralId(chapterId) ? "no-referrer" : "origin";
 
   // Same route serves every manga, so details are only usable for the one
   // currently in the URL — otherwise the chapter list and resume redirect below
@@ -140,9 +145,7 @@ export function MangaReaderView() {
       setError(null);
       if (force) retried.current = false;
       try {
-        const atHome = await getChapterAtHome(id);
-        let urls = chapterPageUrls(atHome, "data");
-        if (urls.length === 0) urls = chapterPageUrls(atHome, "data-saver");
+        const urls = await getChapterPages(id);
         if (urls.length === 0) {
           setError(t("manga.reader.emptyChapter"));
           setPages([]);
@@ -166,12 +169,12 @@ export function MangaReaderView() {
     loadPages(chapterId);
   }, [chapterId, loadPages]);
 
-  // Warm the next chapter's at-home server so Next feels instant.
+  // Warm the next chapter so Next feels instant.
   useEffect(() => {
     if (!nextChapter?.id) return undefined;
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      getChapterAtHome(nextChapter.id).catch(() => {
+      getChapterPages(nextChapter.id).catch(() => {
         if (cancelled) return;
       });
     }, 1500);
@@ -259,6 +262,7 @@ export function MangaReaderView() {
 
   const onPageError = async (index: number) => {
     if (!chapterId || retried.current) return;
+    if (isWeebCentralId(chapterId)) return;
     retried.current = true;
     try {
       const atHome = await getChapterAtHome(chapterId);
@@ -391,6 +395,7 @@ export function MangaReaderView() {
                   key={`${chapterId}-${i}`}
                   src={src}
                   alt={`Page ${i + 1}`}
+                  referrerPolicy={pageReferrer}
                   onError={() => onPageError(i)}
                 />
               ))}
@@ -400,6 +405,7 @@ export function MangaReaderView() {
               <PageImage
                 src={pages[pageIndex]}
                 alt={`Page ${pageIndex + 1}`}
+                referrerPolicy={pageReferrer}
                 onError={() => onPageError(pageIndex)}
               />
             </div>

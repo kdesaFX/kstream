@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { mangaChapterLink } from "@/backend/manga/ids";
-import { chapterLabel, getMangaDetails } from "@/backend/manga/mangadex";
+import { getMangaDetails } from "@/backend/manga/catalog";
+import { chapterLabel } from "@/backend/manga/mangadex";
 import type { MangaDetails } from "@/backend/manga/types";
 import { mangaStatusKey } from "@/backend/manga/types";
 import { Button } from "@/components/buttons/Button";

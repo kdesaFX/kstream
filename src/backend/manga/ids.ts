@@ -1,24 +1,44 @@
 import slugify from "slugify";
 
-const PREFIX = "mangadex";
+const MANGADEX = "mangadex";
+const WEEBCENTRAL = "weebcentral";
 
-/** Encode a MangaDex manga UUID + title into a URL segment. */
+/** WeebCentral series and chapter ids are ULIDs (26 Crockford characters). */
+export function isWeebCentralId(id: string): boolean {
+  return /^[0-9A-HJKMNP-TV-Z]{26}$/i.test(id);
+}
+
+export function isMangaDexId(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    id,
+  );
+}
+
+/** Encode a manga id + title into a URL segment. */
 export function mangaIdToUrlId(mangaId: string, title: string): string {
+  const prefix = isWeebCentralId(mangaId) ? WEEBCENTRAL : MANGADEX;
   return [
-    PREFIX,
+    prefix,
     mangaId,
     slugify(title, { lower: true, strict: true }) || "manga",
   ].join("-");
 }
 
-/** Decode `/manga/:media` param. UUID may contain no dashes split issues —
- * MangaDex UUIDs are `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. */
+/** Decode `/manga/:media` param. */
 export function decodeMangaId(
   paramId: string,
 ): { id: string; slug?: string } | null {
   const decoded = decodeURIComponent(paramId);
-  if (!decoded.startsWith(`${PREFIX}-`)) return null;
-  const rest = decoded.slice(PREFIX.length + 1);
+
+  if (decoded.startsWith(`${WEEBCENTRAL}-`)) {
+    const rest = decoded.slice(WEEBCENTRAL.length + 1);
+    const match = rest.match(/^([0-9A-HJKMNP-TV-Z]{26})(?:-(.*))?$/i);
+    if (!match) return null;
+    return { id: match[1], slug: match[2] };
+  }
+
+  if (!decoded.startsWith(`${MANGADEX}-`)) return null;
+  const rest = decoded.slice(MANGADEX.length + 1);
   // UUID is 36 chars with dashes
   const uuidMatch = rest.match(
     /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:-(.*))?$/i,

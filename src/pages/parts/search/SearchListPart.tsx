@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import { searchManga, mangaToMediaItem } from "@/backend/manga/mangadex";
+import { searchManga } from "@/backend/manga/catalog";
+import { mangaToMediaItem } from "@/backend/manga/mangadex";
 import { searchForMedia } from "@/backend/metadata/search";
 import { MWQuery } from "@/backend/metadata/types/mw";
 import { IconPatch } from "@/components/buttons/IconPatch";

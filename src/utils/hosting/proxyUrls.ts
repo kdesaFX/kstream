@@ -82,9 +82,16 @@ export function getParsedUrls() {
 }
 
 export function getProxyUrls() {
-  return getParsedUrls()
+  const urls = getParsedUrls()
     .filter((v) => v.type === "proxy")
     .map((v) => v.url);
+  // Always keep the site's own /api/proxy as a last resort. MangaDex allows
+  // localhost CORS so this rarely matters there; WeebCentral does not.
+  if (typeof window !== "undefined") {
+    const local = resolveProxyUrl("/api/proxy");
+    if (local && !urls.includes(local)) urls.push(local);
+  }
+  return urls;
 }
 
 export function getM3U8ProxyUrls(): string[] {
