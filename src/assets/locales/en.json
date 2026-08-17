@@ -1632,6 +1632,8 @@
     },
     "featured": {
       "playNow": "Play Now",
+      "readNow": "Read Now",
+      "latestChapter": "Ch. {{chapter}}",
       "moreInfo": "More Info"
     },
     "randomMovie": {

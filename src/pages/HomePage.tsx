@@ -107,8 +107,8 @@ export function HomePage() {
   const handleShowDetails = async (media: MediaItem | FeaturedMedia) => {
     if ("type" in media && media.type === "manga") {
       showModal("manga-details", {
-        id: media.id,
-        mangaId: media.id,
+        id: String(media.id),
+        mangaId: String(media.id),
         type: "manga",
       });
       return;

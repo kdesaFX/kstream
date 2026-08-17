@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWindowSize } from "react-use";
 
+import { mangaMediaLink } from "@/backend/manga/ids";
 import { get, getMediaLogo, getAllTimeBestMovies, getAllTimeBestShows } from "@/backend/metadata/tmdb";
 import {
   getDiscoverContent,
@@ -18,6 +19,10 @@ import {
   getHistorySources,
   hasFeaturedAlgorithmSignal,
 } from "@/pages/discover/hooks/usePersonalRecommendations";
+import {
+  type FeaturedMangaItem,
+  fetchFeaturedManga,
+} from "@/pages/discover/lib/featuredManga";
 import {
   type ProgressSource,
   type RatingSource,
@@ -37,13 +42,15 @@ import { shouldAllowMatureTitles } from "@/utils/media/mature";
 
 import { RandomMovieButton } from "./RandomMovieButton";
 
-export interface FeaturedMedia extends Partial<Movie & TVShow> {
+export interface FeaturedMedia extends Partial<Omit<Movie & TVShow, "id">> {
   children?: ReactNode;
-  backdrop_path: string;
+  /** TMDB numeric id, or a MangaDex UUID for manga. */
+  id: number | string;
+  backdrop_path?: string;
   overview: string;
   title?: string;
   name?: string;
-  type: "movie" | "show";
+  type: "movie" | "show" | "manga";
   vote_average?: number;
   vote_count?: number;
   number_of_seasons?: number;
@@ -52,6 +59,15 @@ export interface FeaturedMedia extends Partial<Movie & TVShow> {
   external_ids?: {
     imdb_id?: string;
   };
+  /** Absolute art URL for sources without TMDB backdrops (manga). */
+  artUrl?: string;
+  /** False when the art is a portrait cover rather than a wide banner. */
+  wideArt?: boolean;
+  /** MangaDex rating, 0-10. */
+  mangaRating?: number;
+  mangaStatus?: string;
+  mangaLastChapter?: string;
+  year?: number;
 }
 
 interface FeaturedCarouselProps {
@@ -123,6 +139,67 @@ function pickAvoidingRecent(ids: number[], count: number): number[] {
 
 function isFeatureWorthy(item: { backdrop_path?: string | null; overview?: string | null }) {
   return Boolean(item?.backdrop_path && item?.overview?.trim());
+}
+
+/**
+ * MangaDex and AniList both swap in a promo image for foreign referrers, so
+ * manga art has to go through an <img> that can drop the referrer — a CSS
+ * background can't. Banners are also around 4.75:1 against a hero that's
+ * roughly 2:1, so cropping one to fill would zoom into a handful of pixels:
+ * a blurred copy fills the frame and the real banner lies across the top.
+ */
+function MangaSlideArt({ item }: { item: FeaturedMedia }) {
+  if (!item.artUrl) return null;
+
+  if (!item.wideArt) {
+    return (
+      <img
+        src={item.artUrl}
+        alt=""
+        referrerPolicy="no-referrer"
+        className="w-full h-full object-cover object-top"
+      />
+    );
+  }
+
+  return (
+    <>
+      <img
+        src={item.artUrl}
+        alt=""
+        aria-hidden
+        referrerPolicy="no-referrer"
+        className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-70"
+      />
+      <img
+        src={item.artUrl}
+        alt=""
+        referrerPolicy="no-referrer"
+        className="absolute top-0 left-0 w-full"
+        style={{
+          maskImage:
+            "linear-gradient(to bottom, rgba(0, 0, 0, 1) 55%, rgba(0, 0, 0, 0))",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, rgba(0, 0, 0, 1) 55%, rgba(0, 0, 0, 0))",
+        }}
+      />
+    </>
+  );
+}
+
+export function mangaToFeatured(item: FeaturedMangaItem): FeaturedMedia {
+  return {
+    id: item.id,
+    title: item.title,
+    overview: item.overview,
+    type: "manga",
+    artUrl: item.artUrl,
+    wideArt: item.wideArt,
+    mangaRating: item.rating,
+    mangaStatus: item.status,
+    mangaLastChapter: item.lastChapter,
+    year: item.year,
+  };
 }
 
 function FeaturedCarouselSkeleton({
@@ -255,7 +332,7 @@ export function FeaturedCarousel({
   useEffect(() => {
     const fetchImdbRatings = async () => {
       const imdbId = currentMedia?.external_ids?.imdb_id;
-      if (!imdbId) return;
+      if (!imdbId || currentMedia.type === "manga") return;
       if (imdbRatings[imdbId]) return;
 
       const result = await fetchImdbRating(imdbId, currentMedia.type);
@@ -317,10 +394,24 @@ export function FeaturedCarousel({
         logoFetchController.current.abort(); // Cancel any in-progress logo fetches
       }
       try {
+        if (effectiveCategory === "manga") {
+          try {
+            const mangaItems = await fetchFeaturedManga(SLIDE_QUANTITY);
+            setMedia(mangaItems.map(mangaToFeatured));
+          } catch (mangaError) {
+            console.error("Error fetching featured manga:", mangaError);
+            // Anything left over would be the movie/TV hero, which has nothing
+            // to do with the tab the viewer is on.
+            setMedia([]);
+          }
+          return;
+        }
+
         if (
           effectiveCategory !== "movies" &&
           effectiveCategory !== "tvshows"
         ) {
+          setMedia([]);
           return;
         }
 
@@ -559,7 +650,9 @@ export function FeaturedCarousel({
       logoFetchController.current = new AbortController();
 
       const currentMediaId = media[currentIndex]?.id;
-      if (!currentMediaId) {
+      // Manga has no TMDB entry (and no clear logo art anywhere), so the hero
+      // uses its title text instead.
+      if (!currentMediaId || media[currentIndex]?.type === "manga") {
         setLogoUrl(undefined);
         return;
       }
@@ -629,6 +722,10 @@ export function FeaturedCarousel({
 
   useEffect(() => {
     const fetchReleaseInfo = async () => {
+      if (currentMedia?.type === "manga") {
+        setReleaseInfo(null);
+        return;
+      }
       if (currentMedia?.id) {
         try {
           const info = await getReleaseDetails(currentMedia.id.toString());
@@ -639,7 +736,7 @@ export function FeaturedCarousel({
       }
     };
     fetchReleaseInfo();
-  }, [currentMedia?.id]);
+  }, [currentMedia?.id, currentMedia?.type]);
 
   if (isLoading) {
     return <FeaturedCarouselSkeleton shorter={shorter} searching={searching} />;
@@ -722,22 +819,35 @@ export function FeaturedCarousel({
             media.length - Math.abs(index - currentIndex),
           );
           const shouldLoad = dist <= 1;
+          const fade = `absolute inset-0 transition-opacity duration-1000 ${
+            index === currentIndex ? "opacity-100" : "opacity-0"
+          }`;
+          const mask = {
+            maskImage:
+              "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
+            WebkitMaskImage:
+              "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
+          };
+
+          if (item.type === "manga") {
+            return (
+              <div key={item.id} className={fade} style={mask}>
+                {shouldLoad ? <MangaSlideArt item={item} /> : null}
+              </div>
+            );
+          }
+
           return (
             <div
               key={item.id}
-              className={`absolute inset-0 transition-opacity duration-1000 ${
-                index === currentIndex ? "opacity-100" : "opacity-0"
-              }`}
+              className={fade}
               style={
                 shouldLoad
                   ? {
                       backgroundImage: `url(https://image.tmdb.org/t/p/w1280${item.backdrop_path})`,
                       backgroundSize: "cover",
                       backgroundPosition: "center top",
-                      maskImage:
-                        "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
-                      WebkitMaskImage:
-                        "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
+                      ...mask,
                     }
                   : undefined
               }
@@ -838,6 +948,46 @@ export function FeaturedCarousel({
             )}
             {/* Rating (IMDb) and year/seasons */}
             <div className="flex items-center gap-2 text-sm text-white/80 mb-4">
+              {currentMedia.type === "manga" && (
+                <>
+                  {currentMedia.mangaRating ? (
+                    <div className="flex items-center gap-1">
+                      <Icon
+                        icon={Icons.RISING_STAR}
+                        className="text-yellow-400"
+                      />
+                      <span>{currentMedia.mangaRating.toFixed(1)}</span>
+                    </div>
+                  ) : null}
+                  {currentMedia.year ? (
+                    <>
+                      {currentMedia.mangaRating ? (
+                        <span className="text-white/60">•</span>
+                      ) : null}
+                      <span>{currentMedia.year}</span>
+                    </>
+                  ) : null}
+                  {currentMedia.mangaStatus &&
+                  currentMedia.mangaStatus !== "unknown" ? (
+                    <>
+                      <span className="text-white/60">•</span>
+                      <span className="capitalize">
+                        {currentMedia.mangaStatus}
+                      </span>
+                    </>
+                  ) : null}
+                  {currentMedia.mangaLastChapter ? (
+                    <>
+                      <span className="text-white/60">•</span>
+                      <span>
+                        {t("discover.featured.latestChapter", {
+                          chapter: currentMedia.mangaLastChapter,
+                        })}
+                      </span>
+                    </>
+                  ) : null}
+                </>
+              )}
               {/* Quality Indicator */}
               {getQualityIndicator() && (
                 <>
@@ -903,14 +1053,23 @@ export function FeaturedCarousel({
                 type="button"
                 onClick={() =>
                   navigate(
-                    `/media/tmdb-${currentMedia.type}-${currentMedia.id}-${mediaTitle?.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+                    currentMedia.type === "manga"
+                      ? mangaMediaLink(String(currentMedia.id), mediaTitle ?? "")
+                      : `/media/tmdb-${currentMedia.type}-${currentMedia.id}-${mediaTitle?.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
                   )
                 }
                 className="tabbable cursor-pointer inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 w-full sm:w-auto text-base font-medium bg-pill-background bg-opacity-50 hover:bg-pill-backgroundHover backdrop-blur-lg transition-[transform,background-color] duration-100 hover:scale-105 active:scale-95"
               >
-                <Icon icon={Icons.PLAY} className="text-white" />
+                <Icon
+                  icon={
+                    currentMedia.type === "manga" ? Icons.FILE : Icons.PLAY
+                  }
+                  className="text-white"
+                />
                 <span className="text-white">
-                  {t("discover.featured.playNow")}
+                  {currentMedia.type === "manga"
+                    ? t("discover.featured.readNow")
+                    : t("discover.featured.playNow")}
                 </span>
               </button>
               <button
@@ -926,9 +1085,11 @@ export function FeaturedCarousel({
                   {t("discover.featured.moreInfo")}
                 </span>
               </button>
-              <div className="hidden lg:block">
-                <RandomMovieButton />
-              </div>
+              {currentMedia.type !== "manga" && (
+                <div className="hidden lg:block">
+                  <RandomMovieButton />
+                </div>
+              )}
             </div>
           </div>
         </div>
