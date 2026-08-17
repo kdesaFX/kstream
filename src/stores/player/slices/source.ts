@@ -21,6 +21,7 @@ import { mergeQualityStreamOptions } from "@/stores/player/utils/qualityStreams"
 import type { QualityStreamOption } from "@/stores/player/utils/qualityStreams";
 import { useQualityStore } from "@/stores/quality";
 import { usePreferencesStore } from "@/stores/preferences";
+import { runtimeVerdict } from "@/utils/media/runtimeMismatch";
 import googletranslate from "@/utils/translation/googletranslate";
 import { translate } from "@/utils/translation/index";
 import { ValuesOf } from "@/utils/common/typeguard";
@@ -43,12 +44,54 @@ export type PlayerStatus = ValuesOf<typeof playerStatus>;
  */
 const QUALITY_HOP_PROBATION_MS = 45_000;
 
+/**
+ * How many sources may be dropped for serving a video of the wrong length
+ * before we stop second-guessing them. Past this the runtime we're comparing
+ * against is the likelier suspect (TMDB has no runtime for plenty of specials),
+ * so playing something beats refusing everything.
+ */
+const MAX_WRONG_RUNTIME_SKIPS = 3;
+
+/** How long a suspiciously short video gets to grow before we believe it. */
+const SHORT_RUNTIME_SETTLE_MS = 4000;
+
+/** The short-looking duration we are waiting on, if any. */
+let shortRuntimeProbe: { sourceId: string; durationSeconds: number } | null =
+  null;
+
+/**
+ * Confirm a "too short" duration by looking at it twice. Streams that are still
+ * loading report a duration that keeps growing, so the first sighting only
+ * schedules another look; a duration that hasn't grown by then is the real one.
+ */
+function confirmShortRuntime(
+  sourceId: string,
+  durationSeconds: number,
+  recheck: () => void,
+): boolean {
+  const probe = shortRuntimeProbe;
+  if (
+    probe &&
+    probe.sourceId === sourceId &&
+    durationSeconds <= probe.durationSeconds + 1
+  ) {
+    shortRuntimeProbe = null;
+    return true;
+  }
+
+  shortRuntimeProbe = { sourceId, durationSeconds };
+  setTimeout(recheck, SHORT_RUNTIME_SETTLE_MS);
+  return false;
+}
+
 export interface PlayerMetaEpisode {
   number: number;
   tmdbId: string;
   title: string;
   air_date?: string;
   overview?: string;
+  /** Minutes, when TMDB has it. */
+  runtime?: number | null;
 }
 
 export interface PlayerMeta {
@@ -66,6 +109,10 @@ export interface PlayerMeta {
   genreIds?: number[];
   originalLanguage?: string;
   originCountry?: string[];
+  /** Movie length in minutes; used to spot a source serving another title. */
+  runtime?: number | null;
+  /** Typical episode length in minutes, for shows. */
+  episodeRuntime?: number | null;
   episodes?: PlayerMetaEpisode[];
   episode?: PlayerMetaEpisode;
   season?: {
@@ -167,6 +214,8 @@ export interface SourceSlice {
   failedSourcesPerMedia: Record<string, string[]>; // mediaKey -> array of failed sourceIds
   failedEmbedsPerMedia: Record<string, Record<string, string[]>>; // mediaKey -> sourceId -> array of failed embedIds
   resumeFromSourceId: string | null;
+  /** Sources dropped for playing the wrong-length video, for the current media. */
+  wrongRuntimeSkips: number;
   setStatus(status: PlayerStatus): void;
   setSource(
     stream: SourceSliceSource,
@@ -194,6 +243,12 @@ export interface SourceSlice {
   clearFailedSources(mediaKey?: string): void;
   clearFailedEmbeds(mediaKey?: string): void;
   setResumeFromSourceId(sourceId: string | null): void;
+  /**
+   * Called with the duration the player worked out for the loaded stream. Drops
+   * the source and goes looking for another when that duration says the video
+   * cannot be the requested title.
+   */
+  reportStreamDuration(durationSeconds: number): void;
   registerAudioStreamOptions(options: AudioStreamOption[]): void;
   clearAudioStreamOptions(): void;
   switchAudioStream(optionId: string): void;
@@ -292,6 +347,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   failedSourcesPerMedia: {},
   failedEmbedsPerMedia: {},
   resumeFromSourceId: null,
+  wrongRuntimeSkips: 0,
   qualityHopFallback: null,
   caption: {
     selected: null,
@@ -338,6 +394,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
         // Don't carry "start after source X" into the next episode — that
         // short-circuits anime mirrors (TQQ) and jumps to later sources.
         s.resumeFromSourceId = null;
+        s.wrongRuntimeSkips = 0;
       }
 
       if (newMediaKey && oldMediaKey && oldMediaKey !== newMediaKey) {
@@ -404,6 +461,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     captions: CaptionListItem[],
     startAt: number,
   ) {
+    shortRuntimeProbe = null;
     let qualities: string[] = [];
     if (stream.type === "file") qualities = Object.keys(stream.qualities);
     const qualityPreferences = useQualityStore.getState();
@@ -565,6 +623,72 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.resumeFromSourceId = sourceId;
     });
   },
+  reportStreamDuration(durationSeconds) {
+    const store = get();
+    if (store.status !== playerStatus.PLAYING) return;
+    if (!store.meta || !store.sourceId) return;
+    if (store.wrongRuntimeSkips >= MAX_WRONG_RUNTIME_SKIPS) return;
+
+    const verdict = runtimeVerdict(store.meta, durationSeconds);
+    if (verdict === "ok") {
+      shortRuntimeProbe = null;
+      return;
+    }
+    // A playlist still being written reports a duration that grows, and a
+    // half-loaded one looks like a short video. Only a video that is already
+    // too long to be this title can be judged on first sight.
+    if (
+      verdict === "tooShort" &&
+      !confirmShortRuntime(store.sourceId, durationSeconds, () =>
+        get().reportStreamDuration(get().progress.duration),
+      )
+    ) {
+      return;
+    }
+
+    // A quality hop that lands on another title is undone like any bad hop:
+    // hand the user back the stream they were already watching.
+    if (store.restoreQualityHopFallback()) return;
+
+    const sourceId = store.sourceId;
+    const embedId = store.embedId;
+    console.warn(
+      `[${sourceId}] served a ${Math.round(durationSeconds / 60)}min video for "${
+        store.meta.title
+      }" — skipping it`,
+    );
+
+    if (embedId) store.addFailedEmbed(sourceId, embedId);
+    else store.addFailedSource(sourceId);
+
+    // Loading it counted as a success, so drop those pins or the next attempt
+    // walks straight back into the same wrong video.
+    const preferences = usePreferencesStore.getState();
+    if (store.meta.tmdbId) {
+      preferences.clearPreferredSourceForTitle(store.meta.tmdbId);
+    }
+    if (preferences.lastSuccessfulSource === sourceId) {
+      preferences.setLastSuccessfulSource(null);
+    }
+
+    store.display?.load({
+      source: null,
+      startAt: 0,
+      automaticQuality: false,
+      preferredQuality: null,
+    });
+
+    set((s) => {
+      s.wrongRuntimeSkips += 1;
+      s.source = null;
+      s.progress.time = 0;
+      s.progress.duration = 0;
+      // A bad mirror only rules out that mirror, so let the same source offer
+      // its next one; a bad source is skipped entirely.
+      s.resumeFromSourceId = embedId ? null : sourceId;
+      s.status = playerStatus.SCRAPING;
+    });
+  },
   registerAudioStreamOptions(options) {
     if (!options.length) return;
     set((s) => {
@@ -707,6 +831,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.failedSourcesPerMedia = {};
       s.failedEmbedsPerMedia = {};
       s.resumeFromSourceId = null;
+      s.wrongRuntimeSkips = 0;
       s.qualityHopFallback = null;
       this.clearTranslateTask();
       s.caption = {

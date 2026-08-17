@@ -42,12 +42,14 @@ export function usePlayerMeta() {
           genreIds: m.genreIds,
           originalLanguage: m.originalLanguage,
           originCountry: m.originCountry,
+          episodeRuntime: m.meta.episodeRuntime,
           episodes: m.meta.seasonData.episodes.map((v) => ({
             number: v.number,
             title: v.title,
             tmdbId: v.id,
             air_date: v.air_date,
             overview: v.overview,
+            runtime: v.runtime,
           })),
           episode: {
             number: ep.number,
@@ -55,6 +57,7 @@ export function usePlayerMeta() {
             tmdbId: ep.id,
             air_date: ep.air_date,
             overview: ep.overview,
+            runtime: ep.runtime,
           },
           season: {
             number: m.meta.seasonData.number,
@@ -76,6 +79,7 @@ export function usePlayerMeta() {
           genreIds: m.genreIds,
           originalLanguage: m.originalLanguage,
           originCountry: m.originCountry,
+          runtime: m.meta.runtime,
         };
       }
       setDirectMeta(playerMeta);

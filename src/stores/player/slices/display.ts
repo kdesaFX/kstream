@@ -50,11 +50,14 @@ export const createDisplaySlice: MakeSlice<DisplaySlice> = (set, get) => ({
         s.mediaPlaying.volume = vol;
       }),
     );
-    newDisplay.on("duration", (duration) =>
+    newDisplay.on("duration", (duration) => {
       set((s) => {
         s.progress.duration = duration;
-      }),
-    );
+      });
+      // The only thing a stream tells us about which title it holds is how long
+      // it is, so this is where a source serving another video gets caught.
+      get().reportStreamDuration(duration);
+    });
     newDisplay.on("buffered", (buffered) =>
       set((s) => {
         s.progress.buffered = buffered;

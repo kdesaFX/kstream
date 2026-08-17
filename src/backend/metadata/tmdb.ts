@@ -89,6 +89,7 @@ export function formatTMDBEpisode(v: TMDBEpisodeShort): {
   air_date: string;
   still_path: string | null;
   overview: string;
+  runtime?: number | null;
 } {
   return {
     id: v.id.toString(),
@@ -97,6 +98,7 @@ export function formatTMDBEpisode(v: TMDBEpisodeShort): {
     air_date: v.air_date,
     still_path: v.still_path,
     overview: v.overview,
+    runtime: v.runtime ?? null,
   };
 }
 
@@ -136,6 +138,8 @@ export function formatTMDBMeta(
     poster: media.poster,
     type,
     overview: media.overview,
+    runtime: media.runtime ?? null,
+    episodeRuntime: media.episodeRuntime ?? null,
     seasons: seasons as any,
     seasonData: season
       ? {
@@ -671,6 +675,7 @@ export async function getEpisodes(
     air_date: e.air_date,
     still_path: e.still_path,
     overview: e.overview,
+    runtime: e.runtime ?? null,
   }));
 }
 

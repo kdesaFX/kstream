@@ -21,6 +21,8 @@ export type MWSeasonWithEpisodeMeta = {
     air_date: string;
     still_path: string | null;
     overview: string;
+    /** Minutes, when TMDB has it. */
+    runtime?: number | null;
   }[];
 };
 
@@ -33,6 +35,10 @@ type MWMediaMetaBase = {
   releaseDate?: string;
   poster?: string;
   overview?: string;
+  /** Movie length in minutes. */
+  runtime?: number | null;
+  /** Typical episode length in minutes, for shows. */
+  episodeRuntime?: number | null;
 };
 
 type MWMediaMetaSpecific =

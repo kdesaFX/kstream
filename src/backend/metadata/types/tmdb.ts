@@ -16,6 +16,8 @@ export type TMDBEpisodeShort = {
   air_date: string;
   still_path: string | null;
   overview: string;
+  /** Minutes, when TMDB has it. */
+  runtime?: number | null;
 };
 
 export type TMDBMediaResult = {
@@ -28,6 +30,10 @@ export type TMDBMediaResult = {
   seasons?: TMDBSeasonShort[];
   overview?: string;
   adult?: boolean;
+  /** Movie length in minutes. */
+  runtime?: number | null;
+  /** Typical episode length in minutes, for shows. */
+  episodeRuntime?: number | null;
 };
 
 export type TMDBSeasonMetaResult = {
