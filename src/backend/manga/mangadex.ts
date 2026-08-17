@@ -199,6 +199,22 @@ function pickLocalized(
   return first?.trim() ?? "";
 }
 
+/**
+ * MangaDex's primary title is almost always the romanised original ("Sono
+ * Bisque Doll wa Koi o Suru"); the official English name ("My Dress-Up
+ * Darling") sits in altTitles. Prefer a genuine English title, then the
+ * primary title's own English entry, and only fall back to the romaji.
+ */
+export function pickMangaTitle(attrs: MdMangaAttributes): string {
+  const primaryEn = attrs.title?.en?.trim();
+  if (primaryEn) return primaryEn;
+  const altEn = (attrs.altTitles ?? [])
+    .map((alt) => alt.en?.trim())
+    .find((value) => value);
+  if (altEn) return altEn;
+  return pickLocalized(attrs.title);
+}
+
 function coverFileName(manga: MdManga): string | undefined {
   const cover = manga.relationships?.find((r) => r.type === "cover_art");
   const file = cover?.attributes?.fileName;
@@ -266,7 +282,7 @@ function mapManga(
   manga: MdManga,
   stats?: { rating?: number; follows?: number },
 ): MangaListItem {
-  const title = pickLocalized(manga.attributes.title);
+  const title = pickMangaTitle(manga.attributes);
   const description = pickLocalized(manga.attributes.description);
   const contentRating = parseContentRating(manga.attributes.contentRating);
   const tags = mapTags(manga);

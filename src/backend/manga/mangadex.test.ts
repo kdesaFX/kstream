@@ -3,9 +3,51 @@ import { describe, expect, it } from "vitest";
 
 import {
   chapterBadge,
+  pickMangaTitle,
   proxiedMangaUrl,
   requestNeverLanded,
 } from "@/backend/manga/mangadex";
+
+describe("pickMangaTitle", () => {
+  it("prefers the English alt title over the romanised primary", () => {
+    expect(
+      pickMangaTitle({
+        title: { "ja-ro": "Sono Bisque Doll wa Koi o Suru" },
+        altTitles: [
+          { "ja-ro": "Sono Bisque Doll ha Koi wo Suru" },
+          { en: "My Dress-Up Darling" },
+        ],
+      }),
+    ).toBe("My Dress-Up Darling");
+  });
+
+  it("works for non-Japanese originals too", () => {
+    expect(
+      pickMangaTitle({
+        title: { "ko-ro": "Na Honjaman Level-Up" },
+        altTitles: [{ en: "Solo Leveling" }, { "ja-ro": "Ore Dake Level Up" }],
+      }),
+    ).toBe("Solo Leveling");
+  });
+
+  it("uses the primary title's own English entry when there is one", () => {
+    expect(
+      pickMangaTitle({
+        title: { en: "Berserk" },
+        altTitles: [{ ja: "ベルセルク" }],
+      }),
+    ).toBe("Berserk");
+  });
+
+  it("falls back to the romaji when no English name exists", () => {
+    expect(
+      pickMangaTitle({
+        title: { "ja-ro": "Kaoru Hana wa Rin to Saku" },
+        altTitles: [{ ja: "薫る花は凛と咲く" }],
+      }),
+    ).toBe("Kaoru Hana wa Rin to Saku");
+  });
+});
 
 describe("chapterBadge", () => {
   it("keeps the chapter number and drops the chapter title", () => {
