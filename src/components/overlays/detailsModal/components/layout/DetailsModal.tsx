@@ -32,7 +32,7 @@ export function DetailsModal({
   const minimal = _minimal || id === "player-details";
   const { hideModal, isModalVisible, modalStack, getModalData } =
     useOverlayStack();
-  const [detailsData, setDetailsData] = useState<any>(null);
+  const [loaded, setLoaded] = useState<{ key: string; data: any } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const modalIndex = modalStack.indexOf(id);
@@ -45,11 +45,19 @@ export function DetailsModal({
   // Only show modal if there's data to display
   const shouldShow = Boolean(isShown && (modalData?.id || _data?.id));
 
+  // This instance is reused for every title, so keep what it holds tied to the
+  // title it was fetched for — a failed refetch would otherwise leave the
+  // previously opened title on screen.
+  const requested = modalData || _data;
+  const requestKey = `${requested?.type ?? ""}-${requested?.id ?? ""}`;
+  const detailsData = loaded?.key === requestKey ? loaded.data : null;
+
   useEffect(() => {
     const fetchDetails = async () => {
       // Use data from overlayStack or fallback to props for backward compatibility
       const data = modalData || _data;
       if (!data?.id || !data?.type) return;
+      const key = `${data.type}-${data.id}`;
 
       setIsLoading(true);
       try {
@@ -61,25 +69,28 @@ export function DetailsModal({
         if (type === TMDBContentTypes.MOVIE) {
           const movieDetails = details as TMDBMovieData;
           const posterUrl = getMediaPoster(movieDetails.poster_path);
-          setDetailsData({
-            title: movieDetails.title,
-            overview: movieDetails.overview,
-            backdrop: backdropUrl,
-            posterUrl,
-            runtime: movieDetails.runtime,
-            genres: movieDetails.genres,
-            language: movieDetails.original_language,
-            voteAverage: movieDetails.vote_average,
-            voteCount: movieDetails.vote_count,
-            releaseDate: movieDetails.release_date,
-            rating: movieDetails.release_dates?.results?.find(
-              (r) => r.iso_3166_1 === "US",
-            )?.release_dates?.[0]?.certification,
-            type: "movie",
-            id: movieDetails.id,
-            imdbId: movieDetails.external_ids?.imdb_id,
-            logoUrl,
-            collection: movieDetails.belongs_to_collection,
+          setLoaded({
+            key,
+            data: {
+              title: movieDetails.title,
+              overview: movieDetails.overview,
+              backdrop: backdropUrl,
+              posterUrl,
+              runtime: movieDetails.runtime,
+              genres: movieDetails.genres,
+              language: movieDetails.original_language,
+              voteAverage: movieDetails.vote_average,
+              voteCount: movieDetails.vote_count,
+              releaseDate: movieDetails.release_date,
+              rating: movieDetails.release_dates?.results?.find(
+                (r) => r.iso_3166_1 === "US",
+              )?.release_dates?.[0]?.certification,
+              type: "movie",
+              id: movieDetails.id,
+              imdbId: movieDetails.external_ids?.imdb_id,
+              logoUrl,
+              collection: movieDetails.belongs_to_collection,
+            },
           });
         } else {
           const showDetails = details as TMDBShowData & {
@@ -94,29 +105,32 @@ export function DetailsModal({
             }>;
           };
           const posterUrl = getMediaPoster(showDetails.poster_path);
-          setDetailsData({
-            title: showDetails.name,
-            overview: showDetails.overview,
-            backdrop: backdropUrl,
-            posterUrl,
-            episodes: showDetails.number_of_episodes,
-            seasons: showDetails.number_of_seasons,
-            genres: showDetails.genres,
-            language: showDetails.original_language,
-            voteAverage: showDetails.vote_average,
-            voteCount: showDetails.vote_count,
-            releaseDate: showDetails.first_air_date,
-            rating: showDetails.content_ratings?.results?.find(
-              (r) => r.iso_3166_1 === "US",
-            )?.rating,
-            type: "show",
-            id: showDetails.id,
-            imdbId: showDetails.external_ids?.imdb_id,
-            seasonData: {
-              seasons: showDetails.seasons,
-              episodes: showDetails.episodes,
+          setLoaded({
+            key,
+            data: {
+              title: showDetails.name,
+              overview: showDetails.overview,
+              backdrop: backdropUrl,
+              posterUrl,
+              episodes: showDetails.number_of_episodes,
+              seasons: showDetails.number_of_seasons,
+              genres: showDetails.genres,
+              language: showDetails.original_language,
+              voteAverage: showDetails.vote_average,
+              voteCount: showDetails.vote_count,
+              releaseDate: showDetails.first_air_date,
+              rating: showDetails.content_ratings?.results?.find(
+                (r) => r.iso_3166_1 === "US",
+              )?.rating,
+              type: "show",
+              id: showDetails.id,
+              imdbId: showDetails.external_ids?.imdb_id,
+              seasonData: {
+                seasons: showDetails.seasons,
+                episodes: showDetails.episodes,
+              },
+              logoUrl,
             },
-            logoUrl,
           });
         }
       } catch (err) {

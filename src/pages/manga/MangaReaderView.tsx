@@ -4,7 +4,11 @@ import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { decodeMangaId, mangaChapterLink, mangaMediaLink } from "@/backend/manga/ids";
+import {
+  decodeMangaId,
+  mangaChapterLink,
+  mangaMediaLink,
+} from "@/backend/manga/ids";
 import {
   chapterLabel,
   chapterPageUrls,
@@ -50,7 +54,9 @@ export function MangaReaderView() {
     chapter?: string;
   }>();
 
-  const preferredLanguage = usePreferencesStore((s) => s.mangaPreferredLanguage);
+  const preferredLanguage = usePreferencesStore(
+    (s) => s.mangaPreferredLanguage,
+  );
   const readerMode = usePreferencesStore((s) => s.mangaReaderMode);
   const setReaderMode = usePreferencesStore((s) => s.setMangaReaderMode);
   const updateProgress = useMangaProgressStore((s) => s.updateProgress);
@@ -59,7 +65,10 @@ export function MangaReaderView() {
   const decoded = mediaParam ? decodeMangaId(mediaParam) : null;
   const mangaId = decoded?.id;
 
-  const [details, setDetails] = useState<MangaDetails | null>(null);
+  const [loadedDetails, setLoadedDetails] = useState<{
+    mangaId: string;
+    details: MangaDetails;
+  } | null>(null);
   const [pages, setPages] = useState<string[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -69,6 +78,14 @@ export function MangaReaderView() {
   const retried = useRef(false);
 
   const chapterId = chapterParam ? decodeURIComponent(chapterParam) : undefined;
+
+  // Same route serves every manga, so details are only usable for the one
+  // currently in the URL — otherwise the chapter list and resume redirect below
+  // would come from whichever manga was open before.
+  const details =
+    loadedDetails && loadedDetails.mangaId === mangaId
+      ? loadedDetails.details
+      : null;
 
   const chapters = details?.chapters ?? [];
   const chapterIndex = chapters.findIndex((c) => c.id === chapterId);
@@ -91,7 +108,7 @@ export function MangaReaderView() {
     let cancelled = false;
     getMangaDetails(mangaId, preferredLanguage)
       .then((d) => {
-        if (!cancelled) setDetails(d);
+        if (!cancelled) setLoadedDetails({ mangaId, details: d });
       })
       .catch((e) => {
         if (!cancelled)
@@ -106,8 +123,7 @@ export function MangaReaderView() {
   useEffect(() => {
     if (!mangaId || !details || chapterId) return;
     const resume = savedProgress[mangaId];
-    const target =
-      resume?.chapterId || details.chapters[0]?.id;
+    const target = resume?.chapterId || details.chapters[0]?.id;
     if (target) {
       navigate(mangaChapterLink(details.id, details.title, target), {
         replace: true,
@@ -118,28 +134,31 @@ export function MangaReaderView() {
     }
   }, [mangaId, details, chapterId, savedProgress, navigate, t]);
 
-  const loadPages = useCallback(async (id: string, force = false) => {
-    setLoading(true);
-    setError(null);
-    if (force) retried.current = false;
-    try {
-      const atHome = await getChapterAtHome(id);
-      let urls = chapterPageUrls(atHome, "data");
-      if (urls.length === 0) urls = chapterPageUrls(atHome, "data-saver");
-      if (urls.length === 0) {
-        setError(t("manga.reader.emptyChapter"));
+  const loadPages = useCallback(
+    async (id: string, force = false) => {
+      setLoading(true);
+      setError(null);
+      if (force) retried.current = false;
+      try {
+        const atHome = await getChapterAtHome(id);
+        let urls = chapterPageUrls(atHome, "data");
+        if (urls.length === 0) urls = chapterPageUrls(atHome, "data-saver");
+        if (urls.length === 0) {
+          setError(t("manga.reader.emptyChapter"));
+          setPages([]);
+          return;
+        }
+        setPages(urls);
+        setPageIndex(0);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load pages");
         setPages([]);
-        return;
+      } finally {
+        setLoading(false);
       }
-      setPages(urls);
-      setPageIndex(0);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load pages");
-      setPages([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
+    },
+    [t],
+  );
 
   useEffect(() => {
     if (!chapterId) return;
@@ -220,8 +239,10 @@ export function MangaReaderView() {
         return;
       }
       if (readerMode !== "paged") {
-        if (e.key === "ArrowLeft") goChapter(direction === "rtl" ? nextChapter : prevChapter);
-        if (e.key === "ArrowRight") goChapter(direction === "rtl" ? prevChapter : nextChapter);
+        if (e.key === "ArrowLeft")
+          goChapter(direction === "rtl" ? nextChapter : prevChapter);
+        if (e.key === "ArrowRight")
+          goChapter(direction === "rtl" ? prevChapter : nextChapter);
         return;
       }
       if (e.key === "ArrowLeft" || e.key === " ") {
@@ -326,7 +347,8 @@ export function MangaReaderView() {
         <div
           className={classNames(
             "pt-14 pb-20",
-            readerMode === "paged" && "flex items-center justify-center min-h-screen",
+            readerMode === "paged" &&
+              "flex items-center justify-center min-h-screen",
           )}
           onClick={() => setControlsVisible((v) => !v)}
           onScroll={

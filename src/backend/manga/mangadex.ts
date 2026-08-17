@@ -404,26 +404,21 @@ async function loadChapters(
     return { chapters: cached.chapters, groups: cached.groups };
   }
 
-  let agg: MdAggregate;
-  try {
-    agg = await mdGet<MdAggregate>(`/manga/${mangaId}/aggregate`, {
+  // Aggregate only has ids, so the feed is needed for titles/pages — but it
+  // doesn't depend on the aggregate, and waiting for one then the other is most
+  // of the delay before a title's info appears.
+  const [agg, feed] = await Promise.all([
+    mdGet<MdAggregate>(`/manga/${mangaId}/aggregate`, {
       "translatedLanguage[]": [preferredLanguage],
-    });
-  } catch {
-    agg = await mdGet<MdAggregate>(`/manga/${mangaId}/aggregate`);
-  }
-
-  // Aggregate only has ids — fetch chapter list for titles/pages.
-  const feed = await mdGet<MdListResponse<MdChapter>>(
-    `/manga/${mangaId}/feed`,
-    {
+    }).catch(() => mdGet<MdAggregate>(`/manga/${mangaId}/aggregate`)),
+    mdGet<MdListResponse<MdChapter>>(`/manga/${mangaId}/feed`, {
       limit: 500,
       "translatedLanguage[]": [preferredLanguage],
       "order[volume]": "asc",
       "order[chapter]": "asc",
       "contentRating[]": contentRatingsQuery(),
-    },
-  ).catch(() => ({ data: [] as MdChapter[] }));
+    }).catch(() => ({ data: [] as MdChapter[] })),
+  ]);
 
   // If preferred language empty, fall back to any language feed.
   let feedData = feed.data;
@@ -444,9 +439,7 @@ async function loadChapters(
     feedData.filter((c) => c.attributes.externalUrl).map((c) => c.id),
   );
   const byId = new Map(
-    feedData
-      .filter((c) => !c.attributes.externalUrl)
-      .map((c) => [c.id, c]),
+    feedData.filter((c) => !c.attributes.externalUrl).map((c) => [c.id, c]),
   );
 
   // Prefer aggregate order (one canonical chapter per number); fill from feed.
@@ -489,7 +482,8 @@ async function loadChapters(
         chapter: c.attributes.chapter ?? null,
         title: c.attributes.title ?? null,
         pages: c.attributes.pages ?? 0,
-        translatedLanguage: c.attributes.translatedLanguage ?? preferredLanguage,
+        translatedLanguage:
+          c.attributes.translatedLanguage ?? preferredLanguage,
         publishAt: c.attributes.publishAt,
       });
     }
@@ -510,26 +504,41 @@ async function loadChapters(
   return { chapters, groups };
 }
 
+const detailsCache = new Map<string, { at: number; details: MangaDetails }>();
+const DETAILS_TTL_MS = 5 * 60 * 1000;
+
 export async function getMangaDetails(
   mangaId: string,
   preferredLanguage = "en",
 ): Promise<MangaDetails> {
-  const res = await mdGet<MdEntityResponse<MdManga>>(`/manga/${mangaId}`, {
-    "includes[]": ["cover_art", "author", "artist"],
-  });
-  const stats = await fetchStatistics([mangaId]);
+  const cacheKey = `${mangaId}:${preferredLanguage}`;
+  const cached = detailsCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < DETAILS_TTL_MS) return cached.details;
+
+  // None of these depend on each other, and run in sequence they were the whole
+  // wait between clicking a title and seeing it.
+  const [res, stats, { chapters, groups }] = await Promise.all([
+    mdGet<MdEntityResponse<MdManga>>(`/manga/${mangaId}`, {
+      "includes[]": ["cover_art", "author", "artist"],
+    }),
+    fetchStatistics([mangaId]),
+    loadChapters(mangaId, preferredLanguage),
+  ]);
   const base = mapManga(res.data, stats[mangaId]);
-  const { chapters, groups } = await loadChapters(mangaId, preferredLanguage);
-  return {
+  const details: MangaDetails = {
     ...base,
     authors: peopleNames(res.data, "author"),
     artists: peopleNames(res.data, "artist"),
     chapters,
     chapterGroups: groups,
   };
+  detailsCache.set(cacheKey, { at: Date.now(), details });
+  return details;
 }
 
-export async function getChapterAtHome(chapterId: string): Promise<MangaAtHome> {
+export async function getChapterAtHome(
+  chapterId: string,
+): Promise<MangaAtHome> {
   const res = await mdGet<MdAtHome>(`/at-home/server/${chapterId}`, {
     forcePort443: "true",
   });
@@ -555,7 +564,9 @@ export function chapterPageUrls(
 
 export function chapterLabel(ch: MangaChapter): string {
   if (ch.chapter) {
-    return ch.title ? `Ch. ${ch.chapter} — ${ch.title}` : `Chapter ${ch.chapter}`;
+    return ch.title
+      ? `Ch. ${ch.chapter} — ${ch.title}`
+      : `Chapter ${ch.chapter}`;
   }
   return ch.title || "Oneshot";
 }

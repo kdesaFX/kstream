@@ -27,9 +27,14 @@ export function MangaDetailsModal({ id }: { id: string }) {
   );
   const progress = useMangaProgressStore((s) => s.items);
 
-  const [details, setDetails] = useState<MangaDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState<{
+    mangaId: string;
+    details: MangaDetails;
+  } | null>(null);
+  const [failed, setFailed] = useState<{
+    mangaId: string;
+    message: string;
+  } | null>(null);
 
   const modalIndex = modalStack.indexOf(id);
   const zIndex = modalIndex >= 0 ? 1000 + modalIndex : 999;
@@ -39,23 +44,27 @@ export function MangaDetailsModal({ id }: { id: string }) {
   const mangaId = String(modalData?.mangaId ?? modalData?.id ?? "");
   const shouldShow = Boolean(isShown && mangaId);
 
+  // One instance of this modal serves every title, so what it holds has to be
+  // stamped with the manga it belongs to. Reading it back by id means opening
+  // Vagabond can't show the Berserk it happens to still be holding.
+  const details = loaded?.mangaId === mangaId ? loaded.details : null;
+  const error = failed?.mangaId === mangaId ? failed.message : null;
+  const isLoading = !details && !error;
+
   useEffect(() => {
     if (!shouldShow || !mangaId) return undefined;
     let cancelled = false;
-    setIsLoading(true);
-    setError(null);
     getMangaDetails(mangaId, preferredLanguage)
       .then((d) => {
-        if (!cancelled) setDetails(d);
+        if (!cancelled) setLoaded({ mangaId, details: d });
       })
       .catch((e) => {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load");
-          setDetails(null);
+          setFailed({
+            mangaId,
+            message: e instanceof Error ? e.message : "Failed to load",
+          });
         }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -108,7 +117,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
             <IconPatch icon={Icons.X} clickable />
           </button>
 
-          {isLoading && !details ? (
+          {isLoading ? (
             <div className="p-10 text-center text-type-secondary">
               {t("manga.details.loading")}
             </div>
