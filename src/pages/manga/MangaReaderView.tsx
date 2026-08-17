@@ -32,6 +32,9 @@ function PageImage({
       className="max-w-full h-auto mx-auto block bg-black/40"
       loading="lazy"
       decoding="async"
+      // MangaDex swaps in a "read this at mangadex.org" card for foreign
+      // referrers, so ask the browser not to send one.
+      referrerPolicy="no-referrer"
       onError={onError}
       draggable={false}
     />

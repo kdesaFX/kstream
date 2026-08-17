@@ -121,6 +121,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
                   <img
                     src={details.poster}
                     alt=""
+                    referrerPolicy="no-referrer"
                     className="absolute inset-0 w-full h-full object-cover opacity-40"
                   />
                 ) : null}
@@ -130,6 +131,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
                     <img
                       src={details.poster}
                       alt=""
+                      referrerPolicy="no-referrer"
                       className="w-24 md:w-32 rounded-lg shadow-lg"
                     />
                   ) : null}

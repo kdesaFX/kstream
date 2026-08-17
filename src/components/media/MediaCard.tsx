@@ -224,20 +224,39 @@ function MediaCardContent({
               enableMinimalCards ? "" : "mb-4",
             )}
           >
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{
-                backgroundImage: isIntersecting
-                  ? media.poster
-                    ? `url(${media.poster})`
-                    : "url(/placeholder.png)"
-                  : "",
-                filter: matureLocked
-                  ? "blur(14px) brightness(0.45)"
-                  : undefined,
-                transform: matureLocked ? "scale(1.08)" : undefined,
-              }}
-            />
+            {media.type === "manga" && isIntersecting && media.poster ? (
+              // MangaDex swaps covers for a "read this at mangadex.org" card
+              // when a foreign referrer comes along, and CSS backgrounds have
+              // no say in what gets sent — an element does.
+              <img
+                src={media.poster}
+                alt=""
+                referrerPolicy="no-referrer"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{
+                  filter: matureLocked
+                    ? "blur(14px) brightness(0.45)"
+                    : undefined,
+                  transform: matureLocked ? "scale(1.08)" : undefined,
+                }}
+              />
+            ) : (
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{
+                  backgroundImage: isIntersecting
+                    ? media.poster
+                      ? `url(${media.poster})`
+                      : "url(/placeholder.png)"
+                    : "",
+                  filter: matureLocked
+                    ? "blur(14px) brightness(0.45)"
+                    : undefined,
+                  transform: matureLocked ? "scale(1.08)" : undefined,
+                }}
+              />
+            )}
             {matureLocked ? (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/35">
                 <span className="rounded-md bg-black/70 px-2.5 py-1 text-sm font-bold tracking-wide text-white">
