@@ -12,6 +12,7 @@ import {
   MangaTag,
   isMatureMangaRating,
 } from "@/backend/manga/types";
+import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 import {
   filterOutMatureMedia,
   shouldAllowMatureTitles,
@@ -118,10 +119,32 @@ export type MangaOrder =
   | "createdAt";
 
 const mdFetch = ofetch.create({
-  baseURL: API,
   retry: 1,
   timeout: 20000,
 });
+
+/**
+ * MangaDex reflects CORS headers only for localhost and its own site, so a
+ * browser on any real domain has its response thrown away. Extensions and the
+ * desktop app aren't bound by that, so try direct first and fall back to our
+ * proxy, remembering the answer for the rest of the session.
+ */
+let proxyRequired = false;
+
+export function proxiedMangaUrl(
+  url: string,
+  proxies: string[],
+): string | undefined {
+  const proxy = proxies[0];
+  if (!proxy) return undefined;
+  return `${proxy}/?destination=${encodeURIComponent(url)}`;
+}
+
+/** ofetch only attaches `response` to HTTP errors; without one the request never landed. */
+export function requestNeverLanded(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  return (err as { response?: unknown }).response === undefined;
+}
 
 /** MangaDex wants repeated `key[]=` params; ofetch's default array form differs. */
 function mdQuery(params: Record<string, string | string[] | number | boolean>) {
@@ -136,9 +159,29 @@ function mdQuery(params: Record<string, string | string[] | number | boolean>) {
   return sp.toString();
 }
 
-async function mdGet<T>(path: string, params: Record<string, string | string[] | number | boolean> = {}): Promise<T> {
+async function mdGet<T>(
+  path: string,
+  params: Record<string, string | string[] | number | boolean> = {},
+): Promise<T> {
   const qs = mdQuery(params);
-  return mdFetch<T>(qs ? `${path}?${qs}` : path);
+  const url = `${API}${qs ? `${path}?${qs}` : path}`;
+  const viaProxy = () => proxiedMangaUrl(url, getProxyUrls());
+
+  if (proxyRequired) {
+    const proxied = viaProxy();
+    if (!proxied) throw new Error("No proxy configured for MangaDex requests");
+    return mdFetch<T>(proxied);
+  }
+
+  try {
+    return await mdFetch<T>(url, { retry: 0 });
+  } catch (err) {
+    const proxied = viaProxy();
+    if (!proxied || !requestNeverLanded(err)) throw err;
+    const result = await mdFetch<T>(proxied);
+    proxyRequired = true;
+    return result;
+  }
 }
 
 function pickLocalized(
@@ -496,6 +539,13 @@ export function chapterLabel(ch: MangaChapter): string {
     return ch.title ? `Ch. ${ch.chapter} — ${ch.title}` : `Chapter ${ch.chapter}`;
   }
   return ch.title || "Oneshot";
+}
+
+/** Short form for the corner of a cover, where a show would say "S1 E2". */
+export function chapterBadge(label: string): string {
+  const number = /ch(?:apter)?\.?\s*([\d.]+)/i.exec(label);
+  if (number) return `Ch. ${number[1]}`;
+  return label.length > 12 ? `${label.slice(0, 11)}…` : label;
 }
 
 export function mangaToMediaItem(item: MangaListItem) {

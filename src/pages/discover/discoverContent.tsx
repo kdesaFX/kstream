@@ -298,7 +298,7 @@ export function DiscoverContent() {
   };
 
   const renderMangaContent = () => (
-    <div className="flex flex-col gap-2 px-4 md:px-8">
+    <div>
       <MangaCarousel
         kind="popular"
         enabled={isMangaTab}

@@ -21,10 +21,16 @@ const ORDER: Record<MangaCarouselKind, MangaOrder> = {
   recentlyAdded: "createdAt",
 };
 
-export function useMangaDiscoverMedia(kind: MangaCarouselKind, enabled: boolean) {
+export function useMangaDiscoverMedia(
+  kind: MangaCarouselKind,
+  enabled: boolean,
+) {
   const enableMatureTitles = usePreferencesStore((s) => s.enableMatureTitles);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  // Lets a row tell "nothing yet" apart from "nothing at all", so it shows
+  // skeletons on the way in rather than blinking out and back.
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
@@ -39,6 +45,7 @@ export function useMangaDiscoverMedia(kind: MangaCarouselKind, enabled: boolean)
       setMedia([]);
     } finally {
       setIsLoading(false);
+      setHasLoaded(true);
     }
   }, [kind, enabled, enableMatureTitles]);
 
@@ -46,5 +53,5 @@ export function useMangaDiscoverMedia(kind: MangaCarouselKind, enabled: boolean)
     refetch();
   }, [refetch]);
 
-  return { media, isLoading, error, refetch };
+  return { media, isLoading, hasLoaded, error, refetch };
 }

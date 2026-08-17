@@ -1,7 +1,7 @@
 // I'm sorry this is so confusing 😭
 
 import classNames from "classnames";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -35,44 +35,31 @@ import { Icon, Icons } from "../Icon";
 const EMPTY_GROUPS: string[] = [];
 const LAZY_ROOT_MARGIN = "400px";
 
-/** Observe once — stay loaded after first intersection (stable, callback ref). */
+/**
+ * Observe once — stay loaded after first intersection. The node is held in
+ * state rather than a ref so the observer lives in an effect: StrictMode's
+ * dev-only setup→cleanup→setup pass re-runs effects but does not re-run ref
+ * callbacks, which previously left every card observed by nothing and so
+ * permanently without its poster.
+ */
 function useLazyVisible() {
   const [isVisible, setIsVisible] = useState(false);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  const [node, setNode] = useState<Element | null>(null);
 
-  const targetRef = useCallback(
-    (node: Element | null) => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        observerRef.current = null;
-      }
-      if (!node || isVisible) return;
+  useEffect(() => {
+    if (!node || isVisible) return undefined;
 
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            setIsVisible(true);
-            observer.disconnect();
-            observerRef.current = null;
-          }
-        },
-        { rootMargin: LAZY_ROOT_MARGIN },
-      );
-      observer.observe(node);
-      observerRef.current = observer;
-    },
-    [isVisible],
-  );
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setIsVisible(true);
+      },
+      { rootMargin: LAZY_ROOT_MARGIN },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [node, isVisible]);
 
-  useEffect(
-    () => () => {
-      observerRef.current?.disconnect();
-      observerRef.current = null;
-    },
-    [],
-  );
-
-  return { targetRef, isVisible };
+  return { targetRef: setNode, isVisible };
 }
 
 // Skeleton Component
@@ -130,6 +117,8 @@ export interface MediaCardProps {
     seasonId: string;
   };
   percentage?: number;
+  /** Corner label for media without seasons and episodes, e.g. a manga chapter. */
+  badge?: string;
   closable?: boolean;
   onClose?: () => void;
   onShowDetails?: (media: MediaItem) => void;
@@ -160,6 +149,7 @@ function MediaCardContent({
   linkable,
   series,
   percentage,
+  badge,
   closable,
   onClose,
   onShowDetails,
@@ -255,7 +245,7 @@ function MediaCardContent({
                 </span>
               </div>
             ) : null}
-            {series ? (
+            {series || badge ? (
               <div
                 className={[
                   "absolute right-2 top-2 rounded-md bg-mediaCard-badge px-2 py-1 transition-colors",
@@ -267,10 +257,12 @@ function MediaCardContent({
                     closable ? "" : "group-hover:text-white",
                   ].join(" ")}
                 >
-                  {t("media.episodeDisplay", {
-                    season: series.season || 1,
-                    episode: series.episode,
-                  })}
+                  {series
+                    ? t("media.episodeDisplay", {
+                        season: series.season || 1,
+                        episode: series.episode,
+                      })
+                    : badge}
                 </p>
               </div>
             ) : null}

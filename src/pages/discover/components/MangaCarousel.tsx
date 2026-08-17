@@ -1,8 +1,6 @@
-import React, { useRef } from "react";
+import React, { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Icons } from "@/components/Icon";
-import { SectionHeading } from "@/components/layout/SectionHeading";
 import { MediaCard } from "@/components/media/MediaCard";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { CarouselNavButtons } from "@/pages/discover/components/CarouselNavButtons";
@@ -12,16 +10,10 @@ import {
 } from "@/pages/discover/hooks/useMangaDiscoverMedia";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
-function Skeleton() {
-  return (
-    <div className="relative mt-4 rounded-xl p-2 w-[10rem] md:w-[11.5rem]">
-      <div className="animate-pulse">
-        <div className="w-full aspect-[2/3] bg-mediaCard-hoverBackground rounded-lg" />
-        <div className="mt-2 h-4 bg-mediaCard-hoverBackground rounded w-3/4" />
-      </div>
-    </div>
-  );
-}
+const SKELETON_COUNT = 10;
+// Matches the movie/TV rows so a manga row lines up with the ones above it.
+const CARD_WRAPPER =
+  "relative mt-4 group cursor-pointer user-select-none rounded-xl p-2 bg-transparent transition-colors duration-300 w-[10rem] md:w-[11.5rem] h-auto";
 
 export function MangaCarousel({
   kind,
@@ -37,59 +29,95 @@ export function MangaCarousel({
   onShowDetails?: (media: MediaItem) => void;
 }) {
   const { t } = useTranslation();
-  const { media, isLoading } = useMangaDiscoverMedia(kind, enabled);
+  const { media, hasLoaded, error } = useMangaDiscoverMedia(kind, enabled);
   const { isMobile } = useIsMobile();
-  const wheelLock = useRef(false);
+  const isScrollingRef = useRef(false);
+  const browser = !!window.chrome;
 
+  const categorySlug = `manga-${kind}`;
   const title = t(`discover.carousel.title.manga.${kind}`);
 
-  const handleWheel = (e: React.WheelEvent) => {
-    if (wheelLock.current) return;
-    const el = carouselRefs.current[kind];
-    if (!el) return;
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-    e.preventDefault();
-    wheelLock.current = true;
-    el.scrollBy({ left: e.deltaY * 2, behavior: "smooth" });
-    setTimeout(() => {
-      wheelLock.current = false;
-    }, 50);
-  };
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      if (isScrollingRef.current) return;
+      isScrollingRef.current = true;
+
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+
+      if (browser) {
+        setTimeout(() => {
+          isScrollingRef.current = false;
+        }, 345);
+      } else {
+        isScrollingRef.current = false;
+      }
+    },
+    [browser],
+  );
 
   if (!enabled) return null;
+  // Same rule as the movie rows: a row that resolved to nothing shouldn't
+  // leave a bare heading and a pair of arrows behind.
+  if (hasLoaded && (error || media.length === 0)) return null;
 
   return (
-    <div className="relative">
-      <SectionHeading title={title} icon={Icons.BOOKMARK} />
-      <div className="relative">
+    <div>
+      <div className="flex items-center justify-between px-4 mt-2">
+        <h2 className="text-2xl cursor-default font-bold text-white md:text-2xl pl-0 text-balance">
+          {title}
+        </h2>
+      </div>
+      <div className="relative overflow-hidden carousel-container md:pb-4">
         <div
+          id={`carousel-${categorySlug}`}
+          className="grid grid-flow-col auto-cols-max gap-4 pt-0 overflow-x-scroll scrollbar-none rounded-xl overflow-y-hidden px-4"
           ref={(el) => {
-            carouselRefs.current[kind] = el;
+            carouselRefs.current[categorySlug] = el;
           }}
-          className="grid grid-flow-col auto-cols-max gap-4 overflow-x-scroll scrollbar-hide pt-2 pb-4"
           onWheel={handleWheel}
         >
-          {isLoading && media.length === 0
-            ? Array.from({ length: 10 }).map((_, i) => (
-                // eslint-disable-next-line react/no-array-index-key
-                <Skeleton key={i} />
-              ))
-            : media.map((item) => (
+          {media.length > 0
+            ? media.map((item) => (
                 <div
+                  onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
+                    e.preventDefault()
+                  }
                   key={item.id}
-                  className="relative mt-4 group cursor-pointer rounded-xl p-2 bg-transparent transition-colors duration-300 w-[10rem] md:w-[11.5rem] h-auto"
+                  className={CARD_WRAPPER}
                 >
                   <MediaCard
-                    media={item}
                     linkable
+                    media={item}
                     onShowDetails={onShowDetails}
                   />
                 </div>
-              ))}
+              ))
+            : Array(SKELETON_COUNT)
+                .fill(null)
+                .map((_, index) => (
+                  <div
+                    key={`skeleton-${categorySlug}-${index}`}
+                    className={CARD_WRAPPER}
+                  >
+                    <MediaCard
+                      media={{
+                        id: `skeleton-${index}`,
+                        title: "",
+                        poster: "",
+                        type: "manga",
+                      }}
+                      forceSkeleton
+                    />
+                  </div>
+                ))}
         </div>
+
         {!isMobile && (
           <CarouselNavButtons
-            categorySlug={kind}
+            categorySlug={categorySlug}
             carouselRefs={carouselRefs}
           />
         )}

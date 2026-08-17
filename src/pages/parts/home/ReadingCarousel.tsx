@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { chapterBadge } from "@/backend/manga/mangadex";
 import { EditButton } from "@/components/buttons/EditButton";
 import { Icons } from "@/components/Icon";
 import { SectionHeading } from "@/components/layout/SectionHeading";
@@ -20,14 +21,18 @@ interface ReadingCarouselProps {
   }>;
 }
 
+const CATEGORY_SLUG = "continue-reading";
+
 export function ReadingCarousel({ carouselRefs }: ReadingCarouselProps) {
   const { t } = useTranslation();
   const { isMobile } = useIsMobile();
+  const browser = !!window.chrome;
+  let isScrolling = false;
+  // Same reasoning as Continue Watching: editing is a moment, not a preference.
   const [editing, setEditing] = useState(false);
   const items = useMangaProgressStore((s) => s.items);
   const removeItem = useMangaProgressStore((s) => s.removeItem);
   const { showModal } = useOverlayStack();
-  let isScrolling = false;
 
   const mediaItems = useMemo(() => {
     return Object.entries(items)
@@ -43,37 +48,48 @@ export function ReadingCarousel({ carouselRefs }: ReadingCarouselProps) {
       }));
   }, [items]);
 
-  if (mediaItems.length === 0) return null;
-
   const handleWheel = (e: React.WheelEvent) => {
     if (isScrolling) return;
-    const el = carouselRefs.current.reading;
-    if (!el) return;
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-    e.preventDefault();
     isScrolling = true;
-    el.scrollBy({ left: e.deltaY * 2, behavior: "smooth" });
-    setTimeout(() => {
+
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+
+    if (browser) {
+      setTimeout(() => {
+        isScrolling = false;
+      }, 345);
+    } else {
       isScrolling = false;
-    }, 50);
+    }
   };
 
+  if (mediaItems.length === 0) return null;
+
   return (
-    <div className="relative">
+    <>
       <SectionHeading
         title={t("home.continueReading.sectionTitle")}
         icon={Icons.BOOKMARK}
+        className="px-4 mt-2 -mb-5"
       >
-        <div className="flex items-center gap-2">
-          <EditButton editing={editing} onEdit={setEditing} />
+        <div className="mr-4 lg:mr-[88px] flex items-center gap-2">
+          <EditButton
+            editing={editing}
+            onEdit={setEditing}
+            id="edit-button-reading"
+          />
         </div>
       </SectionHeading>
-      <div className="relative">
+      <div className="relative overflow-hidden carousel-container md:pb-4">
         <div
+          id={`carousel-${CATEGORY_SLUG}`}
+          className="grid grid-flow-col auto-cols-max gap-4 pt-0 overflow-x-scroll scrollbar-none rounded-xl overflow-y-hidden px-4"
           ref={(el) => {
-            carouselRefs.current.reading = el;
+            carouselRefs.current[CATEGORY_SLUG] = el;
           }}
-          className="grid grid-flow-col auto-cols-max gap-4 overflow-x-scroll scrollbar-hide pt-2 pb-4"
           onWheel={handleWheel}
         >
           {mediaItems.map((item) => {
@@ -90,12 +106,16 @@ export function ReadingCarousel({ carouselRefs }: ReadingCarouselProps) {
             return (
               <div
                 key={item.id}
-                className="relative mt-4 w-[10rem] md:w-[11.5rem]"
+                onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
+                  e.preventDefault()
+                }
+                className="relative mt-4 group cursor-pointer rounded-xl p-2 bg-transparent transition-colors duration-300 w-[10rem] md:w-[11.5rem] h-auto"
               >
                 <MediaCard
                   media={media}
                   linkable
                   percentage={pct}
+                  badge={chapterBadge(item.chapterLabel)}
                   closable={editing}
                   onClose={editing ? () => removeItem(item.id) : undefined}
                   onShowDetails={() =>
@@ -106,20 +126,18 @@ export function ReadingCarousel({ carouselRefs }: ReadingCarouselProps) {
                     })
                   }
                 />
-                <p className="mt-1 px-2 text-xs text-type-secondary truncate">
-                  {item.chapterLabel}
-                </p>
               </div>
             );
           })}
         </div>
+
         {!isMobile ? (
           <CarouselNavButtons
-            categorySlug="reading"
+            categorySlug={CATEGORY_SLUG}
             carouselRefs={carouselRefs}
           />
         ) : null}
       </div>
-    </div>
+    </>
   );
 }
