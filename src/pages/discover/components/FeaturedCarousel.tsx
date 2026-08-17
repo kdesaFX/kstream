@@ -125,12 +125,22 @@ function isFeatureWorthy(item: { backdrop_path?: string | null; overview?: strin
   return Boolean(item?.backdrop_path && item?.overview?.trim());
 }
 
-function FeaturedCarouselSkeleton({ shorter }: { shorter?: boolean }) {
+function FeaturedCarouselSkeleton({
+  shorter,
+  searching,
+}: {
+  shorter?: boolean;
+  searching?: boolean;
+}) {
   return (
     <div
       className={classNames(
         "relative w-full transition-[height] duration-300 ease-in-out",
-        shorter ? "h-[75vh]" : "h-[75vh] md:h-[100vh]",
+        // While searching the loaded carousel is only h-24, so a full-height
+        // placeholder collapses by most of the viewport the moment it resolves,
+        // dragging the results out from under whatever the viewer was clicking.
+        searching && "h-24",
+        !searching && (shorter ? "h-[75vh]" : "h-[75vh] md:h-[100vh]"),
       )}
     >
       <div className="relative w-full h-full overflow-hidden">
@@ -632,11 +642,11 @@ export function FeaturedCarousel({
   }, [currentMedia?.id]);
 
   if (isLoading) {
-    return <FeaturedCarouselSkeleton shorter={shorter} />;
+    return <FeaturedCarouselSkeleton shorter={shorter} searching={searching} />;
   }
 
   if (media.length === 0) {
-    return <FeaturedCarouselSkeleton shorter={shorter} />;
+    return <FeaturedCarouselSkeleton shorter={shorter} searching={searching} />;
   }
 
   const mediaTitle = currentMedia.title || currentMedia.name;
