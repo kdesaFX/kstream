@@ -177,17 +177,18 @@ export function MangaDetailsModal({ id }: { id: string }) {
                   </div>
                 ) : null}
 
-                <div className="flex gap-3">
-                  <Button
-                    theme="purple"
-                    onClick={openReader}
-                    disabled={!startChapterId}
-                  >
-                    {resume
-                      ? t("manga.details.continue")
-                      : t("manga.details.read")}
-                  </Button>
-                </div>
+                {/* Licensed titles list only external chapters, so there is
+                    nothing here to open — say so instead of offering a button
+                    that goes nowhere. */}
+                {startChapterId ? (
+                  <div className="flex gap-3">
+                    <Button theme="purple" onClick={openReader}>
+                      {resume
+                        ? t("manga.details.continue")
+                        : t("manga.details.read")}
+                    </Button>
+                  </div>
+                ) : null}
 
                 <div>
                   <h3 className="text-sm font-semibold mb-2 text-white">
