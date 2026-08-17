@@ -32,9 +32,10 @@ function PageImage({
       className="max-w-full h-auto mx-auto block bg-black/40"
       loading="lazy"
       decoding="async"
-      // MangaDex swaps in a "read this at mangadex.org" card for foreign
-      // referrers, so ask the browser not to send one.
-      referrerPolicy="no-referrer"
+      // The MangaDex image nodes drop image requests that carry no referrer at
+      // all, so send the bare origin — enough to be served, and it still keeps
+      // the chapter path we're on to ourselves.
+      referrerPolicy="origin"
       onError={onError}
       draggable={false}
     />
