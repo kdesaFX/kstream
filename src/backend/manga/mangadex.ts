@@ -137,7 +137,10 @@ export function proxiedMangaUrl(
 ): string | undefined {
   const proxy = proxies[0];
   if (!proxy) return undefined;
-  return `${proxy}/?destination=${encodeURIComponent(url)}`;
+  // No slash before the query: our own /api/proxy route doesn't match with a
+  // trailing slash and the request lands on the SPA's index.html instead.
+  const separator = proxy.includes("?") ? "&" : "?";
+  return `${proxy}${separator}destination=${encodeURIComponent(url)}`;
 }
 
 /** ofetch only attaches `response` to HTTP errors; without one the request never landed. */

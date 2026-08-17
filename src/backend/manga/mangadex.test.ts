@@ -26,10 +26,27 @@ describe("proxiedMangaUrl", () => {
       "https://api.mangadex.org/manga?limit=24&order%5Brating%5D=desc&includes%5B%5D=cover_art";
     const proxied = proxiedMangaUrl(url, ["https://kdesa.stream/api/proxy"]);
     expect(proxied).toBe(
-      `https://kdesa.stream/api/proxy/?destination=${encodeURIComponent(url)}`,
+      `https://kdesa.stream/api/proxy?destination=${encodeURIComponent(url)}`,
     );
     // The inner params must not leak out as params of the proxy itself.
     expect(proxied!.split("?").length).toBe(2);
+  });
+
+  it("keeps the route intact: a trailing slash lands on the SPA, not the function", () => {
+    expect(
+      proxiedMangaUrl("https://api.mangadex.org/manga", [
+        "https://kdesa.stream/api/proxy",
+      ]),
+    ).not.toContain("/api/proxy/?");
+  });
+
+  it("appends to a proxy that already carries a query", () => {
+    const proxied = proxiedMangaUrl("https://api.mangadex.org/manga", [
+      "https://worker.dev/?key=abc",
+    ]);
+    expect(proxied).toBe(
+      `https://worker.dev/?key=abc&destination=${encodeURIComponent("https://api.mangadex.org/manga")}`,
+    );
   });
 
   it("gives up when no proxy is configured", () => {
