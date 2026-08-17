@@ -173,7 +173,11 @@ export function MangaDetailsModal({ id }: { id: string }) {
                   <p className="text-type-text text-sm leading-relaxed line-clamp-6">
                     {details.description}
                   </p>
-                ) : null}
+                ) : (
+                  <p className="text-type-secondary text-sm italic">
+                    {t("manga.details.noDescription")}
+                  </p>
+                )}
 
                 {details.tags.length > 0 ? (
                   <div className="flex flex-wrap gap-2">

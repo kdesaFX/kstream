@@ -1756,6 +1756,7 @@
       "read": "Read",
       "continue": "Continue reading",
       "chapters": "Chapters",
+      "noDescription": "No synopsis available for this title.",
       "noChapters": "No readable chapters — this title is only published on official sites."
     },
     "reader": {
