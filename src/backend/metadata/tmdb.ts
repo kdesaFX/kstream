@@ -7,6 +7,11 @@ import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
 import { SimpleCache } from "@/utils/common/cache";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
+import {
+  MAX_LOGO_CANDIDATES,
+  logoHasBakedBackground,
+  rankLogos,
+} from "@/utils/media/logoBackground";
 import { MediaItem } from "@/utils/media/mediaTypes";
 import { tmdbIncludeAdult, filterOutMatureMedia } from "@/utils/media/mature";
 import { getProxyUrls } from "@/utils/hosting/proxyUrls";
@@ -757,14 +762,16 @@ export async function getMediaLogo(
     const data = await get<any>(url, {
       include_image_language: `${formattedLanguage},en,null`,
     });
-    // Try to find a logo in the user's language, then English, then any
-    const logo =
-      data.logos?.find((l: any) => l.iso_639_1 === formattedLanguage) ||
-      data.logos?.find((l: any) => l.iso_639_1 === "en") ||
-      data.logos?.[0];
-    if (logo && logo.file_path) {
-      return `https://image.tmdb.org/t/p/original${logo.file_path}`;
+    const candidates = rankLogos(data.logos ?? [], formattedLanguage).slice(
+      0,
+      MAX_LOGO_CANDIDATES,
+    );
+    for (const logo of candidates) {
+      const logoUrl = `https://image.tmdb.org/t/p/original${logo.file_path}`;
+      // eslint-disable-next-line no-await-in-loop
+      if (!(await logoHasBakedBackground(logoUrl))) return logoUrl;
     }
+    // Every candidate is a solid rectangle - callers show the title instead.
     return undefined;
   } catch (err) {
     console.error("Failed to fetch TMDB logo:", err);
