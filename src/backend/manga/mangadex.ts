@@ -143,6 +143,15 @@ export function proxiedMangaUrl(
   return `${proxy}${separator}destination=${encodeURIComponent(url)}`;
 }
 
+/** Keep cover retries scoped to MangaDex instead of proxying arbitrary art. */
+export function proxiedMangaCoverUrl(
+  url: string,
+  proxies: string[],
+): string | undefined {
+  if (!url.startsWith(`${COVER_CDN}/covers/`)) return undefined;
+  return proxiedMangaUrl(url, proxies);
+}
+
 /** ofetch only attaches `response` to HTTP errors; without one the request never landed. */
 export function requestNeverLanded(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;

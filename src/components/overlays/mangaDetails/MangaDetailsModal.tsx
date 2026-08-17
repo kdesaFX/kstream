@@ -11,6 +11,7 @@ import { mangaStatusKey } from "@/backend/manga/types";
 import { Button } from "@/components/buttons/Button";
 import { IconPatch } from "@/components/buttons/IconPatch";
 import { Icons } from "@/components/Icon";
+import { MangaImage } from "@/components/media/MangaImage";
 import { OverlayPortal } from "@/components/overlays/OverlayDisplay";
 import { Heading2 } from "@/components/utils/Text";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
@@ -129,20 +130,18 @@ export function MangaDetailsModal({ id }: { id: string }) {
             <>
               <div className="relative h-48 md:h-64 bg-background-secondary">
                 {details.poster ? (
-                  <img
+                  <MangaImage
                     src={details.poster}
                     alt=""
-                    referrerPolicy="no-referrer"
                     className="absolute inset-0 w-full h-full object-cover opacity-40"
                   />
                 ) : null}
                 <div className="absolute inset-0 bg-gradient-to-t from-background-main to-transparent" />
                 <div className="absolute bottom-4 left-4 right-16 flex gap-4 items-end">
                   {details.poster ? (
-                    <img
+                    <MangaImage
                       src={details.poster}
                       alt=""
-                      referrerPolicy="no-referrer"
                       className="w-24 md:w-32 rounded-lg shadow-lg"
                     />
                   ) : null}
