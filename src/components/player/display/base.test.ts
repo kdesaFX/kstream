@@ -25,6 +25,20 @@ function stubVideo() {
   return { video, play };
 }
 
+/** jsdom's readonly playback state, made writable for the test. */
+function setPlaybackState(
+  video: HTMLVideoElement,
+  state: { paused?: boolean; readyState?: number; currentTime?: number },
+) {
+  for (const [key, value] of Object.entries(state)) {
+    Object.defineProperty(video, key, {
+      value,
+      configurable: true,
+      writable: true,
+    });
+  }
+}
+
 describe("video display autoplay on load", () => {
   it("autoplays a replacement loaded after the previous stream was unloaded", () => {
     const display = makeVideoElementDisplayInterface();
@@ -59,5 +73,63 @@ describe("video display autoplay on load", () => {
     video.dispatchEvent(new Event("canplay"));
 
     expect(play).not.toHaveBeenCalled();
+  });
+});
+
+describe("video display spinner", () => {
+  /** Get playing, with the spinner raised by the buffer flush a seek causes. */
+  function playingThenStalled() {
+    const display = makeVideoElementDisplayInterface();
+    const loading: boolean[] = [];
+    display.on("loading", (v) => loading.push(v));
+
+    const { video } = stubVideo();
+    display.processVideoElement(video);
+    display.load(loadOps(mp4("https://example.com/stream.mp4")));
+    setPlaybackState(video, { paused: false, readyState: 4, currentTime: 30 });
+    video.dispatchEvent(new Event("canplay"));
+    video.dispatchEvent(new Event("timeupdate"));
+    video.dispatchEvent(new Event("waiting"));
+    expect(loading.at(-1)).toBe(true);
+
+    return { display, video, loading };
+  }
+
+  it("comes down when the element resumes after a stall", () => {
+    const { video, loading } = playingThenStalled();
+
+    video.dispatchEvent(new Event("playing"));
+
+    expect(loading.at(-1)).toBe(false);
+  });
+
+  it("comes down after seeking back into buffered video", () => {
+    const { video, loading } = playingThenStalled();
+
+    // No `playing` and no download progress: everything needed is already
+    // buffered, which is exactly the case that used to leave it spinning.
+    setPlaybackState(video, { currentTime: 20 });
+    video.dispatchEvent(new Event("seeked"));
+
+    expect(loading.at(-1)).toBe(false);
+  });
+
+  it("comes down once the picture is moving, whatever the events said", () => {
+    const { video, loading } = playingThenStalled();
+
+    setPlaybackState(video, { currentTime: 31 });
+    video.dispatchEvent(new Event("timeupdate"));
+
+    expect(loading.at(-1)).toBe(false);
+  });
+
+  it("stays up while a stalled stream makes no progress", () => {
+    const { video, loading } = playingThenStalled();
+
+    setPlaybackState(video, { readyState: 2 });
+    video.dispatchEvent(new Event("timeupdate"));
+    video.dispatchEvent(new Event("seeked"));
+
+    expect(loading.at(-1)).toBe(true);
   });
 });

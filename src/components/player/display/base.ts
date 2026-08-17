@@ -13,6 +13,7 @@ import {
   DisplayInterfaceEvents,
 } from "@/components/player/display/displayInterface";
 import { shouldClimbQuality } from "@/components/player/display/qualityClimb";
+import { isPlaybackVisiblyRunning } from "@/components/player/display/spinnerState";
 import { streamStartVerdict } from "@/components/player/display/streamStartWatchdog";
 import { handleBuffered } from "@/components/player/utils/handleBuffered";
 import { getMediaErrorDetails } from "@/components/player/utils/mediaErrorDetails";
@@ -164,6 +165,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   const AUDIO_INIT_MAX_ATTEMPTS = 6;
   let lastValidDuration = 0; // Store the last valid duration to prevent reset during source switches
   let lastValidTime = 0; // Store the last valid time to prevent reset during source switches
+  let lastSpinnerTime = 0; // Previous timeupdate position, to spot real progress
   let shouldAutoplayAfterLoad = false; // Flag to track if we should autoplay after loading completes
   let qualityChangeTimeout: NodeJS.Timeout | null = null; // Timeout for debouncing rapid quality changes
   let autoplayUnstickTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1039,8 +1041,16 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     });
     onMedia("playing", () => {
       emit("play", undefined);
+      // Resuming from a stall fires this and not `play` (the element never
+      // paused), so this was the spinner's only way down after a rebuffer.
+      emitLoading(false);
       initAudioAnalysis();
       reportQualityFromVideoElement();
+    });
+    onMedia("seeked", () => {
+      if (!videoElement || videoElement.paused) return;
+      if (videoElement.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) return;
+      emitLoading(false);
     });
     onMedia("pause", () => {
       if (suppressPlaybackEvents) return;
@@ -1098,6 +1108,23 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     });
     onMedia("timeupdate", () => {
       const currentTime = videoElement?.currentTime ?? 0;
+
+      // Last line of defence for the spinner: whatever stall the player thinks
+      // it is in, the picture is moving, so stop telling the viewer to wait.
+      if (uiLoading && videoElement) {
+        const advancedBy = currentTime - lastSpinnerTime;
+        if (
+          isPlaybackVisiblyRunning({
+            paused: videoElement.paused,
+            seeking: videoElement.seeking || isSeeking,
+            readyState: videoElement.readyState,
+            advancedBy,
+          })
+        ) {
+          emitLoading(false);
+        }
+      }
+      lastSpinnerTime = currentTime;
       // Always emit time updates when seeking to prevent subtitle freezing
       // Also emit when progressing forward or when time changes significantly
       // This prevents time from resetting to 0 during source switches
@@ -1304,6 +1331,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     // Reset the last valid duration and time when unloading source
     lastValidDuration = 0;
     lastValidTime = 0;
+    lastSpinnerTime = 0;
     policyMuted = false;
   }
 
