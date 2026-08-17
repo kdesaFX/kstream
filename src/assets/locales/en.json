@@ -1745,6 +1745,12 @@
     "activeBackend": "Active Backend: {{backend}}"
   },
   "manga": {
+    "status": {
+      "ongoing": "Ongoing",
+      "completed": "Completed",
+      "hiatus": "On hiatus",
+      "cancelled": "Cancelled"
+    },
     "details": {
       "loading": "Loading manga…",
       "read": "Read",

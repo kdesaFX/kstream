@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { useWindowSize } from "react-use";
 
 import { mangaMediaLink } from "@/backend/manga/ids";
+import type { MangaStatus } from "@/backend/manga/types";
+import { mangaStatusKey } from "@/backend/manga/types";
 import { get, getMediaLogo, getAllTimeBestMovies, getAllTimeBestShows } from "@/backend/metadata/tmdb";
 import {
   getDiscoverContent,
@@ -65,7 +67,7 @@ export interface FeaturedMedia extends Partial<Omit<Movie & TVShow, "id">> {
   wideArt?: boolean;
   /** MangaDex rating, 0-10. */
   mangaRating?: number;
-  mangaStatus?: string;
+  mangaStatus?: MangaStatus;
   mangaLastChapter?: string;
   year?: number;
 }
@@ -747,6 +749,9 @@ export function FeaturedCarousel({
   }
 
   const mediaTitle = currentMedia.title || currentMedia.name;
+  const mangaStatusLabelKey = currentMedia.mangaStatus
+    ? mangaStatusKey(currentMedia.mangaStatus)
+    : null;
 
   let searchClasses = "";
   if (searching) searchClasses = "opacity-0 transition-opacity duration-300";
@@ -967,13 +972,10 @@ export function FeaturedCarousel({
                       <span>{currentMedia.year}</span>
                     </>
                   ) : null}
-                  {currentMedia.mangaStatus &&
-                  currentMedia.mangaStatus !== "unknown" ? (
+                  {mangaStatusLabelKey ? (
                     <>
                       <span className="text-white/60">•</span>
-                      <span className="capitalize">
-                        {currentMedia.mangaStatus}
-                      </span>
+                      <span>{t(mangaStatusLabelKey)}</span>
                     </>
                   ) : null}
                   {currentMedia.mangaLastChapter ? (

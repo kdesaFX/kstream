@@ -68,3 +68,13 @@ export interface MangaAtHome {
 export function isMatureMangaRating(rating: MangaContentRating): boolean {
   return rating === "erotica" || rating === "pornographic";
 }
+
+/**
+ * MangaDex hands back a bare enum value ("ongoing"), which reads as a typo next
+ * to real prose. Returns the translation key to show, or null when there is
+ * nothing worth saying.
+ */
+export function mangaStatusKey(status: MangaStatus): string | null {
+  if (status === "unknown") return null;
+  return `manga.status.${status}`;
+}

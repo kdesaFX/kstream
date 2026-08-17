@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { mangaChapterLink } from "@/backend/manga/ids";
 import { chapterLabel, getMangaDetails } from "@/backend/manga/mangadex";
 import type { MangaDetails } from "@/backend/manga/types";
+import { mangaStatusKey } from "@/backend/manga/types";
 import { Button } from "@/components/buttons/Button";
 import { IconPatch } from "@/components/buttons/IconPatch";
 import { Icons } from "@/components/Icon";
@@ -62,6 +63,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
   }, [shouldShow, mangaId, preferredLanguage]);
 
   const resume = progress[mangaId];
+  const statusKey = details ? mangaStatusKey(details.status) : null;
   const startChapterId = useMemo(() => {
     if (resume?.chapterId) return resume.chapterId;
     return details?.chapters[0]?.id;
@@ -141,7 +143,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
                     </Heading2>
                     <p className="text-sm text-type-secondary">
                       {[
-                        details.status,
+                        statusKey ? t(statusKey) : null,
                         details.year,
                         details.rating
                           ? `★ ${details.rating.toFixed(1)}`
