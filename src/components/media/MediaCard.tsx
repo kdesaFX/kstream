@@ -237,7 +237,6 @@ function MediaCardContent({
                 referrerPolicy="no-referrer"
                 decoding="async"
                 loading={eager ? "eager" : "lazy"}
-                fetchPriority={eager ? "high" : "low"}
                 className="absolute inset-0 h-full w-full object-cover"
                 style={{
                   filter: matureLocked

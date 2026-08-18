@@ -168,7 +168,6 @@ function MangaSlideArt({ item }: { item: FeaturedMedia }) {
         alt=""
         referrerPolicy="no-referrer"
         decoding="async"
-        fetchPriority="high"
         className="w-full h-full object-cover object-top"
       />
     );
@@ -189,7 +188,6 @@ function MangaSlideArt({ item }: { item: FeaturedMedia }) {
         alt=""
         referrerPolicy="no-referrer"
         decoding="async"
-        fetchPriority="high"
         className="absolute top-0 left-0 w-full"
         style={{
           maskImage:
