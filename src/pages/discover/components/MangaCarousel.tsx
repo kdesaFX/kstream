@@ -2,6 +2,7 @@ import React, { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MediaCard } from "@/components/media/MediaCard";
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { CarouselNavButtons } from "@/pages/discover/components/CarouselNavButtons";
 import {
@@ -11,6 +12,7 @@ import {
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 const SKELETON_COUNT = 10;
+const EAGER_CARDS = 8;
 // Matches the movie/TV rows so a manga row lines up with the ones above it.
 const CARD_WRAPPER =
   "relative mt-4 group cursor-pointer user-select-none rounded-xl p-2 bg-transparent transition-colors duration-300 w-[10rem] md:w-[11.5rem] h-auto";
@@ -20,6 +22,7 @@ export function MangaCarousel({
   enabled,
   carouselRefs,
   onShowDetails,
+  priority = false,
 }: {
   kind: MangaCarouselKind;
   enabled: boolean;
@@ -27,9 +30,17 @@ export function MangaCarousel({
     [key: string]: HTMLDivElement | null;
   }>;
   onShowDetails?: (media: MediaItem) => void;
+  /** First rows fetch immediately; later rows wait until they are near the viewport. */
+  priority?: boolean;
 }) {
   const { t } = useTranslation();
-  const { media, hasLoaded, error } = useMangaDiscoverMedia(kind, enabled);
+  const { ref: lazyRef, hasIntersected } =
+    useIntersectionObserver<HTMLDivElement>({
+      threshold: 0.1,
+      rootMargin: "50px",
+    });
+  const shouldFetch = enabled && (priority || hasIntersected);
+  const { media, hasLoaded, error } = useMangaDiscoverMedia(kind, shouldFetch);
   const { isMobile } = useIsMobile();
   const isScrollingRef = useRef(false);
   const browser = !!window.chrome;
@@ -59,12 +70,17 @@ export function MangaCarousel({
   );
 
   if (!enabled) return null;
+
+  if (!shouldFetch) {
+    return <div ref={lazyRef} className="h-[20rem]" />;
+  }
+
   // Same rule as the movie rows: a row that resolved to nothing shouldn't
   // leave a bare heading and a pair of arrows behind.
   if (hasLoaded && (error || media.length === 0)) return null;
 
   return (
-    <div>
+    <div ref={lazyRef}>
       <div className="flex items-center justify-between px-4 mt-2">
         <h2 className="text-2xl cursor-default font-bold text-white md:text-2xl pl-0 text-balance">
           {title}
@@ -80,7 +96,7 @@ export function MangaCarousel({
           onWheel={handleWheel}
         >
           {media.length > 0
-            ? media.map((item) => (
+            ? media.map((item, index) => (
                 <div
                   onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
                     e.preventDefault()
@@ -90,6 +106,7 @@ export function MangaCarousel({
                 >
                   <MediaCard
                     linkable
+                    eager={index < EAGER_CARDS}
                     media={item}
                     onShowDetails={onShowDetails}
                   />

@@ -7,7 +7,12 @@ import { useWindowSize } from "react-use";
 import { mangaMediaLink } from "@/backend/manga/ids";
 import type { MangaStatus } from "@/backend/manga/types";
 import { mangaStatusKey } from "@/backend/manga/types";
-import { get, getMediaLogo, getAllTimeBestMovies, getAllTimeBestShows } from "@/backend/metadata/tmdb";
+import {
+  get,
+  getMediaLogo,
+  getAllTimeBestMovies,
+  getAllTimeBestShows,
+} from "@/backend/metadata/tmdb";
 import {
   getDiscoverContent,
   getReleaseDetails,
@@ -139,7 +144,10 @@ function pickAvoidingRecent(ids: number[], count: number): number[] {
   return picked;
 }
 
-function isFeatureWorthy(item: { backdrop_path?: string | null; overview?: string | null }) {
+function isFeatureWorthy(item: {
+  backdrop_path?: string | null;
+  overview?: string | null;
+}) {
   return Boolean(item?.backdrop_path && item?.overview?.trim());
 }
 
@@ -159,6 +167,8 @@ function MangaSlideArt({ item }: { item: FeaturedMedia }) {
         src={item.artUrl}
         alt=""
         referrerPolicy="no-referrer"
+        decoding="async"
+        fetchPriority="high"
         className="w-full h-full object-cover object-top"
       />
     );
@@ -171,12 +181,15 @@ function MangaSlideArt({ item }: { item: FeaturedMedia }) {
         alt=""
         aria-hidden
         referrerPolicy="no-referrer"
+        decoding="async"
         className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-70"
       />
       <img
         src={item.artUrl}
         alt=""
         referrerPolicy="no-referrer"
+        decoding="async"
+        fetchPriority="high"
         className="absolute top-0 left-0 w-full"
         style={{
           maskImage:
@@ -409,10 +422,7 @@ export function FeaturedCarousel({
           return;
         }
 
-        if (
-          effectiveCategory !== "movies" &&
-          effectiveCategory !== "tvshows"
-        ) {
+        if (effectiveCategory !== "movies" && effectiveCategory !== "tvshows") {
           setMedia([]);
           return;
         }
@@ -1056,16 +1066,17 @@ export function FeaturedCarousel({
                 onClick={() =>
                   navigate(
                     currentMedia.type === "manga"
-                      ? mangaMediaLink(String(currentMedia.id), mediaTitle ?? "")
+                      ? mangaMediaLink(
+                          String(currentMedia.id),
+                          mediaTitle ?? "",
+                        )
                       : `/media/tmdb-${currentMedia.type}-${currentMedia.id}-${mediaTitle?.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
                   )
                 }
                 className="tabbable cursor-pointer inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 w-full sm:w-auto text-base font-medium bg-pill-background bg-opacity-50 hover:bg-pill-backgroundHover backdrop-blur-lg transition-[transform,background-color] duration-100 hover:scale-105 active:scale-95"
               >
                 <Icon
-                  icon={
-                    currentMedia.type === "manga" ? Icons.FILE : Icons.PLAY
-                  }
+                  icon={currentMedia.type === "manga" ? Icons.FILE : Icons.PLAY}
                   className="text-white"
                 />
                 <span className="text-white">

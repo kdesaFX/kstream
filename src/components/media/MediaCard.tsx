@@ -42,8 +42,8 @@ const LAZY_ROOT_MARGIN = "400px";
  * callbacks, which previously left every card observed by nothing and so
  * permanently without its poster.
  */
-function useLazyVisible() {
-  const [isVisible, setIsVisible] = useState(false);
+function useLazyVisible(eager = false) {
+  const [isVisible, setIsVisible] = useState(eager);
   const [node, setNode] = useState<Element | null>(null);
 
   useEffect(() => {
@@ -125,6 +125,8 @@ export interface MediaCardProps {
   forceSkeleton?: boolean;
   editable?: boolean;
   onEdit?: (e?: React.MouseEvent) => void;
+  /** Load the poster immediately instead of waiting for the lazy observer. */
+  eager?: boolean;
 }
 
 function checkReleased(media: MediaItem): boolean {
@@ -156,6 +158,7 @@ function MediaCardContent({
   forceSkeleton,
   editable,
   onEdit,
+  eager,
 }: MediaCardProps) {
   const { t } = useTranslation();
   const percentageString = `${Math.round(percentage ?? 0).toFixed(0)}%`;
@@ -172,7 +175,7 @@ function MediaCardContent({
   const matureLocked = isMatureMedia(media) && !enableMatureTitles;
 
   // Simple intersection observer for lazy loading images
-  const { targetRef, isVisible: isIntersecting } = useLazyVisible();
+  const { targetRef, isVisible: isIntersecting } = useLazyVisible(eager);
 
   // Show skeleton if forced or if media hasn't loaded yet (empty title/poster)
   const shouldShowSkeleton = forceSkeleton || (!media.title && !media.poster);
@@ -233,6 +236,8 @@ function MediaCardContent({
                 alt=""
                 referrerPolicy="no-referrer"
                 decoding="async"
+                loading={eager ? "eager" : "lazy"}
+                fetchPriority={eager ? "high" : "low"}
                 className="absolute inset-0 h-full w-full object-cover"
                 style={{
                   filter: matureLocked

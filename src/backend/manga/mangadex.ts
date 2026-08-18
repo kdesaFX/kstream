@@ -345,19 +345,55 @@ function listQuery(order: MangaOrder, limit: number, offset = 0) {
   };
 }
 
+const LIST_TTL_MS = 15 * 60 * 1000;
+const listCache = new Map<string, { at: number; items: MangaListItem[] }>();
+const listInFlight = new Map<string, Promise<MangaListItem[]>>();
+
 export async function listManga(ops: {
   order: MangaOrder;
   limit?: number;
   offset?: number;
+  /** Discover cards only need covers; skip the extra statistics round-trip. */
+  includeStats?: boolean;
 }): Promise<MangaListItem[]> {
   const limit = ops.limit ?? 24;
-  const res = await mdGet<MdListResponse<MdManga>>(
-    "/manga",
-    listQuery(ops.order, limit, ops.offset ?? 0),
-  );
-  const stats = await fetchStatistics(res.data.map((m) => m.id));
-  const items = res.data.map((m) => mapManga(m, stats[m.id]));
-  return filterOutMatureMedia(items);
+  const offset = ops.offset ?? 0;
+  const includeStats = ops.includeStats !== false;
+  const cacheKey = [
+    ops.order,
+    limit,
+    offset,
+    includeStats,
+    contentRatingsQuery().join(","),
+  ].join(":");
+
+  const cached = listCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < LIST_TTL_MS) return cached.items;
+
+  const pending = listInFlight.get(cacheKey);
+  if (pending) return pending;
+
+  const run = (async () => {
+    const res = await mdGet<MdListResponse<MdManga>>(
+      "/manga",
+      listQuery(ops.order, limit, offset),
+    );
+    const stats = includeStats
+      ? await fetchStatistics(res.data.map((m) => m.id))
+      : {};
+    const items = filterOutMatureMedia(
+      res.data.map((m) => mapManga(m, stats[m.id])),
+    );
+    listCache.set(cacheKey, { at: Date.now(), items });
+    return items;
+  })();
+
+  listInFlight.set(cacheKey, run);
+  try {
+    return await run;
+  } finally {
+    listInFlight.delete(cacheKey);
+  }
 }
 
 export async function searchManga(

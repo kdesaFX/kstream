@@ -96,6 +96,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
       zIndex={zIndex}
     >
       <Helmet>
+        <html data-no-scroll />
         <title>
           {details?.title
             ? `${details.title} - ${t("global.name")}`
@@ -103,12 +104,13 @@ export function MangaDetailsModal({ id }: { id: string }) {
         </title>
       </Helmet>
       <div
-        className="absolute inset-0 flex items-start justify-center overflow-y-auto py-8 px-4"
+        className="absolute inset-0 flex items-start justify-center py-8 px-4"
         style={{ zIndex }}
       >
         <div
-          className="relative w-full max-w-3xl rounded-2xl bg-background-main border border-utils-divider overflow-hidden"
+          className="relative flex h-[90vh] max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-utils-divider bg-background-main pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
         >
           <button
             type="button"
@@ -128,7 +130,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
           ) : null}
           {details ? (
             <>
-              <div className="relative h-48 md:h-64 bg-background-secondary">
+              <div className="relative h-48 shrink-0 bg-background-secondary md:h-64">
                 {details.poster ? (
                   <img
                     src={details.poster}
@@ -169,7 +171,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
                 </div>
               </div>
 
-              <div className="p-5 space-y-4">
+              <div className="flex min-h-0 flex-1 flex-col space-y-4 overflow-hidden p-5">
                 {details.description ? (
                   <p className="text-type-text text-sm leading-relaxed line-clamp-6">
                     {details.description}
@@ -206,11 +208,14 @@ export function MangaDetailsModal({ id }: { id: string }) {
                   </div>
                 ) : null}
 
-                <div>
-                  <h3 className="text-sm font-semibold mb-2 text-white">
+                <div className="flex min-h-0 flex-1 flex-col">
+                  <h3 className="mb-2 shrink-0 text-sm font-semibold text-white">
                     {t("manga.details.chapters")}
                   </h3>
-                  <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
+                  <div
+                    className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-1"
+                    onWheel={(e) => e.stopPropagation()}
+                  >
                     {details.chapters.length === 0 ? (
                       <p className="text-sm text-type-secondary">
                         {t("manga.details.noChapters")}

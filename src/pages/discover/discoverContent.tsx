@@ -16,11 +16,8 @@ import { MangaCarousel } from "./components/MangaCarousel";
 import { ScrollToTopButton } from "./components/ScrollToTopButton";
 
 export function DiscoverContent() {
-  const {
-    selectedCategory,
-    setSelectedCategory,
-    selectedGenreId,
-  } = useDiscoverStore();
+  const { selectedCategory, setSelectedCategory, selectedGenreId } =
+    useDiscoverStore();
   const { showModal } = useOverlayStack();
   const enableMangaDiscover = usePreferencesStore((s) => s.enableMangaDiscover);
   const carouselRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -30,38 +27,42 @@ export function DiscoverContent() {
   const isTVShowsTab = selectedCategory === "tvshows";
   const isMangaTab = selectedCategory === "manga";
 
-  const handleCategoryChange = useCallback((category: string) => {
-    setSelectedCategory(category as "movies" | "tvshows" | "manga");
-  }, [setSelectedCategory]);
+  const handleCategoryChange = useCallback(
+    (category: string) => {
+      setSelectedCategory(category as "movies" | "tvshows" | "manga");
+    },
+    [setSelectedCategory],
+  );
 
-  const handleShowDetails = useCallback((media: MediaItem | FeaturedMedia) => {
-    if ("type" in media && media.type === "manga") {
-      showModal("manga-details", {
-        id: String(media.id),
-        mangaId: String(media.id),
-        type: "manga",
+  const handleShowDetails = useCallback(
+    (media: MediaItem | FeaturedMedia) => {
+      if ("type" in media && media.type === "manga") {
+        showModal("manga-details", {
+          id: String(media.id),
+          mangaId: String(media.id),
+          type: "manga",
+        });
+        return;
+      }
+      showModal("discover-details", {
+        id: Number(media.id),
+        type: media.type === "movie" ? "movie" : "show",
       });
-      return;
-    }
-    showModal("discover-details", {
-      id: Number(media.id),
-      type: media.type === "movie" ? "movie" : "show",
-    });
-  }, [showModal]);
+    },
+    [showModal],
+  );
 
   const movieProgressItems = useMemo(
     () =>
       Object.entries(progressItems || {}).filter(
-        ([, item]) =>
-          item.type === "movie" && progressHasMeaningfulWatch(item),
+        ([, item]) => item.type === "movie" && progressHasMeaningfulWatch(item),
       ),
     [progressItems],
   );
   const tvProgressItems = useMemo(
     () =>
       Object.entries(progressItems || {}).filter(
-        ([, item]) =>
-          item.type === "show" && progressHasMeaningfulWatch(item),
+        ([, item]) => item.type === "show" && progressHasMeaningfulWatch(item),
       ),
     [progressItems],
   );
@@ -301,12 +302,14 @@ export function DiscoverContent() {
     <div>
       <MangaCarousel
         kind="popular"
+        priority
         enabled={isMangaTab}
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}
       />
       <MangaCarousel
         kind="topRated"
+        priority
         enabled={isMangaTab}
         carouselRefs={carouselRefs}
         onShowDetails={handleShowDetails}

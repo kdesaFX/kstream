@@ -38,7 +38,11 @@ export function useMangaDiscoverMedia(
     setIsLoading(true);
     setError(null);
     try {
-      const items = await listManga({ order: ORDER[kind], limit: 24 });
+      const items = await listManga({
+        order: ORDER[kind],
+        limit: 24,
+        includeStats: false,
+      });
       setMedia(items.map(mangaToMediaItem));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load manga");
