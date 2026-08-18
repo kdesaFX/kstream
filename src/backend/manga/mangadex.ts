@@ -1,5 +1,6 @@
 import { ofetch } from "ofetch";
 
+import { mangaDexCoverUrl } from "@/backend/manga/covers";
 import { plainMangaDescription } from "@/backend/manga/plainMangaDescription";
 import {
   MangaAtHome,
@@ -17,7 +18,6 @@ import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 import { filterOutMatureMedia } from "@/utils/media/mature";
 
 const API = "https://api.mangadex.org";
-const COVER_CDN = "https://uploads.mangadex.org";
 
 type MdRelationship = {
   id: string;
@@ -220,9 +220,13 @@ function coverFileName(manga: MdManga): string | undefined {
   return typeof file === "string" ? file : undefined;
 }
 
-function coverUrl(mangaId: string, fileName?: string, size: 256 | 512 = 256) {
+export function coverUrl(
+  mangaId: string,
+  fileName?: string,
+  size: 256 | 512 = 256,
+) {
   if (!fileName) return undefined;
-  return `${COVER_CDN}/covers/${mangaId}/${fileName}.${size}.jpg`;
+  return mangaDexCoverUrl(mangaId, fileName, size);
 }
 
 function parseStatus(raw?: string): MangaStatus {

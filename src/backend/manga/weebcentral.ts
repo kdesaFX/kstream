@@ -1,5 +1,6 @@
 import { ofetch } from "ofetch";
 
+import { weebCentralCoverUrl } from "@/backend/manga/covers";
 import { isWeebCentralId } from "@/backend/manga/ids";
 import { proxiedMangaUrl } from "@/backend/manga/mangadex";
 import type {
@@ -16,7 +17,6 @@ import {
 } from "@/utils/media/mature";
 
 const ORIGIN = "https://weebcentral.com";
-const COVER = "https://temp.compsci88.com/cover";
 
 export interface WeebCentralSearchHit {
   id: string;
@@ -113,7 +113,7 @@ export function normalizeMangaTitle(title: string): string {
 }
 
 function coverUrl(id: string): string {
-  return `${COVER}/normal/${id}.webp`;
+  return weebCentralCoverUrl(id);
 }
 
 function slugToTitle(slug: string): string {

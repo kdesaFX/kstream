@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 import { mediaItemToId } from "@/backend/metadata/tmdb";
+import { proxiedMangaCoverUrl } from "@/backend/manga/covers";
 import { Button } from "@/components/buttons/Button";
 import { Modal, ModalCard, useModal } from "@/components/overlays/Modal";
 import { DotList } from "@/components/text/DotList";
@@ -173,6 +174,10 @@ function MediaCardContent({
   const enableMinimalCards = usePreferencesStore((s) => s.enableMinimalCards);
   const enableMatureTitles = usePreferencesStore((s) => s.enableMatureTitles);
   const matureLocked = isMatureMedia(media) && !enableMatureTitles;
+  const poster =
+    media.type === "manga" && media.poster
+      ? proxiedMangaCoverUrl(media.poster)
+      : media.poster;
 
   // Simple intersection observer for lazy loading images
   const { targetRef, isVisible: isIntersecting } = useLazyVisible(eager);
@@ -227,12 +232,11 @@ function MediaCardContent({
               enableMinimalCards ? "" : "mb-4",
             )}
           >
-            {media.type === "manga" && isIntersecting && media.poster ? (
-              // MangaDex swaps covers for a "read this at mangadex.org" card
-              // when a foreign referrer comes along, and CSS backgrounds have
-              // no say in what gets sent — an element does.
+            {media.type === "manga" && isIntersecting && poster ? (
+              // An image element preserves native lazy loading for manga covers;
+              // their same-origin proxy also upgrades older saved CDN URLs.
               <img
-                src={media.poster}
+                src={poster}
                 alt=""
                 referrerPolicy="no-referrer"
                 decoding="async"
@@ -250,8 +254,8 @@ function MediaCardContent({
                 className="absolute inset-0 bg-cover bg-center"
                 style={{
                   backgroundImage: isIntersecting
-                    ? media.poster
-                      ? `url(${media.poster})`
+                    ? poster
+                      ? `url(${poster})`
                       : "url(/placeholder.png)"
                     : "",
                   filter: matureLocked

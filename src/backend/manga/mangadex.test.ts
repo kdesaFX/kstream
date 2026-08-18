@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   chapterBadge,
+  coverUrl,
   pickMangaTitle,
   proxiedMangaUrl,
   requestNeverLanded,
@@ -60,6 +61,15 @@ describe("chapterBadge", () => {
   it("shortens titled chapters that carry no number", () => {
     expect(chapterBadge("Oneshot")).toBe("Oneshot");
     expect(chapterBadge("A Very Long Oneshot Name")).toBe("A Very Long…");
+  });
+});
+
+describe("coverUrl", () => {
+  it("routes covers through the same-origin cached cover endpoint", () => {
+    expect(coverUrl("manga-id", "cover.jpg")).toBe(
+      "/api/manga-cover?source=mangadex&id=manga-id&file=cover.jpg&size=256",
+    );
+    expect(coverUrl("manga-id")).toBeUndefined();
   });
 });
 
