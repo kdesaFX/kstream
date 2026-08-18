@@ -61,6 +61,8 @@ export interface MangaChapterGroup {
 export interface MangaDetails extends MangaListItem {
   authors: string[];
   artists: string[];
+  availableChapterLanguages: string[];
+  chapterLanguage: string;
   chapterGroups: MangaChapterGroup[];
   chapters: MangaChapter[];
 }

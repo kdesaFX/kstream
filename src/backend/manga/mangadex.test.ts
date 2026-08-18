@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   chapterBadge,
+  coverUrl,
   pickMangaTitle,
   proxiedMangaUrl,
   requestNeverLanded,
+  selectChapterLanguage,
 } from "@/backend/manga/mangadex";
 
 describe("pickMangaTitle", () => {
@@ -59,6 +61,26 @@ describe("chapterBadge", () => {
   it("shortens titled chapters that carry no number", () => {
     expect(chapterBadge("Oneshot")).toBe("Oneshot");
     expect(chapterBadge("A Very Long Oneshot Name")).toBe("A Very Long…");
+  });
+});
+
+describe("coverUrl", () => {
+  it("routes covers through the same-origin cached cover endpoint", () => {
+    expect(coverUrl("manga-id", "cover.jpg")).toBe(
+      "/api/manga-cover?source=mangadex&id=manga-id&file=cover.jpg&size=256",
+    );
+    expect(coverUrl("manga-id")).toBeUndefined();
+  });
+});
+
+describe("selectChapterLanguage", () => {
+  it("uses the preferred language when the title has it", () => {
+    expect(selectChapterLanguage(["ru", "en", "tr"], "tr")).toBe("tr");
+  });
+
+  it("falls back to English and then the first available translation", () => {
+    expect(selectChapterLanguage(["ru", "en", "tr"], "fr")).toBe("en");
+    expect(selectChapterLanguage(["ru", "tr"], "fr")).toBe("ru");
   });
 });
 

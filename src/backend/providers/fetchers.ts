@@ -192,3 +192,40 @@ export function makeExtensionFetcher() {
   };
   return fetcher;
 }
+
+export function isExtensionNetworkError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /networkerror|failed to fetch|load failed|network request failed|name_not_resolved|could not resolve|connection refused/i.test(
+    message,
+  );
+}
+
+export function makeNetworkFallbackFetcher(
+  primaryFetcher: Fetcher,
+  fallbackFetcher: Fetcher,
+) {
+  let useFallback = false;
+  const fetcher: Fetcher = async (url, ops) => {
+    if (useFallback) return fallbackFetcher(url, ops);
+    try {
+      return await primaryFetcher(url, ops);
+    } catch (error) {
+      if (!isExtensionNetworkError(error)) throw error;
+      useFallback = true;
+      return fallbackFetcher(url, ops);
+    }
+  };
+  return fetcher;
+}
+
+/**
+ * Prefer the user's extension, but move the rest of the scrape session to the
+ * same-origin proxy when the local network blocks an upstream host. Once the
+ * extension reports a network failure, keeping later requests on the proxy
+ * also avoids repeatedly waiting for the same school/work DNS filter.
+ */
+export function makeExtensionWithProxyFallbackFetcher() {
+  const extensionFetcher = makeExtensionFetcher();
+  const proxyFetcher = makeLoadBalancedSimpleProxyFetcher();
+  return makeNetworkFallbackFetcher(extensionFetcher, proxyFetcher);
+}

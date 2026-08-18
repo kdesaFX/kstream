@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 
 import type { MangaArt } from "@/backend/manga/anilistArt";
 import type { MangaListItem } from "@/backend/manga/types";
-import { pickFeaturedManga, shuffle } from "@/pages/discover/lib/featuredManga";
+import type { TMDBShowSearchResult } from "@/backend/metadata/types/tmdb";
+import {
+  pickAnimeTmdbMatch,
+  pickFeaturedManga,
+  shuffle,
+} from "@/pages/discover/lib/featuredManga";
 
 function manga(
   overrides: Partial<MangaListItem> & { id: string },
@@ -61,6 +66,30 @@ describe("pickFeaturedManga", () => {
     expect(picked[1].wideArt).toBe(false);
   });
 
+  it("prefers anime adaptation art and carries its identity", () => {
+    const items = [manga({ id: "adapted" })];
+    const art = new Map([
+      [
+        "adapted",
+        {
+          ...banner,
+          animeBanner: "https://art/anime.jpg",
+          animeTitle: "The Anime",
+          animeYear: 2025,
+        },
+      ],
+    ]);
+
+    const [picked] = pickFeaturedManga(items, art, 1);
+
+    expect(picked).toMatchObject({
+      artUrl: "https://art/anime.jpg",
+      animeTitle: "The Anime",
+      animeYear: 2025,
+      wideArt: true,
+    });
+  });
+
   it("drops titles with no description or art at all", () => {
     const items = [
       manga({ id: "no-description", description: undefined }),
@@ -99,6 +128,30 @@ describe("pickFeaturedManga", () => {
       status: "completed",
       lastChapter: "97",
     });
+  });
+});
+
+describe("pickAnimeTmdbMatch", () => {
+  it("requires an exact title and uses the adaptation year to disambiguate", () => {
+    const show = (
+      id: number,
+      name: string,
+      firstAirDate: string,
+    ): TMDBShowSearchResult =>
+      ({
+        id,
+        name,
+        original_name: name,
+        first_air_date: firstAirDate,
+      }) as TMDBShowSearchResult;
+    const results = [
+      show(1, "The Anime: Extra", "2025-01-01"),
+      show(2, "The Anime", "1999-01-01"),
+      show(3, "The Anime", "2025-07-01"),
+    ];
+
+    expect(pickAnimeTmdbMatch(results, "The Anime", 2025)?.id).toBe(3);
+    expect(pickAnimeTmdbMatch(results, "Missing Anime", 2025)).toBeUndefined();
   });
 });
 

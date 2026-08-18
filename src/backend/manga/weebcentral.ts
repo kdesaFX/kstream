@@ -1,5 +1,9 @@
 import { ofetch } from "ofetch";
 
+import {
+  weebCentralCoverUrl,
+  weebCentralPageUrl,
+} from "@/backend/manga/covers";
 import { isWeebCentralId } from "@/backend/manga/ids";
 import { proxiedMangaUrl } from "@/backend/manga/mangadex";
 import type {
@@ -16,7 +20,6 @@ import {
 } from "@/utils/media/mature";
 
 const ORIGIN = "https://weebcentral.com";
-const COVER = "https://temp.compsci88.com/cover";
 
 export interface WeebCentralSearchHit {
   id: string;
@@ -113,7 +116,7 @@ export function normalizeMangaTitle(title: string): string {
 }
 
 function coverUrl(id: string): string {
-  return `${COVER}/normal/${id}.webp`;
+  return weebCentralCoverUrl(id);
 }
 
 function slugToTitle(slug: string): string {
@@ -214,7 +217,13 @@ function parseTypeDirection(html: string): MangaReadingDirection {
 export function parseSeriesPage(
   html: string,
   seriesId: string,
-): Omit<MangaDetails, "chapters" | "chapterGroups"> {
+): Omit<
+  MangaDetails,
+  | "chapters"
+  | "chapterGroups"
+  | "availableChapterLanguages"
+  | "chapterLanguage"
+> {
   const title =
     decodeHtmlEntities(/<h1[^>]*>([^<]+)<\/h1>/i.exec(html)?.[1] ?? "") ||
     "Untitled";
@@ -478,6 +487,8 @@ export async function getWeebCentralDetails(
   const details: MangaDetails = {
     ...base,
     lastChapter: chapters.at(-1)?.chapter ?? undefined,
+    availableChapterLanguages: ["en"],
+    chapterLanguage: "en",
     chapters,
     chapterGroups: groupChapters(chapters),
   };
@@ -499,5 +510,5 @@ export async function getWeebCentralChapterPages(
     `${ORIGIN}/chapters/${chapterId}/images?is_prev=False&reading_style=long_strip`,
     true,
   );
-  return parseChapterImages(html);
+  return parseChapterImages(html).map(weebCentralPageUrl);
 }

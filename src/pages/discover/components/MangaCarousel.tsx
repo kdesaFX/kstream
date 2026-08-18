@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { MANGA_DISCOVER_GENRES } from "@/backend/manga/mangaTags";
 import { MediaCard } from "@/components/media/MediaCard";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -24,6 +25,7 @@ export function MangaCarousel({
   onShowDetails,
   priority = false,
   dedupePriority,
+  genreId,
 }: {
   kind: MangaCarouselKind;
   enabled: boolean;
@@ -34,6 +36,7 @@ export function MangaCarousel({
   /** First rows fetch immediately; later rows wait until they are near the viewport. */
   priority?: boolean;
   dedupePriority?: number;
+  genreId?: string | null;
 }) {
   const { t } = useTranslation();
   const { ref: lazyRef, hasIntersected } =
@@ -47,6 +50,7 @@ export function MangaCarousel({
   const { media: rawMedia, hasLoaded, error } = useMangaDiscoverMedia(
     kind,
     shouldFetch,
+    genreId,
   );
   const media = useDedupedMangaCarouselMedia(dedupePriority, rawMedia, {
     enabled: shouldFetch,
@@ -83,7 +87,11 @@ export function MangaCarousel({
   }, [enabled, priority, hasIntersected, lazyRef]);
 
   const categorySlug = `manga-${kind}`;
-  const title = t(`discover.carousel.title.manga.${kind}`);
+  const genreName = MANGA_DISCOVER_GENRES.find(
+    (genre) => genre.id === genreId,
+  )?.name;
+  const baseTitle = t(`discover.carousel.title.manga.${kind}`);
+  const title = genreName ? `${genreName} · ${baseTitle}` : baseTitle;
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {

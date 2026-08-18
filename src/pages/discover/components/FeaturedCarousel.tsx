@@ -74,6 +74,8 @@ export interface FeaturedMedia extends Partial<Omit<Movie & TVShow, "id">> {
   mangaRating?: number;
   mangaStatus?: MangaStatus;
   mangaLastChapter?: string;
+  /** TMDB show id for a confirmed anime adaptation, used only for presentation. */
+  animeTmdbId?: number;
   year?: number;
 }
 
@@ -208,6 +210,7 @@ export function mangaToFeatured(item: FeaturedMangaItem): FeaturedMedia {
     mangaRating: item.rating,
     mangaStatus: item.status,
     mangaLastChapter: item.lastChapter,
+    animeTmdbId: item.animeTmdbId,
     year: item.year,
   };
 }
@@ -656,18 +659,20 @@ export function FeaturedCarousel({
       // Create new abort controller for this fetch
       logoFetchController.current = new AbortController();
 
-      const currentMediaId = media[currentIndex]?.id;
-      // Manga has no TMDB entry (and no clear logo art anywhere), so the hero
-      // uses its title text instead.
-      if (!currentMediaId || media[currentIndex]?.type === "manga") {
+      const current = media[currentIndex];
+      const currentMediaId = current?.id;
+      const presentationTmdbId =
+        current?.type === "manga" ? current.animeTmdbId : currentMediaId;
+      // Manga without a confirmed anime adaptation has no TMDB logo.
+      if (!currentMediaId || !presentationTmdbId) {
         setLogoUrl(undefined);
         return;
       }
 
       try {
         const logo = await getMediaLogo(
-          currentMediaId.toString(),
-          media[currentIndex].type === "movie"
+          presentationTmdbId.toString(),
+          current.type === "movie"
             ? TMDBContentTypes.MOVIE
             : TMDBContentTypes.TV,
         );
