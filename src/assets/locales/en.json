@@ -1785,7 +1785,9 @@
       "modeVertical": "Scroll mode",
       "prevChapter": "Prev",
       "nextChapter": "Next",
-      "scrollHint": "Scroll to read · arrows change chapter"
+      "scrollHint": "Scroll to read · arrows change chapter",
+      "chapterSearch": "Search chapter number or name",
+      "chapterSearchEmpty": "No matching chapters"
     }
   }
 }

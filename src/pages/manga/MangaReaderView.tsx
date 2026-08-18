@@ -245,6 +245,15 @@ export function MangaReaderView() {
   // Keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
       if (e.key === "Escape") {
         navigate(details ? mangaMediaLink(details.id, details.title) : "/");
         return;
