@@ -214,7 +214,13 @@ function parseTypeDirection(html: string): MangaReadingDirection {
 export function parseSeriesPage(
   html: string,
   seriesId: string,
-): Omit<MangaDetails, "chapters" | "chapterGroups"> {
+): Omit<
+  MangaDetails,
+  | "chapters"
+  | "chapterGroups"
+  | "availableChapterLanguages"
+  | "chapterLanguage"
+> {
   const title =
     decodeHtmlEntities(/<h1[^>]*>([^<]+)<\/h1>/i.exec(html)?.[1] ?? "") ||
     "Untitled";
