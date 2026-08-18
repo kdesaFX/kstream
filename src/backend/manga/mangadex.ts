@@ -276,6 +276,23 @@ function mapTags(manga: MdManga): MangaTag[] {
     .filter((t) => t.name);
 }
 
+function collectTitleHints(attrs: MdMangaAttributes): string[] {
+  const hints: string[] = [];
+  const add = (value?: string) => {
+    const trimmed = value?.trim();
+    if (trimmed && !hints.includes(trimmed)) hints.push(trimmed);
+  };
+  for (const value of Object.values(attrs.title ?? {})) {
+    if (typeof value === "string") add(value);
+  }
+  for (const alt of attrs.altTitles ?? []) {
+    for (const value of Object.values(alt)) {
+      if (typeof value === "string") add(value);
+    }
+  }
+  return hints;
+}
+
 function mapManga(
   manga: MdManga,
   stats?: { rating?: number; follows?: number },
@@ -288,6 +305,9 @@ function mapManga(
   const contentRating = parseContentRating(manga.attributes.contentRating);
   const tags = mapTags(manga);
   const originalLanguage = manga.attributes.originalLanguage;
+  const alternateTitles = collectTitleHints(manga.attributes).filter(
+    (hint) => hint !== title,
+  );
   return {
     id: manga.id,
     title: title || "Untitled",
@@ -303,6 +323,7 @@ function mapManga(
     lastChapter: manga.attributes.lastChapter ?? undefined,
     originalLanguage,
     readingDirection: readingDirectionFor(originalLanguage, tags),
+    alternateTitles: alternateTitles.length > 0 ? alternateTitles : undefined,
   };
 }
 

@@ -13,7 +13,7 @@ import type {
   MangaListItem,
 } from "@/backend/manga/types";
 import {
-  findWeebCentralChapters,
+  resolveWeebCentralChapters,
   getWeebCentralChapterPages,
   getWeebCentralDetails,
   normalizeMangaTitle,
@@ -37,9 +37,10 @@ function chapterNumber(ch: MangaChapter | undefined): number | null {
 async function enrichWithWeebCentralChapters(
   details: MangaDetails,
 ): Promise<MangaDetails> {
-  const wcChapters = await findWeebCentralChapters(details.title).catch(
-    () => null,
-  );
+  const wcChapters = await resolveWeebCentralChapters(
+    details.title,
+    details.alternateTitles ?? [],
+  ).catch(() => null);
   if (!wcChapters?.length) return details;
 
   if (details.chapters.length === 0) {

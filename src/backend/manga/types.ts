@@ -37,6 +37,8 @@ export interface MangaListItem {
   lastChapter?: string;
   originalLanguage?: string;
   readingDirection: MangaReadingDirection;
+  /** Romaji / alt names — used to find WeebCentral when MangaDex is licensed-only. */
+  alternateTitles?: string[];
 }
 
 export interface MangaChapter {

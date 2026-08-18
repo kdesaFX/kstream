@@ -261,6 +261,155 @@ export function pickMatchingSeries(
   return hits.find((hit) => normalizeMangaTitle(hit.title) === needle);
 }
 
+const SEARCH_STOP_WORDS = new Set([
+  "the",
+  "with",
+  "miss",
+  "and",
+  "our",
+  "your",
+  "my",
+  "me",
+  "dont",
+  "don't",
+  "a",
+  "an",
+  "of",
+  "to",
+  "in",
+  "on",
+  "at",
+  "for",
+]);
+
+function spinoffPenalty(title: string): number {
+  const t = title.toLowerCase();
+  if (/anthology|doujin|fan colored|spin.?off|side story|extra|omnibus/i.test(t)) {
+    return 20;
+  }
+  if (/\(volume\)|\bvol\b|\bnovel\b/i.test(t)) {
+    return 10;
+  }
+  return 0;
+}
+
+function significantTokens(title: string): string[] {
+  return title
+    .replace(/[!?,.'’]/g, " ")
+    .split(/\s+/)
+    .map((word) => word.toLowerCase())
+    .filter((word) => word.length >= 4 && !SEARCH_STOP_WORDS.has(word));
+}
+
+function tokenOverlapScore(query: string, candidate: string): number {
+  const queryTokens = significantTokens(query);
+  if (queryTokens.length === 0) return 0;
+  const candidateNorm = normalizeMangaTitle(candidate);
+  return queryTokens.filter((token) => candidateNorm.includes(token)).length;
+}
+
+/** Pick the main series when exact-title match fails (licensed MD → WC fallback). */
+export function pickBestSeriesHit(
+  query: string,
+  hits: WeebCentralSearchHit[],
+): WeebCentralSearchHit | undefined {
+  if (hits.length === 0) return undefined;
+  const exact = pickMatchingSeries(query, hits);
+  if (exact) return exact;
+
+  const needle = normalizeMangaTitle(query);
+  if (!needle) return undefined;
+
+  const ranked = [...hits].sort((a, b) => {
+    const score = (raw: string) => {
+      const n = normalizeMangaTitle(raw);
+      let s = spinoffPenalty(raw);
+      if (n === needle) s -= 30;
+      else if (n.includes(needle) || needle.includes(n)) s -= 10;
+      else s += 5;
+      s -= tokenOverlapScore(query, raw) * 8;
+      return s;
+    };
+    return score(a.title) - score(b.title);
+  });
+
+  const best = ranked[0];
+  if (!best) return undefined;
+  const nBest = normalizeMangaTitle(best.title);
+  const overlap = tokenOverlapScore(query, best.title);
+  if (
+    nBest === needle ||
+    nBest.includes(needle) ||
+    needle.includes(nBest) ||
+    overlap > 0 ||
+    (significantTokens(query).length === 0 && needle.length >= 4)
+  ) {
+    return best;
+  }
+  return undefined;
+}
+
+export function buildFallbackSearchQueries(
+  title: string,
+  alternateTitles: string[] = [],
+): string[] {
+  const out: string[] = [];
+  const add = (value?: string) => {
+    const trimmed = value?.trim();
+    if (trimmed && !out.some((q) => normalizeMangaTitle(q) === normalizeMangaTitle(trimmed))) {
+      out.push(trimmed);
+    }
+  };
+
+  add(title);
+  for (const alt of alternateTitles) add(alt);
+  add(title.replace(/[!?,.'’]/g, ""));
+
+  const tokens = title
+    .replace(/[!?,.'’]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length >= 4 && !SEARCH_STOP_WORDS.has(word.toLowerCase()))
+    .sort((a, b) => b.length - a.length);
+  for (const token of tokens.slice(0, 3)) add(token);
+
+  return out;
+}
+
+async function loadWeebCentralChaptersForQuery(
+  query: string,
+): Promise<MangaChapter[] | null> {
+  const q = query.trim();
+  if (!q) return null;
+  const items = await searchWeebCentral(q, 16);
+  const hits: WeebCentralSearchHit[] = items.map((item) => ({
+    id: item.id,
+    slug: "",
+    title: item.title,
+    poster: item.poster,
+  }));
+  const match = pickBestSeriesHit(q, hits);
+  if (!match) return null;
+  const details = await getWeebCentralDetails(match.id);
+  return details.chapters.length > 0 ? details.chapters : null;
+}
+
+/**
+ * Resolve readable chapters from WeebCentral when MangaDex is empty or
+ * licensed-only. Tries the display title, romaji/alts, then distinctive tokens.
+ */
+export async function resolveWeebCentralChapters(
+  title: string,
+  alternateTitles: string[] = [],
+): Promise<MangaChapter[] | null> {
+  for (const query of buildFallbackSearchQueries(title, alternateTitles)) {
+    const chapters = await loadWeebCentralChaptersForQuery(query).catch(
+      () => null,
+    );
+    if (chapters?.length) return chapters;
+  }
+  return null;
+}
+
 function hitToListItem(hit: WeebCentralSearchHit): MangaListItem {
   return {
     id: hit.id,
@@ -336,23 +485,11 @@ export async function getWeebCentralDetails(
   return details;
 }
 
-/** Exact-title match only — a close-but-wrong series is worse than no chapters. */
+/** @deprecated Prefer resolveWeebCentralChapters — kept for callers that only pass one title. */
 export async function findWeebCentralChapters(
   title: string,
 ): Promise<MangaChapter[] | null> {
-  const q = title.trim();
-  if (!q) return null;
-  const items = await searchWeebCentral(q, 8);
-  const hits: WeebCentralSearchHit[] = items.map((item) => ({
-    id: item.id,
-    slug: "",
-    title: item.title,
-    poster: item.poster,
-  }));
-  const match = pickMatchingSeries(q, hits);
-  if (!match) return null;
-  const details = await getWeebCentralDetails(match.id);
-  return details.chapters.length > 0 ? details.chapters : null;
+  return resolveWeebCentralChapters(title);
 }
 
 export async function getWeebCentralChapterPages(

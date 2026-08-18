@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildFallbackSearchQueries,
   decodeHtmlEntities,
   isUsableWeebCentralHtml,
   normalizeMangaTitle,
@@ -9,6 +10,7 @@ import {
   parseChapterList,
   parseSearchResults,
   parseSeriesPage,
+  pickBestSeriesHit,
   pickMatchingSeries,
 } from "@/backend/manga/weebcentral";
 
@@ -118,5 +120,40 @@ describe("weebcentral parsers", () => {
         '<a href="https://weebcentral.com/series/01J76XYCPSY3C4BNPBRY8JMCBE/Solo-Leveling">Solo Leveling</a>',
       ),
     ).toBe(true);
+  });
+
+  it("builds fallback search queries from long licensed titles", () => {
+    const queries = buildFallbackSearchQueries(
+      "Don't Toy With Me, Miss Nagatoro!",
+      ["Ijiranaide, Nagatoro-san"],
+    );
+    expect(queries[0]).toBe("Don't Toy With Me, Miss Nagatoro!");
+    expect(queries).toContain("Ijiranaide, Nagatoro-san");
+    expect(queries).toContain("Nagatoro");
+  });
+
+  it("picks the main series when the English title does not match WC exactly", () => {
+    const hits = parseSearchResults(SEARCH_HTML);
+    const nagatoroHits = [
+      ...hits,
+      {
+        id: "01NAGATOROMAIN000000000001",
+        slug: "Ijiranaide-Nagatoro-san",
+        title: "Ijiranaide Nagatoro san",
+        poster: "",
+      },
+      {
+        id: "01NAGATOROSPIN000000000002",
+        slug: "Nagatoro-Anthology",
+        title: "Nagatoro Anthology",
+        poster: "",
+      },
+    ];
+    expect(
+      pickBestSeriesHit("Don't Toy With Me, Miss Nagatoro!", nagatoroHits)?.title,
+    ).toBe("Ijiranaide Nagatoro san");
+    expect(
+      pickBestSeriesHit("Nagatoro", nagatoroHits)?.title,
+    ).toBe("Ijiranaide Nagatoro san");
   });
 });
