@@ -15,11 +15,15 @@ import {
   chapterLabel,
   chapterPageUrls,
   getChapterAtHome,
+  proxiedChapterPageUrls,
 } from "@/backend/manga/mangadex";
 import type { MangaChapter, MangaDetails } from "@/backend/manga/types";
 import { Icon, Icons } from "@/components/Icon";
 import { useMangaProgressStore } from "@/stores/mangaProgress";
+import { mangaProgressHasMeaningfulRead } from "@/stores/mangaProgress/utils";
 import { usePreferencesStore } from "@/stores/preferences";
+
+import { MangaChapterPicker } from "./MangaChapterPicker";
 
 function PageImage({
   src,
@@ -81,8 +85,7 @@ export function MangaReaderView() {
   const retried = useRef(false);
 
   const chapterId = chapterParam ? decodeURIComponent(chapterParam) : undefined;
-  const pageReferrer =
-    chapterId && isWeebCentralId(chapterId) ? "no-referrer" : "origin";
+  const pageReferrer = "no-referrer";
 
   // Same route serves every manga, so details are only usable for the one
   // currently in the URL — otherwise the chapter list and resume redirect below
@@ -124,11 +127,14 @@ export function MangaReaderView() {
     };
   }, [mangaId, preferredLanguage]);
 
-  // Redirect /manga/:id → first or resume chapter
+  // Redirect /manga/:id → first chapter or resume after meaningful read
   useEffect(() => {
     if (!mangaId || !details || chapterId) return;
     const resume = savedProgress[mangaId];
-    const target = resume?.chapterId || details.chapters[0]?.id;
+    const target =
+      resume && mangaProgressHasMeaningfulRead(resume)
+        ? resume.chapterId
+        : details.chapters[0]?.id;
     if (target) {
       navigate(mangaChapterLink(details.id, details.title, target), {
         replace: true,
@@ -271,7 +277,7 @@ export function MangaReaderView() {
       if (urls[index]) {
         setPages((prev) => {
           const copy = [...prev];
-          copy[index] = urls[index];
+          copy[index] = proxiedChapterPageUrls([urls[index]])[0] ?? urls[index];
           return copy;
         });
       }
@@ -310,9 +316,17 @@ export function MangaReaderView() {
           </Link>
           <div className="flex-1 min-w-0">
             <div className="truncate font-semibold text-sm">{title}</div>
-            <div className="truncate text-xs text-white/60">
-              {currentChapter ? chapterLabel(currentChapter) : "…"}
-            </div>
+            {chapters.length > 0 && chapterId ? (
+              <MangaChapterPicker
+                chapters={chapters}
+                currentChapterId={chapterId}
+                onSelect={(ch) => goChapter(ch)}
+              />
+            ) : (
+              <div className="truncate text-xs text-white/60">
+                {currentChapter ? chapterLabel(currentChapter) : "…"}
+              </div>
+            )}
           </div>
           <button
             type="button"

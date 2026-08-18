@@ -3,6 +3,7 @@ import {
   chapterPageUrls,
   getChapterAtHome,
   getMangaDetails as getMangaDexDetails,
+  proxiedChapterPageUrls,
   searchManga as searchMangaDex,
 } from "@/backend/manga/mangadex";
 import type {
@@ -21,6 +22,60 @@ import {
 
 function asSingleGroup(chapters: MangaChapter[]): MangaChapterGroup[] {
   return [{ volume: "none", chapters }];
+}
+
+function chapterNumber(ch: MangaChapter | undefined): number | null {
+  if (!ch?.chapter) return null;
+  const n = parseFloat(ch.chapter);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * MangaDex often only hosts later chapters (licensed gaps). When WeebCentral
+ * has an earlier start or a fuller list, prefer it so "Read" opens at ch. 1.
+ */
+async function enrichWithWeebCentralChapters(
+  details: MangaDetails,
+): Promise<MangaDetails> {
+  const wcChapters = await findWeebCentralChapters(details.title).catch(
+    () => null,
+  );
+  if (!wcChapters?.length) return details;
+
+  if (details.chapters.length === 0) {
+    return {
+      ...details,
+      chapters: wcChapters,
+      chapterGroups: asSingleGroup(wcChapters),
+      lastChapter: wcChapters.at(-1)?.chapter ?? details.lastChapter,
+    };
+  }
+
+  const mdFirst = chapterNumber(details.chapters[0]);
+  const wcFirst = chapterNumber(wcChapters[0]);
+  if (
+    mdFirst != null &&
+    wcFirst != null &&
+    (wcFirst < mdFirst || mdFirst > 1)
+  ) {
+    return {
+      ...details,
+      chapters: wcChapters,
+      chapterGroups: asSingleGroup(wcChapters),
+      lastChapter: wcChapters.at(-1)?.chapter ?? details.lastChapter,
+    };
+  }
+
+  if (wcChapters.length > details.chapters.length * 2) {
+    return {
+      ...details,
+      chapters: wcChapters,
+      chapterGroups: asSingleGroup(wcChapters),
+      lastChapter: wcChapters.at(-1)?.chapter ?? details.lastChapter,
+    };
+  }
+
+  return details;
 }
 
 /**
@@ -47,19 +102,7 @@ export async function getMangaDetails(
   if (isWeebCentralId(mangaId)) return getWeebCentralDetails(mangaId);
 
   const details = await getMangaDexDetails(mangaId, preferredLanguage);
-  if (details.chapters.length > 0) return details;
-
-  const chapters = await findWeebCentralChapters(details.title).catch((err) => {
-    console.warn("WeebCentral chapter fallback failed:", details.title, err);
-    return null;
-  });
-  if (!chapters?.length) return details;
-  return {
-    ...details,
-    chapters,
-    chapterGroups: asSingleGroup(chapters),
-    lastChapter: details.lastChapter ?? chapters.at(-1)?.chapter ?? undefined,
-  };
+  return enrichWithWeebCentralChapters(details);
 }
 
 export async function getChapterPages(chapterId: string): Promise<string[]> {
@@ -68,5 +111,7 @@ export async function getChapterPages(chapterId: string): Promise<string[]> {
   }
   const atHome = await getChapterAtHome(chapterId);
   const full = chapterPageUrls(atHome, "data");
-  return full.length > 0 ? full : chapterPageUrls(atHome, "data-saver");
+  const urls =
+    full.length > 0 ? full : chapterPageUrls(atHome, "data-saver");
+  return proxiedChapterPageUrls(urls);
 }

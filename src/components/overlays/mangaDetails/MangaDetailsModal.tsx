@@ -16,6 +16,7 @@ import { OverlayPortal } from "@/components/overlays/OverlayDisplay";
 import { Heading2 } from "@/components/utils/Text";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { useMangaProgressStore } from "@/stores/mangaProgress";
+import { mangaProgressHasMeaningfulRead } from "@/stores/mangaProgress/utils";
 import { usePreferencesStore } from "@/stores/preferences";
 
 export function MangaDetailsModal({ id }: { id: string }) {
@@ -75,7 +76,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
   const resume = progress[mangaId];
   const statusKey = details ? mangaStatusKey(details.status) : null;
   const startChapterId = useMemo(() => {
-    if (resume?.chapterId) return resume.chapterId;
+    if (resume && mangaProgressHasMeaningfulRead(resume)) return resume.chapterId;
     return details?.chapters[0]?.id;
   }, [resume, details]);
 

@@ -21,6 +21,16 @@ export default async function handler(request: Request): Promise<Response> {
     const target = assertSafeDestination(destination);
     const upstreamHeaders = buildUpstreamHeaders(request.headers);
 
+    const host = target.hostname.toLowerCase();
+    if (
+      (host.endsWith(".mangadex.network") ||
+        host === "uploads.mangadex.org") &&
+      !upstreamHeaders.has("Referer")
+    ) {
+      // MangaDex page nodes 404 unless the referrer is their own site.
+      upstreamHeaders.set("Referer", "https://mangadex.org/");
+    }
+
     const init: RequestInit = {
       method: request.method,
       headers: upstreamHeaders,

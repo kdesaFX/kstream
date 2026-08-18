@@ -615,6 +615,14 @@ export function chapterPageUrls(
   );
 }
 
+/** MangaDex CDN blocks hotlinks from our origin — route pages through /api/proxy. */
+export function proxiedChapterPageUrls(urls: string[]): string[] {
+  if (typeof window === "undefined") return urls;
+  const proxies = getProxyUrls();
+  if (!proxies.length) return urls;
+  return urls.map((url) => proxiedMangaUrl(url, proxies) ?? url);
+}
+
 export function chapterLabel(ch: MangaChapter): string {
   if (ch.chapter) {
     return ch.title
