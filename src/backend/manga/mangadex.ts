@@ -357,7 +357,7 @@ function listQuery(
   order: MangaOrder,
   limit: number,
   offset = 0,
-  includedTags?: string[],
+  includedTags: string[] = [],
 ) {
   const query: Record<string, string | string[] | number> = {
     limit,

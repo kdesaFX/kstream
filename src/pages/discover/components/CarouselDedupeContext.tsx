@@ -11,7 +11,7 @@ interface ClaimableMedia {
   id: string | number;
   title?: string;
   name?: string;
-  release_date?: string;
+  release_date?: string | Date;
   first_air_date?: string;
   year?: number;
   vote_count?: number;
@@ -31,8 +31,13 @@ const CarouselDedupeContext = createContext<CarouselDedupeContextValue | null>(
   null,
 );
 
-function yearFromDate(date?: string): string {
-  if (!date || date.length < 4) return "";
+function yearFromDate(date?: string | Date): string {
+  if (!date) return "";
+  if (date instanceof Date) {
+    const year = date.getFullYear();
+    return Number.isFinite(year) && year > 0 ? String(year) : "";
+  }
+  if (date.length < 4) return "";
   return date.slice(0, 4);
 }
 

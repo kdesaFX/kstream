@@ -1,3 +1,4 @@
+/* eslint-disable import/no-extraneous-dependencies */
 import { describe, expect, it } from "vitest";
 
 import type { MangaChapter } from "@/backend/manga/types";
