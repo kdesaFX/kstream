@@ -22,6 +22,7 @@ import { Icon, Icons } from "@/components/Icon";
 import { useMangaProgressStore } from "@/stores/mangaProgress";
 import { mangaProgressHasMeaningfulRead } from "@/stores/mangaProgress/utils";
 import { usePreferencesStore } from "@/stores/preferences";
+import { getPrettyLanguageNameFromLocale } from "@/utils/locale/language";
 
 import { MangaChapterPicker } from "./MangaChapterPicker";
 
@@ -64,6 +65,9 @@ export function MangaReaderView() {
   const preferredLanguage = usePreferencesStore(
     (s) => s.mangaPreferredLanguage,
   );
+  const setPreferredLanguage = usePreferencesStore(
+    (s) => s.setMangaPreferredLanguage,
+  );
   const readerMode = usePreferencesStore((s) => s.mangaReaderMode);
   const setReaderMode = usePreferencesStore((s) => s.setMangaReaderMode);
   const updateProgress = useMangaProgressStore((s) => s.updateProgress);
@@ -74,6 +78,7 @@ export function MangaReaderView() {
 
   const [loadedDetails, setLoadedDetails] = useState<{
     mangaId: string;
+    language: string;
     details: MangaDetails;
   } | null>(null);
   const [pages, setPages] = useState<string[]>([]);
@@ -82,6 +87,7 @@ export function MangaReaderView() {
   const [error, setError] = useState<string | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
   const touchStartX = useRef<number | null>(null);
+  const chapterNumberBeforeLanguageChange = useRef<string | null>(null);
   const retried = useRef(false);
 
   const chapterId = chapterParam ? decodeURIComponent(chapterParam) : undefined;
@@ -91,7 +97,9 @@ export function MangaReaderView() {
   // currently in the URL — otherwise the chapter list and resume redirect below
   // would come from whichever manga was open before.
   const details =
-    loadedDetails && loadedDetails.mangaId === mangaId
+    loadedDetails &&
+    loadedDetails.mangaId === mangaId &&
+    loadedDetails.language === preferredLanguage
       ? loadedDetails.details
       : null;
 
@@ -116,7 +124,13 @@ export function MangaReaderView() {
     let cancelled = false;
     getMangaDetails(mangaId, preferredLanguage)
       .then((d) => {
-        if (!cancelled) setLoadedDetails({ mangaId, details: d });
+        if (!cancelled) {
+          setLoadedDetails({
+            mangaId,
+            language: preferredLanguage,
+            details: d,
+          });
+        }
       })
       .catch((e) => {
         if (!cancelled)
@@ -126,6 +140,21 @@ export function MangaReaderView() {
       cancelled = true;
     };
   }, [mangaId, preferredLanguage]);
+
+  // Keep the reader on the equivalent chapter when the translation changes.
+  useEffect(() => {
+    if (!details || !chapterId || chapterIndex >= 0 || chapters.length === 0) {
+      return;
+    }
+    const previousNumber = chapterNumberBeforeLanguageChange.current;
+    const target =
+      chapters.find((chapter) => chapter.chapter === previousNumber) ??
+      chapters[0];
+    chapterNumberBeforeLanguageChange.current = null;
+    navigate(mangaChapterLink(details.id, details.title, target.id), {
+      replace: true,
+    });
+  }, [details, chapterId, chapterIndex, chapters, navigate]);
 
   // Redirect /manga/:id → first chapter or resume after meaningful read
   useEffect(() => {
@@ -226,6 +255,11 @@ export function MangaReaderView() {
   const goChapter = (ch?: MangaChapter) => {
     if (!details || !ch) return;
     navigate(mangaChapterLink(details.id, details.title, ch.id));
+  };
+
+  const changeLanguage = (language: string) => {
+    chapterNumberBeforeLanguageChange.current = currentChapter?.chapter ?? null;
+    setPreferredLanguage(language);
   };
 
   const turnPage = useCallback(
@@ -332,11 +366,28 @@ export function MangaReaderView() {
           <div className="flex-1 min-w-0">
             <div className="truncate font-semibold text-sm">{title}</div>
             {chapters.length > 0 && chapterId ? (
-              <MangaChapterPicker
-                chapters={chapters}
-                currentChapterId={chapterId}
-                onSelect={(ch) => goChapter(ch)}
-              />
+              <div className="flex min-w-0 items-center gap-2">
+                {details && details.availableChapterLanguages.length > 1 ? (
+                  <select
+                    value={details.chapterLanguage}
+                    onChange={(e) => changeLanguage(e.target.value)}
+                    className="max-w-28 shrink-0 rounded border border-white/15 bg-black/80 px-1.5 py-0.5 text-xs text-white/70 outline-none hover:text-white"
+                    aria-label={t("manga.reader.chapterLanguage")}
+                  >
+                    {details.availableChapterLanguages.map((language) => (
+                      <option key={language} value={language}>
+                        {getPrettyLanguageNameFromLocale(language) ??
+                          language.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                <MangaChapterPicker
+                  chapters={chapters}
+                  currentChapterId={chapterId}
+                  onSelect={(ch) => goChapter(ch)}
+                />
+              </div>
             ) : (
               <div className="truncate text-xs text-white/60">
                 {currentChapter ? chapterLabel(currentChapter) : "…"}

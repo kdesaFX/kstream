@@ -1786,6 +1786,7 @@
       "prevChapter": "Prev",
       "nextChapter": "Next",
       "scrollHint": "Scroll to read · arrows change chapter",
+      "chapterLanguage": "Chapter language",
       "chapterSearch": "Search chapter number or name",
       "chapterSearchEmpty": "No matching chapters"
     }

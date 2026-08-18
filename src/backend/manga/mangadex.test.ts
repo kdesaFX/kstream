@@ -6,6 +6,7 @@ import {
   pickMangaTitle,
   proxiedMangaUrl,
   requestNeverLanded,
+  selectChapterLanguage,
 } from "@/backend/manga/mangadex";
 
 describe("pickMangaTitle", () => {
@@ -59,6 +60,17 @@ describe("chapterBadge", () => {
   it("shortens titled chapters that carry no number", () => {
     expect(chapterBadge("Oneshot")).toBe("Oneshot");
     expect(chapterBadge("A Very Long Oneshot Name")).toBe("A Very Long…");
+  });
+});
+
+describe("selectChapterLanguage", () => {
+  it("uses the preferred language when the title has it", () => {
+    expect(selectChapterLanguage(["ru", "en", "tr"], "tr")).toBe("tr");
+  });
+
+  it("falls back to English and then the first available translation", () => {
+    expect(selectChapterLanguage(["ru", "en", "tr"], "fr")).toBe("en");
+    expect(selectChapterLanguage(["ru", "tr"], "fr")).toBe("ru");
   });
 });
 

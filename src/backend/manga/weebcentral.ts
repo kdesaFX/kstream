@@ -478,6 +478,8 @@ export async function getWeebCentralDetails(
   const details: MangaDetails = {
     ...base,
     lastChapter: chapters.at(-1)?.chapter ?? undefined,
+    availableChapterLanguages: ["en"],
+    chapterLanguage: "en",
     chapters,
     chapterGroups: groupChapters(chapters),
   };

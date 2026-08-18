@@ -24,6 +24,22 @@ function asSingleGroup(chapters: MangaChapter[]): MangaChapterGroup[] {
   return [{ volume: "none", chapters }];
 }
 
+function withEnglishChapters(
+  details: MangaDetails,
+  chapters: MangaChapter[],
+): MangaDetails {
+  return {
+    ...details,
+    availableChapterLanguages: [
+      ...new Set([...details.availableChapterLanguages, "en"]),
+    ],
+    chapterLanguage: "en",
+    chapters,
+    chapterGroups: asSingleGroup(chapters),
+    lastChapter: chapters.at(-1)?.chapter ?? details.lastChapter,
+  };
+}
+
 function chapterNumber(ch: MangaChapter | undefined): number | null {
   if (!ch?.chapter) return null;
   const n = parseFloat(ch.chapter);
@@ -36,6 +52,7 @@ function chapterNumber(ch: MangaChapter | undefined): number | null {
  */
 async function enrichWithWeebCentralChapters(
   details: MangaDetails,
+  preferEnglish: boolean,
 ): Promise<MangaDetails> {
   const wcChapters = await resolveWeebCentralChapters(
     details.title,
@@ -43,13 +60,17 @@ async function enrichWithWeebCentralChapters(
   ).catch(() => null);
   if (!wcChapters?.length) return details;
 
-  if (details.chapters.length === 0) {
+  if (!preferEnglish) {
     return {
       ...details,
-      chapters: wcChapters,
-      chapterGroups: asSingleGroup(wcChapters),
-      lastChapter: wcChapters.at(-1)?.chapter ?? details.lastChapter,
+      availableChapterLanguages: [
+        ...new Set([...details.availableChapterLanguages, "en"]),
+      ],
     };
+  }
+
+  if (details.chapterLanguage !== "en" || details.chapters.length === 0) {
+    return withEnglishChapters(details, wcChapters);
   }
 
   const mdFirst = chapterNumber(details.chapters[0]);
@@ -59,21 +80,11 @@ async function enrichWithWeebCentralChapters(
     wcFirst != null &&
     (wcFirst < mdFirst || mdFirst > 1)
   ) {
-    return {
-      ...details,
-      chapters: wcChapters,
-      chapterGroups: asSingleGroup(wcChapters),
-      lastChapter: wcChapters.at(-1)?.chapter ?? details.lastChapter,
-    };
+    return withEnglishChapters(details, wcChapters);
   }
 
   if (wcChapters.length > details.chapters.length * 2) {
-    return {
-      ...details,
-      chapters: wcChapters,
-      chapterGroups: asSingleGroup(wcChapters),
-      lastChapter: wcChapters.at(-1)?.chapter ?? details.lastChapter,
-    };
+    return withEnglishChapters(details, wcChapters);
   }
 
   return details;
@@ -103,7 +114,7 @@ export async function getMangaDetails(
   if (isWeebCentralId(mangaId)) return getWeebCentralDetails(mangaId);
 
   const details = await getMangaDexDetails(mangaId, preferredLanguage);
-  return enrichWithWeebCentralChapters(details);
+  return enrichWithWeebCentralChapters(details, preferredLanguage === "en");
 }
 
 export async function getChapterPages(chapterId: string): Promise<string[]> {
@@ -112,7 +123,6 @@ export async function getChapterPages(chapterId: string): Promise<string[]> {
   }
   const atHome = await getChapterAtHome(chapterId);
   const full = chapterPageUrls(atHome, "data");
-  const urls =
-    full.length > 0 ? full : chapterPageUrls(atHome, "data-saver");
+  const urls = full.length > 0 ? full : chapterPageUrls(atHome, "data-saver");
   return proxiedChapterPageUrls(urls);
 }
