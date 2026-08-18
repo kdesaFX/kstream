@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { MANGA_GENRE_TAGS, type MangaGenreTagKey } from "@/backend/manga/mangaTags";
 import {
   listManga,
   mangaToMediaItem,
@@ -13,8 +12,7 @@ export type MangaCarouselKind =
   | "popular"
   | "topRated"
   | "latest"
-  | "recentlyAdded"
-  | MangaGenreTagKey;
+  | "recentlyAdded";
 
 const ORDER: Record<
   "popular" | "topRated" | "latest" | "recentlyAdded",
@@ -26,15 +24,20 @@ const ORDER: Record<
   recentlyAdded: "createdAt",
 };
 
-function isGenreKind(
+export function mangaDiscoverQuery(
   kind: MangaCarouselKind,
-): kind is MangaGenreTagKey {
-  return kind in MANGA_GENRE_TAGS;
+  genreId?: string | null,
+) {
+  return {
+    order: ORDER[kind],
+    includedTags: genreId ? [genreId] : undefined,
+  };
 }
 
 export function useMangaDiscoverMedia(
   kind: MangaCarouselKind,
   enabled: boolean,
+  genreId?: string | null,
 ) {
   const enableMatureTitles = usePreferencesStore((s) => s.enableMatureTitles);
   const [media, setMedia] = useState<MediaItem[]>([]);
@@ -45,17 +48,16 @@ export function useMangaDiscoverMedia(
   const refetch = useCallback(async () => {
     if (!enabled) return;
     setIsLoading(true);
+    setHasLoaded(false);
+    setMedia([]);
     setError(null);
     try {
-      const includedTags = isGenreKind(kind)
-        ? [MANGA_GENRE_TAGS[kind]]
-        : undefined;
-      const order = isGenreKind(kind) ? "followedCount" : ORDER[kind];
+      const query = mangaDiscoverQuery(kind, genreId);
       const items = await listManga({
-        order,
+        order: query.order,
         limit: 24,
         includeStats: false,
-        includedTags,
+        includedTags: query.includedTags,
       });
       setMedia(items.map(mangaToMediaItem));
     } catch (e) {
@@ -65,7 +67,7 @@ export function useMangaDiscoverMedia(
       setIsLoading(false);
       setHasLoaded(true);
     }
-  }, [kind, enabled, enableMatureTitles]);
+  }, [kind, enabled, genreId, enableMatureTitles]);
 
   useEffect(() => {
     refetch();

@@ -317,7 +317,7 @@ export function DiscoverContent() {
     let dedupe = 0;
     const rowPriority = () => carousels.length < 3;
 
-    if (mangaRecSources.length > 0) {
+    if (mangaRecSources.length > 0 && !selectedGenreId) {
       carousels.push(
         <MangaRecommendationsCarousel
           key="manga-recommendations"
@@ -336,12 +336,6 @@ export function DiscoverContent() {
       "latest",
       "topRated",
       "recentlyAdded",
-      "action",
-      "romance",
-      "fantasy",
-      "comedy",
-      "drama",
-      "sliceOfLife",
     ];
 
     for (const kind of kinds) {
@@ -354,12 +348,17 @@ export function DiscoverContent() {
           carouselRefs={carouselRefs}
           onShowDetails={handleShowDetails}
           dedupePriority={dedupe++}
+          genreId={selectedGenreId}
         />,
       );
     }
 
     return (
-      <CarouselDedupeProvider key="manga-dedupe">{carousels}</CarouselDedupeProvider>
+      <CarouselDedupeProvider
+        key={`manga-dedupe-${selectedGenreId ?? "all"}`}
+      >
+        {carousels}
+      </CarouselDedupeProvider>
     );
   };
 

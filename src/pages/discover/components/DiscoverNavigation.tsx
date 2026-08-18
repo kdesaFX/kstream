@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useWindowSize } from "react-use";
 
+import { MANGA_DISCOVER_GENRES } from "@/backend/manga/mangaTags";
 import { Icon, Icons } from "@/components/Icon";
 import {
   MediaType,
@@ -43,11 +44,14 @@ export function DiscoverNavigation({
   const enableMangaDiscover = usePreferencesStore((s) => s.enableMangaDiscover);
   const [genresExpanded, setGenresExpanded] = useState(false);
 
-  const showGenreBar =
-    selectedCategory === "movies" || selectedCategory === "tvshows";
+  const showGenreBar = CATEGORIES.includes(
+    selectedCategory as (typeof CATEGORIES)[number],
+  );
   const mediaType: MediaType =
     selectedCategory === "tvshows" ? "tv" : "movie";
-  const { genres } = useDiscoverOptions(mediaType);
+  const { genres: mediaGenres } = useDiscoverOptions(mediaType);
+  const genres =
+    selectedCategory === "manga" ? MANGA_DISCOVER_GENRES : mediaGenres;
   const tabs = CATEGORIES.filter(
     (c) => c !== "manga" || enableMangaDiscover,
   );
@@ -71,7 +75,7 @@ export function DiscoverNavigation({
     genresExpanded,
   ]);
 
-  // Collapse when switching Movies / TV so the bar resets.
+  // Collapse when switching content type so the bar resets.
   useEffect(() => {
     setGenresExpanded(false);
   }, [selectedCategory, mediaType]);
