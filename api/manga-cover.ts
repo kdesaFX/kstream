@@ -13,6 +13,27 @@ function validId(value: string | null): value is string {
 export function mangaCoverDestination(requestUrl: string): URL {
   const request = new URL(requestUrl);
   const source = request.searchParams.get("source");
+
+  if (source === "weebcentral-page") {
+    const rawUrl = request.searchParams.get("url");
+    if (!rawUrl) throw new Error("Invalid page URL");
+    let pageUrl: URL;
+    try {
+      pageUrl = new URL(rawUrl);
+    } catch {
+      throw new Error("Invalid page URL");
+    }
+    if (
+      pageUrl.protocol !== "https:" ||
+      pageUrl.hostname !== "hot.planeptune.us" ||
+      !pageUrl.pathname.startsWith("/manga/") ||
+      !/\.(png|jpe?g|webp|gif)$/i.test(pageUrl.pathname)
+    ) {
+      throw new Error("Invalid page URL");
+    }
+    return pageUrl;
+  }
+
   const id = request.searchParams.get("id");
   if (!validId(id)) throw new Error("Invalid manga id");
 

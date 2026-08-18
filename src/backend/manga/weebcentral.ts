@@ -1,6 +1,9 @@
 import { ofetch } from "ofetch";
 
-import { weebCentralCoverUrl } from "@/backend/manga/covers";
+import {
+  weebCentralCoverUrl,
+  weebCentralPageUrl,
+} from "@/backend/manga/covers";
 import { isWeebCentralId } from "@/backend/manga/ids";
 import { proxiedMangaUrl } from "@/backend/manga/mangadex";
 import type {
@@ -507,5 +510,5 @@ export async function getWeebCentralChapterPages(
     `${ORIGIN}/chapters/${chapterId}/images?is_prev=False&reading_style=long_strip`,
     true,
   );
-  return parseChapterImages(html);
+  return parseChapterImages(html).map(weebCentralPageUrl);
 }

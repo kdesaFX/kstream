@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   proxiedMangaCoverUrl,
   weebCentralCoverUrl,
+  weebCentralPageUrl,
 } from "@/backend/manga/covers";
 
 describe("proxiedMangaCoverUrl", () => {
@@ -31,6 +32,16 @@ describe("proxiedMangaCoverUrl", () => {
     );
     expect(proxiedMangaCoverUrl("https://images.example.com/cover.jpg")).toBe(
       "https://images.example.com/cover.jpg",
+    );
+  });
+
+  it("routes WeebCentral pages through the cached same-origin endpoint", () => {
+    expect(
+      weebCentralPageUrl(
+        "https://hot.planeptune.us/manga/Onepunch-Man/0001-001.png",
+      ),
+    ).toBe(
+      "/api/manga-cover?source=weebcentral-page&url=https%3A%2F%2Fhot.planeptune.us%2Fmanga%2FOnepunch-Man%2F0001-001.png",
     );
   });
 });

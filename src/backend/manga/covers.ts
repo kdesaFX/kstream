@@ -20,6 +20,14 @@ export function weebCentralCoverUrl(seriesId: string): string {
   return `/api/manga-cover?${params.toString()}`;
 }
 
+export function weebCentralPageUrl(pageUrl: string): string {
+  const params = new URLSearchParams({
+    source: "weebcentral-page",
+    url: pageUrl,
+  });
+  return `/api/manga-cover?${params.toString()}`;
+}
+
 /** Upgrade cover URLs saved before the same-origin cover proxy was introduced. */
 export function proxiedMangaCoverUrl(url: string): string {
   if (!/^https?:\/\//i.test(url)) return url;

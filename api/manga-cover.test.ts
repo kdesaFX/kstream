@@ -28,6 +28,21 @@ describe("mangaCoverDestination", () => {
     );
   });
 
+  it("allows only WeebCentral's known manga page image paths", () => {
+    const page =
+      "https://hot.planeptune.us/manga/Onepunch-Man/0001-001.png";
+    expect(
+      mangaCoverDestination(
+        `https://example.com/api/manga-cover?source=weebcentral-page&url=${encodeURIComponent(page)}`,
+      ).href,
+    ).toBe(page);
+    expect(() =>
+      mangaCoverDestination(
+        `https://example.com/api/manga-cover?source=weebcentral-page&url=${encodeURIComponent("https://blocked.example/manga/page.png")}`,
+      ),
+    ).toThrow("Invalid page URL");
+  });
+
   it("rejects arbitrary sources and unsafe inputs", () => {
     expect(() =>
       mangaCoverDestination(
