@@ -365,34 +365,34 @@ export function MangaReaderView() {
           </Link>
           <div className="flex-1 min-w-0">
             <div className="truncate font-semibold text-sm">{title}</div>
-            {chapters.length > 0 && chapterId ? (
-              <div className="flex min-w-0 items-center gap-2">
-                {details && details.availableChapterLanguages.length > 1 ? (
-                  <select
-                    value={details.chapterLanguage}
-                    onChange={(e) => changeLanguage(e.target.value)}
-                    className="max-w-28 shrink-0 rounded border border-white/15 bg-black/80 px-1.5 py-0.5 text-xs text-white/70 outline-none hover:text-white"
-                    aria-label={t("manga.reader.chapterLanguage")}
-                  >
-                    {details.availableChapterLanguages.map((language) => (
-                      <option key={language} value={language}>
-                        {getPrettyLanguageNameFromLocale(language) ??
-                          language.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                ) : null}
+            <div className="flex min-w-0 items-center gap-2">
+              {details && details.availableChapterLanguages.length > 1 ? (
+                <select
+                  value={details.chapterLanguage}
+                  onChange={(e) => changeLanguage(e.target.value)}
+                  className="max-w-28 shrink-0 rounded border border-white/15 bg-black/80 px-1.5 py-0.5 text-xs text-white/70 outline-none hover:text-white"
+                  aria-label={t("manga.reader.chapterLanguage")}
+                >
+                  {details.availableChapterLanguages.map((language) => (
+                    <option key={language} value={language}>
+                      {getPrettyLanguageNameFromLocale(language) ??
+                        language.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+              {chapters.length > 0 && chapterId ? (
                 <MangaChapterPicker
                   chapters={chapters}
                   currentChapterId={chapterId}
                   onSelect={(ch) => goChapter(ch)}
                 />
-              </div>
-            ) : (
-              <div className="truncate text-xs text-white/60">
+              ) : (
+                <span className="truncate text-xs text-white/60">
                 {currentChapter ? chapterLabel(currentChapter) : "…"}
-              </div>
-            )}
+                </span>
+              )}
+            </div>
           </div>
           <button
             type="button"
