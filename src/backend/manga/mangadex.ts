@@ -14,10 +14,7 @@ import {
   isMatureMangaRating,
 } from "@/backend/manga/types";
 import { getProxyUrls } from "@/utils/hosting/proxyUrls";
-import {
-  filterOutMatureMedia,
-  shouldAllowMatureTitles,
-} from "@/utils/media/mature";
+import { filterOutMatureMedia } from "@/utils/media/mature";
 
 const API = "https://api.mangadex.org";
 const COVER_CDN = "https://uploads.mangadex.org";
@@ -309,11 +306,9 @@ function mapManga(
   };
 }
 
+/** Always request every rating from MangaDex; blur/18+ gating matches TMDB search. */
 function contentRatingsQuery(): MangaContentRating[] {
-  if (shouldAllowMatureTitles()) {
-    return ["safe", "suggestive", "erotica", "pornographic"];
-  }
-  return ["safe", "suggestive"];
+  return ["safe", "suggestive", "erotica", "pornographic"];
 }
 
 async function fetchStatistics(
@@ -429,7 +424,8 @@ export async function searchManga(
   });
   const stats = await fetchStatistics(res.data.map((m) => m.id));
   const items = res.data.map((m) => mapManga(m, stats[m.id]));
-  return filterOutMatureMedia(items);
+  // Same as TMDB search: include adult hits; MediaCard blurs until opted in.
+  return items;
 }
 
 function peopleNames(manga: MdManga, type: "author" | "artist"): string[] {

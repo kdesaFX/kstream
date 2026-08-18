@@ -12,7 +12,6 @@ import type {
 } from "@/backend/manga/types";
 import { getProxyUrls, resolveProxyUrl } from "@/utils/hosting/proxyUrls";
 import {
-  filterOutMatureMedia,
   shouldAllowMatureTitles,
 } from "@/utils/media/mature";
 
@@ -306,7 +305,7 @@ export async function searchWeebCentral(
     .filter((hit) => !/\(volume\)/i.test(hit.title))
     .slice(0, limit)
     .map(hitToListItem);
-  return shouldAllowMatureTitles() ? items : filterOutMatureMedia(items);
+  return items;
 }
 
 const detailsCache = new Map<string, { at: number; details: MangaDetails }>();

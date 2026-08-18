@@ -11,7 +11,7 @@ export function shouldAllowMatureTitles(): boolean {
   return usePreferencesStore.getState().enableMatureTitles;
 }
 
-/** Drop adult titles from browse lists when the preference is off. */
+/** Drop adult titles from browse/discover lists when the preference is off. */
 export function filterOutMatureMedia<T extends { adult?: boolean }>(
   items: T[],
 ): T[] {
