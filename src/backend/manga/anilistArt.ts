@@ -10,14 +10,35 @@ export interface MangaArt {
   anilistId: number;
   /** Wide art — the manga equivalent of a TMDB backdrop. */
   banner?: string;
+  /** Prefer the anime adaptation's art when the manga has one. */
+  animeBanner?: string;
+  animeTitle?: string;
+  animeYear?: number;
   /** AniList average score, 0-100. */
   score?: number;
 }
+
+type AniListRelatedMedia = {
+  type: "ANIME" | "MANGA";
+  format: string | null;
+  bannerImage: string | null;
+  startDate?: { year?: number | null } | null;
+  title: {
+    english?: string | null;
+    romaji?: string | null;
+  };
+};
+
+type AniListRelationEdge = {
+  relationType: string;
+  node: AniListRelatedMedia;
+};
 
 type AniListMedia = {
   id: number;
   bannerImage: string | null;
   averageScore: number | null;
+  relations?: { edges?: AniListRelationEdge[] | null } | null;
 };
 
 type AniListResponse = {
@@ -44,9 +65,37 @@ export function buildArtQuery(count: number): string {
   const aliases = Array.from(
     { length: count },
     (_, i) =>
-      `  m${i}: Page(perPage: 1) { media(search: $s${i}, type: MANGA) { id bannerImage averageScore } }`,
+      `  m${i}: Page(perPage: 1) { media(search: $s${i}, type: MANGA) { id bannerImage averageScore relations { edges { relationType node { type format bannerImage startDate { year } title { english romaji } } } } } }`,
   ).join("\n");
   return `query (${vars}) {\n${aliases}\n}`;
+}
+
+export function pickAnimeAdaptation(
+  edges: AniListRelationEdge[] | null | undefined,
+): AniListRelatedMedia | undefined {
+  const formatRank: Record<string, number> = {
+    TV: 0,
+    TV_SHORT: 1,
+    ONA: 2,
+    MOVIE: 3,
+    OVA: 4,
+    SPECIAL: 5,
+  };
+  return (edges ?? [])
+    .filter(
+      (edge) =>
+        edge.relationType === "ADAPTATION" && edge.node.type === "ANIME",
+    )
+    .sort((a, b) => {
+      const format =
+        (formatRank[a.node.format ?? ""] ?? 99) -
+        (formatRank[b.node.format ?? ""] ?? 99);
+      if (format !== 0) return format;
+      return (
+        (a.node.startDate?.year ?? Number.MAX_SAFE_INTEGER) -
+        (b.node.startDate?.year ?? Number.MAX_SAFE_INTEGER)
+      );
+    })[0]?.node;
 }
 
 async function postGraphql(body: string): Promise<AniListResponse> {
@@ -88,12 +137,18 @@ async function fetchBatch(titles: string[]): Promise<void> {
 
   titles.forEach((title, i) => {
     const hit = res.data?.[`m${i}`]?.media?.[0];
+    const anime = pickAnimeAdaptation(hit?.relations?.edges);
     cache.set(
       cacheKey(title),
       hit
         ? {
             anilistId: hit.id,
             banner: hit.bannerImage ?? undefined,
+            animeBanner: anime?.bannerImage ?? undefined,
+            animeTitle: anime
+              ? (anime.title.english ?? anime.title.romaji ?? undefined)
+              : undefined,
+            animeYear: anime?.startDate?.year ?? undefined,
             score: hit.averageScore ?? undefined,
           }
         : null,
