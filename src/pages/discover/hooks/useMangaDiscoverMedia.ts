@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { MANGA_GENRE_TAGS, type MangaGenreTagKey } from "@/backend/manga/mangaTags";
 import {
   listManga,
   mangaToMediaItem,
@@ -12,14 +13,24 @@ export type MangaCarouselKind =
   | "popular"
   | "topRated"
   | "latest"
-  | "recentlyAdded";
+  | "recentlyAdded"
+  | MangaGenreTagKey;
 
-const ORDER: Record<MangaCarouselKind, MangaOrder> = {
+const ORDER: Record<
+  "popular" | "topRated" | "latest" | "recentlyAdded",
+  MangaOrder
+> = {
   popular: "followedCount",
   topRated: "rating",
   latest: "latestUploadedChapter",
   recentlyAdded: "createdAt",
 };
+
+function isGenreKind(
+  kind: MangaCarouselKind,
+): kind is MangaGenreTagKey {
+  return kind in MANGA_GENRE_TAGS;
+}
 
 export function useMangaDiscoverMedia(
   kind: MangaCarouselKind,
@@ -28,8 +39,6 @@ export function useMangaDiscoverMedia(
   const enableMatureTitles = usePreferencesStore((s) => s.enableMatureTitles);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  // Lets a row tell "nothing yet" apart from "nothing at all", so it shows
-  // skeletons on the way in rather than blinking out and back.
   const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,10 +47,15 @@ export function useMangaDiscoverMedia(
     setIsLoading(true);
     setError(null);
     try {
+      const includedTags = isGenreKind(kind)
+        ? [MANGA_GENRE_TAGS[kind]]
+        : undefined;
+      const order = isGenreKind(kind) ? "followedCount" : ORDER[kind];
       const items = await listManga({
-        order: ORDER[kind],
+        order,
         limit: 24,
         includeStats: false,
+        includedTags,
       });
       setMedia(items.map(mangaToMediaItem));
     } catch (e) {

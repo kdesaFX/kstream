@@ -205,6 +205,7 @@ export function MangaReaderView() {
       page: pageIndex,
       totalPages: pages.length,
       readingDirection: details.readingDirection,
+      tags: details.tags,
     });
   }, [
     details,

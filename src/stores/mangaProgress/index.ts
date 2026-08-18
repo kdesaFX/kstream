@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
+import type { MangaTag } from "@/backend/manga/types";
+
 export interface MangaProgressItem {
   title: string;
   poster?: string;
@@ -11,6 +13,7 @@ export interface MangaProgressItem {
   totalPages: number;
   updatedAt: number;
   readingDirection?: "ltr" | "rtl";
+  tags?: MangaTag[];
 }
 
 interface MangaProgressStore {
@@ -24,6 +27,7 @@ interface MangaProgressStore {
     page: number;
     totalPages: number;
     readingDirection?: "ltr" | "rtl";
+    tags?: MangaTag[];
   }): void;
   removeItem(mangaId: string): void;
   clear(): void;
@@ -44,6 +48,7 @@ export const useMangaProgressStore = create<MangaProgressStore>()(
             totalPages: ops.totalPages,
             updatedAt: Date.now(),
             readingDirection: ops.readingDirection,
+            tags: ops.tags,
           };
         });
       },

@@ -1,6 +1,8 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, type ReactNode } from "react";
 
 import { WideContainer } from "@/components/layout/WideContainer";
+import { useMangaProgressStore } from "@/stores/mangaProgress";
+import { mangaProgressHasMeaningfulRead } from "@/stores/mangaProgress/utils";
 import { useDiscoverStore } from "@/stores/discover";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -13,7 +15,11 @@ import type { FeaturedMedia } from "./components/FeaturedCarousel";
 import { CarouselDedupeProvider } from "./components/CarouselDedupeContext";
 import { LazyMediaCarousel } from "./components/LazyMediaCarousel";
 import { MangaCarousel } from "./components/MangaCarousel";
+import {
+  MangaRecommendationsCarousel,
+} from "./components/MangaRecommendationsCarousel";
 import { ScrollToTopButton } from "./components/ScrollToTopButton";
+import type { MangaCarouselKind } from "./hooks/useMangaDiscoverMedia";
 
 export function DiscoverContent() {
   const { selectedCategory, setSelectedCategory, selectedGenreId } =
@@ -65,6 +71,14 @@ export function DiscoverContent() {
         ([, item]) => item.type === "show" && progressHasMeaningfulWatch(item),
       ),
     [progressItems],
+  );
+  const mangaProgressItems = useMangaProgressStore((s) => s.items);
+  const mangaRecSources = useMemo(
+    () =>
+      Object.entries(mangaProgressItems)
+        .filter(([, item]) => mangaProgressHasMeaningfulRead(item))
+        .map(([id, item]) => ({ id, item })),
+    [mangaProgressItems],
   );
 
   // Render Movies content with lazy loading. Earlier rows keep overlapping
@@ -298,36 +312,56 @@ export function DiscoverContent() {
     );
   };
 
-  const renderMangaContent = () => (
-    <div>
-      <MangaCarousel
-        kind="popular"
-        priority
-        enabled={isMangaTab}
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-      />
-      <MangaCarousel
-        kind="topRated"
-        priority
-        enabled={isMangaTab}
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-      />
-      <MangaCarousel
-        kind="latest"
-        enabled={isMangaTab}
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-      />
-      <MangaCarousel
-        kind="recentlyAdded"
-        enabled={isMangaTab}
-        carouselRefs={carouselRefs}
-        onShowDetails={handleShowDetails}
-      />
-    </div>
-  );
+  const renderMangaContent = () => {
+    const carousels: ReactNode[] = [];
+    let dedupe = 0;
+    const rowPriority = () => carousels.length < 3;
+
+    if (mangaRecSources.length > 0) {
+      carousels.push(
+        <MangaRecommendationsCarousel
+          key="manga-recommendations"
+          sources={mangaRecSources}
+          enabled={isMangaTab}
+          priority={rowPriority()}
+          carouselRefs={carouselRefs}
+          onShowDetails={handleShowDetails}
+          dedupePriority={dedupe++}
+        />,
+      );
+    }
+
+    const kinds: MangaCarouselKind[] = [
+      "popular",
+      "latest",
+      "topRated",
+      "recentlyAdded",
+      "action",
+      "romance",
+      "fantasy",
+      "comedy",
+      "drama",
+      "sliceOfLife",
+    ];
+
+    for (const kind of kinds) {
+      carousels.push(
+        <MangaCarousel
+          key={`manga-${kind}`}
+          kind={kind}
+          priority={rowPriority()}
+          enabled={isMangaTab}
+          carouselRefs={carouselRefs}
+          onShowDetails={handleShowDetails}
+          dedupePriority={dedupe++}
+        />,
+      );
+    }
+
+    return (
+      <CarouselDedupeProvider key="manga-dedupe">{carousels}</CarouselDedupeProvider>
+    );
+  };
 
   return (
     <div className="relative min-h-screen">

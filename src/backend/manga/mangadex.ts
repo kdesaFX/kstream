@@ -337,8 +337,13 @@ async function fetchStatistics(
   return out;
 }
 
-function listQuery(order: MangaOrder, limit: number, offset = 0) {
-  return {
+function listQuery(
+  order: MangaOrder,
+  limit: number,
+  offset = 0,
+  includedTags?: string[],
+) {
+  const query: Record<string, string | string[] | number> = {
     limit,
     offset,
     "includes[]": ["cover_art"],
@@ -347,6 +352,10 @@ function listQuery(order: MangaOrder, limit: number, offset = 0) {
     [`order[${order}]`]: "desc",
     hasAvailableChapters: "true",
   };
+  if (includedTags?.length) {
+    query["includedTags[]"] = includedTags;
+  }
+  return query;
 }
 
 const LIST_TTL_MS = 15 * 60 * 1000;
@@ -359,15 +368,19 @@ export async function listManga(ops: {
   offset?: number;
   /** Discover cards only need covers; skip the extra statistics round-trip. */
   includeStats?: boolean;
+  /** MangaDex tag UUIDs — genre/theme filters for discover rows. */
+  includedTags?: string[];
 }): Promise<MangaListItem[]> {
   const limit = ops.limit ?? 24;
   const offset = ops.offset ?? 0;
   const includeStats = ops.includeStats !== false;
+  const includedTags = ops.includedTags ?? [];
   const cacheKey = [
     ops.order,
     limit,
     offset,
     includeStats,
+    includedTags.join(","),
     contentRatingsQuery().join(","),
   ].join(":");
 
@@ -380,7 +393,7 @@ export async function listManga(ops: {
   const run = (async () => {
     const res = await mdGet<MdListResponse<MdManga>>(
       "/manga",
-      listQuery(ops.order, limit, offset),
+      listQuery(ops.order, limit, offset, includedTags),
     );
     const stats = includeStats
       ? await fetchStatistics(res.data.map((m) => m.id))

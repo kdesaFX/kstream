@@ -1624,7 +1624,14 @@
           "popular": "Popular Manga",
           "topRated": "Top Rated Manga",
           "latest": "Latest Updates",
-          "recentlyAdded": "Recently Added"
+          "recentlyAdded": "Recently Added",
+          "recommended": "Because You Read: {{title}}",
+          "action": "Action Manga",
+          "romance": "Romance Manga",
+          "fantasy": "Fantasy Manga",
+          "comedy": "Comedy Manga",
+          "drama": "Drama Manga",
+          "sliceOfLife": "Slice of Life Manga"
         }
       },
       "change": "Change",

@@ -1,10 +1,11 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MediaCard } from "@/components/media/MediaCard";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { CarouselNavButtons } from "@/pages/discover/components/CarouselNavButtons";
+import { useDedupedMedia } from "@/pages/discover/components/CarouselDedupeContext";
 import {
   MangaCarouselKind,
   useMangaDiscoverMedia,
@@ -13,7 +14,6 @@ import { MediaItem } from "@/utils/media/mediaTypes";
 
 const SKELETON_COUNT = 10;
 const EAGER_CARDS = 8;
-// Matches the movie/TV rows so a manga row lines up with the ones above it.
 const CARD_WRAPPER =
   "relative mt-4 group cursor-pointer user-select-none rounded-xl p-2 bg-transparent transition-colors duration-300 w-[10rem] md:w-[11.5rem] h-auto";
 
@@ -23,6 +23,7 @@ export function MangaCarousel({
   carouselRefs,
   onShowDetails,
   priority = false,
+  dedupePriority,
 }: {
   kind: MangaCarouselKind;
   enabled: boolean;
@@ -32,18 +33,50 @@ export function MangaCarousel({
   onShowDetails?: (media: MediaItem) => void;
   /** First rows fetch immediately; later rows wait until they are near the viewport. */
   priority?: boolean;
+  dedupePriority?: number;
 }) {
   const { t } = useTranslation();
   const { ref: lazyRef, hasIntersected } =
     useIntersectionObserver<HTMLDivElement>({
-      threshold: 0.1,
-      rootMargin: "50px",
+      threshold: 0.01,
+      rootMargin: "400px",
     });
-  const shouldFetch = enabled && (priority || hasIntersected);
-  const { media, hasLoaded, error } = useMangaDiscoverMedia(kind, shouldFetch);
+  const [visibleLoad, setVisibleLoad] = useState(false);
+  const shouldFetch =
+    enabled && (priority || hasIntersected || visibleLoad);
+  const { media: rawMedia, hasLoaded, error } = useMangaDiscoverMedia(
+    kind,
+    shouldFetch,
+  );
+  const media = useDedupedMedia(dedupePriority, rawMedia);
   const { isMobile } = useIsMobile();
   const isScrollingRef = useRef(false);
   const browser = !!window.chrome;
+
+  // display:none on inactive tabs breaks IntersectionObserver — recheck when
+  // the manga tab becomes visible so rows below the fold still load.
+  useEffect(() => {
+    if (!enabled || priority || hasIntersected) return;
+    const el = lazyRef.current;
+    if (!el) return;
+    const check = () => {
+      const rect = el.getBoundingClientRect();
+      if (
+        rect.width > 0 &&
+        rect.height > 0 &&
+        rect.top < window.innerHeight + 400
+      ) {
+        setVisibleLoad(true);
+      }
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+    };
+  }, [enabled, priority, hasIntersected, lazyRef]);
 
   const categorySlug = `manga-${kind}`;
   const title = t(`discover.carousel.title.manga.${kind}`);
@@ -75,8 +108,6 @@ export function MangaCarousel({
     return <div ref={lazyRef} className="h-[20rem]" />;
   }
 
-  // Same rule as the movie rows: a row that resolved to nothing shouldn't
-  // leave a bare heading and a pair of arrows behind.
   if (hasLoaded && (error || media.length === 0)) return null;
 
   return (
@@ -132,7 +163,7 @@ export function MangaCarousel({
                 ))}
         </div>
 
-        {!isMobile && (
+        {!isMobile && media.length > 0 && (
           <CarouselNavButtons
             categorySlug={categorySlug}
             carouselRefs={carouselRefs}
