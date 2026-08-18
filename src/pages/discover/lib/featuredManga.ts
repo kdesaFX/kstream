@@ -21,10 +21,13 @@ export interface FeaturedMangaItem {
 
 /** Titles pulled from MangaDex before art lookup narrows them down. */
 const POOL_SIZE = 48;
-/** How many of those get an AniList lookup (batched, so this is 2 requests). */
-const LOOKUP_SIZE = 24;
+/** How many of those get an AniList lookup (batched — two requests at 20 each). */
+const LOOKUP_SIZE = 48;
 
-export function shuffle<T>(items: T[], random: () => number = Math.random): T[] {
+export function shuffle<T>(
+  items: T[],
+  random: () => number = Math.random,
+): T[] {
   const arr = [...items];
   for (let i = arr.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));
@@ -55,8 +58,8 @@ function toFeatured(
 }
 
 /**
- * A portrait cover stretched across a full-bleed hero looks bad, so titles with
- * a real banner come first and covers only fill leftover slots.
+ * Wide AniList banners make the best hero slides. Cover-only titles are a
+ * fallback when there aren't enough banners in the pool.
  */
 export function pickFeaturedManga(
   items: MangaListItem[],
@@ -70,6 +73,7 @@ export function pickFeaturedManga(
     if (!featured) continue;
     (featured.wideArt ? banners : covers).push(featured);
   }
+  if (banners.length >= count) return banners.slice(0, count);
   return [...banners, ...covers].slice(0, count);
 }
 

@@ -152,50 +152,47 @@ function isFeatureWorthy(item: {
 }
 
 /**
- * MangaDex and AniList both swap in a promo image for foreign referrers, so
- * manga art has to go through an <img> that can drop the referrer — a CSS
- * background can't. Banners are also around 4.75:1 against a hero that's
- * roughly 2:1, so cropping one to fill would zoom into a handful of pixels:
- * a blurred copy fills the frame and the real banner lies across the top.
+ * MangaDex and AniList swap in promo images for foreign referrers, so art goes
+ * through <img referrerPolicy="no-referrer">. Wide AniList banners fill the hero
+ * like TMDB backdrops; portrait covers sit on the right instead of being blurred
+ * across the frame.
  */
 function MangaSlideArt({ item }: { item: FeaturedMedia }) {
   if (!item.artUrl) return null;
 
-  if (!item.wideArt) {
+  const readOverlay = (
+    <>
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background-main from-0% via-background-main/50 via-35% to-transparent to-70%" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background-main/90 from-0% via-background-main/35 via-45% to-transparent to-85%" />
+    </>
+  );
+
+  if (item.wideArt) {
     return (
-      <img
-        src={item.artUrl}
-        alt=""
-        referrerPolicy="no-referrer"
-        decoding="async"
-        className="w-full h-full object-cover object-top"
-      />
+      <>
+        <img
+          src={item.artUrl}
+          alt=""
+          referrerPolicy="no-referrer"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover object-[center_20%]"
+        />
+        {readOverlay}
+      </>
     );
   }
 
   return (
     <>
-      <img
-        src={item.artUrl}
-        alt=""
-        aria-hidden
-        referrerPolicy="no-referrer"
-        decoding="async"
-        className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-70"
-      />
+      <div className="absolute inset-0 bg-gradient-to-br from-background-secondary via-background-main to-black" />
       <img
         src={item.artUrl}
         alt=""
         referrerPolicy="no-referrer"
         decoding="async"
-        className="absolute top-0 left-0 w-full"
-        style={{
-          maskImage:
-            "linear-gradient(to bottom, rgba(0, 0, 0, 1) 55%, rgba(0, 0, 0, 0))",
-          WebkitMaskImage:
-            "linear-gradient(to bottom, rgba(0, 0, 0, 1) 55%, rgba(0, 0, 0, 0))",
-        }}
+        className="absolute top-0 right-0 h-full w-auto max-w-[min(58%,26rem)] object-contain object-top [mask-image:linear-gradient(to_left,black_55%,transparent)]"
       />
+      {readOverlay}
     </>
   );
 }

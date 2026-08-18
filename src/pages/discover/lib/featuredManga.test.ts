@@ -5,7 +5,9 @@ import type { MangaArt } from "@/backend/manga/anilistArt";
 import type { MangaListItem } from "@/backend/manga/types";
 import { pickFeaturedManga, shuffle } from "@/pages/discover/lib/featuredManga";
 
-function manga(overrides: Partial<MangaListItem> & { id: string }): MangaListItem {
+function manga(
+  overrides: Partial<MangaListItem> & { id: string },
+): MangaListItem {
   return {
     title: overrides.id,
     description: "A description",
@@ -23,11 +25,28 @@ const banner: MangaArt = { anilistId: 1, banner: "https://art/banner.jpg" };
 const noBanner: MangaArt = { anilistId: 2 };
 
 describe("pickFeaturedManga", () => {
-  it("puts titles with a wide banner ahead of cover-only ones", () => {
+  it("uses only wide banners when enough are available", () => {
     const items = [
-      manga({ id: "cover-only" }),
-      manga({ id: "with-banner" }),
+      manga({ id: "cover-a" }),
+      manga({ id: "cover-b" }),
+      manga({ id: "banner-a" }),
+      manga({ id: "banner-b" }),
     ];
+    const art = new Map([
+      ["cover-a", noBanner],
+      ["cover-b", noBanner],
+      ["banner-a", banner],
+      ["banner-b", { ...banner, banner: "https://art/banner-b.jpg" }],
+    ]);
+
+    const picked = pickFeaturedManga(items, art, 2);
+
+    expect(picked.every((p) => p.wideArt)).toBe(true);
+    expect(picked.map((p) => p.id)).toEqual(["banner-a", "banner-b"]);
+  });
+
+  it("puts titles with a wide banner ahead of cover-only ones", () => {
+    const items = [manga({ id: "cover-only" }), manga({ id: "with-banner" })];
     const art = new Map([
       ["cover-only", noBanner],
       ["with-banner", banner],
@@ -63,7 +82,13 @@ describe("pickFeaturedManga", () => {
 
   it("carries rating, year and status through for the hero meta line", () => {
     const items = [
-      manga({ id: "one", rating: 8.42, year: 2019, status: "completed", lastChapter: "97" }),
+      manga({
+        id: "one",
+        rating: 8.42,
+        year: 2019,
+        status: "completed",
+        lastChapter: "97",
+      }),
     ];
 
     const [picked] = pickFeaturedManga(items, new Map(), 1);
