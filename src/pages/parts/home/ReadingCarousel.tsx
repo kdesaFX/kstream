@@ -1,52 +1,98 @@
-import React, { useMemo, useState } from "react";
+import { Listbox } from "@headlessui/react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { chapterBadge } from "@/backend/manga/mangadex";
 import { EditButton } from "@/components/buttons/EditButton";
-import { Icons } from "@/components/Icon";
+import { Dropdown, OptionItem } from "@/components/form/Dropdown";
+import { Icon, Icons } from "@/components/Icon";
 import { SectionHeading } from "@/components/layout/SectionHeading";
-import { MediaCard } from "@/components/media/MediaCard";
+import { ReadMediaCard } from "@/components/media/ReadMediaCard";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { CarouselNavButtons } from "@/pages/discover/components/CarouselNavButtons";
-import { useOverlayStack } from "@/stores/interface/overlayStack";
 import {
   shouldShowMangaProgress,
   useMangaProgressStore,
 } from "@/stores/mangaProgress";
+import { SortOption, sortMediaItems } from "@/utils/media/mediaSorting";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 interface ReadingCarouselProps {
   carouselRefs: React.MutableRefObject<{
     [key: string]: HTMLDivElement | null;
   }>;
+  onShowDetails?: (media: MediaItem) => void;
 }
 
-const CATEGORY_SLUG = "continue-reading";
+function MediaCardSkeleton() {
+  return (
+    <div className="relative mt-4 group cursor-default rounded-xl p-2 bg-transparent transition-colors duration-300 w-[10rem] md:w-[11.5rem] h-auto">
+      <div className="animate-pulse">
+        <div className="w-full aspect-[2/3] bg-mediaCard-hoverBackground rounded-lg" />
+        <div className="mt-2 h-4 bg-mediaCard-hoverBackground rounded w-3/4" />
+      </div>
+    </div>
+  );
+}
 
-export function ReadingCarousel({ carouselRefs }: ReadingCarouselProps) {
+export function ReadingCarousel({
+  carouselRefs,
+  onShowDetails,
+}: ReadingCarouselProps) {
   const { t } = useTranslation();
-  const { isMobile } = useIsMobile();
   const browser = !!window.chrome;
   let isScrolling = false;
-  // Same reasoning as Continue Watching: editing is a moment, not a preference.
   const [editing, setEditing] = useState(false);
-  const items = useMangaProgressStore((s) => s.items);
-  const removeItem = useMangaProgressStore((s) => s.removeItem);
-  const { showModal } = useOverlayStack();
 
-  const mediaItems = useMemo(() => {
-    return Object.entries(items)
+  const [sortBy, setSortBy] = useState<SortOption>(() => {
+    const saved = localStorage.getItem("__MW::readingSort");
+    return (saved as SortOption) || "date";
+  });
+  const removeItem = useMangaProgressStore((s) => s.removeItem);
+
+  useEffect(() => {
+    localStorage.setItem("__MW::readingSort", sortBy);
+  }, [sortBy]);
+
+  const { isMobile } = useIsMobile();
+
+  const progressItems = useMangaProgressStore((s) => s.items);
+
+  const itemsLength = useMemo(
+    () =>
+      Object.values(progressItems).filter((item) =>
+        shouldShowMangaProgress(item),
+      ).length,
+    [progressItems],
+  );
+
+  const sortProgress = useMemo(() => {
+    const out: Record<string, { updatedAt: number }> = {};
+    for (const [id, item] of Object.entries(progressItems)) {
+      out[id] = { updatedAt: item.updatedAt };
+    }
+    return out;
+  }, [progressItems]);
+
+  const items = useMemo(() => {
+    const output: MediaItem[] = [];
+    Object.entries(progressItems)
       .filter(([, item]) => shouldShowMangaProgress(item))
-      .sort((a, b) => b[1].updatedAt - a[1].updatedAt)
-      .map(([id, item]) => ({
-        id,
-        title: item.title,
-        poster: item.poster,
-        chapterLabel: item.chapterLabel,
-        page: item.page,
-        totalPages: item.totalPages,
-      }));
-  }, [items]);
+      .forEach(([id, item]) => {
+        output.push({
+          id,
+          title: item.title,
+          poster: item.poster,
+          year: item.year,
+          type: "manga",
+        });
+      });
+    return sortMediaItems(
+      output,
+      sortBy,
+      undefined,
+      sortProgress as Record<string, never>,
+    );
+  }, [progressItems, sortBy, sortProgress]);
 
   const handleWheel = (e: React.WheelEvent) => {
     if (isScrolling) return;
@@ -66,7 +112,33 @@ export function ReadingCarousel({ carouselRefs }: ReadingCarouselProps) {
     }
   };
 
-  if (mediaItems.length === 0) return null;
+  const sortOptions: OptionItem[] = [
+    { id: "date", name: t("home.continueReading.sorting.options.date") },
+    {
+      id: "title-asc",
+      name: t("home.continueReading.sorting.options.titleAsc"),
+    },
+    {
+      id: "title-desc",
+      name: t("home.continueReading.sorting.options.titleDesc"),
+    },
+    {
+      id: "year-asc",
+      name: t("home.continueReading.sorting.options.yearAsc"),
+    },
+    {
+      id: "year-desc",
+      name: t("home.continueReading.sorting.options.yearDesc"),
+    },
+  ];
+
+  const selectedSortOption =
+    sortOptions.find((opt) => opt.id === sortBy) || sortOptions[0];
+
+  const categorySlug = "continue-reading";
+  const SKELETON_COUNT = 10;
+
+  if (itemsLength === 0) return null;
 
   return (
     <>
@@ -83,60 +155,104 @@ export function ReadingCarousel({ carouselRefs }: ReadingCarouselProps) {
           />
         </div>
       </SectionHeading>
+      {editing && (
+        <div className="mt-4 -mb-4 px-4">
+          <Dropdown
+            selectedItem={selectedSortOption}
+            setSelectedItem={(item) => {
+              const newSort = item.id as SortOption;
+              setSortBy(newSort);
+              localStorage.setItem("__MW::readingSort", newSort);
+            }}
+            options={sortOptions}
+            customButton={
+              <button
+                type="button"
+                className="px-2 py-1 text-sm bg-mediaCard-hoverBackground rounded-full hover:bg-mediaCard-background transition-colors flex items-center gap-1"
+              >
+                <span>{selectedSortOption.name}</span>
+                <Icon
+                  icon={Icons.UP_DOWN_ARROW}
+                  className="text-xs text-dropdown-secondary"
+                />
+              </button>
+            }
+            side="left"
+            customMenu={
+              <Listbox.Options static className="py-1">
+                {sortOptions.map((opt) => (
+                  <Listbox.Option
+                    className={({ active }) =>
+                      `cursor-pointer min-w-60 flex gap-4 items-center relative select-none py-2 px-4 mx-1 rounded-lg ${
+                        active
+                          ? "bg-background-secondaryHover text-type-link"
+                          : "text-type-secondary"
+                      }`
+                    }
+                    key={opt.id}
+                    value={opt}
+                  >
+                    {({ selected }) => (
+                      <>
+                        <span
+                          className={`block ${selected ? "font-medium" : "font-normal"}`}
+                        >
+                          {opt.name}
+                        </span>
+                        {selected && (
+                          <Icon
+                            icon={Icons.CHECKMARK}
+                            className="text-xs text-type-link"
+                          />
+                        )}
+                      </>
+                    )}
+                  </Listbox.Option>
+                ))}
+              </Listbox.Options>
+            }
+          />
+        </div>
+      )}
       <div className="relative overflow-hidden carousel-container md:pb-4">
         <div
-          id={`carousel-${CATEGORY_SLUG}`}
+          id={`carousel-${categorySlug}`}
           className="grid grid-flow-col auto-cols-max gap-4 pt-0 overflow-x-scroll scrollbar-none rounded-xl overflow-y-hidden px-4"
           ref={(el) => {
-            carouselRefs.current[CATEGORY_SLUG] = el;
+            carouselRefs.current[categorySlug] = el;
           }}
           onWheel={handleWheel}
         >
-          {mediaItems.map((item) => {
-            const media: MediaItem = {
-              id: item.id,
-              title: item.title,
-              poster: item.poster,
-              type: "manga",
-            };
-            const pct =
-              item.totalPages > 0
-                ? Math.round(((item.page + 1) / item.totalPages) * 100)
-                : 0;
-            return (
-              <div
-                key={item.id}
-                onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
-                  e.preventDefault()
-                }
-                className="relative mt-4 group cursor-pointer rounded-xl p-2 bg-transparent transition-colors duration-300 w-[10rem] md:w-[11.5rem] h-auto"
-              >
-                <MediaCard
-                  media={media}
-                  linkable
-                  percentage={pct}
-                  badge={chapterBadge(item.chapterLabel)}
-                  closable={editing}
-                  onClose={editing ? () => removeItem(item.id) : undefined}
-                  onShowDetails={() =>
-                    showModal("manga-details", {
-                      id: item.id,
-                      mangaId: item.id,
-                      type: "manga",
-                    })
+          {items.length > 0
+            ? items.map((media) => (
+                <div
+                  key={media.id}
+                  onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
+                    e.preventDefault()
                   }
+                  className="relative mt-4 group cursor-pointer rounded-xl p-2 bg-transparent transition-colors duration-300 w-[10rem] md:w-[11.5rem] h-auto"
+                >
+                  <ReadMediaCard
+                    media={media}
+                    onShowDetails={onShowDetails}
+                    closable={editing}
+                    onClose={() => removeItem(String(media.id))}
+                  />
+                </div>
+              ))
+            : Array.from({ length: SKELETON_COUNT }).map((_, index) => (
+                <MediaCardSkeleton
+                  key={`skeleton-${categorySlug}-${index}`}
                 />
-              </div>
-            );
-          })}
+              ))}
         </div>
 
-        {!isMobile ? (
+        {!isMobile && (
           <CarouselNavButtons
-            categorySlug={CATEGORY_SLUG}
+            categorySlug={categorySlug}
             carouselRefs={carouselRefs}
           />
-        ) : null}
+        )}
       </div>
     </>
   );

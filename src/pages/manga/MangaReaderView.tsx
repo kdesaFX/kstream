@@ -206,6 +206,7 @@ export function MangaReaderView() {
       mangaId: details.id,
       title: details.title,
       poster: details.poster,
+      year: details.year,
       chapterId,
       chapterLabel: chapterLabel(currentChapter),
       page: pageIndex,

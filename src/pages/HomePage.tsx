@@ -146,7 +146,11 @@ export function HomePage() {
           );
         case "reading":
           return (
-            <ReadingCarousel key="reading" carouselRefs={carouselRefs} />
+            <ReadingCarousel
+              key="reading"
+              carouselRefs={carouselRefs}
+              onShowDetails={handleShowDetails}
+            />
           );
         case "bookmarks":
           return enableCarouselView ? (

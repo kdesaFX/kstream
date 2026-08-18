@@ -427,7 +427,17 @@
       }
     },
     "continueReading": {
-      "sectionTitle": "Continue Reading..."
+      "sectionTitle": "Continue Reading...",
+      "sorting": {
+        "label": "Sort by",
+        "options": {
+          "date": "Default (Date added)",
+          "titleAsc": "Title A-Z",
+          "titleDesc": "Title Z-A",
+          "yearAsc": "Release Date Oldest-Newest",
+          "yearDesc": "Release Date Newest-Oldest"
+        }
+      }
     },
     "mediaList": {
       "stopEditing": "Stop editing",

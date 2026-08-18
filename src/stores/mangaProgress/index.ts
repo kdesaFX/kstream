@@ -7,6 +7,7 @@ import type { MangaTag } from "@/backend/manga/types";
 export interface MangaProgressItem {
   title: string;
   poster?: string;
+  year?: number;
   chapterId: string;
   chapterLabel: string;
   page: number;
@@ -22,6 +23,7 @@ interface MangaProgressStore {
     mangaId: string;
     title: string;
     poster?: string;
+    year?: number;
     chapterId: string;
     chapterLabel: string;
     page: number;
@@ -42,6 +44,7 @@ export const useMangaProgressStore = create<MangaProgressStore>()(
           s.items[ops.mangaId] = {
             title: ops.title,
             poster: ops.poster,
+            year: ops.year,
             chapterId: ops.chapterId,
             chapterLabel: ops.chapterLabel,
             page: ops.page,
