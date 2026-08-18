@@ -18,7 +18,7 @@ const options: DefaultedFetcherOptions = {
   method: "GET",
 };
 
-function response(body: string): FetcherResponse<string> {
+function response<T>(body: T): FetcherResponse<T> {
   return {
     body,
     finalUrl: "https://example.com",
@@ -43,12 +43,16 @@ describe("extension network fallback", () => {
   });
 
   it("retries through the proxy and keeps later requests there", async () => {
-    const primary = vi
-      .fn<Parameters<Fetcher>, ReturnType<Fetcher>>()
-      .mockRejectedValueOnce(new Error("extension error: Failed to fetch"));
-    const fallback = vi
-      .fn<Parameters<Fetcher>, ReturnType<Fetcher>>()
-      .mockResolvedValue(response("proxied"));
+    const primaryCall = vi.fn();
+    const fallbackCall = vi.fn();
+    const primary: Fetcher = async () => {
+      primaryCall();
+      throw new Error("extension error: Failed to fetch");
+    };
+    const fallback: Fetcher = async <T>() => {
+      fallbackCall();
+      return response("proxied" as unknown as T);
+    };
     const fetcher = makeNetworkFallbackFetcher(primary, fallback);
 
     await expect(fetcher("https://blocked.example/one", options)).resolves.toEqual(
@@ -57,20 +61,24 @@ describe("extension network fallback", () => {
     await expect(fetcher("https://blocked.example/two", options)).resolves.toEqual(
       response("proxied"),
     );
-    expect(primary).toHaveBeenCalledTimes(1);
-    expect(fallback).toHaveBeenCalledTimes(2);
+    expect(primaryCall).toHaveBeenCalledTimes(1);
+    expect(fallbackCall).toHaveBeenCalledTimes(2);
   });
 
   it("does not hide non-network extension errors", async () => {
-    const primary = vi
-      .fn<Parameters<Fetcher>, ReturnType<Fetcher>>()
-      .mockRejectedValue(new Error("extension error: permission denied"));
-    const fallback = vi.fn<Parameters<Fetcher>, ReturnType<Fetcher>>();
+    const fallbackCall = vi.fn();
+    const primary: Fetcher = async () => {
+      throw new Error("extension error: permission denied");
+    };
+    const fallback: Fetcher = async <T>() => {
+      fallbackCall();
+      return response("unused" as unknown as T);
+    };
     const fetcher = makeNetworkFallbackFetcher(primary, fallback);
 
     await expect(
       fetcher("https://example.com", options),
     ).rejects.toThrow("permission denied");
-    expect(fallback).not.toHaveBeenCalled();
+    expect(fallbackCall).not.toHaveBeenCalled();
   });
 });
