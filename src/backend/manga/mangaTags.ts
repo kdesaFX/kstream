@@ -33,7 +33,7 @@ export const MANGA_DISCOVER_GENRES = [
   { id: MANGA_GENRE_TAGS.thriller, name: "Thriller" },
 ] as const;
 
-const GENRE_NAMES = new Set(
+const GENRE_NAMES: Set<string> = new Set(
   MANGA_DISCOVER_GENRES.map((genre) => genre.name),
 );
 
