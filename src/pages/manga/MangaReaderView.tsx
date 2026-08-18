@@ -265,12 +265,17 @@ export function MangaReaderView() {
           goChapter(direction === "rtl" ? prevChapter : nextChapter);
         return;
       }
-      if (e.key === "ArrowLeft" || e.key === " ") {
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
-        turnPage(direction === "rtl" ? 1 : -1);
+        turnPage(-1);
       }
       if (e.key === "ArrowRight") {
-        turnPage(direction === "rtl" ? -1 : 1);
+        e.preventDefault();
+        turnPage(1);
+      }
+      if (e.key === " ") {
+        e.preventDefault();
+        turnPage(1);
       }
     };
     window.addEventListener("keydown", onKey);
