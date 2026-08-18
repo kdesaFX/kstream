@@ -13,6 +13,10 @@ import {
   searchCollections,
 } from "./tmdb";
 import {
+  enrichMediaItemMaturity,
+  enrichSearchResultsMaturity,
+} from "./tmdbMaturity";
+import {
   TMDBContentTypes,
   TMDBMovieSearchResult,
   TMDBShowSearchResult,
@@ -308,6 +312,7 @@ export async function searchForMedia(query: MWQuery): Promise<MediaItem[]> {
               };
 
         const mediaItem = formatTMDBMetaToMediaItem(mediaResult);
+        await enrichMediaItemMaturity(mediaItem, type);
         const result = [mediaItem];
         cache.set(query, result, 3600);
         return result;
@@ -362,6 +367,8 @@ export async function searchForMedia(query: MWQuery): Promise<MediaItem[]> {
     const formattedResult = formatTMDBSearchResult(v, v.media_type);
     return formatTMDBMetaToMediaItem(formattedResult);
   });
+
+  await enrichSearchResultsMaturity(rankedData, results);
 
   const movieWithPosters = results.filter((movie) => movie.poster);
   const movieWithoutPosters = results.filter((movie) => !movie.poster);

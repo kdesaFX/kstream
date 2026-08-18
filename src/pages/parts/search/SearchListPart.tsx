@@ -8,13 +8,17 @@ import { searchForMedia } from "@/backend/metadata/search";
 import { MWQuery } from "@/backend/metadata/types/mw";
 import { IconPatch } from "@/components/buttons/IconPatch";
 import { Icons } from "@/components/Icon";
-import { SectionHeading } from "@/components/layout/SectionHeading";
 import { MediaGrid } from "@/components/media/MediaGrid";
 import { WatchedMediaCard } from "@/components/media/WatchedMediaCard";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/pages/About";
+import {
+  SearchCategory,
+  SearchCategoryTabs,
+} from "@/pages/parts/search/SearchCategoryTabs";
 import { SearchLoadingPart } from "@/pages/parts/search/SearchLoadingPart";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
+import { usePreferencesStore } from "@/stores/preferences";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 function SearchSuffix(props: { failed?: boolean; results?: number }) {
@@ -67,13 +71,27 @@ export function SearchListPart({
 }) {
   const { t } = useTranslation();
   const { showModal } = useOverlayStack();
+  const enableMangaDiscover = usePreferencesStore((s) => s.enableMangaDiscover);
 
   const [results, setResults] = useState<MediaItem[]>([]);
   const [mangaResults, setMangaResults] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [activeTab, setActiveTab] = useState<SearchCategory>("watch");
   const requestIdRef = useRef(0);
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  useEffect(() => {
+    setActiveTab("watch");
+  }, [debouncedSearchQuery]);
+
+  useEffect(() => {
+    if (results.length === 0 && mangaResults.length > 0) {
+      setActiveTab("manga");
+    } else if (results.length > 0 && mangaResults.length === 0) {
+      setActiveTab("watch");
+    }
+  }, [results.length, mangaResults.length]);
 
   useEffect(() => {
     async function runSearch(query: MWQuery, requestId: number) {
@@ -90,9 +108,11 @@ export function SearchListPart({
           didFail = true;
           return [] as MediaItem[];
         });
-      const manga = searchManga(query.searchQuery)
-        .then((items) => items.map(mangaToMediaItem))
-        .catch(() => [] as MediaItem[]);
+      const manga = enableMangaDiscover
+        ? searchManga(query.searchQuery)
+            .then((items) => items.map(mangaToMediaItem))
+            .catch(() => [] as MediaItem[])
+        : Promise.resolve([] as MediaItem[]);
 
       const [a, b] = await Promise.all([movieTv, manga]);
       nextResults = a;
@@ -100,7 +120,6 @@ export function SearchListPart({
 
       if (requestIdRef.current !== requestId) return;
 
-      // Only fail the page when movie/TV search failed AND manga also empty.
       setFailed(didFail && nextManga.length === 0 && nextResults.length === 0);
       setResults(nextResults);
       setMangaResults(nextManga);
@@ -117,7 +136,7 @@ export function SearchListPart({
 
     requestIdRef.current += 1;
     runSearch({ searchQuery: debouncedSearchQuery }, requestIdRef.current);
-  }, [debouncedSearchQuery]);
+  }, [debouncedSearchQuery, enableMangaDiscover]);
 
   const handleMangaDetails = (media: MediaItem) => {
     if (onShowDetails) {
@@ -137,43 +156,41 @@ export function SearchListPart({
   const total = results.length + mangaResults.length;
   if (total === 0) return <SearchSuffix results={0} />;
 
+  const showMangaTab = enableMangaDiscover;
+  const showTabs = showMangaTab && total > 0;
+  const visibleItems = activeTab === "manga" ? mangaResults : results;
+  const emptyActiveTab =
+    activeTab === "manga"
+      ? mangaResults.length === 0
+      : results.length === 0;
+
   return (
     <div className="space-y-8">
-      {results.length > 0 ? (
-        <div>
-          <SectionHeading
-            title={t("home.search.sectionTitle")}
-            icon={Icons.SEARCH}
-          />
-          <MediaGrid>
-            {results.map((v) => (
-              <WatchedMediaCard
-                key={v.id.toString()}
-                media={v}
-                onShowDetails={onShowDetails}
-              />
-            ))}
-          </MediaGrid>
-        </div>
+      {showTabs ? (
+        <SearchCategoryTabs
+          active={activeTab}
+          onChange={setActiveTab}
+          showManga={showMangaTab}
+        />
       ) : null}
 
-      {mangaResults.length > 0 ? (
-        <div>
-          <SectionHeading
-            title={t("home.search.mangaSectionTitle")}
-            icon={Icons.BOOKMARK}
-          />
-          <MediaGrid>
-            {mangaResults.map((v) => (
-              <WatchedMediaCard
-                key={`manga-${v.id}`}
-                media={v}
-                onShowDetails={handleMangaDetails}
-              />
-            ))}
-          </MediaGrid>
-        </div>
-      ) : null}
+      {emptyActiveTab ? (
+        <p className="text-center text-type-secondary">
+          {t("home.search.noResults")}
+        </p>
+      ) : (
+        <MediaGrid>
+          {visibleItems.map((v) => (
+            <WatchedMediaCard
+              key={activeTab === "manga" ? `manga-${v.id}` : v.id.toString()}
+              media={v}
+              onShowDetails={
+                activeTab === "manga" ? handleMangaDetails : onShowDetails
+              }
+            />
+          ))}
+        </MediaGrid>
+      )}
 
       <SearchSuffix results={total} />
     </div>
