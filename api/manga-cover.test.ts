@@ -1,7 +1,11 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { mangaCoverDestination } from "./manga-cover";
+import handler, { mangaCoverDestination } from "./manga-cover";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("mangaCoverDestination", () => {
   it("builds a fixed MangaDex CDN URL", () => {
@@ -35,5 +39,28 @@ describe("mangaCoverDestination", () => {
         "https://example.com/api/manga-cover?source=mangadex&id=abc&file=../secret&size=256",
       ),
     ).toThrow("Invalid cover filename");
+  });
+
+  it("sends MangaDex the browser headers it requires", async () => {
+    const upstreamFetch = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        return new Response("image", {
+          headers: { "Content-Type": "image/jpeg" },
+        });
+      },
+    );
+    vi.stubGlobal("fetch", upstreamFetch);
+
+    const response = await handler(
+      new Request(
+        "https://example.com/api/manga-cover?source=mangadex&id=abc-123&file=cover.jpg&size=256",
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    const init = upstreamFetch.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(init.headers);
+    expect(headers.get("Referer")).toBe("https://mangadex.org/");
+    expect(headers.get("User-Agent")).toContain("Mozilla/5.0");
   });
 });

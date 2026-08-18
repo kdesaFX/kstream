@@ -1,3 +1,5 @@
+import { DEFAULT_UA } from "../lib/proxy-shared";
+
 const MANGADEX_COVER_CDN = "https://uploads.mangadex.org";
 const WEEBCENTRAL_COVER_CDN = "https://temp.compsci88.com";
 const COVER_CACHE_SECONDS = 60 * 60 * 24 * 365;
@@ -68,6 +70,7 @@ export default async function handler(request: Request): Promise<Response> {
     });
     if (destination.hostname === "uploads.mangadex.org") {
       upstreamHeaders.set("Referer", "https://mangadex.org/");
+      upstreamHeaders.set("User-Agent", DEFAULT_UA);
     }
     const upstream = await fetch(destination, {
       method: request.method,
