@@ -13,6 +13,7 @@ interface ClaimableMedia {
   name?: string;
   release_date?: string;
   first_air_date?: string;
+  year?: number;
   vote_count?: number;
 }
 
@@ -46,7 +47,9 @@ export function mediaTitleKey(item: ClaimableMedia): string | null {
   const title = normalizeTitle(item);
   if (!title) return null;
   const year =
-    yearFromDate(item.release_date) || yearFromDate(item.first_air_date);
+    yearFromDate(item.release_date) ||
+    yearFromDate(item.first_air_date) ||
+    (item.year != null && item.year > 0 ? String(item.year) : "");
   // Always key by title; year disambiguates remakes when present.
   return year ? `${title}|${year}` : `${title}|`;
 }

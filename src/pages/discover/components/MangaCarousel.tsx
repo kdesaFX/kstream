@@ -5,7 +5,7 @@ import { MediaCard } from "@/components/media/MediaCard";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { CarouselNavButtons } from "@/pages/discover/components/CarouselNavButtons";
-import { useDedupedMedia } from "@/pages/discover/components/CarouselDedupeContext";
+import { useDedupedMangaCarouselMedia } from "@/pages/discover/components/useDedupedMangaCarouselMedia";
 import {
   MangaCarouselKind,
   useMangaDiscoverMedia,
@@ -48,7 +48,11 @@ export function MangaCarousel({
     kind,
     shouldFetch,
   );
-  const media = useDedupedMedia(dedupePriority, rawMedia);
+  const media = useDedupedMangaCarouselMedia(dedupePriority, rawMedia, {
+    enabled: shouldFetch,
+    hasLoaded,
+    kind,
+  });
   const { isMobile } = useIsMobile();
   const isScrollingRef = useRef(false);
   const browser = !!window.chrome;
