@@ -1,5 +1,6 @@
 import { ofetch } from "ofetch";
 
+import { plainMangaDescription } from "@/backend/manga/plainMangaDescription";
 import {
   MangaAtHome,
   MangaChapter,
@@ -283,7 +284,10 @@ function mapManga(
   stats?: { rating?: number; follows?: number },
 ): MangaListItem {
   const title = pickMangaTitle(manga.attributes);
-  const description = pickLocalized(manga.attributes.description);
+  const descriptionRaw = pickLocalized(manga.attributes.description);
+  const description = descriptionRaw
+    ? plainMangaDescription(descriptionRaw)
+    : "";
   const contentRating = parseContentRating(manga.attributes.contentRating);
   const tags = mapTags(manga);
   const originalLanguage = manga.attributes.originalLanguage;
