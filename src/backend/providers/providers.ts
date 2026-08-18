@@ -6,7 +6,7 @@ import {
 
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
 import {
-  makeExtensionFetcher,
+  makeExtensionWithProxyFallbackFetcher,
   makeLoadBalancedSimpleProxyFetcher,
   setupM3U8Proxy,
 } from "@/backend/providers/fetchers";
@@ -42,7 +42,7 @@ export function getProviders() {
   if (isDesktopApp()) {
     return makeProviders({
       fetcher: makeStandardFetcher(fetch),
-      proxiedFetcher: makeExtensionFetcher(),
+      proxiedFetcher: makeExtensionWithProxyFallbackFetcher(),
       target: targets.NATIVE,
       consistentIpForRequests: true,
     });
@@ -51,7 +51,7 @@ export function getProviders() {
   if (isExtensionActiveCached()) {
     return makeProviders({
       fetcher: makeStandardFetcher(fetch),
-      proxiedFetcher: makeExtensionFetcher(),
+      proxiedFetcher: makeExtensionWithProxyFallbackFetcher(),
       target: targets.BROWSER_EXTENSION,
       consistentIpForRequests: true,
     });
