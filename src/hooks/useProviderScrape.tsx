@@ -8,6 +8,7 @@ import {
   setCachedMetadata,
 } from "@/backend/helpers/providerApi";
 import { getProviders } from "@/backend/providers/providers";
+import { filterUnavailableSourceIds } from "@/backend/providers/sourceAvailability";
 import {
   currentSourceAfterUpdate,
   currentSourceOnStart,
@@ -303,7 +304,9 @@ export function useScrape() {
         : {};
 
       // Start with all available sources (DO NOT filter failed ones yet, so we can find startFromSourceId)
-      let baseSourceOrder = allSources.map((source) => source.id);
+      let baseSourceOrder = filterUnavailableSourceIds(
+        allSources.map((source) => source.id),
+      );
 
       // Apply custom source ordering if enabled
       if (enableSourceOrder && (preferredSourceOrder || []).length > 0) {
