@@ -47,7 +47,7 @@ export function Title() {
   return (
     <p
       onClick={handleTitleClick}
-      className="min-w-0 truncate whitespace-nowrap cursor-copy transform transition-transform duration-200 hover:scale-105 origin-left"
+      className="block min-w-0 max-w-full truncate whitespace-nowrap cursor-copy transform transition-transform duration-200 hover:scale-105 origin-left"
       title={isShifting ? "Copy with current time" : "Copy link"}
     >
       {title}

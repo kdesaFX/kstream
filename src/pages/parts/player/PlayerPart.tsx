@@ -139,11 +139,13 @@ export function PlayerPart(props: PlayerPartProps) {
       </div>
 
       <Player.TopControls show={showTargets}>
-        <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3">
-          <div className="flex items-center gap-x-3 min-w-0">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-4">
+          <div className="flex items-center gap-x-3 min-w-0 overflow-hidden">
             <Player.BackLink url={props.backUrl} />
             <span className="text-type-secondary shrink-0">/</span>
-            <Player.Title />
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <Player.Title />
+            </div>
 
             {isMobile && meta?.type === "show" && (
               <span className="text-type-secondary text-sm whitespace-nowrap shrink-0">
@@ -154,15 +156,13 @@ export function PlayerPart(props: PlayerPartProps) {
               </span>
             )}
 
-            <Player.InfoButton />
-
-            <Player.BookmarkButton />
-          </div>
-          {/* True viewport-center — not a squeezed middle grid column */}
-          <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden -translate-x-1/2 items-center xl:flex">
-            <div className="pointer-events-auto max-w-[min(40vw,28rem)] truncate">
-              <Player.EpisodeTitle />
+            <div className="flex items-center shrink-0">
+              <Player.InfoButton />
+              <Player.BookmarkButton />
             </div>
+          </div>
+          <div className="hidden xl:flex items-center justify-center min-w-0 max-w-[min(40vw,28rem)] overflow-hidden">
+            <Player.EpisodeTitle />
           </div>
           <div className="hidden lg:flex items-center justify-end shrink-0">
             <BrandPill />
