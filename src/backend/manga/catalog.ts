@@ -17,6 +17,7 @@ import {
   getWeebCentralChapterPages,
   getWeebCentralDetails,
   normalizeMangaTitle,
+  pagesBelongToTitle,
   searchWeebCentral,
 } from "@/backend/manga/weebcentral";
 
@@ -115,7 +116,12 @@ export async function getChapterPages(
   },
 ): Promise<string[]> {
   const pages = await loadPagesForId(chapterId);
-  if (pages.length > 0) return pages;
+  if (
+    pages.length > 0 &&
+    pagesBelongToTitle(pages, fallback?.title, fallback?.alternateTitles ?? [])
+  ) {
+    return pages;
+  }
   if (!fallback?.title) return [];
 
   const wcChapters = await resolveWeebCentralChapters(
@@ -129,7 +135,17 @@ export async function getChapterPages(
       ? wcChapters.find((ch) => ch.chapter === wanted)
       : undefined) ?? wcChapters[0];
   if (!match || match.id === chapterId) return [];
-  return loadPagesForId(match.id);
+  const resolved = await loadPagesForId(match.id);
+  if (
+    !pagesBelongToTitle(
+      resolved,
+      fallback.title,
+      fallback.alternateTitles ?? [],
+    )
+  ) {
+    return [];
+  }
+  return resolved;
 }
 
 async function loadPagesForId(chapterId: string): Promise<string[]> {

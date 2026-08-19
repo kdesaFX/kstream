@@ -185,6 +185,23 @@ export function parseChapterImages(html: string): string[] {
   return [...new Set(urls)];
 }
 
+export function seriesSlugFromPageUrl(url: string): string | null {
+  const m = /\/manga\/([^/?#]+)\//i.exec(url);
+  if (!m?.[1]) return null;
+  return decodeURIComponent(m[1]).replace(/-/g, " ");
+}
+
+export function pagesBelongToTitle(
+  pages: string[],
+  title?: string,
+  alternateTitles: string[] = [],
+): boolean {
+  if (!title || pages.length === 0) return true;
+  const slug = pages.map(seriesSlugFromPageUrl).find(Boolean);
+  if (!slug) return true;
+  return titlesCompatible(title, slug, alternateTitles);
+}
+
 function parseStrongList(html: string, label: string): string[] {
   const block = new RegExp(`<strong>${label}[\\s\\S]*?<\\/li>`, "i").exec(
     html,
@@ -282,6 +299,57 @@ const SEARCH_STOP_WORDS = new Set([
   "for",
 ]);
 
+/** Standalone searches for these grab the wrong series ("Leveling" → Hardcore Leveling Warrior). */
+const GENERIC_SEARCH_TOKENS = new Set([
+  "leveling",
+  "warrior",
+  "hunter",
+  "hero",
+  "king",
+  "queen",
+  "love",
+  "school",
+  "girl",
+  "girls",
+  "boy",
+  "boys",
+  "world",
+  "adventure",
+  "chronicles",
+  "legend",
+  "story",
+  "life",
+  "death",
+  "magic",
+  "dragon",
+  "sword",
+  "battle",
+  "fight",
+  "knight",
+  "demon",
+  "devil",
+  "angel",
+  "another",
+  "volume",
+  "season",
+  "reincarnated",
+  "system",
+  "player",
+  "game",
+  "quest",
+  "dungeon",
+  "tower",
+  "return",
+  "returned",
+  "class",
+  "rank",
+  "ranked",
+]);
+
+function isGenericSearchToken(token: string): boolean {
+  return GENERIC_SEARCH_TOKENS.has(token.toLowerCase());
+}
+
 function spinoffPenalty(title: string): number {
   const t = title.toLowerCase();
   if (/anthology|doujin|fan colored|spin.?off|side story|extra|omnibus/i.test(t)) {
@@ -308,6 +376,40 @@ function tokenOverlapScore(query: string, candidate: string): number {
   return queryTokens.filter((token) => candidateNorm.includes(token)).length;
 }
 
+/** True when `candidate` is actually the series named by `query` (not a shared word). */
+export function titleSatisfiesQuery(query: string, candidate: string): boolean {
+  const needle = normalizeMangaTitle(query);
+  const hay = normalizeMangaTitle(candidate);
+  if (!needle || !hay) return false;
+  if (needle === hay) return true;
+
+  const queryTokens = significantTokens(query);
+  if (
+    queryTokens.length === 1 &&
+    isGenericSearchToken(queryTokens[0]) &&
+    significantTokens(candidate).length > 1
+  ) {
+    return false;
+  }
+
+  if (hay.includes(needle)) return true;
+  if (needle.includes(hay) && hay.length >= Math.min(needle.length, 12)) {
+    return true;
+  }
+
+  if (queryTokens.length === 0) return false;
+  return queryTokens.every((token) => hay.includes(token));
+}
+
+export function titlesCompatible(
+  wanted: string,
+  candidate: string,
+  alternateTitles: string[] = [],
+): boolean {
+  if (titleSatisfiesQuery(wanted, candidate)) return true;
+  return alternateTitles.some((alt) => titleSatisfiesQuery(alt, candidate));
+}
+
 /** Pick the main series when exact-title match fails (licensed MD → WC fallback). */
 export function pickBestSeriesHit(
   query: string,
@@ -320,33 +422,21 @@ export function pickBestSeriesHit(
   const needle = normalizeMangaTitle(query);
   if (!needle) return undefined;
 
-  const ranked = [...hits].sort((a, b) => {
-    const score = (raw: string) => {
-      const n = normalizeMangaTitle(raw);
-      let s = spinoffPenalty(raw);
-      if (n === needle) s -= 30;
-      else if (n.includes(needle) || needle.includes(n)) s -= 10;
-      else s += 5;
-      s -= tokenOverlapScore(query, raw) * 8;
-      return s;
-    };
-    return score(a.title) - score(b.title);
-  });
+  const ranked = [...hits]
+    .filter((hit) => titleSatisfiesQuery(query, hit.title))
+    .sort((a, b) => {
+      const score = (raw: string) => {
+        const n = normalizeMangaTitle(raw);
+        let s = spinoffPenalty(raw);
+        if (n === needle) s -= 30;
+        else if (n.includes(needle)) s -= 10;
+        s -= tokenOverlapScore(query, raw) * 8;
+        return s;
+      };
+      return score(a.title) - score(b.title);
+    });
 
-  const best = ranked[0];
-  if (!best) return undefined;
-  const nBest = normalizeMangaTitle(best.title);
-  const overlap = tokenOverlapScore(query, best.title);
-  if (
-    nBest === needle ||
-    nBest.includes(needle) ||
-    needle.includes(nBest) ||
-    overlap > 0 ||
-    (significantTokens(query).length === 0 && needle.length >= 4)
-  ) {
-    return best;
-  }
-  return undefined;
+  return ranked[0];
 }
 
 export function buildFallbackSearchQueries(
@@ -356,7 +446,10 @@ export function buildFallbackSearchQueries(
   const out: string[] = [];
   const add = (value?: string) => {
     const trimmed = value?.trim();
-    if (trimmed && !out.some((q) => normalizeMangaTitle(q) === normalizeMangaTitle(trimmed))) {
+    if (
+      trimmed &&
+      !out.some((q) => normalizeMangaTitle(q) === normalizeMangaTitle(trimmed))
+    ) {
       out.push(trimmed);
     }
   };
@@ -368,16 +461,33 @@ export function buildFallbackSearchQueries(
   const tokens = title
     .replace(/[!?,.'’]/g, " ")
     .split(/\s+/)
-    .filter((word) => word.length >= 4 && !SEARCH_STOP_WORDS.has(word.toLowerCase()))
+    .filter(
+      (word) =>
+        word.length >= 6 &&
+        !SEARCH_STOP_WORDS.has(word.toLowerCase()) &&
+        !isGenericSearchToken(word),
+    )
     .sort((a, b) => b.length - a.length);
-  for (const token of tokens.slice(0, 3)) add(token);
+  const distinctive = tokens[0];
+  if (
+    distinctive &&
+    normalizeMangaTitle(distinctive) !== normalizeMangaTitle(title)
+  ) {
+    add(distinctive);
+  }
 
   return out;
 }
 
-async function loadWeebCentralChaptersForQuery(
+interface ResolvedWeebCentralSeries {
+  id: string;
+  title: string;
+  chapters: MangaChapter[];
+}
+
+async function loadWeebCentralMatch(
   query: string,
-): Promise<MangaChapter[] | null> {
+): Promise<ResolvedWeebCentralSeries | null> {
   const q = query.trim();
   if (!q) return null;
   const items = await searchWeebCentral(q, 16);
@@ -390,13 +500,19 @@ async function loadWeebCentralChaptersForQuery(
   const match = pickBestSeriesHit(q, hits);
   if (!match) return null;
   const details = await getWeebCentralDetails(match.id);
-  return details.chapters.length > 0 ? details.chapters : null;
+  if (details.chapters.length === 0) return null;
+  return {
+    id: match.id,
+    title: details.title || match.title,
+    chapters: details.chapters,
+  };
 }
 
 /**
  * Resolve readable chapters from WeebCentral when MangaDex is empty or
- * licensed-only. Tries the display title, romaji/alts, then distinctive tokens
- * in parallel so a licensed English title does not wait on empty searches.
+ * licensed-only. Tries the display title, romaji/alts, then one distinctive
+ * proper-noun token. Never keeps the longest chapter list from an unrelated
+ * series that merely shares a word ("Leveling").
  */
 export async function resolveWeebCentralChapters(
   title: string,
@@ -404,16 +520,27 @@ export async function resolveWeebCentralChapters(
 ): Promise<MangaChapter[] | null> {
   const queries = buildFallbackSearchQueries(title, alternateTitles);
   const results = await Promise.all(
-    queries.map((query) =>
-      loadWeebCentralChaptersForQuery(query).catch(() => null),
-    ),
+    queries.map((query) => loadWeebCentralMatch(query).catch(() => null)),
   );
-  const hits = results.filter((chapters): chapters is MangaChapter[] =>
-    Boolean(chapters?.length),
+  const hits = results.filter((hit): hit is ResolvedWeebCentralSeries =>
+    Boolean(hit && titlesCompatible(title, hit.title, alternateTitles)),
   );
   if (hits.length === 0) return null;
-  hits.sort((a, b) => b.length - a.length);
-  return hits[0] ?? null;
+
+  const wanted = normalizeMangaTitle(title);
+  hits.sort((a, b) => {
+    const rank = (raw: string) => {
+      const n = normalizeMangaTitle(raw);
+      if (n === wanted) return 0;
+      if (alternateTitles.some((alt) => normalizeMangaTitle(alt) === n)) {
+        return 1;
+      }
+      if (n.includes(wanted)) return 2;
+      return 10 + spinoffPenalty(raw);
+    };
+    return rank(a.title) - rank(b.title);
+  });
+  return hits[0]?.chapters ?? null;
 }
 
 function hitToListItem(hit: WeebCentralSearchHit): MangaListItem {

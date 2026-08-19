@@ -12,6 +12,8 @@ import {
   parseSeriesPage,
   pickBestSeriesHit,
   pickMatchingSeries,
+  pagesBelongToTitle,
+  titleSatisfiesQuery,
 } from "@/backend/manga/weebcentral";
 
 const SEARCH_HTML = `
@@ -84,6 +86,25 @@ describe("weebcentral parsers", () => {
     ]);
   });
 
+  it("rejects Hardcore Leveling Warrior page URLs for Solo Leveling", () => {
+    expect(
+      pagesBelongToTitle(
+        [
+          "https://hot.planeptune.us/manga/Solo-Leveling/0000-001.png",
+        ],
+        "Solo Leveling",
+      ),
+    ).toBe(true);
+    expect(
+      pagesBelongToTitle(
+        [
+          "https://hot.planeptune.us/manga/Hardcore-Leveling-Warrior/0001-001.png",
+        ],
+        "Solo Leveling",
+      ),
+    ).toBe(false);
+  });
+
   it("reads series metadata off the info page", () => {
     const details = parseSeriesPage(SERIES_HTML, "01J76XYCPSY3C4BNPBRY8JMCBE");
     expect(details.title).toBe("Solo Leveling");
@@ -132,6 +153,13 @@ describe("weebcentral parsers", () => {
     expect(queries).toContain("Nagatoro");
   });
 
+  it("does not search generic words like Leveling on their own", () => {
+    const queries = buildFallbackSearchQueries("Solo Leveling");
+    expect(queries).toEqual(["Solo Leveling"]);
+    expect(queries).not.toContain("Leveling");
+    expect(queries).not.toContain("Solo");
+  });
+
   it("picks the main series when the English title does not match WC exactly", () => {
     const hits = parseSearchResults(SEARCH_HTML);
     const nagatoroHits = [
@@ -155,5 +183,26 @@ describe("weebcentral parsers", () => {
     expect(
       pickBestSeriesHit("Nagatoro", nagatoroHits)?.title,
     ).toBe("Ijiranaide Nagatoro san");
+  });
+
+  it("does not treat Hardcore Leveling Warrior as Solo Leveling", () => {
+    const hclw = {
+      id: "01HCLW00000000000000000001",
+      slug: "Hardcore-Leveling-Warrior",
+      title: "Hardcore Leveling Warrior",
+      poster: "",
+    };
+    const solo = {
+      id: "01J76XYCPSY3C4BNPBRY8JMCBE",
+      slug: "Solo-Leveling",
+      title: "Solo Leveling",
+      poster: "",
+    };
+    expect(titleSatisfiesQuery("Solo Leveling", hclw.title)).toBe(false);
+    expect(pickBestSeriesHit("Solo Leveling", [hclw])).toBeUndefined();
+    expect(pickBestSeriesHit("Solo Leveling", [hclw, solo])?.title).toBe(
+      "Solo Leveling",
+    );
+    expect(pickBestSeriesHit("Leveling", [hclw])).toBeUndefined();
   });
 });

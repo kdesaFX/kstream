@@ -135,10 +135,13 @@ export function MangaReaderView() {
   useEffect(() => {
     if (!mangaId || !details || chapterId) return;
     const resume = savedProgress[mangaId];
-    const target =
-      resume && mangaProgressHasMeaningfulRead(resume)
-        ? resume.chapterId
-        : details.chapters[0]?.id;
+    const resumeStillValid =
+      resume &&
+      mangaProgressHasMeaningfulRead(resume) &&
+      details.chapters.some((ch) => ch.id === resume.chapterId);
+    const target = resumeStillValid
+      ? resume.chapterId
+      : details.chapters[0]?.id;
     if (target) {
       navigate(mangaChapterLink(details.id, details.title, target), {
         replace: true,
@@ -148,6 +151,17 @@ export function MangaReaderView() {
       setLoading(false);
     }
   }, [mangaId, details, chapterId, savedProgress, navigate, t]);
+
+  // Drop chapter ids left over from a wrong-series WeebCentral match.
+  useEffect(() => {
+    if (!mangaId || !details || !chapterId) return;
+    if (details.chapters.some((ch) => ch.id === chapterId)) return;
+    const fallback = details.chapters[0]?.id;
+    if (!fallback) return;
+    navigate(mangaChapterLink(details.id, details.title, fallback), {
+      replace: true,
+    });
+  }, [mangaId, details, chapterId, navigate]);
 
   const loadPages = useCallback(
     async (id: string, force = false) => {
@@ -189,7 +203,11 @@ export function MangaReaderView() {
     if (!nextChapter?.id) return undefined;
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      getChapterPages(nextChapter.id).catch(() => {
+      getChapterPages(nextChapter.id, {
+        title: details?.title,
+        alternateTitles: details?.alternateTitles,
+        chapter: nextChapter.chapter,
+      }).catch(() => {
         if (cancelled) return;
       });
     }, 1500);
@@ -197,7 +215,7 @@ export function MangaReaderView() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [nextChapter?.id]);
+  }, [nextChapter?.id, nextChapter?.chapter, details?.title, details?.alternateTitles]);
 
   // Resume page within chapter
   useEffect(() => {
