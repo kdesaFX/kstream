@@ -172,6 +172,7 @@ export function PlayerPart(props: PlayerPartProps) {
               <>
                 <Player.Airplay />
                 <Player.Chromecast />
+                <Player.ExternalLists />
               </>
             ) : null}
           </div>
@@ -213,6 +214,7 @@ export function PlayerPart(props: PlayerPartProps) {
                 <Player.Pip />
                 <Player.Airplay />
                 <Player.Chromecast />
+                <Player.ExternalLists />
               </>
             ) : null}
             {status === playerStatus.PLAYBACK_ERROR ||

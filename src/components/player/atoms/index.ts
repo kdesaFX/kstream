@@ -16,6 +16,7 @@ export * from "./VolumeChangedPopout";
 export * from "./SubtitleDelayPopout";
 export * from "./NextEpisodeButton";
 export * from "./Chromecast";
+export * from "./ExternalLists";
 export * from "./CastingNotification";
 export * from "./Captions";
 export * from "./SpeedChangedPopout";

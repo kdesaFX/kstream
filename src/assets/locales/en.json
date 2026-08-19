@@ -553,6 +553,10 @@
       "description": "Adult titles stay hidden until you turn them on. You can switch them back off under Settings › Appearance.",
       "openSettings": "Enable mature titles"
     },
+    "external": {
+      "anilist": "Open on AniList",
+      "mal": "Open on MyAnimeList"
+    },
     "episodeShort": "E",
     "seasonShort": "S",
     "seasonWatched": "Are you sure you want to mark the season as watched?",

@@ -19,6 +19,7 @@ import {
 } from "@/backend/manga/mangadex";
 import type { MangaChapter, MangaDetails } from "@/backend/manga/types";
 import { Icon, Icons } from "@/components/Icon";
+import { ExternalListButtons } from "@/components/media/ExternalListButtons";
 import { useMangaProgressStore } from "@/stores/mangaProgress";
 import { mangaProgressHasMeaningfulRead } from "@/stores/mangaProgress/utils";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -346,6 +347,13 @@ export function MangaReaderView() {
               </div>
             )}
           </div>
+          {details ? (
+            <ExternalListButtons
+              type="MANGA"
+              variant="reader"
+              titles={[details.title, ...(details.alternateTitles ?? [])]}
+            />
+          ) : null}
           <button
             type="button"
             className="text-xs px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20"
