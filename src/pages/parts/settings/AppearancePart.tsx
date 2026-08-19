@@ -412,36 +412,6 @@ export function AppearancePart(props: {
     return groups.size > 1;
   }, [bookmarks]);
 
-  const {
-    enableLowPerformanceMode,
-    setEnableDiscover,
-    setEnableFeatured,
-    setEnableDetailsModal,
-    setEnableImageLogos,
-    setEnablePauseOverlay,
-    setForceCompactEpisodeView,
-  } = props;
-
-  // Apply low performance mode restrictions
-  useEffect(() => {
-    if (enableLowPerformanceMode) {
-      setEnableDiscover(false);
-      setEnableFeatured(false);
-      setEnableDetailsModal(false);
-      setEnableImageLogos(false);
-      setEnablePauseOverlay(false);
-      setForceCompactEpisodeView(true);
-    }
-  }, [
-    enableLowPerformanceMode,
-    setEnableDiscover,
-    setEnableFeatured,
-    setEnableDetailsModal,
-    setEnableImageLogos,
-    setEnablePauseOverlay,
-    setForceCompactEpisodeView,
-  ]);
-
   const checkScrollPosition = () => {
     const container = carouselRef.current;
     if (!container) return;

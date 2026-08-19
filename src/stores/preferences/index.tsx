@@ -3,6 +3,12 @@ import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
 import {
+  applyLowPerformanceRestrictions,
+  captureLowPerformanceSnapshot,
+  restoreLowPerformanceSnapshot,
+  type LowPerformanceSnapshot,
+} from "@/stores/preferences/lowPerformance";
+import {
   DEFAULT_KEYBOARD_SHORTCUTS,
   KeyboardShortcuts,
 } from "@/utils/browser/keyboardShortcuts";
@@ -56,6 +62,8 @@ export interface PreferencesStore {
   tidbKey: string | null;
   wyzieKey: string | null;
   enableLowPerformanceMode: boolean;
+  /** Settings captured right before performance mode turned them off. */
+  lowPerformanceSnapshot: LowPerformanceSnapshot | null;
   enableNativeSubtitles: boolean;
   enableAutoSubtitleSync: boolean;
   enableHoldToBoost: boolean;
@@ -111,6 +119,7 @@ export interface PreferencesStore {
   setTIDBKey(v: string | null): void;
   setWyzieKey(v: string | null): void;
   setEnableLowPerformanceMode(v: boolean): void;
+  rememberLowPerformanceSnapshot(snapshot: LowPerformanceSnapshot): void;
   setEnableNativeSubtitles(v: boolean): void;
   setEnableAutoSubtitleSync(v: boolean): void;
   setEnableHoldToBoost(v: boolean): void;
@@ -171,6 +180,7 @@ export const usePreferencesStore = create(
       tidbKey: null,
       wyzieKey: null,
       enableLowPerformanceMode: false,
+      lowPerformanceSnapshot: null,
       enableNativeSubtitles: false,
       enableAutoSubtitleSync: false,
       enableHoldToBoost: true,
@@ -353,12 +363,20 @@ export const usePreferencesStore = create(
       },
       setEnableLowPerformanceMode(v) {
         set((s) => {
-          s.enableLowPerformanceMode = v;
-          // When enabling performance mode, disable bandwidth-heavy features
           if (v) {
-            s.enableThumbnails = false;
-            s.enableAutoplay = false;
+            s.enableLowPerformanceMode = true;
+            applyLowPerformanceRestrictions(s);
+            return;
           }
+          s.enableLowPerformanceMode = false;
+          restoreLowPerformanceSnapshot(s, s.lowPerformanceSnapshot);
+          s.lowPerformanceSnapshot = null;
+        });
+      },
+      rememberLowPerformanceSnapshot(snapshot) {
+        set((s) => {
+          if (s.lowPerformanceSnapshot) return;
+          s.lowPerformanceSnapshot = captureLowPerformanceSnapshot(snapshot);
         });
       },
       setEnableNativeSubtitles(v) {

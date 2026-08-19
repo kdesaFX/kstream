@@ -39,6 +39,10 @@ import { AccountWithToken, useAuthStore } from "@/stores/auth";
 import { useBannerSize } from "@/stores/banner";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
+import {
+  LOW_PERFORMANCE_RESTORE_DEFAULTS,
+  captureLowPerformanceSnapshot,
+} from "@/stores/preferences/lowPerformance";
 import { useSubtitleStore } from "@/stores/subtitles";
 import { usePreviewThemeStore, useThemeStore } from "@/stores/theme";
 import { scrollToElement, scrollToHash } from "@/utils/common/scroll";
@@ -875,6 +879,49 @@ export function SettingsPage() {
     [state.theme, setPreviewTheme],
   );
 
+  const setLowPerformanceMode = useCallback(
+    (enabled: boolean) => {
+      const prefs = usePreferencesStore.getState();
+      if (enabled) {
+        prefs.rememberLowPerformanceSnapshot(
+          captureLowPerformanceSnapshot({
+            enableThumbnails: state.enableThumbnails.state,
+            enableAutoplay: state.enableAutoplay.state,
+            enableDiscover: state.enableDiscover.state,
+            enableFeatured: state.enableFeatured.state,
+            enableDetailsModal: state.enableDetailsModal.state,
+            enableImageLogos: state.enableImageLogos.state,
+            enablePauseOverlay: state.enablePauseOverlay.state,
+            forceCompactEpisodeView: state.forceCompactEpisodeView.state,
+          }),
+        );
+        state.enableLowPerformanceMode.set(true);
+        state.enableThumbnails.set(false);
+        state.enableAutoplay.set(false);
+        state.enableDiscover.set(false);
+        state.enableFeatured.set(false);
+        state.enableDetailsModal.set(false);
+        state.enableImageLogos.set(false);
+        state.enablePauseOverlay.set(false);
+        state.forceCompactEpisodeView.set(true);
+        return;
+      }
+
+      const snap =
+        prefs.lowPerformanceSnapshot ?? LOW_PERFORMANCE_RESTORE_DEFAULTS;
+      state.enableLowPerformanceMode.set(false);
+      state.enableThumbnails.set(snap.enableThumbnails);
+      state.enableAutoplay.set(snap.enableAutoplay);
+      state.enableDiscover.set(snap.enableDiscover);
+      state.enableFeatured.set(snap.enableFeatured);
+      state.enableDetailsModal.set(snap.enableDetailsModal);
+      state.enableImageLogos.set(snap.enableImageLogos);
+      state.enablePauseOverlay.set(snap.enablePauseOverlay);
+      state.forceCompactEpisodeView.set(snap.forceCompactEpisodeView);
+    },
+    [state],
+  );
+
   const saveChanges = useCallback(async () => {
     if (account && backendUrl) {
       const settingsChanged =
@@ -950,7 +997,6 @@ export function SettingsPage() {
     setEnableCarouselView(state.enableCarouselView.state);
     setEnableMinimalCards(state.enableMinimalCards.state);
     setForceCompactEpisodeView(state.forceCompactEpisodeView.state);
-    setEnableLowPerformanceMode(state.enableLowPerformanceMode.state);
     setEnableNativeSubtitles(state.enableNativeSubtitles.state);
     setEnableHoldToBoost(state.enableHoldToBoost.state);
     setBookmarkRowsToShow(state.bookmarkRowsToShow.state);
@@ -965,6 +1011,7 @@ export function SettingsPage() {
       state.enableAutoResumeOnPlaybackError.state,
     );
     setEnablePauseOverlay(state.enablePauseOverlay.state);
+    setEnableLowPerformanceMode(state.enableLowPerformanceMode.state);
     setCustomTheme(state.customTheme.state);
     setCustomThemeBaseline(state.customTheme.state);
     useThemeStore.setState({
@@ -1109,7 +1156,7 @@ export function SettingsPage() {
                 state.enableLastSuccessfulSource.set
               }
               enableLowPerformanceMode={state.enableLowPerformanceMode.state}
-              setEnableLowPerformanceMode={state.enableLowPerformanceMode.set}
+              setEnableLowPerformanceMode={setLowPerformanceMode}
               enableHoldToBoost={state.enableHoldToBoost.state}
               setEnableHoldToBoost={state.enableHoldToBoost.set}
               manualSourceSelection={state.manualSourceSelection.state}
