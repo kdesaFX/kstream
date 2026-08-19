@@ -29,11 +29,13 @@ function PageImage({
   src,
   alt,
   referrerPolicy,
+  eager,
   onError,
 }: {
   src: string;
   alt: string;
   referrerPolicy: "origin" | "no-referrer";
+  eager?: boolean;
   onError: () => void;
 }) {
   return (
@@ -41,7 +43,7 @@ function PageImage({
       src={src}
       alt={alt}
       className="max-w-full h-auto mx-auto block bg-black/40"
-      loading="lazy"
+      loading={eager ? "eager" : "lazy"}
       decoding="async"
       // MangaDex image nodes drop requests that carry no referrer at all, so
       // send the bare origin. WeebCentral's CDN is the opposite: a foreign
@@ -85,7 +87,8 @@ export function MangaReaderView() {
   const retried = useRef(false);
 
   const chapterId = chapterParam ? decodeURIComponent(chapterParam) : undefined;
-  const pageReferrer = "no-referrer";
+  const pageReferrer =
+    chapterId && isWeebCentralId(chapterId) ? "no-referrer" : "origin";
 
   // Same route serves every manga, so details are only usable for the one
   // currently in the URL — otherwise the chapter list and resume redirect below
@@ -151,7 +154,11 @@ export function MangaReaderView() {
       setError(null);
       if (force) retried.current = false;
       try {
-        const urls = await getChapterPages(id);
+        const urls = await getChapterPages(id, {
+          title: details?.title,
+          alternateTitles: details?.alternateTitles,
+          chapter: currentChapter?.chapter,
+        });
         if (urls.length === 0) {
           setError(t("manga.reader.emptyChapter"));
           setPages([]);
@@ -166,14 +173,15 @@ export function MangaReaderView() {
         setLoading(false);
       }
     },
-    [t],
+    [t, details?.title, details?.alternateTitles, currentChapter?.chapter],
   );
 
   useEffect(() => {
     if (!chapterId) return;
+    if (!isWeebCentralId(chapterId) && !details) return;
     retried.current = false;
     loadPages(chapterId);
-  }, [chapterId, loadPages]);
+  }, [chapterId, details, loadPages]);
 
   // Warm the next chapter so Next feels instant.
   useEffect(() => {
@@ -421,6 +429,7 @@ export function MangaReaderView() {
                   src={src}
                   alt={`Page ${i + 1}`}
                   referrerPolicy={pageReferrer}
+                  eager={i < 3}
                   onError={() => onPageError(i)}
                 />
               ))}
@@ -431,6 +440,7 @@ export function MangaReaderView() {
                 src={pages[pageIndex]}
                 alt={`Page ${pageIndex + 1}`}
                 referrerPolicy={pageReferrer}
+                eager
                 onError={() => onPageError(pageIndex)}
               />
             </div>

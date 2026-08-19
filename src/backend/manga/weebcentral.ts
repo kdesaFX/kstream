@@ -395,19 +395,25 @@ async function loadWeebCentralChaptersForQuery(
 
 /**
  * Resolve readable chapters from WeebCentral when MangaDex is empty or
- * licensed-only. Tries the display title, romaji/alts, then distinctive tokens.
+ * licensed-only. Tries the display title, romaji/alts, then distinctive tokens
+ * in parallel so a licensed English title does not wait on empty searches.
  */
 export async function resolveWeebCentralChapters(
   title: string,
   alternateTitles: string[] = [],
 ): Promise<MangaChapter[] | null> {
-  for (const query of buildFallbackSearchQueries(title, alternateTitles)) {
-    const chapters = await loadWeebCentralChaptersForQuery(query).catch(
-      () => null,
-    );
-    if (chapters?.length) return chapters;
-  }
-  return null;
+  const queries = buildFallbackSearchQueries(title, alternateTitles);
+  const results = await Promise.all(
+    queries.map((query) =>
+      loadWeebCentralChaptersForQuery(query).catch(() => null),
+    ),
+  );
+  const hits = results.filter((chapters): chapters is MangaChapter[] =>
+    Boolean(chapters?.length),
+  );
+  if (hits.length === 0) return null;
+  hits.sort((a, b) => b.length - a.length);
+  return hits[0] ?? null;
 }
 
 function hitToListItem(hit: WeebCentralSearchHit): MangaListItem {
@@ -492,12 +498,21 @@ export async function findWeebCentralChapters(
   return resolveWeebCentralChapters(title);
 }
 
+const pageCache = new Map<string, { at: number; pages: string[] }>();
+const PAGE_TTL_MS = 10 * 60 * 1000;
+
 export async function getWeebCentralChapterPages(
   chapterId: string,
 ): Promise<string[]> {
+  const cached = pageCache.get(chapterId);
+  if (cached && Date.now() - cached.at < PAGE_TTL_MS) return cached.pages;
   const html = await wcGet(
     `${ORIGIN}/chapters/${chapterId}/images?is_prev=False&reading_style=long_strip`,
     true,
   );
-  return parseChapterImages(html);
+  const pages = parseChapterImages(html);
+  if (pages.length > 0) {
+    pageCache.set(chapterId, { at: Date.now(), pages });
+  }
+  return pages;
 }

@@ -106,13 +106,43 @@ export async function getMangaDetails(
   return enrichWithWeebCentralChapters(details);
 }
 
-export async function getChapterPages(chapterId: string): Promise<string[]> {
+export async function getChapterPages(
+  chapterId: string,
+  fallback?: {
+    title?: string;
+    alternateTitles?: string[];
+    chapter?: string | null;
+  },
+): Promise<string[]> {
+  const pages = await loadPagesForId(chapterId);
+  if (pages.length > 0) return pages;
+  if (!fallback?.title) return [];
+
+  const wcChapters = await resolveWeebCentralChapters(
+    fallback.title,
+    fallback.alternateTitles ?? [],
+  ).catch(() => null);
+  if (!wcChapters?.length) return [];
+  const wanted = fallback.chapter?.trim();
+  const match =
+    (wanted
+      ? wcChapters.find((ch) => ch.chapter === wanted)
+      : undefined) ?? wcChapters[0];
+  if (!match || match.id === chapterId) return [];
+  return loadPagesForId(match.id);
+}
+
+async function loadPagesForId(chapterId: string): Promise<string[]> {
   if (isWeebCentralId(chapterId)) {
     return getWeebCentralChapterPages(chapterId);
   }
-  const atHome = await getChapterAtHome(chapterId);
-  const full = chapterPageUrls(atHome, "data");
-  const urls =
-    full.length > 0 ? full : chapterPageUrls(atHome, "data-saver");
-  return proxiedChapterPageUrls(urls);
+  try {
+    const atHome = await getChapterAtHome(chapterId);
+    const full = chapterPageUrls(atHome, "data");
+    const urls =
+      full.length > 0 ? full : chapterPageUrls(atHome, "data-saver");
+    return proxiedChapterPageUrls(urls);
+  } catch {
+    return [];
+  }
 }
