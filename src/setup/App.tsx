@@ -53,6 +53,7 @@ import { PasPage } from "@/pages/Pas";
 import { RegisterPage } from "@/pages/Register";
 import { SupportPage } from "@/pages/Support";
 import { MyAlgorithmPage } from "@/pages/algorithm/MyAlgorithm";
+import { ReadHistory } from "@/pages/readHistory/ReadHistory";
 import { WatchHistory } from "@/pages/watchHistory/WatchHistory";
 import { Layout } from "@/setup/Layout";
 import { useAdsStore } from "@/stores/ads";
@@ -284,6 +285,7 @@ function App() {
           <Route path="/person/:id" element={<PersonView />} />
           {/* Watch History page */}
           <Route path="/watch-history" element={<WatchHistory />} />
+          <Route path="/read-history" element={<ReadHistory />} />
           <Route path="/algorithm" element={<MyAlgorithmPage />} />
           {/* Settings page */}
           <Route

@@ -70,6 +70,7 @@ export interface PreferencesStore {
   homeSectionOrder: string[];
   bookmarkRowsToShow: number;
   watchingRowsToShow: number;
+  readingRowsToShow: number;
   manualSourceSelection: boolean;
   preferredMinimumResolution: PreferredMinimumResolution;
   enableDoubleClickToSeek: boolean;
@@ -126,6 +127,7 @@ export interface PreferencesStore {
   setHomeSectionOrder(v: string[]): void;
   setBookmarkRowsToShow(v: number): void;
   setWatchingRowsToShow(v: number): void;
+  setReadingRowsToShow(v: number): void;
   setManualSourceSelection(v: boolean): void;
   setPreferredMinimumResolution(v: PreferredMinimumResolution): void;
   setEnableDoubleClickToSeek(v: boolean): void;
@@ -187,6 +189,7 @@ export const usePreferencesStore = create(
       homeSectionOrder: ["watching", "reading"],
       bookmarkRowsToShow: 1,
       watchingRowsToShow: 1,
+      readingRowsToShow: 1,
       manualSourceSelection: false,
       preferredMinimumResolution: "none",
       enableDoubleClickToSeek: false,
@@ -409,6 +412,11 @@ export const usePreferencesStore = create(
           s.watchingRowsToShow = v;
         });
       },
+      setReadingRowsToShow(v) {
+        set((s) => {
+          s.readingRowsToShow = v;
+        });
+      },
       setManualSourceSelection(v) {
         set((s) => {
           s.manualSourceSelection = v;
@@ -524,6 +532,9 @@ export const usePreferencesStore = create(
         }
         if (!merged.preferredSourceByTitle) {
           merged.preferredSourceByTitle = {};
+        }
+        if (merged.readingRowsToShow == null) {
+          merged.readingRowsToShow = 1;
         }
 
         // Goated was renamed to Reyna — rewrite saved prefs so scrapes still hit it.

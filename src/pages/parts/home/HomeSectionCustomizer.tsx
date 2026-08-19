@@ -27,6 +27,7 @@ export function HomeSectionCustomizer({
 
     const ALL_SECTIONS = [
       { id: "watching", name: t("home.continueWatching.sectionTitle") || "Continue Watching" },
+      { id: "reading", name: t("home.continueReading.sectionTitle") || "Continue Reading" },
       { id: "bookmarks", name: t("home.bookmarks.sectionTitle") || "Bookmarks" }
     ];
 

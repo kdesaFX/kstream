@@ -283,6 +283,9 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
           <DropdownLink href="/watch-history" icon={Icons.CLOCK}>
             {t("home.watchHistory.sectionTitle")}
           </DropdownLink>
+          <DropdownLink href="/read-history" icon={Icons.BOOKMARK}>
+            {t("home.readHistory.sectionTitle")}
+          </DropdownLink>
           <DropdownLink href="/bookmarks" icon={Icons.BOOKMARK}>
             {t("navigation.menu.savedTitles")}
           </DropdownLink>

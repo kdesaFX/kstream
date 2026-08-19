@@ -14,6 +14,7 @@ import { HomeLayout } from "@/pages/layouts/HomeLayout";
 import { BookmarksCarousel } from "@/pages/parts/home/BookmarksCarousel";
 import { BookmarksGrid } from "@/pages/parts/home/BookmarksGrid";
 import { ReadingCarousel } from "@/pages/parts/home/ReadingCarousel";
+import { ReadingGrid } from "@/pages/parts/home/ReadingGrid";
 import { WatchingCarousel } from "@/pages/parts/home/WatchingCarousel";
 import { WatchingGrid } from "@/pages/parts/home/WatchingGrid";
 import { SearchListPart } from "@/pages/parts/search/SearchListPart";
@@ -64,6 +65,7 @@ export function HomePage() {
   const s = useSearch(search);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showWatching, setShowWatching] = useState(false);
+  const [showReading, setShowReading] = useState(false);
   // Real width check (not a CSS breakpoint) so exactly one <HomeAd> instance
   // ever mounts -- rendering two copies toggled by CSS visibility both hits
   // the ad script's dedupe-by-id guard, so whichever one mounts first can
@@ -145,10 +147,16 @@ export function HomePage() {
             />
           );
         case "reading":
-          return (
+          return enableCarouselView ? (
             <ReadingCarousel
               key="reading"
               carouselRefs={carouselRefs}
+              onShowDetails={handleShowDetails}
+            />
+          ) : (
+            <ReadingGrid
+              key="reading"
+              onItemsChange={setShowReading}
               onShowDetails={handleShowDetails}
             />
           );
@@ -248,7 +256,7 @@ export function HomePage() {
       )}
 
       <WideContainer ultraWide classNames="!px-3 md:!px-9">
-        {!(showBookmarks || showWatching) &&
+        {!(showBookmarks || showWatching || showReading) &&
         (!enableDiscover || enableLowPerformanceMode) ? (
           <div className="flex flex-col translate-y-[-30px] items-center justify-center pt-20">
             <p className="text-[18.5px] pb-3">{emptyText}</p>
