@@ -254,7 +254,7 @@ export const Icon = memo((props: IconProps) => {
         alt=""
         draggable={false}
         className={classNames(
-          "inline-block h-[1em] w-auto object-contain",
+          "no-fade inline-block h-[1em] w-auto object-contain",
           props.className,
         )}
       />
