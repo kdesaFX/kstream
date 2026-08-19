@@ -2,7 +2,8 @@ import { ofetch } from "ofetch";
 
 import { getAuthHeaders } from "@/backend/accounts/auth";
 import { AccountWithToken } from "@/stores/auth";
-import { PreferencesStore } from "@/stores/preferences";
+import { PreferencesStore, usePreferencesStore } from "@/stores/preferences";
+import { deviceProfileToSettingsPatch } from "@/stores/preferences/deviceProfile";
 import { KeyboardShortcuts } from "@/utils/browser/keyboardShortcuts";
 
 export interface CustomThemeSettings {
@@ -200,4 +201,17 @@ export function buildFullSettingsInput(
     enableGamepadControls: preferences.enableGamepadControls,
     gamepadMapping: preferences.gamepadMapping,
   };
+}
+
+/** Persist the current optimizer flags so a later settings restore cannot revert them. */
+export async function syncDeviceProfileSettings(
+  url: string | null | undefined,
+  account: AccountWithToken | null | undefined,
+): Promise<void> {
+  if (!url || !account) return;
+  await updateSettings(
+    url,
+    account,
+    deviceProfileToSettingsPatch(usePreferencesStore.getState()),
+  );
 }

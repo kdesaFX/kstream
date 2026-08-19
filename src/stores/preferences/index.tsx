@@ -12,9 +12,7 @@ import {
   type PosterQuality,
 } from "@/stores/preferences/deviceProfile";
 import {
-  applyLowPerformanceRestrictions,
   captureLowPerformanceSnapshot,
-  restoreLowPerformanceSnapshot,
   type LowPerformanceSnapshot,
 } from "@/stores/preferences/lowPerformance";
 import {
@@ -387,14 +385,10 @@ export const usePreferencesStore = create(
       },
       setEnableLowPerformanceMode(v) {
         set((s) => {
-          if (v) {
-            s.enableLowPerformanceMode = true;
-            applyLowPerformanceRestrictions(s);
-            return;
-          }
-          s.enableLowPerformanceMode = false;
-          restoreLowPerformanceSnapshot(s, s.lowPerformanceSnapshot);
-          s.lowPerformanceSnapshot = null;
+          // Only the boolean. Device profiles own logos/thumbnails/etc.; the
+          // old kitchen-sink restrictions used to stomp those when Settings
+          // saved or reloaded (High looked selected, image logos stayed off).
+          s.enableLowPerformanceMode = v;
         });
       },
       rememberLowPerformanceSnapshot(snapshot) {
@@ -420,6 +414,7 @@ export const usePreferencesStore = create(
           }
           applyDeviceProfileFlags(s, flagsForDeviceProfile(profile));
           s.lastAppliedDeviceProfile = profile;
+          s.lowPerformanceSnapshot = null;
         });
       },
       resetDeviceProfile() {
@@ -430,6 +425,7 @@ export const usePreferencesStore = create(
           );
           s.deviceProfileSnapshot = null;
           s.lastAppliedDeviceProfile = null;
+          s.lowPerformanceSnapshot = null;
         });
       },
       setEnableNativeSubtitles(v) {

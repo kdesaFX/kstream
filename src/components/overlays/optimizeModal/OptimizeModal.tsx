@@ -2,15 +2,18 @@ import classNames from "classnames";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { syncDeviceProfileSettings } from "@/backend/accounts/settings";
 import { Button } from "@/components/buttons/Button";
 import { Icon, Icons } from "@/components/Icon";
 import { FancyModal } from "@/components/overlays/Modal";
+import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
+import { useAuthStore } from "@/stores/auth";
+import { usePreferencesStore } from "@/stores/preferences";
 import {
   DEVICE_PROFILE_APPLY_STEPS,
   inferDeviceProfile,
   type DeviceProfile,
 } from "@/stores/preferences/deviceProfile";
-import { usePreferencesStore } from "@/stores/preferences";
 
 import { useOptimizeModal } from "./useOptimizeModal";
 
@@ -86,6 +89,8 @@ export function OptimizeModal() {
   const applyDeviceProfile = usePreferencesStore((s) => s.applyDeviceProfile);
   const resetDeviceProfile = usePreferencesStore((s) => s.resetDeviceProfile);
   const inferred = usePreferencesStore((s) => inferDeviceProfile(s));
+  const backendUrl = useBackendUrl();
+  const account = useAuthStore((s) => s.account);
 
   const [phase, setPhase] = useState<"pick" | "applying" | "done">("pick");
   const [activeProfile, setActiveProfile] = useState<DeviceProfile | null>(
@@ -99,6 +104,7 @@ export function OptimizeModal() {
 
   const runApply = (profile: DeviceProfile) => {
     applyDeviceProfile(profile);
+    void syncDeviceProfileSettings(backendUrl, account);
     setActiveProfile(profile);
     setPhase("applying");
     setStepIndex(0);
@@ -119,6 +125,7 @@ export function OptimizeModal() {
 
   const handleReset = () => {
     resetDeviceProfile();
+    void syncDeviceProfileSettings(backendUrl, account);
     setPhase("pick");
     setActiveProfile(null);
     setStepIndex(0);

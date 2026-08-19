@@ -8,6 +8,7 @@ import { getSessions, updateSession } from "@/backend/accounts/sessions";
 import {
   SettingsInput,
   getSettings,
+  syncDeviceProfileSettings,
   updateSettings,
 } from "@/backend/accounts/settings";
 import { editUser } from "@/backend/accounts/user";
@@ -44,6 +45,7 @@ import {
   HIGH_DEVICE_PROFILE,
   inferDeviceProfile,
   type DeviceProfile,
+  type DeviceProfileFlags,
 } from "@/stores/preferences/deviceProfile";
 import { useSubtitleStore } from "@/stores/subtitles";
 import { usePreviewThemeStore, useThemeStore } from "@/stores/theme";
@@ -642,6 +644,9 @@ export function SettingsPage() {
         if (settings.debridService) {
           setdebridService(settings.debridService);
         }
+        if (settings.enableLowPerformanceMode !== undefined) {
+          setEnableLowPerformanceMode(settings.enableLowPerformanceMode);
+        }
         if (settings.enableThumbnails !== undefined) {
           setEnableThumbnails(settings.enableThumbnails);
         }
@@ -695,9 +700,6 @@ export function SettingsPage() {
         }
         if (settings.forceCompactEpisodeView !== undefined) {
           setForceCompactEpisodeView(settings.forceCompactEpisodeView);
-        }
-        if (settings.enableLowPerformanceMode !== undefined) {
-          setEnableLowPerformanceMode(settings.enableLowPerformanceMode);
         }
         if (settings.enableHoldToBoost !== undefined) {
           setEnableHoldToBoost(settings.enableHoldToBoost);
@@ -895,10 +897,8 @@ export function SettingsPage() {
     [state.theme, setPreviewTheme],
   );
 
-  const applyDeviceProfileToDraft = useCallback(
-    (profile: DeviceProfile) => {
-      const flags = flagsForDeviceProfile(profile);
-      applyDeviceProfileStore(profile);
+  const applyFlagsToDraft = useCallback(
+    (flags: DeviceProfileFlags) => {
       state.enableLowPerformanceMode.set(flags.enableLowPerformanceMode);
       state.enableThumbnails.set(flags.enableThumbnails);
       state.enableAutoplay.set(flags.enableAutoplay);
@@ -911,7 +911,16 @@ export function SettingsPage() {
       state.enableCarouselView.set(flags.enableCarouselView);
       state.proxyTmdb.set(flags.proxyTmdb);
     },
-    [applyDeviceProfileStore, state],
+    [state],
+  );
+
+  const applyDeviceProfileToDraft = useCallback(
+    (profile: DeviceProfile) => {
+      applyDeviceProfileStore(profile);
+      applyFlagsToDraft(flagsForDeviceProfile(profile));
+      void syncDeviceProfileSettings(backendUrl, account);
+    },
+    [account, applyDeviceProfileStore, applyFlagsToDraft, backendUrl],
   );
 
   const resetDeviceProfileToDraft = useCallback(() => {
@@ -919,18 +928,9 @@ export function SettingsPage() {
       usePreferencesStore.getState().deviceProfileSnapshot ??
       HIGH_DEVICE_PROFILE;
     resetDeviceProfileStore();
-    state.enableLowPerformanceMode.set(snap.enableLowPerformanceMode);
-    state.enableThumbnails.set(snap.enableThumbnails);
-    state.enableAutoplay.set(snap.enableAutoplay);
-    state.enableDiscover.set(snap.enableDiscover);
-    state.enableFeatured.set(snap.enableFeatured);
-    state.enableDetailsModal.set(snap.enableDetailsModal);
-    state.enableImageLogos.set(snap.enableImageLogos);
-    state.enablePauseOverlay.set(snap.enablePauseOverlay);
-    state.forceCompactEpisodeView.set(snap.forceCompactEpisodeView);
-    state.enableCarouselView.set(snap.enableCarouselView);
-    state.proxyTmdb.set(snap.proxyTmdb);
-  }, [resetDeviceProfileStore, state]);
+    applyFlagsToDraft(snap);
+    void syncDeviceProfileSettings(backendUrl, account);
+  }, [account, applyFlagsToDraft, backendUrl, resetDeviceProfileStore]);
 
   const saveChanges = useCallback(async () => {
     if (account && backendUrl) {
@@ -980,6 +980,7 @@ export function SettingsPage() {
       }
     }
 
+    setEnableLowPerformanceMode(state.enableLowPerformanceMode.state);
     setEnableThumbnails(state.enableThumbnails.state);
     setEnableAutoplay(state.enableAutoplay.state);
     setEnableSkipCredits(state.enableSkipCredits.state);
@@ -1021,7 +1022,6 @@ export function SettingsPage() {
       state.enableAutoResumeOnPlaybackError.state,
     );
     setEnablePauseOverlay(state.enablePauseOverlay.state);
-    setEnableLowPerformanceMode(state.enableLowPerformanceMode.state);
     setCustomTheme(state.customTheme.state);
     setCustomThemeBaseline(state.customTheme.state);
     useThemeStore.setState({

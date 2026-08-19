@@ -522,7 +522,6 @@ export function AppearancePart(props: {
               notice={t("settings.appearance.options.logosNotice")}
               enabled={props.enableImageLogos}
               onChange={(v) => props.setEnableImageLogos(v)}
-              disabled={props.enableLowPerformanceMode}
             />
             <ToggleRow
               title={t("settings.appearance.options.carouselViewLabel")}

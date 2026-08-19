@@ -113,6 +113,37 @@ export function applyDeviceProfileFlags(
   s.posterQuality = flags.posterQuality;
 }
 
+/** Account-settings fields owned by a device profile (pushed on apply/reset). */
+export function deviceProfileToSettingsPatch(
+  s: DeviceProfileFlags,
+): {
+  enableThumbnails: boolean;
+  enableAutoplay: boolean;
+  enableDiscover: boolean;
+  enableFeatured: boolean;
+  enableDetailsModal: boolean;
+  enableImageLogos: boolean;
+  enablePauseOverlay: boolean;
+  forceCompactEpisodeView: boolean;
+  enableCarouselView: boolean;
+  enableLowPerformanceMode: boolean;
+  proxyTmdb: boolean;
+} {
+  return {
+    enableThumbnails: s.enableThumbnails,
+    enableAutoplay: s.enableAutoplay,
+    enableDiscover: s.enableDiscover,
+    enableFeatured: s.enableFeatured,
+    enableDetailsModal: s.enableDetailsModal,
+    enableImageLogos: s.enableImageLogos,
+    enablePauseOverlay: s.enablePauseOverlay,
+    forceCompactEpisodeView: s.forceCompactEpisodeView,
+    enableCarouselView: s.enableCarouselView,
+    enableLowPerformanceMode: s.enableLowPerformanceMode,
+    proxyTmdb: s.proxyTmdb,
+  };
+}
+
 export function flagsForDeviceProfile(profile: DeviceProfile): DeviceProfileFlags {
   return { ...PRESETS[profile] };
 }

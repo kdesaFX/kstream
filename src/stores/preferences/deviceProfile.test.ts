@@ -47,4 +47,22 @@ describe("device profiles", () => {
     const s = sample({ enableThumbnails: true, proxyArtwork: true });
     expect(inferDeviceProfile(s)).toBe("custom");
   });
+
+  it("turns image logos back on when switching from low to high", () => {
+    const s = sample();
+    applyDeviceProfileFlags(s, LOW_DEVICE_PROFILE);
+    expect(s.enableImageLogos).toBe(false);
+    applyDeviceProfileFlags(s, HIGH_DEVICE_PROFILE);
+    expect(s.enableImageLogos).toBe(true);
+    expect(s.enableLowPerformanceMode).toBe(false);
+    expect(inferDeviceProfile(s)).toBe("high");
+  });
+
+  it("turns image logos back on when switching from low to mid", () => {
+    const s = sample();
+    applyDeviceProfileFlags(s, LOW_DEVICE_PROFILE);
+    applyDeviceProfileFlags(s, MID_DEVICE_PROFILE);
+    expect(s.enableImageLogos).toBe(true);
+    expect(inferDeviceProfile(s)).toBe("mid");
+  });
 });
