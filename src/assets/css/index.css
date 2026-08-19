@@ -453,3 +453,8 @@ img.loaded:not(.no-fade) {
 img[complete]:not(.no-fade):not([src=""]) {
   opacity: 1;
 }
+
+html.reduce-visual-effects img:not(.no-fade):not([src=""]) {
+  opacity: 1 !important;
+  transition: none !important;
+}

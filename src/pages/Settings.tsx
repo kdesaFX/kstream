@@ -40,9 +40,11 @@ import { useBannerSize } from "@/stores/banner";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
 import {
-  LOW_PERFORMANCE_RESTORE_DEFAULTS,
-  captureLowPerformanceSnapshot,
-} from "@/stores/preferences/lowPerformance";
+  flagsForDeviceProfile,
+  HIGH_DEVICE_PROFILE,
+  inferDeviceProfile,
+  type DeviceProfile,
+} from "@/stores/preferences/deviceProfile";
 import { useSubtitleStore } from "@/stores/subtitles";
 import { usePreviewThemeStore, useThemeStore } from "@/stores/theme";
 import { scrollToElement, scrollToHash } from "@/utils/common/scroll";
@@ -537,6 +539,20 @@ export function SettingsPage() {
   const setEnableLowPerformanceMode = usePreferencesStore(
     (s) => s.setEnableLowPerformanceMode,
   );
+  const lastAppliedDeviceProfile = usePreferencesStore(
+    (s) => s.lastAppliedDeviceProfile,
+  );
+  const deviceProfileSnapshot = usePreferencesStore(
+    (s) => s.deviceProfileSnapshot,
+  );
+  const proxyArtwork = usePreferencesStore((s) => s.proxyArtwork);
+  const posterQuality = usePreferencesStore((s) => s.posterQuality);
+  const applyDeviceProfileStore = usePreferencesStore(
+    (s) => s.applyDeviceProfile,
+  );
+  const resetDeviceProfileStore = usePreferencesStore(
+    (s) => s.resetDeviceProfile,
+  );
 
   const enableNativeSubtitles = usePreferencesStore(
     (s) => s.enableNativeSubtitles,
@@ -879,48 +895,42 @@ export function SettingsPage() {
     [state.theme, setPreviewTheme],
   );
 
-  const setLowPerformanceMode = useCallback(
-    (enabled: boolean) => {
-      const prefs = usePreferencesStore.getState();
-      if (enabled) {
-        prefs.rememberLowPerformanceSnapshot(
-          captureLowPerformanceSnapshot({
-            enableThumbnails: state.enableThumbnails.state,
-            enableAutoplay: state.enableAutoplay.state,
-            enableDiscover: state.enableDiscover.state,
-            enableFeatured: state.enableFeatured.state,
-            enableDetailsModal: state.enableDetailsModal.state,
-            enableImageLogos: state.enableImageLogos.state,
-            enablePauseOverlay: state.enablePauseOverlay.state,
-            forceCompactEpisodeView: state.forceCompactEpisodeView.state,
-          }),
-        );
-        state.enableLowPerformanceMode.set(true);
-        state.enableThumbnails.set(false);
-        state.enableAutoplay.set(false);
-        state.enableDiscover.set(false);
-        state.enableFeatured.set(false);
-        state.enableDetailsModal.set(false);
-        state.enableImageLogos.set(false);
-        state.enablePauseOverlay.set(false);
-        state.forceCompactEpisodeView.set(true);
-        return;
-      }
-
-      const snap =
-        prefs.lowPerformanceSnapshot ?? LOW_PERFORMANCE_RESTORE_DEFAULTS;
-      state.enableLowPerformanceMode.set(false);
-      state.enableThumbnails.set(snap.enableThumbnails);
-      state.enableAutoplay.set(snap.enableAutoplay);
-      state.enableDiscover.set(snap.enableDiscover);
-      state.enableFeatured.set(snap.enableFeatured);
-      state.enableDetailsModal.set(snap.enableDetailsModal);
-      state.enableImageLogos.set(snap.enableImageLogos);
-      state.enablePauseOverlay.set(snap.enablePauseOverlay);
-      state.forceCompactEpisodeView.set(snap.forceCompactEpisodeView);
+  const applyDeviceProfileToDraft = useCallback(
+    (profile: DeviceProfile) => {
+      const flags = flagsForDeviceProfile(profile);
+      applyDeviceProfileStore(profile);
+      state.enableLowPerformanceMode.set(flags.enableLowPerformanceMode);
+      state.enableThumbnails.set(flags.enableThumbnails);
+      state.enableAutoplay.set(flags.enableAutoplay);
+      state.enableDiscover.set(flags.enableDiscover);
+      state.enableFeatured.set(flags.enableFeatured);
+      state.enableDetailsModal.set(flags.enableDetailsModal);
+      state.enableImageLogos.set(flags.enableImageLogos);
+      state.enablePauseOverlay.set(flags.enablePauseOverlay);
+      state.forceCompactEpisodeView.set(flags.forceCompactEpisodeView);
+      state.enableCarouselView.set(flags.enableCarouselView);
+      state.proxyTmdb.set(flags.proxyTmdb);
     },
-    [state],
+    [applyDeviceProfileStore, state],
   );
+
+  const resetDeviceProfileToDraft = useCallback(() => {
+    const snap =
+      usePreferencesStore.getState().deviceProfileSnapshot ??
+      HIGH_DEVICE_PROFILE;
+    resetDeviceProfileStore();
+    state.enableLowPerformanceMode.set(snap.enableLowPerformanceMode);
+    state.enableThumbnails.set(snap.enableThumbnails);
+    state.enableAutoplay.set(snap.enableAutoplay);
+    state.enableDiscover.set(snap.enableDiscover);
+    state.enableFeatured.set(snap.enableFeatured);
+    state.enableDetailsModal.set(snap.enableDetailsModal);
+    state.enableImageLogos.set(snap.enableImageLogos);
+    state.enablePauseOverlay.set(snap.enablePauseOverlay);
+    state.forceCompactEpisodeView.set(snap.forceCompactEpisodeView);
+    state.enableCarouselView.set(snap.enableCarouselView);
+    state.proxyTmdb.set(snap.proxyTmdb);
+  }, [resetDeviceProfileStore, state]);
 
   const saveChanges = useCallback(async () => {
     if (account && backendUrl) {
@@ -1156,7 +1166,28 @@ export function SettingsPage() {
                 state.enableLastSuccessfulSource.set
               }
               enableLowPerformanceMode={state.enableLowPerformanceMode.state}
-              setEnableLowPerformanceMode={setLowPerformanceMode}
+              setEnableLowPerformanceMode={state.enableLowPerformanceMode.set}
+              deviceProfile={inferDeviceProfile({
+                enableThumbnails: state.enableThumbnails.state,
+                enableAutoplay: state.enableAutoplay.state,
+                enableDiscover: state.enableDiscover.state,
+                enableFeatured: state.enableFeatured.state,
+                enableDetailsModal: state.enableDetailsModal.state,
+                enableImageLogos: state.enableImageLogos.state,
+                enablePauseOverlay: state.enablePauseOverlay.state,
+                forceCompactEpisodeView: state.forceCompactEpisodeView.state,
+                enableCarouselView: state.enableCarouselView.state,
+                enableLowPerformanceMode: state.enableLowPerformanceMode.state,
+                proxyTmdb: state.proxyTmdb.state,
+                proxyArtwork,
+                posterQuality,
+              })}
+              lastAppliedDeviceProfile={lastAppliedDeviceProfile}
+              hasOptimized={Boolean(
+                deviceProfileSnapshot || lastAppliedDeviceProfile,
+              )}
+              onApplyDeviceProfile={applyDeviceProfileToDraft}
+              onResetDeviceProfile={resetDeviceProfileToDraft}
               enableHoldToBoost={state.enableHoldToBoost.state}
               setEnableHoldToBoost={state.enableHoldToBoost.set}
               manualSourceSelection={state.manualSourceSelection.state}

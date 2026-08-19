@@ -14,6 +14,7 @@ import {
 } from "@/utils/media/logoBackground";
 import { MediaItem } from "@/utils/media/mediaTypes";
 import { tmdbIncludeAdult, filterOutMatureMedia } from "@/utils/media/mature";
+import { tmdbPosterSize, resolveCardArtworkUrl } from "@/utils/media/artwork";
 import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 
 import { MWMediaMeta, MWMediaType, MWSeasonMeta } from "./types/mw";
@@ -587,18 +588,11 @@ export function getMediaBackdrop(
 }
 
 export function getMediaPoster(posterPath: string | null): string | undefined {
-  const shouldProxyTmdb = usePreferencesStore.getState().proxyTmdb;
-  const imgUrl = `https://image.tmdb.org/t/p/w342/${posterPath}`;
-
-  if (shouldProxyTmdb) {
-    const proxyUrls = getProxyUrls();
-    const proxy = getNextProxy(proxyUrls);
-    if (proxy) {
-      return `${proxy}/?destination=${imgUrl}`;
-    }
-  }
-
-  if (posterPath) return imgUrl;
+  if (!posterPath) return undefined;
+  const quality =
+    usePreferencesStore.getState().posterQuality ?? "standard";
+  const imgUrl = `https://image.tmdb.org/t/p/${tmdbPosterSize(quality)}/${posterPath}`;
+  return resolveCardArtworkUrl(imgUrl) ?? imgUrl;
 }
 
 /**

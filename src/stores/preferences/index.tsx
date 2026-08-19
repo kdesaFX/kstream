@@ -3,6 +3,15 @@ import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
 import {
+  applyDeviceProfileFlags,
+  captureDeviceProfileSnapshot,
+  flagsForDeviceProfile,
+  HIGH_DEVICE_PROFILE,
+  type DeviceProfile,
+  type DeviceProfileSnapshot,
+  type PosterQuality,
+} from "@/stores/preferences/deviceProfile";
+import {
   applyLowPerformanceRestrictions,
   captureLowPerformanceSnapshot,
   restoreLowPerformanceSnapshot,
@@ -64,6 +73,10 @@ export interface PreferencesStore {
   enableLowPerformanceMode: boolean;
   /** Settings captured right before performance mode turned them off. */
   lowPerformanceSnapshot: LowPerformanceSnapshot | null;
+  proxyArtwork: boolean;
+  posterQuality: PosterQuality;
+  lastAppliedDeviceProfile: DeviceProfile | null;
+  deviceProfileSnapshot: DeviceProfileSnapshot | null;
   enableNativeSubtitles: boolean;
   enableAutoSubtitleSync: boolean;
   enableHoldToBoost: boolean;
@@ -121,6 +134,10 @@ export interface PreferencesStore {
   setWyzieKey(v: string | null): void;
   setEnableLowPerformanceMode(v: boolean): void;
   rememberLowPerformanceSnapshot(snapshot: LowPerformanceSnapshot): void;
+  setProxyArtwork(v: boolean): void;
+  setPosterQuality(v: PosterQuality): void;
+  applyDeviceProfile(profile: DeviceProfile): void;
+  resetDeviceProfile(): void;
   setEnableNativeSubtitles(v: boolean): void;
   setEnableAutoSubtitleSync(v: boolean): void;
   setEnableHoldToBoost(v: boolean): void;
@@ -183,6 +200,10 @@ export const usePreferencesStore = create(
       wyzieKey: null,
       enableLowPerformanceMode: false,
       lowPerformanceSnapshot: null,
+      proxyArtwork: false,
+      posterQuality: "standard",
+      lastAppliedDeviceProfile: null,
+      deviceProfileSnapshot: null,
       enableNativeSubtitles: false,
       enableAutoSubtitleSync: false,
       enableHoldToBoost: true,
@@ -382,6 +403,35 @@ export const usePreferencesStore = create(
           s.lowPerformanceSnapshot = captureLowPerformanceSnapshot(snapshot);
         });
       },
+      setProxyArtwork(v) {
+        set((s) => {
+          s.proxyArtwork = v;
+        });
+      },
+      setPosterQuality(v) {
+        set((s) => {
+          s.posterQuality = v;
+        });
+      },
+      applyDeviceProfile(profile) {
+        set((s) => {
+          if (!s.deviceProfileSnapshot) {
+            s.deviceProfileSnapshot = captureDeviceProfileSnapshot(s);
+          }
+          applyDeviceProfileFlags(s, flagsForDeviceProfile(profile));
+          s.lastAppliedDeviceProfile = profile;
+        });
+      },
+      resetDeviceProfile() {
+        set((s) => {
+          applyDeviceProfileFlags(
+            s,
+            s.deviceProfileSnapshot ?? HIGH_DEVICE_PROFILE,
+          );
+          s.deviceProfileSnapshot = null;
+          s.lastAppliedDeviceProfile = null;
+        });
+      },
       setEnableNativeSubtitles(v) {
         set((s) => {
           s.enableNativeSubtitles = v;
@@ -535,6 +585,12 @@ export const usePreferencesStore = create(
         }
         if (merged.readingRowsToShow == null) {
           merged.readingRowsToShow = 1;
+        }
+        if (merged.posterQuality !== "low" && merged.posterQuality !== "standard") {
+          merged.posterQuality = "standard";
+        }
+        if (typeof merged.proxyArtwork !== "boolean") {
+          merged.proxyArtwork = false;
         }
 
         // Goated was renamed to Reyna — rewrite saved prefs so scrapes still hit it.

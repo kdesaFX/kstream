@@ -257,7 +257,7 @@ export function HomePage() {
 
       <WideContainer ultraWide classNames="!px-3 md:!px-9">
         {!(showBookmarks || showWatching || showReading) &&
-        (!enableDiscover || enableLowPerformanceMode) ? (
+        !enableDiscover ? (
           <div className="flex flex-col translate-y-[-30px] items-center justify-center pt-20">
             <p className="text-[18.5px] pb-3">{emptyText}</p>
           </div>
@@ -266,7 +266,7 @@ export function HomePage() {
         {/* Breathing room between the last home row and the discover tabs. */}
         {enableDiscover && <div className="pb-12" />}
 
-        {enableDiscover && !search && !enableLowPerformanceMode ? (
+        {enableDiscover && !search ? (
           <DiscoverContent />
         ) : null}
       </WideContainer>

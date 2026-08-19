@@ -1508,6 +1508,31 @@
         "disconnect": "Disconnect"
       }
     },
+    "optimize": {
+      "button": "Optimize",
+      "sectionTitle": "Device setup",
+      "title": "Optimize for your device",
+      "subtitle": "Pick what you're using. We'll cut extra work so pages and covers load faster.",
+      "lowTitle": "Low end",
+      "lowDesc": "School Chromebooks, Celeron or N100, about 4GB of RAM. Chrome already feels sluggish with a few tabs.",
+      "midTitle": "Mid build",
+      "midDesc": "Everyday Windows laptops, i3/i5 or Ryzen 3/5, around 8GB of RAM. Fine for class, heavy on this site.",
+      "highTitle": "High build",
+      "highDesc": "Desktop, gaming laptop, or Apple Silicon. 16GB+ RAM. Keep the full experience.",
+      "applying": "Applying {{profile}} setup",
+      "doneTitle": "You're on {{profile}}",
+      "doneBody": "You can switch this anytime from Optimize, or from Settings. Reset goes back to how things were before you optimized.",
+      "reset": "Reset to default",
+      "resetHint": "Want to undo this? Reset here, or from Settings.",
+      "close": "Done",
+      "stepPosters": "Using smaller posters",
+      "stepProxy": "Routing artwork through a proxy",
+      "stepEffects": "Cutting extra animations",
+      "stepLazy": "Loading fewer images at once",
+      "stepRestorePosters": "Restoring full-quality posters",
+      "stepRestoreEffects": "Turning visual effects back on",
+      "stepSave": "Saving your setup"
+    },
     "preferences": {
       "title": "Preferences",
       "experimentalSection": "Experimental",

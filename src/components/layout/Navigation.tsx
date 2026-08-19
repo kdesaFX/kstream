@@ -14,6 +14,7 @@ import {
   navControlSurface,
 } from "@/components/layout/navControl";
 import { useDownloadModal } from "@/components/overlays/downloadModal";
+import { useOptimizeModal } from "@/components/overlays/optimizeModal";
 import { useNotifications } from "@/components/overlays/notificationsModal";
 import { useSlashFocus } from "@/components/player/hooks/useSlashFocus";
 import { Lightbar } from "@/components/utils/Lightbar";
@@ -29,6 +30,30 @@ import { useNavLayoutStore } from "@/stores/navLayout";
 import { usePreferencesStore } from "@/stores/preferences";
 
 import { BrandPill } from "./BrandPill";
+
+function HomeOptimizeToggle() {
+  const { t } = useTranslation();
+  const { openOptimizeModal } = useOptimizeModal();
+
+  return (
+    <button
+      type="button"
+      onClick={() => openOptimizeModal()}
+      className={`group flex items-center h-10 md:h-[2.67rem] rounded-full transition-all duration-300 ease-out overflow-hidden ${navControlSurface} text-white hover:bg-pill-backgroundHover/80 hover:pr-4 active:scale-105`}
+      title={t("settings.optimize.button")}
+    >
+      <div className="flex items-center justify-center w-10 h-10 md:w-[2.67rem] md:h-[2.67rem] shrink-0">
+        <Icon
+          icon={Icons.TACHOMETER}
+          className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none [&>svg]:block [&>svg]:h-5 [&>svg]:w-5"
+        />
+      </div>
+      <span className="font-medium text-sm whitespace-nowrap transition-all duration-300 ease-out max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100">
+        {t("settings.optimize.button")}
+      </span>
+    </button>
+  );
+}
 
 function HomeLayoutCustomizerToggle() {
   const [isOpen, setIsOpen] = useState(false);
@@ -331,7 +356,8 @@ export function Navigation(props: NavigationProps) {
               ref={rightRef}
               className="relative z-[60] pointer-events-auto flex items-center gap-2 md:gap-3 shrink-0"
             >
-              <div className="hidden lg:block">
+              <div className="hidden lg:flex items-center gap-2">
+                <HomeOptimizeToggle />
                 <HomeLayoutCustomizerToggle />
               </div>
               <LinksDropdown>

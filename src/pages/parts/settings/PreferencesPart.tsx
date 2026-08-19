@@ -9,11 +9,13 @@ import { Toggle } from "@/components/buttons/Toggle";
 import { FlagIcon } from "@/components/FlagIcon";
 import { Dropdown } from "@/components/form/Dropdown";
 import { SortableList } from "@/components/form/SortableList";
+import { DeviceProfileCards } from "@/components/overlays/optimizeModal";
 import { Icon, Icons } from "@/components/Icon";
 import { Heading1 } from "@/components/utils/Text";
 import { appLanguageOptions } from "@/setup/i18n";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { usePreferencesStore } from "@/stores/preferences";
+import { DeviceProfile } from "@/stores/preferences/deviceProfile";
 import { isAutoplayAllowed } from "@/utils/media/autoplay";
 import { getLocaleInfo, sortLangCodes } from "@/utils/locale/language";
 
@@ -112,6 +114,11 @@ export function PreferencesPart(props: {
   setEnableLastSuccessfulSource: (v: boolean) => void;
   enableLowPerformanceMode: boolean;
   setEnableLowPerformanceMode: (v: boolean) => void;
+  deviceProfile: DeviceProfile | "custom";
+  lastAppliedDeviceProfile: DeviceProfile | null;
+  hasOptimized: boolean;
+  onApplyDeviceProfile: (profile: DeviceProfile) => void;
+  onResetDeviceProfile: () => void;
   enableHoldToBoost: boolean;
   setEnableHoldToBoost: (v: boolean) => void;
   manualSourceSelection: boolean;
@@ -266,14 +273,37 @@ export function PreferencesPart(props: {
                   />
                 </>
               )}
-            <ToggleRow
-              title={t("settings.preferences.lowPerformanceModeLabel")}
-              description={t(
-                "settings.preferences.lowPerformanceModeDescription",
-              )}
-              enabled={props.enableLowPerformanceMode}
-              onChange={(v) => props.setEnableLowPerformanceMode(v)}
-            />
+          </Section>
+
+          <Section
+            title={t("settings.optimize.sectionTitle")}
+            icon={Icons.TACHOMETER}
+          >
+            <div className="px-4 py-4 space-y-4">
+              <p className="text-sm text-type-secondary leading-snug">
+                {t("settings.optimize.subtitle")}
+              </p>
+              <DeviceProfileCards
+                selected={
+                  props.deviceProfile === "custom"
+                    ? props.lastAppliedDeviceProfile
+                    : props.deviceProfile
+                }
+                onSelect={props.onApplyDeviceProfile}
+              />
+              {props.hasOptimized ? (
+                <p className="text-sm text-type-secondary">
+                  {t("settings.optimize.resetHint")}{" "}
+                  <button
+                    type="button"
+                    onClick={props.onResetDeviceProfile}
+                    className="underline decoration-white/20 underline-offset-4 hover:text-white"
+                  >
+                    {t("settings.optimize.reset")}
+                  </button>
+                </p>
+              ) : null}
+            </div>
           </Section>
 
           <Section title="Player Controls" icon={Icons.TACHOMETER}>

@@ -21,10 +21,12 @@ import { useBookmarkStore } from "@/stores/bookmarks";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { PlayerMeta } from "@/stores/player/slices/source";
 import { usePreferencesStore } from "@/stores/preferences";
+import { lazyRootMarginFor } from "@/stores/preferences/deviceProfile";
 import {
   createGroupString,
   parseGroupString,
 } from "@/utils/media/bookmarkModifications";
+import { resolveCardArtworkUrl } from "@/utils/media/artwork";
 import { isMatureMedia } from "@/utils/media/mature";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
@@ -33,7 +35,6 @@ import { IconPatch } from "../buttons/IconPatch";
 import { Icon, Icons } from "../Icon";
 
 const EMPTY_GROUPS: string[] = [];
-const LAZY_ROOT_MARGIN = "400px";
 
 /**
  * Observe once — stay loaded after first intersection. The node is held in
@@ -45,6 +46,14 @@ const LAZY_ROOT_MARGIN = "400px";
 function useLazyVisible(eager = false) {
   const [isVisible, setIsVisible] = useState(eager);
   const [node, setNode] = useState<Element | null>(null);
+  const posterQuality = usePreferencesStore((s) => s.posterQuality);
+  const enableLowPerformanceMode = usePreferencesStore(
+    (s) => s.enableLowPerformanceMode,
+  );
+  const rootMargin = lazyRootMarginFor(
+    posterQuality ?? "standard",
+    enableLowPerformanceMode,
+  );
 
   useEffect(() => {
     if (!node || isVisible) return undefined;
@@ -53,11 +62,11 @@ function useLazyVisible(eager = false) {
       ([entry]) => {
         if (entry.isIntersecting) setIsVisible(true);
       },
-      { rootMargin: LAZY_ROOT_MARGIN },
+      { rootMargin },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [node, isVisible]);
+  }, [node, isVisible, rootMargin]);
 
   return { targetRef: setNode, isVisible };
 }
@@ -172,7 +181,11 @@ function MediaCardContent({
   const [searchQuery] = useSearchQuery();
   const enableMinimalCards = usePreferencesStore((s) => s.enableMinimalCards);
   const enableMatureTitles = usePreferencesStore((s) => s.enableMatureTitles);
+  const enableLowPerformanceMode = usePreferencesStore(
+    (s) => s.enableLowPerformanceMode,
+  );
   const matureLocked = isMatureMedia(media) && !enableMatureTitles;
+  const posterUrl = resolveCardArtworkUrl(media.poster);
 
   // Simple intersection observer for lazy loading images
   const { targetRef, isVisible: isIntersecting } = useLazyVisible(eager);
@@ -214,8 +227,16 @@ function MediaCardContent({
           })}
         />
         <Flare.Child
-          className={`pointer-events-auto relative mb-2 p-[0.4em] transition-transform duration-300 ${
-            canLink ? "group-hover:scale-95" : "opacity-60"
+          className={`pointer-events-auto relative mb-2 p-[0.4em] ${
+            enableLowPerformanceMode
+              ? ""
+              : "transition-transform duration-300"
+          } ${
+            canLink && !enableLowPerformanceMode
+              ? "group-hover:scale-95"
+              : canLink
+                ? ""
+                : "opacity-60"
           }`}
         >
           <div
@@ -227,17 +248,21 @@ function MediaCardContent({
               enableMinimalCards ? "" : "mb-4",
             )}
           >
-            {media.type === "manga" && isIntersecting && media.poster ? (
+            {media.type === "manga" && isIntersecting && posterUrl ? (
               // MangaDex swaps covers for a "read this at mangadex.org" card
               // when a foreign referrer comes along, and CSS backgrounds have
               // no say in what gets sent — an element does.
               <img
-                src={media.poster}
+                src={posterUrl}
                 alt=""
                 referrerPolicy="no-referrer"
                 decoding="async"
                 loading={eager ? "eager" : "lazy"}
-                className="absolute inset-0 h-full w-full object-cover"
+                className="no-fade absolute inset-0 h-full w-full object-cover"
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  img.style.opacity = "0";
+                }}
                 style={{
                   filter: matureLocked
                     ? "blur(14px) brightness(0.45)"
@@ -250,8 +275,8 @@ function MediaCardContent({
                 className="absolute inset-0 bg-cover bg-center"
                 style={{
                   backgroundImage: isIntersecting
-                    ? media.poster
-                      ? `url(${media.poster})`
+                    ? posterUrl
+                      ? `url(${posterUrl})`
                       : "url(/placeholder.png)"
                     : "",
                   filter: matureLocked

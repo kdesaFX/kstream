@@ -15,6 +15,7 @@ import { DesktopChromeBridge } from "@/components/DesktopChromeBridge";
 import { DetailsModal } from "@/components/overlays/detailsModal";
 import { MangaDetailsModal } from "@/components/overlays/mangaDetails/MangaDetailsModal";
 import { DownloadModal } from "@/components/overlays/downloadModal";
+import { OptimizeModal, OptimizeEffectsSync } from "@/components/overlays/optimizeModal";
 import { DesktopAppSettingsModal } from "@/components/overlays/desktopAppSettings";
 import { GamepadControlsModal } from "@/components/overlays/GamepadControlsModal";
 import { KeyboardCommandsEditModal } from "@/components/overlays/KeyboardCommandsEditModal";
@@ -195,6 +196,8 @@ function App() {
       <NotificationModal id="notifications" />
       <TipJarModal id="tip-jar" />
       <DownloadModal id="download" />
+      <OptimizeEffectsSync />
+      <OptimizeModal />
       <DesktopAppSettingsModal id="desktop-app-settings" />
       <KeyboardCommandsModal id="keyboard-commands" />
       <KeyboardCommandsEditModal id="keyboard-commands-edit" />
