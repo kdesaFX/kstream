@@ -37,8 +37,9 @@ function chapterNumber(ch: MangaChapter | undefined): number | null {
  */
 async function enrichWithWeebCentralChapters(
   details: MangaDetails,
+  preferredLanguage = "en",
 ): Promise<MangaDetails> {
-  const wcChapters = await resolveWeebCentralChapters(
+  if (preferredLanguage !== "en") return details;  const wcChapters = await resolveWeebCentralChapters(
     details.title,
     details.alternateTitles ?? [],
   ).catch(() => null);
@@ -104,7 +105,7 @@ export async function getMangaDetails(
   if (isWeebCentralId(mangaId)) return getWeebCentralDetails(mangaId);
 
   const details = await getMangaDexDetails(mangaId, preferredLanguage);
-  return enrichWithWeebCentralChapters(details);
+  return enrichWithWeebCentralChapters(details, preferredLanguage);
 }
 
 export async function getChapterPages(

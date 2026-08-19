@@ -39,6 +39,8 @@ export interface MangaListItem {
   readingDirection: MangaReadingDirection;
   /** Romaji / alt names — used to find WeebCentral when MangaDex is licensed-only. */
   alternateTitles?: string[];
+  /** MangaDex translatedLanguage codes available for this title. */
+  availableLanguages?: string[];
 }
 
 export interface MangaChapter {

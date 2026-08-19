@@ -262,6 +262,7 @@ export function parseSeriesPage(
     readingDirection: parseTypeDirection(html),
     authors,
     artists: authors,
+    availableLanguages: ["en"],
   };
 }
 

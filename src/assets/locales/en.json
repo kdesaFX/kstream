@@ -1820,7 +1820,9 @@
       "nextChapter": "Next",
       "scrollHint": "Scroll to read · arrows change chapter",
       "chapterSearch": "Search chapter number or name",
-      "chapterSearchEmpty": "No matching chapters"
+      "chapterSearchEmpty": "No matching chapters",
+      "languageSearch": "Search language",
+      "languageSearchEmpty": "No matching languages"
     }
   }
 }

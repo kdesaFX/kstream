@@ -25,6 +25,7 @@ import { mangaProgressHasMeaningfulRead } from "@/stores/mangaProgress/utils";
 import { usePreferencesStore } from "@/stores/preferences";
 
 import { MangaChapterPicker } from "./MangaChapterPicker";
+import { MangaLanguagePicker } from "./MangaLanguagePicker";
 
 function PageImage({
   src,
@@ -67,6 +68,9 @@ export function MangaReaderView() {
   const preferredLanguage = usePreferencesStore(
     (s) => s.mangaPreferredLanguage,
   );
+  const setMangaPreferredLanguage = usePreferencesStore(
+    (s) => s.setMangaPreferredLanguage,
+  );
   const readerMode = usePreferencesStore((s) => s.mangaReaderMode);
   const setReaderMode = usePreferencesStore((s) => s.setMangaReaderMode);
   const updateProgress = useMangaProgressStore((s) => s.updateProgress);
@@ -101,6 +105,7 @@ export function MangaReaderView() {
 
   const chapters = details?.chapters ?? [];
   const chapterIndex = chapters.findIndex((c) => c.id === chapterId);
+  const lastChapterNumber = useRef<string | null>(null);
   const currentChapter: MangaChapter | undefined =
     chapterIndex >= 0 ? chapters[chapterIndex] : undefined;
   const prevChapter = chapterIndex > 0 ? chapters[chapterIndex - 1] : undefined;
@@ -114,10 +119,17 @@ export function MangaReaderView() {
     savedProgress[mangaId ?? ""]?.readingDirection ??
     "ltr";
 
+  useEffect(() => {
+    if (currentChapter?.chapter != null) {
+      lastChapterNumber.current = currentChapter.chapter;
+    }
+  }, [currentChapter]);
+
   // Load manga details
   useEffect(() => {
     if (!mangaId) return undefined;
     let cancelled = false;
+    setError(null);
     getMangaDetails(mangaId, preferredLanguage)
       .then((d) => {
         if (!cancelled) setLoadedDetails({ mangaId, details: d });
@@ -152,11 +164,16 @@ export function MangaReaderView() {
     }
   }, [mangaId, details, chapterId, savedProgress, navigate, t]);
 
-  // Drop chapter ids left over from a wrong-series WeebCentral match.
+  // Drop chapter ids that aren't in the current language's list (wrong-series
+  // leftover, or we just switched translation). Prefer the same chapter number.
   useEffect(() => {
     if (!mangaId || !details || !chapterId) return;
     if (details.chapters.some((ch) => ch.id === chapterId)) return;
-    const fallback = details.chapters[0]?.id;
+    const wanted = lastChapterNumber.current;
+    const match = wanted
+      ? details.chapters.find((ch) => ch.chapter === wanted)
+      : undefined;
+    const fallback = match?.id ?? details.chapters[0]?.id;
     if (!fallback) return;
     navigate(mangaChapterLink(details.id, details.title, fallback), {
       replace: true,
@@ -353,17 +370,31 @@ export function MangaReaderView() {
           </Link>
           <div className="flex-1 min-w-0">
             <div className="truncate font-semibold text-sm">{title}</div>
-            {chapters.length > 0 && chapterId ? (
-              <MangaChapterPicker
-                chapters={chapters}
-                currentChapterId={chapterId}
-                onSelect={(ch) => goChapter(ch)}
+            <div className="flex items-center gap-3 min-w-0">
+              {chapters.length > 0 && chapterId ? (
+                <MangaChapterPicker
+                  chapters={chapters}
+                  currentChapterId={chapterId}
+                  onSelect={(ch) => goChapter(ch)}
+                />
+              ) : (
+                <div className="truncate text-xs text-white/60">
+                  {currentChapter ? chapterLabel(currentChapter) : "…"}
+                </div>
+              )}
+              <MangaLanguagePicker
+                languages={
+                  details?.availableLanguages?.length
+                    ? details.availableLanguages
+                    : [preferredLanguage]
+                }
+                selected={preferredLanguage}
+                onSelect={(code) => {
+                  if (code === preferredLanguage) return;
+                  setMangaPreferredLanguage(code);
+                }}
               />
-            ) : (
-              <div className="truncate text-xs text-white/60">
-                {currentChapter ? chapterLabel(currentChapter) : "…"}
-              </div>
-            )}
+            </div>
           </div>
           {details ? (
             <ExternalListButtons

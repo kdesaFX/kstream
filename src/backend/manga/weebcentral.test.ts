@@ -114,6 +114,7 @@ describe("weebcentral parsers", () => {
     expect(details.readingDirection).toBe("ltr");
     expect(details.tags.map((t) => t.name)).toContain("Action");
     expect(details.description).toMatch(/Jinwoo Sung/);
+    expect(details.availableLanguages).toEqual(["en"]);
   });
 
   it("only attaches chapters when the title matches exactly", () => {

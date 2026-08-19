@@ -1,5 +1,6 @@
 import { ofetch } from "ofetch";
 
+import { sortMangaLanguages } from "@/backend/manga/languages";
 import { plainMangaDescription } from "@/backend/manga/plainMangaDescription";
 import {
   MangaAtHome,
@@ -34,6 +35,7 @@ type MdMangaAttributes = {
   contentRating?: string;
   originalLanguage?: string;
   lastChapter?: string | null;
+  availableTranslatedLanguages?: string[];
   tags?: Array<{
     id: string;
     attributes?: { name?: Record<string, string> };
@@ -324,6 +326,9 @@ function mapManga(
     originalLanguage,
     readingDirection: readingDirectionFor(originalLanguage, tags),
     alternateTitles: alternateTitles.length > 0 ? alternateTitles : undefined,
+    availableLanguages: (manga.attributes.availableTranslatedLanguages ?? [])
+      .map((code) => code.trim())
+      .filter(Boolean),
   };
 }
 
@@ -469,7 +474,8 @@ async function loadChapters(
   mangaId: string,
   preferredLanguage = "en",
 ): Promise<{ chapters: MangaChapter[]; groups: MangaChapterGroup[] }> {
-  const cached = aggregateCache.get(mangaId);
+  const cacheKey = `${mangaId}:${preferredLanguage}`;
+  const cached = aggregateCache.get(cacheKey);
   if (cached && Date.now() - cached.at < AGGREGATE_TTL_MS) {
     return { chapters: cached.chapters, groups: cached.groups };
   }
@@ -480,7 +486,7 @@ async function loadChapters(
   const [agg, feed] = await Promise.all([
     mdGet<MdAggregate>(`/manga/${mangaId}/aggregate`, {
       "translatedLanguage[]": [preferredLanguage],
-    }).catch(() => mdGet<MdAggregate>(`/manga/${mangaId}/aggregate`)),
+    }).catch(() => ({ result: "ok", volumes: {} } as MdAggregate)),
     mdGet<MdListResponse<MdChapter>>(`/manga/${mangaId}/feed`, {
       limit: 500,
       "translatedLanguage[]": [preferredLanguage],
@@ -490,20 +496,7 @@ async function loadChapters(
     }).catch(() => ({ data: [] as MdChapter[] })),
   ]);
 
-  // If preferred language empty, fall back to any language feed.
-  let feedData = feed.data;
-  if (feedData.length === 0) {
-    const anyFeed = await mdGet<MdListResponse<MdChapter>>(
-      `/manga/${mangaId}/feed`,
-      {
-        limit: 500,
-        "order[volume]": "asc",
-        "order[chapter]": "asc",
-        "contentRating[]": contentRatingsQuery(),
-      },
-    ).catch(() => ({ data: [] as MdChapter[] }));
-    feedData = anyFeed.data;
-  }
+  const feedData = feed.data;
 
   const externalIds = new Set(
     feedData.filter((c) => c.attributes.externalUrl).map((c) => c.id),
@@ -570,7 +563,7 @@ async function loadChapters(
     ([volume, list]) => ({ volume, chapters: list }),
   );
 
-  aggregateCache.set(mangaId, { at: Date.now(), chapters, groups });
+  aggregateCache.set(cacheKey, { at: Date.now(), chapters, groups });
   return { chapters, groups };
 }
 
@@ -601,6 +594,11 @@ export async function getMangaDetails(
     artists: peopleNames(res.data, "artist"),
     chapters,
     chapterGroups: groups,
+    availableLanguages: sortMangaLanguages([
+      ...(base.availableLanguages ?? []),
+      ...chapters.map((ch) => ch.translatedLanguage),
+      preferredLanguage,
+    ]),
   };
   detailsCache.set(cacheKey, { at: Date.now(), details });
   return details;
