@@ -11,6 +11,7 @@ export interface VideoPlayerButtonProps {
   iconSizeClass?: string;
   className?: string;
   activeClass?: string;
+  title?: string;
 }
 
 export const VideoPlayerButton = forwardRef<
@@ -21,6 +22,8 @@ export const VideoPlayerButton = forwardRef<
     <button
       ref={ref}
       type="button"
+      title={props.title}
+      aria-label={props.title}
       onPointerDown={props.onPointerDown}
       onClick={(e) => props.onClick?.(e.currentTarget as HTMLButtonElement)}
       className={classNames([

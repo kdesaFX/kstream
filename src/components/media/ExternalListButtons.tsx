@@ -56,7 +56,7 @@ export function ExternalListButtons({
           onClick={() => openExternal(anilistHref)}
           className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20"
         >
-          <Icon icon={Icons.ANILIST} className="text-base" />
+          <Icon icon={Icons.ANILIST} className="text-lg" />
         </button>
         {malHref ? (
           <button
@@ -64,9 +64,9 @@ export function ExternalListButtons({
             title={t("media.external.mal")}
             aria-label={t("media.external.mal")}
             onClick={() => openExternal(malHref)}
-            className="flex h-8 items-center justify-center rounded-lg bg-white/10 px-2 text-[11px] font-bold tracking-wide text-white hover:bg-white/20"
+            className="flex h-8 items-center justify-center rounded-lg bg-white/10 px-2 text-white hover:bg-white/20"
           >
-            MAL
+            <Icon icon={Icons.MAL} className="text-base" />
           </button>
         ) : null}
       </div>
@@ -78,15 +78,18 @@ export function ExternalListButtons({
       <VideoPlayerButton
         onClick={() => openExternal(anilistHref)}
         icon={Icons.ANILIST}
+        iconSizeClass="text-xl"
         className="text-white"
+        title={t("media.external.anilist")}
       />
       {malHref ? (
         <VideoPlayerButton
           onClick={() => openExternal(malHref)}
+          icon={Icons.MAL}
+          iconSizeClass="text-lg"
           className="text-white"
-        >
-          <span className="text-[10px] font-bold tracking-wide">MAL</span>
-        </VideoPlayerButton>
+          title={t("media.external.mal")}
+        />
       ) : null}
     </>
   );
