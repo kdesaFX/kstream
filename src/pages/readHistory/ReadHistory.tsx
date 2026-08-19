@@ -111,7 +111,7 @@ export function ReadHistory({ onShowDetails }: ReadHistoryProps) {
 
         <SectionHeading
           title={t("home.readHistory.recentlyRead")}
-          icon={Icons.BOOKMARK}
+          icon={Icons.BOOK}
         >
           <div className="flex items-center gap-2">
             <EditButton

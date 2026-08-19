@@ -144,7 +144,7 @@ export function ReadingCarousel({
     <>
       <SectionHeading
         title={t("home.continueReading.sectionTitle")}
-        icon={Icons.BOOKMARK}
+        icon={Icons.BOOK}
         className="px-4 mt-2 -mb-5"
       >
         <div className="mr-4 lg:mr-[88px] flex items-center gap-2">

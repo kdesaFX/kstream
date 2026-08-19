@@ -124,7 +124,7 @@ export function ReadingGrid({
     <div className="relative">
       <SectionHeading
         title={t("home.continueReading.sectionTitle")}
-        icon={Icons.BOOKMARK}
+        icon={Icons.BOOK}
       >
         <div className="flex items-center gap-2">
           <button

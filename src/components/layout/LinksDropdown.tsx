@@ -17,6 +17,13 @@ import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useAuthStore } from "@/stores/auth";
+import { useBookmarkStore } from "@/stores/bookmarks";
+import {
+  shouldShowMangaProgress,
+  useMangaProgressStore,
+} from "@/stores/mangaProgress";
+import { useProgressStore } from "@/stores/progress";
+import { shouldShowInWatchHistory } from "@/stores/progress/utils";
 
 function Divider() {
   return <hr className="border-0 w-full h-px bg-dropdown-border" />;
@@ -227,6 +234,15 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
   const isDesktopApp = useIsDesktopApp();
   const { openDesktopAppSettings } = useDesktopAppSettingsModal();
   const { isMobile } = useIsMobile();
+  const hasWatchHistory = useProgressStore((s) =>
+    Object.values(s.items).some(shouldShowInWatchHistory),
+  );
+  const hasReadHistory = useMangaProgressStore((s) =>
+    Object.values(s.items).some(shouldShowMangaProgress),
+  );
+  const hasSavedTitles = useBookmarkStore(
+    (s) => Object.keys(s.bookmarks).length > 0,
+  );
 
   return (
     <div className="relative is-dropdown">
@@ -280,15 +296,21 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
               {t("navigation.menu.desktop")}
             </DropdownLink>
           )}
-          <DropdownLink href="/watch-history" icon={Icons.CLOCK}>
-            {t("home.watchHistory.sectionTitle")}
-          </DropdownLink>
-          <DropdownLink href="/read-history" icon={Icons.BOOKMARK}>
-            {t("home.readHistory.sectionTitle")}
-          </DropdownLink>
-          <DropdownLink href="/bookmarks" icon={Icons.BOOKMARK}>
-            {t("navigation.menu.savedTitles")}
-          </DropdownLink>
+          {hasWatchHistory ? (
+            <DropdownLink href="/watch-history" icon={Icons.CLOCK}>
+              {t("home.watchHistory.sectionTitle")}
+            </DropdownLink>
+          ) : null}
+          {hasReadHistory ? (
+            <DropdownLink href="/read-history" icon={Icons.BOOK}>
+              {t("home.readHistory.sectionTitle")}
+            </DropdownLink>
+          ) : null}
+          {hasSavedTitles ? (
+            <DropdownLink href="/bookmarks" icon={Icons.BOOKMARK}>
+              {t("navigation.menu.savedTitles")}
+            </DropdownLink>
+          ) : null}
           <DropdownLink href="/algorithm" icon={Icons.WAND}>
             {t("navigation.menu.algorithm")}
           </DropdownLink>
