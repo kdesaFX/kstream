@@ -667,15 +667,19 @@ export function FeaturedCarousel({
       try {
         // Manga has no TMDB id of its own — borrow the anime adaptation's
         // clear logo when Image logos is on (same setting as movies/TV).
-        const logo =
-          current.type === "manga"
+        let logo: string | undefined;
+        if (current.type === "manga") {
+          logo = current.title
             ? await getMangaAdaptationLogo(current.title)
-            : await getMediaLogo(
-                currentMediaId.toString(),
-                current.type === "movie"
-                  ? TMDBContentTypes.MOVIE
-                  : TMDBContentTypes.TV,
-              );
+            : undefined;
+        } else {
+          logo = await getMediaLogo(
+            currentMediaId.toString(),
+            current.type === "movie"
+              ? TMDBContentTypes.MOVIE
+              : TMDBContentTypes.TV,
+          );
+        }
         // Only update if this is still the current media
         if (media[currentIndex]?.id === currentMediaId) {
           setLogoUrl(logo);
