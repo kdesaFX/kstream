@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 import { mangaChapterLink } from "@/backend/manga/ids";
 import { getMangaDetails } from "@/backend/manga/catalog";
+import { getMangaAdaptationLogo } from "@/backend/manga/mangaLogo";
 import { chapterLabel } from "@/backend/manga/mangadex";
 import type { MangaDetails } from "@/backend/manga/types";
 import { mangaStatusKey } from "@/backend/manga/types";
@@ -27,6 +28,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
   const preferredLanguage = usePreferencesStore(
     (s) => s.mangaPreferredLanguage,
   );
+  const enableImageLogos = usePreferencesStore((s) => s.enableImageLogos);
   const progress = useMangaProgressStore((s) => s.items);
 
   const [loaded, setLoaded] = useState<{
@@ -37,6 +39,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
     mangaId: string;
     message: string;
   } | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | undefined>();
 
   const modalIndex = modalStack.indexOf(id);
   const zIndex = modalIndex >= 0 ? 1000 + modalIndex : 999;
@@ -72,6 +75,24 @@ export function MangaDetailsModal({ id }: { id: string }) {
       cancelled = true;
     };
   }, [shouldShow, mangaId, preferredLanguage]);
+
+  useEffect(() => {
+    if (!details?.title || !enableImageLogos) {
+      setLogoUrl(undefined);
+      return undefined;
+    }
+    let cancelled = false;
+    getMangaAdaptationLogo(details.title)
+      .then((url) => {
+        if (!cancelled) setLogoUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setLogoUrl(undefined);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [details?.title, enableImageLogos]);
 
   const resume = progress[mangaId];
   const statusKey = details ? mangaStatusKey(details.status) : null;
@@ -151,9 +172,18 @@ export function MangaDetailsModal({ id }: { id: string }) {
                     />
                   ) : null}
                   <div>
-                    <Heading2 className="!mt-0 !mb-1 text-white">
-                      {details.title}
-                    </Heading2>
+                    {logoUrl && enableImageLogos ? (
+                      <img
+                        src={logoUrl}
+                        alt={details.title}
+                        className="mb-2 max-h-16 max-w-[14rem] object-contain drop-shadow-lg md:max-h-20 md:max-w-[18rem]"
+                        style={{ background: "none" }}
+                      />
+                    ) : (
+                      <Heading2 className="!mt-0 !mb-1 text-white">
+                        {details.title}
+                      </Heading2>
+                    )}
                     <p className="text-sm text-type-secondary">
                       {[
                         statusKey ? t(statusKey) : null,

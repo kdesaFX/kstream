@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useWindowSize } from "react-use";
 
 import { mangaMediaLink } from "@/backend/manga/ids";
+import { getMangaAdaptationLogo } from "@/backend/manga/mangaLogo";
 import type { MangaStatus } from "@/backend/manga/types";
 import { mangaStatusKey } from "@/backend/manga/types";
 import {
@@ -657,20 +658,24 @@ export function FeaturedCarousel({
       logoFetchController.current = new AbortController();
 
       const currentMediaId = media[currentIndex]?.id;
-      // Manga has no TMDB entry (and no clear logo art anywhere), so the hero
-      // uses its title text instead.
-      if (!currentMediaId || media[currentIndex]?.type === "manga") {
+      const current = media[currentIndex];
+      if (!currentMediaId || !current) {
         setLogoUrl(undefined);
         return;
       }
 
       try {
-        const logo = await getMediaLogo(
-          currentMediaId.toString(),
-          media[currentIndex].type === "movie"
-            ? TMDBContentTypes.MOVIE
-            : TMDBContentTypes.TV,
-        );
+        // Manga has no TMDB id of its own — borrow the anime adaptation's
+        // clear logo when Image logos is on (same setting as movies/TV).
+        const logo =
+          current.type === "manga"
+            ? await getMangaAdaptationLogo(current.title)
+            : await getMediaLogo(
+                currentMediaId.toString(),
+                current.type === "movie"
+                  ? TMDBContentTypes.MOVIE
+                  : TMDBContentTypes.TV,
+              );
         // Only update if this is still the current media
         if (media[currentIndex]?.id === currentMediaId) {
           setLogoUrl(logo);
