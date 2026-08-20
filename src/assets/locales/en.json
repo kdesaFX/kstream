@@ -189,7 +189,7 @@
       "confirmPasswordLabel": "Confirm password",
       "mismatch": "Passwords do not match",
       "registerTitle": "Create your account",
-      "registerDescription": "Enter your email and password to finish signing up."
+      "registerDescription": "Enter your email and password to sign up."
     },
     "generate": {
       "description": "Your passphrase acts as your username and password. Make sure to keep it safe as you will need to enter it to login to your account. <bold>Do NOT lose your passphrase!</bold>",

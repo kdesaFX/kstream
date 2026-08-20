@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useAsyncFn } from "react-use";
 
-import { uploadAvatar } from "@/backend/supabase/data";
 import { Button } from "@/components/buttons/Button";
-import { Icon, Icons } from "@/components/Icon";
+import { initialColor } from "@/components/form/ColorPicker";
+import { initialIcon } from "@/components/form/IconPicker";
 import {
   LargeCard,
   LargeCardButtons,
@@ -13,15 +13,22 @@ import {
 import { MwLink } from "@/components/text/Link";
 import { AuthInputBox } from "@/components/text-inputs/AuthInputBox";
 import { useAuth } from "@/hooks/auth/useAuth";
-import { AccountProfile } from "@/pages/parts/auth/AccountCreatePart";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useProgressStore } from "@/stores/progress";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
 
 interface RegisterCredentialsPartProps {
-  userData: AccountProfile;
   onNext?: () => void;
 }
+
+const defaultUserData = {
+  device: "This device",
+  profile: {
+    colorA: initialColor,
+    colorB: initialColor,
+    icon: initialIcon,
+  },
+};
 
 export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
   const { t } = useTranslation();
@@ -46,18 +53,11 @@ export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
       email: validatedEmail,
       password,
       userData: {
-        device: props.userData.device,
-        profile: props.userData.profile,
+        device: defaultUserData.device,
+        profile: defaultUserData.profile,
         nickname: validatedEmail.split("@")[0],
       },
     });
-    if (props.userData.pendingAvatar) {
-      const avatarUrl = await uploadAvatar(
-        account.userId,
-        props.userData.pendingAvatar,
-      );
-      account.profile = { ...account.profile, avatarUrl };
-    }
     await importData(account, progressItems, bookmarkItems, watchHistoryItems, false);
     await restore(account);
     props.onNext?.();
@@ -82,11 +82,10 @@ export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
   return (
     <LargeCard>
       <LargeCardText
-        icon={<Icon icon={Icons.USER} />}
         title={t("auth.password.registerTitle") ?? "Create your account"}
       >
         {t("auth.password.registerDescription") ??
-          "Enter your email and password to finish signing up."}
+          "Enter your email and password to sign up."}
       </LargeCardText>
       <div className="space-y-4">
         <AuthInputBox
