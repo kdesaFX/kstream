@@ -133,8 +133,8 @@ async function searchMangaSeeSlug(
 
 export async function resolveMangaSeeSlug(
   title: string,
-  alternateTitles: string[] = [],
   preferredSlug?: string | null,
+  alternateTitles: string[] = [],
 ): Promise<string | null> {
   if (preferredSlug?.trim()) return preferredSlug.trim();
   return searchMangaSeeSlug(title, alternateTitles);

@@ -289,8 +289,8 @@ export async function getComickChapterPages(
 
   const mangaseeSlug = await resolveMangaSeeSlug(
     fallback.title,
-    fallback.alternateTitles ?? [],
     mangaseeSlugFromDetail(detail),
+    fallback.alternateTitles ?? [],
   );
   if (!mangaseeSlug) return [];
 
