@@ -154,6 +154,18 @@ describe("weebcentral parsers", () => {
     expect(queries).toContain("Nagatoro");
   });
 
+  it("searches shortened romaji when MangaDex particle spelling misses WeebCentral", () => {
+    const queries = buildFallbackSearchQueries("My Dress-Up Darling", [
+      "Sono Bisque Doll wa Koi o Suru",
+      "その着せ替え人形は恋をする",
+      "ماي دريس-أب دارلينغ",
+    ]);
+    expect(queries).toContain("Sono Bisque");
+    expect(queries).toContain("Sono Bisque Doll");
+    expect(queries.some((q) => /着せ替え|ماي/.test(q))).toBe(false);
+    expect(queries.length).toBeLessThanOrEqual(8);
+  });
+
   it("does not search generic words like Leveling on their own", () => {
     const queries = buildFallbackSearchQueries("Solo Leveling");
     expect(queries).toEqual(["Solo Leveling"]);

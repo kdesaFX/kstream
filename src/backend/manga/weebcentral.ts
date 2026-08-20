@@ -440,6 +440,27 @@ export function pickBestSeriesHit(
   return ranked[0];
 }
 
+/** WeebCentral search is ASCII-only and ignores kanji / other-script alts. */
+export function isLatinSearchTitle(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.length < 4) return false;
+  return /[a-z]/i.test(trimmed) && !/[^\u0000-\u007F]/.test(trimmed);
+}
+
+function latinTitlePrefixes(value: string): string[] {
+  const words = value
+    .replace(/[!?,.'’]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length < 2) return [];
+  const out: string[] = [];
+  if (words.length >= 2) out.push(words.slice(0, 2).join(" "));
+  if (words.length >= 3) out.push(words.slice(0, 3).join(" "));
+  return out;
+}
+
+const MAX_FALLBACK_QUERIES = 8;
+
 export function buildFallbackSearchQueries(
   title: string,
   alternateTitles: string[] = [],
@@ -449,6 +470,7 @@ export function buildFallbackSearchQueries(
     const trimmed = value?.trim();
     if (
       trimmed &&
+      out.length < MAX_FALLBACK_QUERIES &&
       !out.some((q) => normalizeMangaTitle(q) === normalizeMangaTitle(trimmed))
     ) {
       out.push(trimmed);
@@ -456,11 +478,18 @@ export function buildFallbackSearchQueries(
   };
 
   add(title);
-  for (const alt of alternateTitles) add(alt);
+  add(title.replace(/-/g, " "));
   add(title.replace(/[!?,.'’]/g, ""));
 
+  const latinAlts = alternateTitles.filter(isLatinSearchTitle);
+  for (const alt of latinAlts) add(alt);
+  for (const alt of latinAlts) {
+    for (const prefix of latinTitlePrefixes(alt)) add(prefix);
+  }
+  for (const prefix of latinTitlePrefixes(title)) add(prefix);
+
   const tokens = title
-    .replace(/[!?,.'’]/g, " ")
+    .replace(/[!?,.'’-]/g, " ")
     .split(/\s+/)
     .filter(
       (word) =>
