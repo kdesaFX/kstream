@@ -1,6 +1,7 @@
-import { ofetch } from "ofetch";
-
-import { getAuthHeaders } from "@/backend/accounts/auth";
+import {
+  fetchGroupOrder,
+  upsertGroupOrder,
+} from "@/backend/supabase/data";
 import { AccountWithToken } from "@/stores/auth";
 
 export interface GroupOrderResponse {
@@ -8,27 +9,15 @@ export interface GroupOrderResponse {
 }
 
 export function updateGroupOrder(
-  url: string,
+  _url: string,
   account: AccountWithToken,
   groupOrder: string[],
 ) {
-  return ofetch<GroupOrderResponse>(`/users/${account.userId}/group-order`, {
-    method: "PUT",
-    body: groupOrder,
-    baseURL: url,
-    headers: getAuthHeaders(account.token),
-  });
+  return upsertGroupOrder(account.userId, groupOrder).then(() => ({
+    groupOrder,
+  }));
 }
 
-export function getGroupOrder(url: string, account: AccountWithToken) {
-  return ofetch<GroupOrderResponse>(`/users/${account.userId}/group-order`, {
-    method: "GET",
-    baseURL: url,
-    headers: getAuthHeaders(account.token),
-  }).catch((err) => {
-    if (err?.response?.status === 404) {
-      return { groupOrder: [] };
-    }
-    throw err;
-  });
+export function getGroupOrder(_url: string, account: AccountWithToken) {
+  return fetchGroupOrder(account.userId).catch(() => ({ groupOrder: [] }));
 }

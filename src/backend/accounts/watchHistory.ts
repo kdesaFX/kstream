@@ -1,6 +1,7 @@
-import { ofetch } from "ofetch";
-
-import { getAuthHeaders } from "@/backend/accounts/auth";
+import {
+  deleteWatchHistory as sbDeleteWatchHistory,
+  upsertWatchHistory,
+} from "@/backend/supabase/data";
 import { AccountWithToken } from "@/stores/auth";
 import {
   WatchHistoryItem,
@@ -85,35 +86,20 @@ export function watchHistoryItemsToInputs(
 }
 
 export async function setWatchHistory(
-  url: string,
+  _url: string,
   account: AccountWithToken,
   input: WatchHistoryInput,
 ) {
-  return ofetch<WatchHistoryResponse>(
-    `/users/${account.userId}/watch-history/${input.tmdbId}`,
-    {
-      method: "PUT",
-      headers: getAuthHeaders(account.token),
-      baseURL: url,
-      body: input,
-    },
-  );
+  await upsertWatchHistory(account.userId, input);
+  return { success: true };
 }
 
 export async function removeWatchHistory(
-  url: string,
+  _url: string,
   account: AccountWithToken,
   id: string,
   episodeId?: string,
   seasonId?: string,
 ) {
-  await ofetch(`/users/${account.userId}/watch-history/${id}`, {
-    method: "DELETE",
-    headers: getAuthHeaders(account.token),
-    baseURL: url,
-    body: {
-      episodeId,
-      seasonId,
-    },
-  });
+  await sbDeleteWatchHistory(account.userId, id, episodeId);
 }

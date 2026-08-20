@@ -48,6 +48,10 @@ export interface RatingsStore {
   removeRating(tmdbId: string): void;
   getRating(tmdbId: string): MediaRating | null;
   setPreferences(prefs: Partial<AlgorithmPreferences>): void;
+  replaceAll(
+    ratings: Record<string, RatedMediaItem>,
+    preferences: AlgorithmPreferences,
+  ): void;
   clear(): void;
 }
 
@@ -85,6 +89,12 @@ export const useRatingsStore = create(
       setPreferences(prefs) {
         set((s) => {
           s.preferences = { ...s.preferences, ...prefs };
+        });
+      },
+      replaceAll(ratings, preferences) {
+        set((s) => {
+          s.ratings = ratings;
+          s.preferences = preferences;
         });
       },
       clear() {

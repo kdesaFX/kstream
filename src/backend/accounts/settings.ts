@@ -1,9 +1,15 @@
-import { ofetch } from "ofetch";
-
-import { getAuthHeaders } from "@/backend/accounts/auth";
-import { AccountWithToken } from "@/stores/auth";
+import {
+  fetchSettings,
+  upsertSettings,
+} from "@/backend/supabase/data";
+import { AccountWithToken, useAuthStore } from "@/stores/auth";
 import { PreferencesStore, usePreferencesStore } from "@/stores/preferences";
-import { deviceProfileToSettingsPatch } from "@/stores/preferences/deviceProfile";
+import {
+  deviceProfileToSettingsPatch,
+  type DeviceProfile,
+  type DeviceProfileSnapshot,
+  type PosterQuality,
+} from "@/stores/preferences/deviceProfile";
 import { KeyboardShortcuts } from "@/utils/browser/keyboardShortcuts";
 
 export interface CustomThemeSettings {
@@ -70,74 +76,24 @@ export interface SettingsInput {
   watchingRowsToShow?: number;
   enableGamepadControls?: boolean;
   gamepadMapping?: Record<string, string>;
+  proxyArtwork?: boolean;
+  posterQuality?: PosterQuality;
+  lastAppliedDeviceProfile?: DeviceProfile | null;
+  deviceProfileSnapshot?: DeviceProfileSnapshot | null;
 }
 
-export interface SettingsResponse {
-  applicationTheme?: string | null;
-  applicationLanguage?: string | null;
-  defaultSubtitleLanguage?: string | null;
-  proxyUrls?: string[] | null;
-  febboxKey?: string | null;
-  debridToken?: string | null;
-  debridService?: string;
-  tidbKey?: string | null;
-  wyzieKey?: string | null;
-  enableThumbnails?: boolean;
-  enableAutoplay?: boolean;
-  enableSkipCredits?: boolean;
-  enableAutoSkipSegments?: boolean;
-  enableDiscover?: boolean;
-  enableMatureTitles?: boolean;
-  enableFeatured?: boolean;
-  enableDetailsModal?: boolean;
-  enableImageLogos?: boolean;
-  enableCarouselView?: boolean;
-  enableMinimalCards?: boolean;
-  forceCompactEpisodeView?: boolean;
-  sourceOrder?: string[] | null;
-  enableSourceOrder?: boolean;
-  lastSuccessfulSource?: string | null;
-  enableLastSuccessfulSource?: boolean;
-  embedOrder?: string[] | null;
-  enableEmbedOrder?: boolean;
-  proxyTmdb?: boolean;
-  enableLowPerformanceMode?: boolean;
-  enableNativeSubtitles?: boolean;
-  enableHoldToBoost?: boolean;
-  homeSectionOrder?: string[] | null;
-  manualSourceSelection?: boolean;
-  preferredMinimumResolution?: "none" | "720" | "1080" | "4k";
-  enableDoubleClickToSeek?: boolean;
-  enableAutoResumeOnPlaybackError?: boolean;
-  enablePauseOverlay?: boolean;
-  enableNumberKeySeeking?: boolean;
-  keyboardShortcuts?: KeyboardShortcuts;
-  customTheme?: CustomThemeSettings;
-  bookmarkRowsToShow?: number;
-  watchingRowsToShow?: number;
-  enableGamepadControls?: boolean;
-  gamepadMapping?: Record<string, string>;
-}
+export type SettingsResponse = SettingsInput;
 
 export function updateSettings(
-  url: string,
+  _url: string,
   account: AccountWithToken,
   settings: SettingsInput,
 ) {
-  return ofetch<SettingsResponse>(`/users/${account.userId}/settings`, {
-    method: "PUT",
-    body: settings,
-    baseURL: url,
-    headers: getAuthHeaders(account.token),
-  });
+  return upsertSettings(account.userId, settings).then(() => settings);
 }
 
-export function getSettings(url: string, account: AccountWithToken) {
-  return ofetch<SettingsResponse>(`/users/${account.userId}/settings`, {
-    method: "GET",
-    baseURL: url,
-    headers: getAuthHeaders(account.token),
-  });
+export function getSettings(_url: string, account: AccountWithToken) {
+  return fetchSettings(account.userId);
 }
 
 export interface SettingsImportExtras {
@@ -146,16 +102,13 @@ export interface SettingsImportExtras {
   defaultSubtitleLanguage?: string;
 }
 
-// Single source of truth for turning local preferences into a full settings
-// import payload -- used by both account creation and account migration so
-// the two flows can't drift out of sync with each other again.
 export function buildFullSettingsInput(
   preferences: PreferencesStore,
   extras: SettingsImportExtras,
 ): SettingsInput {
   return {
     ...extras,
-    proxyUrls: undefined,
+    proxyUrls: useAuthStore.getState().proxySet ?? undefined,
     febboxKey: preferences.febboxKey,
     debridToken: preferences.debridToken,
     debridService: preferences.debridService,
@@ -200,18 +153,17 @@ export function buildFullSettingsInput(
     watchingRowsToShow: preferences.watchingRowsToShow,
     enableGamepadControls: preferences.enableGamepadControls,
     gamepadMapping: preferences.gamepadMapping,
+    proxyArtwork: preferences.proxyArtwork,
+    posterQuality: preferences.posterQuality,
+    lastAppliedDeviceProfile: preferences.lastAppliedDeviceProfile,
+    deviceProfileSnapshot: preferences.deviceProfileSnapshot,
   };
 }
 
-/** Persist the current optimizer flags so a later settings restore cannot revert them. */
 export async function syncDeviceProfileSettings(
-  url: string | null | undefined,
+  _url: string | null | undefined,
   account: AccountWithToken | null | undefined,
 ): Promise<void> {
-  if (!url || !account) return;
-  await updateSettings(
-    url,
-    account,
-    deviceProfileToSettingsPatch(usePreferencesStore.getState()),
-  );
+  if (!account) return;
+  await updateSettings("", account, deviceProfileToSettingsPatch(usePreferencesStore.getState()));
 }

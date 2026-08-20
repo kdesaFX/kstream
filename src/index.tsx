@@ -28,6 +28,8 @@ import { BookmarkSyncer } from "@/stores/bookmarks/BookmarkSyncer";
 import { GroupSyncer } from "@/stores/groupOrder/GroupSyncer";
 import { changeAppLanguage, useLanguageStore } from "@/stores/language";
 import { ProgressSyncer } from "@/stores/progress/ProgressSyncer";
+import { MangaProgressSyncer } from "@/stores/mangaProgress/MangaProgressSyncer";
+import { RatingsSyncer } from "@/stores/ratings/RatingsSyncer";
 import { SettingsSyncer } from "@/stores/subtitles/SettingsSyncer";
 import { ThemeProvider } from "@/stores/theme";
 import { TraktBookmarkSyncer } from "@/stores/trakt/TraktBookmarkSyncer";
@@ -272,6 +274,8 @@ root.render(
             <WatchHistorySyncer />
             <GroupSyncer />
             <SettingsSyncer />
+            <MangaProgressSyncer />
+            <RatingsSyncer />
             <TraktBookmarkSyncer />
             <TraktHistorySyncer />
             <SimklBookmarkSyncer />

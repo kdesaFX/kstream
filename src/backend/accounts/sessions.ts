@@ -1,49 +1,46 @@
-import { ofetch } from "ofetch";
+import {
+  fetchDevices,
+  removeDevice,
+  signOut as supabaseSignOut,
+  updateProfile,
+} from "@/backend/supabase/data";
+import { AccountWithToken, useAuthStore } from "@/stores/auth";
 
-import { getAuthHeaders } from "@/backend/accounts/auth";
-import { AccountWithToken } from "@/stores/auth";
-
-export interface SessionResponse {
-  id: string;
-  userId: string;
-  createdAt: string;
-  accessedAt: string;
-  device: string;
-  userAgent: string;
-}
-
-export interface SessionUpdate {
-  deviceName: string;
-}
-
-export async function getSessions(url: string, account: AccountWithToken) {
-  return ofetch<SessionResponse[]>(`/users/${account.userId}/sessions`, {
-    headers: getAuthHeaders(account.token),
-    baseURL: url,
-  });
-}
-
-export async function updateSession(
-  url: string,
-  account: AccountWithToken,
-  update: SessionUpdate,
-) {
-  return ofetch<SessionResponse[]>(`/sessions/${account.sessionId}`, {
-    method: "PATCH",
-    headers: getAuthHeaders(account.token),
-    body: update,
-    baseURL: url,
-  });
+export async function getSessions(_url: string, account: AccountWithToken) {
+  const devices = await fetchDevices(account.userId);
+  return devices.map((d) => ({
+    id: d.device_name,
+    userId: account.userId,
+    createdAt: d.last_seen,
+    accessedAt: d.last_seen,
+    device: d.device_name,
+    userAgent: "",
+  }));
 }
 
 export async function removeSession(
-  url: string,
-  token: string,
+  _url: string,
+  _token: string,
   sessionId: string,
 ) {
-  return ofetch<SessionResponse[]>(`/sessions/${sessionId}`, {
-    method: "DELETE",
-    headers: getAuthHeaders(token),
-    baseURL: url,
-  });
+  const account = useAuthStore.getState().account;
+  if (!account) return;
+  await removeDevice(account.userId, sessionId);
+}
+
+export async function signOut(
+  _url: string,
+  _token: string,
+  scope: "local" | "global" = "local",
+) {
+  await supabaseSignOut(scope);
+}
+
+export async function updateSession(
+  _url: string,
+  account: AccountWithToken,
+  _sessionId: string,
+  deviceName: string,
+) {
+  await updateProfile(account.userId, { deviceName });
 }

@@ -1,33 +1,10 @@
 import { useCallback } from "react";
 
-import { SessionResponse } from "@/backend/accounts/auth";
 import { bookmarkMediaToInput } from "@/backend/accounts/bookmarks";
-import {
-  authenticatePasskey,
-  bytesToBase64,
-  bytesToBase64Url,
-  createPasskey,
-  getCredentialId,
-  keysFromCredentialId,
-  keysFromMnemonic,
-  signChallenge,
-  storeCredentialMapping,
-} from "@/backend/accounts/crypto";
 import { getGroupOrder } from "@/backend/accounts/groupOrder";
 import { importAllUserData } from "@/backend/accounts/import";
-import { getLoginChallengeToken, loginAccount } from "@/backend/accounts/login";
-import {
-  addPassword as addPasswordRequest,
-  loginWithPassword as loginWithPasswordRequest,
-  migrateToPassword as migrateToPasswordRequest,
-  registerWithPassword as registerWithPasswordRequest,
-} from "@/backend/accounts/password";
 import { progressMediaItemToInputs } from "@/backend/accounts/progress";
-import {
-  getRegisterChallengeToken,
-  registerAccount,
-} from "@/backend/accounts/register";
-import { removeSession } from "@/backend/accounts/sessions";
+import { signOut as sbSignOut } from "@/backend/accounts/sessions";
 import {
   buildFullSettingsInput,
   getSettings,
@@ -43,8 +20,17 @@ import {
   progressResponsesToEntries,
 } from "@/backend/accounts/user";
 import { watchHistoryItemsToInputs } from "@/backend/accounts/watchHistory";
+import {
+  accountFromSession,
+  fetchMangaProgress,
+  fetchRatings,
+  getCurrentSession,
+  onAuthStateChange,
+  signInWithEmail,
+  signInWithGoogle,
+  signUpWithEmail,
+} from "@/backend/supabase/data";
 import { useAuthData } from "@/hooks/auth/useAuthData";
-import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { AccountWithToken, useAuthStore } from "@/stores/auth";
 import { BookmarkMediaItem, useBookmarkStore } from "@/stores/bookmarks";
 import { useGroupOrderStore } from "@/stores/groupOrder";
@@ -54,12 +40,10 @@ import { ProgressMediaItem, useProgressStore } from "@/stores/progress";
 import { useSubtitleStore } from "@/stores/subtitles";
 import { useThemeStore } from "@/stores/theme";
 import { WatchHistoryItem } from "@/stores/watchHistory";
-import { sleep } from "@/utils/translation/utils";
 
 export interface RegistrationData {
-  recaptchaToken?: string;
-  mnemonic?: string;
-  credentialId?: string;
+  email: string;
+  password: string;
   userData: {
     device: string;
     profile: {
@@ -67,52 +51,22 @@ export interface RegistrationData {
       colorB: string;
       icon: string;
     };
+    nickname?: string;
   };
 }
 
 export interface LoginData {
-  mnemonic?: string;
-  credentialId?: string;
+  email: string;
+  password: string;
   userData: {
     device: string;
   };
 }
 
-// A single failed session-check request (network blip, backend cold start, a
-// proxy/WAF hiccup) shouldn't be treated the same as a server explicitly
-// rejecting the token. Only 401 is unambiguous - retry everything else a
-// couple times with a short backoff before giving up.
-async function getUserWithRetry(
-  backendUrl: string,
-  token: string,
-  attempts = 3,
-): ReturnType<typeof getUser> {
-  let lastErr: unknown;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      return await getUser(backendUrl, token);
-    } catch (err) {
-      const status = (err as any)?.response?.status;
-      if (status === 401) throw err;
-      lastErr = err;
-      if (attempt < attempts - 1) {
-        // eslint-disable-next-line no-await-in-loop
-        await sleep(500 * 2 ** attempt); // 500ms, 1000ms
-      }
-    }
-  }
-  throw lastErr;
-}
-
 const RESTORE_FIRST_PAGE_SIZE = 300;
 const RESTORE_BACKGROUND_PAGE_SIZE = 500;
 
-// Heavy accounts can have thousands of progress/bookmark rows -- fetching all
-// of it before login can finish makes those accounts get slower to log into
-// forever. Login only waits on the first page; the rest streams in after.
 async function loadRemainingProgress(
-  backendUrl: string,
   account: AccountWithToken,
   cursor: string | null,
 ) {
@@ -121,8 +75,7 @@ async function loadRemainingProgress(
   let changed = false;
   while (next) {
     try {
-      // eslint-disable-next-line no-await-in-loop
-      const page = await getProgressPage(backendUrl, account, {
+      const page = await getProgressPage("", account, {
         limit: RESTORE_BACKGROUND_PAGE_SIZE,
         cursor: next,
       });
@@ -138,16 +91,13 @@ async function loadRemainingProgress(
     }
   }
   if (changed) {
-    useProgressStore
-      .getState()
-      .replaceItems(
-        mergeProgressItems(useProgressStore.getState().items, accumulated),
-      );
+    useProgressStore.getState().replaceItems(
+      mergeProgressItems(useProgressStore.getState().items, accumulated),
+    );
   }
 }
 
 async function loadRemainingBookmarks(
-  backendUrl: string,
   account: AccountWithToken,
   cursor: string | null,
 ) {
@@ -156,8 +106,7 @@ async function loadRemainingBookmarks(
   let changed = false;
   while (next) {
     try {
-      // eslint-disable-next-line no-await-in-loop
-      const page = await getBookmarksPage(backendUrl, account, {
+      const page = await getBookmarksPage("", account, {
         limit: RESTORE_BACKGROUND_PAGE_SIZE,
         cursor: next,
       });
@@ -183,8 +132,7 @@ async function loadRemainingBookmarks(
 export function useAuth() {
   const currentAccount = useAuthStore((s) => s.account);
   const profile = useAuthStore((s) => s.account?.profile);
-  const loggedIn = !!useAuthStore((s) => s.account);
-  const backendUrl = useBackendUrl();
+  const loggedIn = !!currentAccount;
   const {
     logout: userDataLogout,
     login: userDataLogin,
@@ -196,217 +144,73 @@ export function useAuth() {
   const applicationLanguage = useLanguageStore((s) => s.language);
   const applicationTheme = useThemeStore((s) => s.theme);
 
-  const login = useCallback(
-    async (loginData: LoginData) => {
-      if (!backendUrl) return;
-      if (!loginData.mnemonic && !loginData.credentialId) {
-        throw new Error("Either mnemonic or credentialId must be provided");
-      }
-
-      const keys = loginData.credentialId
-        ? await keysFromCredentialId(loginData.credentialId)
-        : await keysFromMnemonic(loginData.mnemonic!);
-      const publicKeyBase64Url = bytesToBase64Url(keys.publicKey);
-
-      // Try to get credential ID from storage if using mnemonic
-      let credentialId: string | null = null;
-      if (loginData.mnemonic) {
-        credentialId = getCredentialId(backendUrl, publicKeyBase64Url);
-      } else {
-        credentialId = loginData.credentialId || null;
-      }
-
-      const { challenge } = await getLoginChallengeToken(
-        backendUrl,
-        publicKeyBase64Url,
+  const finishLogin = useCallback(
+    async (account: AccountWithToken) => {
+      const session = await getCurrentSession();
+      const user = await getUser("", account.token);
+      await userDataLogin(
+        { token: account.token, session: user.session },
+        user.user,
+        user.session,
       );
-      const signature = await signChallenge(keys, challenge);
-      const loginResult = await loginAccount(backendUrl, {
-        challenge: {
-          code: challenge,
-          signature,
-        },
-        publicKey: publicKeyBase64Url,
-        device: loginData.userData.device,
-      });
-
-      const user = await getUser(backendUrl, loginResult.token);
-      const seedBase64 = bytesToBase64(keys.seed);
-
-      // Store credential mapping if we have a credential ID
-      if (credentialId) {
-        storeCredentialMapping(backendUrl, publicKeyBase64Url, credentialId);
-      }
-
-      return userDataLogin(loginResult, user.user, user.session, seedBase64);
+      return account;
     },
-    [userDataLogin, backendUrl],
+    [userDataLogin],
   );
-
-  const logout = useCallback(async () => {
-    if (!currentAccount || !backendUrl) return;
-    try {
-      await removeSession(
-        backendUrl,
-        currentAccount.token,
-        currentAccount.sessionId,
-      );
-    } catch {
-      // we dont care about failing to delete session
-    }
-    await userDataLogout();
-  }, [userDataLogout, backendUrl, currentAccount]);
-
-  const disconnectFromBackend = useCallback(async () => {
-    if (!currentAccount || !backendUrl) return;
-    try {
-      await removeSession(
-        backendUrl,
-        currentAccount.token,
-        currentAccount.sessionId,
-      );
-    } catch {
-      // we dont care about failing to delete session
-    }
-    // Only remove the account, keep all local data
-    useAuthStore.getState().removeAccount();
-  }, [backendUrl, currentAccount]);
 
   const register = useCallback(
     async (registerData: RegistrationData) => {
-      if (!backendUrl) return;
-      if (!registerData.mnemonic && !registerData.credentialId) {
-        throw new Error("Either mnemonic or credentialId must be provided");
-      }
-
-      const { challenge } = await getRegisterChallengeToken(
-        backendUrl,
-        registerData.recaptchaToken,
-      );
-      const keys = registerData.credentialId
-        ? await keysFromCredentialId(registerData.credentialId)
-        : await keysFromMnemonic(registerData.mnemonic!);
-      const signature = await signChallenge(keys, challenge);
-      const publicKeyBase64Url = bytesToBase64Url(keys.publicKey);
-      const registerResult = await registerAccount(backendUrl, {
-        challenge: {
-          code: challenge,
-          signature,
-        },
-        publicKey: publicKeyBase64Url,
-        device: registerData.userData.device,
+      const account = await signUpWithEmail({
+        email: registerData.email,
+        password: registerData.password,
+        nickname:
+          registerData.userData.nickname ??
+          registerData.email.split("@")[0] ??
+          "User",
         profile: registerData.userData.profile,
+        deviceName: registerData.userData.device,
       });
+      if (!account) throw new Error("Registration failed");
+      return finishLogin(account);
+    },
+    [finishLogin],
+  );
 
-      // Store credential mapping if we have a credential ID
-      if (registerData.credentialId) {
-        storeCredentialMapping(
-          backendUrl,
-          publicKeyBase64Url,
-          registerData.credentialId,
-        );
-      }
-
-      return userDataLogin(
-        registerResult,
-        registerResult.user,
-        registerResult.session,
-        bytesToBase64(keys.seed),
+  const login = useCallback(
+    async (loginData: LoginData) => {
+      const account = await signInWithEmail(
+        loginData.email,
+        loginData.password,
+        loginData.userData.device,
       );
+      if (!account) throw new Error("Sign in failed");
+      return finishLogin(account);
     },
-    [backendUrl, userDataLogin],
+    [finishLogin],
   );
 
-  const registerWithPassword = useCallback(
-    async (data: {
-      username: string;
-      password: string;
-      device: string;
-      profile: { colorA: string; colorB: string; icon: string };
-    }) => {
-      if (!backendUrl) return;
-      const result = await registerWithPasswordRequest(backendUrl, data);
-      return userDataLogin(result, result.user, result.session);
-    },
-    [backendUrl, userDataLogin],
-  );
+  const loginWithGoogle = useCallback(async () => {
+    await signInWithGoogle();
+  }, []);
 
-  const loginWithPassword = useCallback(
-    async (data: { username: string; password: string; device: string }) => {
-      if (!backendUrl) return;
-      const result = await loginWithPasswordRequest(backendUrl, data);
-      return userDataLogin(result, result.user, result.session);
-    },
-    [backendUrl, userDataLogin],
-  );
+  const logout = useCallback(async () => {
+    try {
+      await sbSignOut("", currentAccount?.token ?? "", "local");
+    } catch {
+      // ignore
+    }
+    await userDataLogout();
+  }, [userDataLogout, currentAccount?.token]);
 
-  const registerWithPasskey = useCallback(
-    async (
-      device: string,
-      accountProfile: { colorA: string; colorB: string; icon: string },
-    ) => {
-      if (!backendUrl) return;
-      const passkey = await createPasskey(
-        `user-${Date.now()}`,
-        "kstream User",
-      );
-      return register({
-        credentialId: passkey.id,
-        userData: {
-          device,
-          profile: accountProfile,
-        },
-      });
-    },
-    [backendUrl, register],
-  );
+  const signOutEverywhere = useCallback(async () => {
+    const { signOut } = await import("@/backend/supabase/data");
+    await signOut("global");
+    await userDataLogout();
+  }, [userDataLogout]);
 
-  const loginWithPasskey = useCallback(
-    async (device: string) => {
-      if (!backendUrl) return;
-      const assertion = await authenticatePasskey();
-      return login({
-        credentialId: assertion.id,
-        userData: { device },
-      });
-    },
-    [backendUrl, login],
-  );
-
-  const migrateToPassword = useCallback(
-    async (username: string, password: string) => {
-      if (!backendUrl || !currentAccount) return;
-      await migrateToPasswordRequest(
-        backendUrl,
-        currentAccount,
-        username,
-        password,
-      );
-    },
-    [backendUrl, currentAccount],
-  );
-
-  const addPassword = useCallback(
-    async (username: string, password: string) => {
-      if (!backendUrl || !currentAccount) return;
-      await addPasswordRequest(backendUrl, currentAccount, username, password);
-    },
-    [backendUrl, currentAccount],
-  );
-
-  const addPasskey = useCallback(
-    async (_device: string) => {
-      if (!backendUrl || !currentAccount) return;
-      const passkey = await createPasskey(
-        `user-${Date.now()}`,
-        "kstream User",
-      );
-      const keys = await keysFromCredentialId(passkey.id);
-      const publicKeyBase64Url = bytesToBase64Url(keys.publicKey);
-      storeCredentialMapping(backendUrl, publicKeyBase64Url, passkey.id);
-    },
-    [backendUrl, currentAccount],
-  );
+  const disconnectFromBackend = useCallback(async () => {
+    await logout();
+  }, [logout]);
 
   const importData = useCallback(
     async (
@@ -414,14 +218,8 @@ export function useAuth() {
       progressItems: Record<string, ProgressMediaItem>,
       bookmarks: Record<string, BookmarkMediaItem>,
       watchHistoryItems: Record<string, WatchHistoryItem> = {},
-      // Only seed the account with this device's local preferences when
-      // creating/migrating an account. On a plain login the account may
-      // already have its own configured settings elsewhere -- don't clobber
-      // them with whatever this device happens to have locally.
       pushSettings = true,
     ) => {
-      if (!backendUrl) return;
-
       const progressInputs = Object.entries(progressItems).flatMap(
         ([tmdbId, item]) => progressMediaItemToInputs(tmdbId, item),
       );
@@ -430,7 +228,7 @@ export function useAuth() {
         bookmarkMediaToInput(tmdbId, item),
       );
 
-      await importAllUserData(backendUrl, account, {
+      await importAllUserData("", account, {
         progressInputs,
         watchHistoryInputs,
         bookmarkInputs,
@@ -445,7 +243,6 @@ export function useAuth() {
       });
     },
     [
-      backendUrl,
       groupOrder,
       preferences,
       subtitleLanguage,
@@ -456,42 +253,38 @@ export function useAuth() {
 
   const restore = useCallback(
     async (account: AccountWithToken) => {
-      if (!backendUrl) return;
-      let user: { user: UserResponse; session: SessionResponse };
+      let user: { user: UserResponse; session: import("@/backend/accounts/auth").SessionResponse };
       try {
-        user = await getUserWithRetry(backendUrl, account.token);
+        user = await getUser("", account.token);
       } catch (err) {
-        const anyError: any = err;
-        if (anyError?.response?.status === 401) {
-          await logout();
-          return;
-        }
-        // Ambiguous/transient failure (network error, or a 400/403 that
-        // persisted through retries) - don't destroy the local session on a
-        // guess. Leave state untouched; the next scheduled check or page
-        // load gets another chance to validate for real.
         console.error(err);
+        await logout();
         return;
       }
 
-      const [bookmarksPage, progressPage, watchHistory, settings, remoteGroupOrder] =
-        await Promise.all([
-          getBookmarksPage(backendUrl, account, { limit: RESTORE_FIRST_PAGE_SIZE }),
-          getProgressPage(backendUrl, account, { limit: RESTORE_FIRST_PAGE_SIZE }),
-          getWatchHistory(backendUrl, account),
-          getSettings(backendUrl, account),
-          getGroupOrder(backendUrl, account),
-        ]);
+      const [
+        bookmarksPage,
+        progressPage,
+        watchHistory,
+        settings,
+        remoteGroupOrder,
+        mangaProgress,
+        ratingsRemote,
+      ] = await Promise.all([
+        getBookmarksPage("", account, { limit: RESTORE_FIRST_PAGE_SIZE }),
+        getProgressPage("", account, { limit: RESTORE_FIRST_PAGE_SIZE }),
+        getWatchHistory("", account),
+        getSettings("", account),
+        getGroupOrder("", account),
+        fetchMangaProgress(account.userId),
+        fetchRatings(account.userId),
+      ]);
 
-      // Update account store with fresh user data (including nickname)
-      const { setAccount } = useAuthStore.getState();
-      if (account) {
-        setAccount({
-          ...account,
-          nickname: user.user.nickname,
-          profile: user.user.profile,
-        });
-      }
+      useAuthStore.getState().setAccount({
+        ...account,
+        nickname: user.user.nickname,
+        profile: user.user.profile,
+      });
 
       syncData(
         user.user,
@@ -501,29 +294,38 @@ export function useAuth() {
         watchHistory,
         settings,
         remoteGroupOrder,
+        mangaProgress,
+        ratingsRemote,
       );
 
-      loadRemainingProgress(backendUrl, account, progressPage.nextCursor);
-      loadRemainingBookmarks(backendUrl, account, bookmarksPage.nextCursor);
+      loadRemainingProgress(account, progressPage.nextCursor);
+      loadRemainingBookmarks(account, bookmarksPage.nextCursor);
     },
-    [backendUrl, syncData, logout],
+    [syncData, logout],
   );
+
+  const restoreFromSession = useCallback(async () => {
+    const session = await getCurrentSession();
+    if (!session) return null;
+    const account = await accountFromSession(session);
+    if (!account) return null;
+    useAuthStore.getState().setAccount(account);
+    await restore(account);
+    return account;
+  }, [restore]);
 
   return {
     loggedIn,
     profile,
     login,
-    logout,
-    disconnectFromBackend,
     register,
-    registerWithPassword,
-    loginWithPassword,
-    registerWithPasskey,
-    loginWithPasskey,
-    migrateToPassword,
-    addPassword,
-    addPasskey,
+    loginWithGoogle,
+    logout,
+    signOutEverywhere,
+    disconnectFromBackend,
     restore,
+    restoreFromSession,
     importData,
+    onAuthStateChange,
   };
 }

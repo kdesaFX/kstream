@@ -20,6 +20,10 @@ import { useProgressStore } from "@/stores/progress";
 import { useSubtitleStore } from "@/stores/subtitles";
 import { useThemeStore } from "@/stores/theme";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
+import { useRatingsStore } from "@/stores/ratings";
+import { useMangaProgressStore } from "@/stores/mangaProgress";
+import type { AlgorithmPreferences } from "@/stores/ratings";
+import type { MangaProgressItem } from "@/stores/mangaProgress";
 
 export function useAuthData() {
   const loggedIn = !!useAuthStore((s) => s.account);
@@ -30,6 +34,10 @@ export function useAuthData() {
   const clearProgress = useProgressStore((s) => s.clear);
   const clearWatchHistory = useWatchHistoryStore((s) => s.clear);
   const clearGroupOrder = useGroupOrderStore((s) => s.clear);
+  const clearMangaProgress = useMangaProgressStore((s) => s.clear);
+  const clearRatings = useRatingsStore((s) => s.clear);
+  const replaceMangaProgress = useMangaProgressStore((s) => s.replaceItems);
+  const replaceRatings = useRatingsStore((s) => s.replaceAll);
   const setTheme = useThemeStore((s) => s.setTheme);
   const setAppLanguage = useLanguageStore((s) => s.setLanguage);
   const importSubtitleLanguage = useSubtitleStore(
@@ -73,6 +81,8 @@ export function useAuthData() {
     clearProgress();
     clearWatchHistory();
     clearGroupOrder();
+    clearMangaProgress();
+    clearRatings();
     setFebboxKey(null);
   }, [
     removeAccount,
@@ -80,6 +90,8 @@ export function useAuthData() {
     clearProgress,
     clearWatchHistory,
     clearGroupOrder,
+    clearMangaProgress,
+    clearRatings,
     setFebboxKey,
   ]);
 
@@ -92,6 +104,11 @@ export function useAuthData() {
       watchHistory: WatchHistoryResponse[],
       settings: SettingsResponse,
       groupOrder: { groupOrder: string[] },
+      mangaProgress?: Record<string, MangaProgressItem>,
+      ratingsRemote?: {
+        ratings: Record<string, import("@/stores/ratings").RatedMediaItem>;
+        preferences: AlgorithmPreferences;
+      },
     ) => {
       replaceBookmarks(bookmarkResponsesToEntries(bookmarks));
       replaceItems(progressResponsesToEntries(progress));
@@ -186,13 +203,31 @@ export function useAuthData() {
       if (settings.watchingRowsToShow !== undefined) partial.watchingRowsToShow = settings.watchingRowsToShow;
       if (settings.enableGamepadControls !== undefined) partial.enableGamepadControls = settings.enableGamepadControls;
       if (settings.gamepadMapping) partial.gamepadMapping = settings.gamepadMapping;
+      if (settings.proxyArtwork !== undefined) partial.proxyArtwork = settings.proxyArtwork;
+      if (settings.posterQuality !== undefined) partial.posterQuality = settings.posterQuality;
+      if (settings.lastAppliedDeviceProfile !== undefined) {
+        partial.lastAppliedDeviceProfile = settings.lastAppliedDeviceProfile;
+      }
+      if (settings.deviceProfileSnapshot !== undefined) {
+        partial.deviceProfileSnapshot = settings.deviceProfileSnapshot;
+      }
 
       applyPreferencesSync(partial);
+
+      if (mangaProgress) {
+        replaceMangaProgress(mangaProgress);
+      }
+
+      if (ratingsRemote) {
+        replaceRatings(ratingsRemote.ratings, ratingsRemote.preferences);
+      }
     },
     [
       replaceBookmarks,
       replaceItems,
       replaceWatchHistory,
+      replaceMangaProgress,
+      replaceRatings,
       setAppLanguage,
       importSubtitleLanguage,
       setTheme,

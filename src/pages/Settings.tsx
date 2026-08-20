@@ -961,9 +961,12 @@ export function SettingsPage() {
       }
       if (state.deviceName.changed) {
         const newDeviceName = state.deviceName.state;
-        await updateSession(backendUrl, account, {
-          deviceName: newDeviceName,
-        });
+        await updateSession(
+          backendUrl,
+          account,
+          account.sessionId,
+          newDeviceName,
+        );
         updateDeviceName(newDeviceName);
       }
       if (state.nickname.changed) {

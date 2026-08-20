@@ -1,7 +1,12 @@
-import { ofetch } from "ofetch";
-
-import { getAuthHeaders } from "@/backend/accounts/auth";
-import { ProgressResponse } from "@/backend/accounts/user";
+import type { ProgressResponse } from "@/backend/accounts/user";
+import {
+  deleteProgress as sbDeleteProgress,
+  upsertProgress,
+} from "@/backend/supabase/data";
+import {
+  progressInputToMediaItem,
+  progressMediaItemToInputs,
+} from "@/backend/supabase/progressMerge";
 import { AccountWithToken } from "@/stores/auth";
 import { ProgressMediaItem, ProgressUpdateItem } from "@/stores/progress";
 
@@ -42,74 +47,37 @@ export function progressUpdateItemToInput(
   };
 }
 
-export function progressMediaItemToInputs(
-  tmdbId: string,
-  item: ProgressMediaItem,
-): ProgressInput[] {
-  if (item.type === "show") {
-    return Object.entries(item.episodes).flatMap(([_, episode]) => ({
-      duration: item.progress?.duration ?? episode.progress.duration,
-      watched: item.progress?.watched ?? episode.progress.watched,
-      tmdbId,
-      meta: {
-        title: item.title ?? "",
-        type: item.type ?? "",
-        year: item.year ?? NaN,
-        poster: item.poster,
-      },
-      episodeId: episode.id,
-      seasonId: episode.seasonId,
-      episodeNumber: episode.number,
-      seasonNumber: item.seasons[episode.seasonId].number,
-      updatedAt: new Date(episode.updatedAt).toISOString(),
-    }));
-  }
-  return [
-    {
-      duration: item.progress?.duration ?? 0,
-      watched: item.progress?.watched ?? 0,
-      tmdbId,
-      updatedAt: new Date(item.updatedAt).toISOString(),
-      meta: {
-        title: item.title ?? "",
-        type: item.type ?? "",
-        year: item.year ?? NaN,
-        poster: item.poster,
-      },
-    },
-  ];
-}
+export { progressMediaItemToInputs };
 
 export async function setProgress(
-  url: string,
+  _url: string,
   account: AccountWithToken,
   input: ProgressInput,
-) {
-  return ofetch<ProgressResponse>(
-    `/users/${account.userId}/progress/${input.tmdbId}`,
-    {
-      method: "PUT",
-      headers: getAuthHeaders(account.token),
-      baseURL: url,
-      body: input,
+): Promise<ProgressResponse> {
+  await upsertProgress(account.userId, input);
+  const item = progressInputToMediaItem(input);
+  return {
+    tmdbId: input.tmdbId,
+    season: { id: input.seasonId, number: input.seasonNumber },
+    episode: { id: input.episodeId, number: input.episodeNumber },
+    meta: {
+      title: input.meta?.title ?? "",
+      year: input.meta?.year ?? 0,
+      poster: input.meta?.poster,
+      type: (input.meta?.type ?? "movie") as "movie" | "show",
     },
-  );
+    duration: String(input.duration),
+    watched: String(input.watched),
+    updatedAt: input.updatedAt ?? new Date().toISOString(),
+  };
 }
 
 export async function removeProgress(
-  url: string,
+  _url: string,
   account: AccountWithToken,
   id: string,
   episodeId?: string,
   seasonId?: string,
 ) {
-  await ofetch(`/users/${account.userId}/progress/${id}`, {
-    method: "DELETE",
-    headers: getAuthHeaders(account.token),
-    baseURL: url,
-    body: {
-      episodeId,
-      seasonId,
-    },
-  });
+  await sbDeleteProgress(account.userId, id, episodeId, seasonId);
 }

@@ -32,6 +32,7 @@ interface MangaProgressStore {
     tags?: MangaTag[];
   }): void;
   removeItem(mangaId: string): void;
+  replaceItems(items: Record<string, MangaProgressItem>): void;
   clear(): void;
 }
 
@@ -58,6 +59,11 @@ export const useMangaProgressStore = create<MangaProgressStore>()(
       removeItem(mangaId) {
         set((s) => {
           delete s.items[mangaId];
+        });
+      },
+      replaceItems(items) {
+        set((s) => {
+          s.items = items;
         });
       },
       clear() {

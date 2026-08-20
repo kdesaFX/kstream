@@ -1,26 +1,38 @@
-import { useRef } from "react";
-import { useAsync, useInterval } from "react-use";
+import { useEffect, useRef } from "react";
 
+import { accountFromSession } from "@/backend/supabase/data";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useAuthStore } from "@/stores/auth";
 
-const AUTH_CHECK_INTERVAL = 12 * 60 * 60 * 1000;
-
 export function useAuthRestore() {
   const { account } = useAuthStore();
-  const { restore } = useAuth();
+  const { restore, restoreFromSession, onAuthStateChange } = useAuth();
   const hasRestored = useRef(false);
 
-  useInterval(() => {
-    if (account) restore(account);
-  }, AUTH_CHECK_INTERVAL);
-
-  const result = useAsync(async () => {
-    if (hasRestored.current || !account) return;
-    await restore(account).finally(() => {
-      hasRestored.current = true;
+  useEffect(() => {
+    const sub = onAuthStateChange(async (session) => {
+      if (session) {
+        const acc = await accountFromSession(session);
+        if (acc) {
+          useAuthStore.getState().setAccount(acc);
+          await restore(acc);
+        }
+      }
     });
-  }, []); // no deps because we don't want to it ever rerun after the first time
+    return () => sub.unsubscribe();
+  }, [onAuthStateChange, restore]);
 
-  return result;
+  useEffect(() => {
+    if (hasRestored.current) return;
+    hasRestored.current = true;
+    (async () => {
+      if (account) {
+        await restore(account);
+        return;
+      }
+      await restoreFromSession();
+    })().catch(console.error);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { loading: false, error: undefined };
 }

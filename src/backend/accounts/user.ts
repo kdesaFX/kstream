@@ -1,7 +1,14 @@
-import { ofetch } from "ofetch";
-
-import { SessionResponse, getAuthHeaders } from "@/backend/accounts/auth";
-import { AccountWithToken } from "@/stores/auth";
+import { SessionResponse } from "@/backend/accounts/auth";
+import {
+  deleteAccount as sbDeleteAccount,
+  fetchBookmarksPage,
+  fetchProfile,
+  fetchProgressPage,
+  fetchWatchHistory,
+  profileToUser,
+  updateProfile,
+} from "@/backend/supabase/data";
+import { AccountWithToken, useAuthStore } from "@/stores/auth";
 import { BookmarkMediaItem } from "@/stores/bookmarks";
 import { ProgressMediaItem } from "@/stores/progress";
 import { WatchHistoryItem } from "@/stores/watchHistory";
@@ -203,57 +210,52 @@ export function watchHistoryResponsesToEntries(
 }
 
 export async function getUser(
-  url: string,
-  token: string,
+  _url: string,
+  _token: string,
 ): Promise<{ user: UserResponse; session: SessionResponse }> {
-  return ofetch<{ user: UserResponse; session: SessionResponse }>(
-    "/users/@me",
-    {
-      headers: getAuthHeaders(token),
-      baseURL: url,
+  const account = useAuthStore.getState().account;
+  if (!account) throw new Error("Not signed in");
+  const profile = await fetchProfile(account.userId);
+  if (!profile) throw new Error("Profile not found");
+  return {
+    user: profileToUser(profile),
+    session: {
+      id: account.sessionId,
+      userId: account.userId,
+      createdAt: new Date().toISOString(),
+      accessedAt: new Date().toISOString(),
+      device: profile.device_name ?? account.deviceName,
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
     },
-  );
+  };
 }
 
 export async function editUser(
-  url: string,
+  _url: string,
   account: AccountWithToken,
   object: UserEdit,
 ): Promise<{ user: UserResponse; session: SessionResponse }> {
-  return ofetch<{ user: UserResponse; session: SessionResponse }>(
-    `/users/${account.userId}`,
-    {
-      method: "PATCH",
-      headers: getAuthHeaders(account.token),
-      body: object,
-      baseURL: url,
-    },
-  );
+  await updateProfile(account.userId, object);
+  return getUser("", account.token);
 }
 
 export async function deleteUser(
-  url: string,
+  _url: string,
   account: AccountWithToken,
 ): Promise<UserResponse> {
-  return ofetch<UserResponse>(`/users/${account.userId}`, {
-    method: "DELETE",
-    headers: getAuthHeaders(account.token),
-    baseURL: url,
-  });
+  const profile = await fetchProfile(account.userId);
+  await sbDeleteAccount();
+  return profileToUser(profile!);
 }
 
-export async function getBookmarks(url: string, account: AccountWithToken) {
-  return ofetch<BookmarkResponse[]>(`/users/${account.userId}/bookmarks`, {
-    headers: getAuthHeaders(account.token),
-    baseURL: url,
-  });
+export async function getBookmarks(_url: string, account: AccountWithToken) {
+  const page = await fetchBookmarksPage(account.userId, { limit: 10000 });
+  return page.items;
 }
 
-export async function getProgress(url: string, account: AccountWithToken) {
-  return ofetch<ProgressResponse[]>(`/users/${account.userId}/progress`, {
-    headers: getAuthHeaders(account.token),
-    baseURL: url,
-  });
+export async function getProgress(_url: string, account: AccountWithToken) {
+  const page = await fetchProgressPage(account.userId, { limit: 10000 });
+  return page.items;
 }
 
 export interface PaginatedResponse<T> {
@@ -262,41 +264,21 @@ export interface PaginatedResponse<T> {
 }
 
 export async function getBookmarksPage(
-  url: string,
+  _url: string,
   account: AccountWithToken,
   opts: { limit: number; cursor?: string },
 ) {
-  return ofetch<PaginatedResponse<BookmarkResponse>>(
-    `/users/${account.userId}/bookmarks`,
-    {
-      headers: getAuthHeaders(account.token),
-      baseURL: url,
-      query: { limit: opts.limit, cursor: opts.cursor },
-    },
-  );
+  return fetchBookmarksPage(account.userId, opts);
 }
 
 export async function getProgressPage(
-  url: string,
+  _url: string,
   account: AccountWithToken,
   opts: { limit: number; cursor?: string },
 ) {
-  return ofetch<PaginatedResponse<ProgressResponse>>(
-    `/users/${account.userId}/progress`,
-    {
-      headers: getAuthHeaders(account.token),
-      baseURL: url,
-      query: { limit: opts.limit, cursor: opts.cursor },
-    },
-  );
+  return fetchProgressPage(account.userId, opts);
 }
 
-export async function getWatchHistory(url: string, account: AccountWithToken) {
-  return ofetch<WatchHistoryResponse[]>(
-    `/users/${account.userId}/watch-history`,
-    {
-      headers: getAuthHeaders(account.token),
-      baseURL: url,
-    },
-  );
+export async function getWatchHistory(_url: string, account: AccountWithToken) {
+  return fetchWatchHistory(account.userId);
 }

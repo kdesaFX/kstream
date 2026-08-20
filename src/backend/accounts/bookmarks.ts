@@ -1,7 +1,8 @@
-import { ofetch } from "ofetch";
-
-import { getAuthHeaders } from "@/backend/accounts/auth";
-import { BookmarkResponse } from "@/backend/accounts/user";
+import type { BookmarkResponse } from "@/backend/accounts/user";
+import {
+  deleteBookmark as sbDeleteBookmark,
+  upsertBookmark,
+} from "@/backend/supabase/data";
 import { AccountWithToken } from "@/stores/auth";
 import { BookmarkMediaItem } from "@/stores/bookmarks";
 
@@ -37,32 +38,30 @@ export function bookmarkMediaToInput(
 }
 
 export async function addBookmark(
-  url: string,
+  _url: string,
   account: AccountWithToken,
   input: BookmarkInput,
-) {
-  return ofetch<BookmarkResponse>(
-    `/users/${account.userId}/bookmarks/${input.tmdbId}`,
-    {
-      method: "POST",
-      headers: getAuthHeaders(account.token),
-      baseURL: url,
-      body: input,
+): Promise<BookmarkResponse> {
+  await upsertBookmark(account.userId, input);
+  return {
+    tmdbId: input.tmdbId,
+    meta: {
+      title: input.meta.title,
+      year: input.meta.year,
+      poster: input.meta.poster,
+      type: input.meta.type as "movie" | "show",
     },
-  );
+    group: input.group ?? [],
+    favoriteEpisodes: input.favoriteEpisodes,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 export async function removeBookmark(
-  url: string,
+  _url: string,
   account: AccountWithToken,
   id: string,
 ) {
-  return ofetch<{ tmdbId: string }>(
-    `/users/${account.userId}/bookmarks/${id}`,
-    {
-      method: "DELETE",
-      headers: getAuthHeaders(account.token),
-      baseURL: url,
-    },
-  );
+  await sbDeleteBookmark(account.userId, id);
+  return { tmdbId: id };
 }

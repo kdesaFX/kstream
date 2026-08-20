@@ -1,4 +1,13 @@
-import { ofetch } from "ofetch";
+import { getAuthProviderInfo } from "@/backend/supabase/data";
+
+export interface AuthStatusResponse {
+  isLegacyPassphrase: boolean;
+  hasPassword: boolean;
+  username: string | null;
+  email: string | null;
+  hasPasskey: boolean;
+  isGoogle: boolean;
+}
 
 export interface SessionResponse {
   id: string;
@@ -19,35 +28,17 @@ export function getAuthHeaders(token: string): Record<string, string> {
   };
 }
 
-export async function accountLogin(
-  url: string,
-  id: string,
-  deviceName: string,
-): Promise<LoginResponse> {
-  return ofetch<LoginResponse>("/auth/login", {
-    method: "POST",
-    body: {
-      id,
-      device: deviceName,
-    },
-    baseURL: url,
-  });
-}
-
-export interface AuthStatusResponse {
-  isLegacyPassphrase: boolean;
-  hasPassword: boolean;
-  username: string | null;
-  hasPasskey: boolean;
-}
-
 export async function getAuthStatus(
-  url: string,
-  token: string,
+  _url: string,
+  _token: string,
 ): Promise<AuthStatusResponse> {
-  return ofetch<AuthStatusResponse>("/auth/status", {
-    method: "GET",
-    baseURL: url,
-    headers: getAuthHeaders(token),
-  });
+  const info = await getAuthProviderInfo();
+  return {
+    isLegacyPassphrase: false,
+    hasPassword: info.hasPassword,
+    username: info.email,
+    email: info.email,
+    hasPasskey: false,
+    isGoogle: info.isGoogle,
+  };
 }
