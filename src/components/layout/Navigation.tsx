@@ -222,25 +222,32 @@ export function Navigation(props: NavigationProps) {
               "transition-[background-color,backdrop-filter,opacity] duration-300 ease-in-out",
               props.bg ? "opacity-100" : "opacity-0",
               "absolute inset-0 block h-16 md:h-[11rem]",
-              // Stay transparent/clean — light blur only once scrolled, never a solid slab
+              // Desktop: transparent over hero, light blur once scrolled.
+              // Mobile: denser frosted bar so content can't read through the nav.
               props.clearBackground
                 ? "bg-transparent"
-                : "backdrop-blur-[6px] bg-black/15",
+                : isMobile
+                  ? "backdrop-blur-xl bg-background-main/90"
+                  : "backdrop-blur-[6px] bg-black/15",
             )}
-            style={{
-              maskImage: `linear-gradient(
-                to bottom,
-                rgba(0, 0, 0, 1),
-                rgba(0, 0, 0, 1) calc(100% - ${getMaskLength()}px),
-                rgba(0, 0, 0, 0) 100%
-              )`,
-              WebkitMaskImage: `linear-gradient(
-                to bottom,
-                rgba(0, 0, 0, 1),
-                rgba(0, 0, 0, 1) calc(100% - ${getMaskLength()}px),
-                rgba(0, 0, 0, 0) 100%
-              )`,
-            }}
+            style={
+              isMobile
+                ? undefined
+                : {
+                    maskImage: `linear-gradient(
+                      to bottom,
+                      rgba(0, 0, 0, 1),
+                      rgba(0, 0, 0, 1) calc(100% - ${getMaskLength()}px),
+                      rgba(0, 0, 0, 0) 100%
+                    )`,
+                    WebkitMaskImage: `linear-gradient(
+                      to bottom,
+                      rgba(0, 0, 0, 1),
+                      rgba(0, 0, 0, 1) calc(100% - ${getMaskLength()}px),
+                      rgba(0, 0, 0, 0) 100%
+                    )`,
+                  }
+            }
           />
         </div>
       </div>
