@@ -91,6 +91,7 @@ export function MangaReaderView() {
   const [controlsVisible, setControlsVisible] = useState(true);
   const touchStartX = useRef<number | null>(null);
   const retried = useRef(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const chapterId = chapterParam ? decodeURIComponent(chapterParam) : undefined;
   const externalChapter =
@@ -241,14 +242,35 @@ export function MangaReaderView() {
     };
   }, [nextChapter?.id, nextChapter?.chapter, details?.id, details?.title, details?.alternateTitles, preferredLanguage]);
 
-  // Resume page within chapter
+  // Resume page within chapter and reset scroll when opening a chapter.
   useEffect(() => {
     if (!mangaId || !chapterId || pages.length === 0) return;
     const resume = savedProgress[mangaId];
-    if (resume?.chapterId === chapterId && resume.page > 0) {
-      setPageIndex(Math.min(resume.page, pages.length - 1));
-    }
-  }, [mangaId, chapterId, pages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+    const startPage =
+      resume?.chapterId === chapterId && resume.page > 0
+        ? Math.min(resume.page, pages.length - 1)
+        : 0;
+    setPageIndex(startPage);
+
+    if (readerMode !== "vertical") return;
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+      const el = scrollRef.current;
+      if (!el) return;
+      if (startPage === 0) {
+        el.scrollTop = 0;
+        return;
+      }
+      const max = el.scrollHeight - el.clientHeight;
+      if (max > 0) el.scrollTop = (startPage / pages.length) * max;
+    });
+  }, [mangaId, chapterId, pages.length, readerMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (readerMode !== "vertical") return;
+    window.scrollTo(0, 0);
+    scrollRef.current?.scrollTo(0, 0);
+  }, [chapterId, readerMode]);
 
   // Persist progress
   useEffect(() => {
@@ -357,7 +379,7 @@ export function MangaReaderView() {
             ? `${title} — ${chapterLabel(currentChapter)}`
             : title}
         </title>
-        <html data-no-scroll={readerMode === "paged" ? "true" : undefined} />
+        <html data-no-scroll="true" />
       </Helmet>
 
       {/* Top controls */}
@@ -440,10 +462,11 @@ export function MangaReaderView() {
 
       {!loading && !error && pages.length > 0 ? (
         <div
+          ref={scrollRef}
           className={classNames(
-            "pt-14 pb-20",
-            readerMode === "paged" &&
-              "flex items-center justify-center min-h-screen",
+            readerMode === "vertical"
+              ? "fixed inset-0 overflow-y-auto pt-14 pb-20"
+              : "pt-14 pb-20 flex items-center justify-center min-h-screen",
           )}
           onClick={() => setControlsVisible((v) => !v)}
           onScroll={
@@ -459,11 +482,6 @@ export function MangaReaderView() {
                   );
                   if (idx !== pageIndex) setPageIndex(idx);
                 }
-              : undefined
-          }
-          style={
-            readerMode === "vertical"
-              ? { overflowY: "auto", maxHeight: "100vh" }
               : undefined
           }
           onTouchStart={(e) => {
