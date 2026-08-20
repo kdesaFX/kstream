@@ -16,6 +16,18 @@ function itemMatches(item: MangaReaderPickerItem, query: string): boolean {
   );
 }
 
+/** Only one reader picker menu can be open; opening another closes this one. */
+let exclusiveClose: (() => void) | null = null;
+
+function takeExclusiveOpen(close: () => void) {
+  if (exclusiveClose && exclusiveClose !== close) exclusiveClose();
+  exclusiveClose = close;
+}
+
+function dropExclusiveOpen(close: () => void) {
+  if (exclusiveClose === close) exclusiveClose = null;
+}
+
 export function MangaReaderPicker({
   items,
   selectedId,
@@ -37,6 +49,10 @@ export function MangaReaderPicker({
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<number>();
+  const closeMenuRef = useRef<() => void>(() => {});
+  const exclusiveCloseRef = useRef(() => {
+    closeMenuRef.current();
+  });
 
   const current = useMemo(
     () => items.find((item) => item.id === selectedId),
@@ -58,7 +74,19 @@ export function MangaReaderPicker({
     setOpen(false);
     setPinned(false);
     setQuery("");
+    dropExclusiveOpen(exclusiveCloseRef.current);
   }, [cancelClose]);
+  closeMenuRef.current = closeMenu;
+
+  const openMenu = useCallback(
+    (pin = false) => {
+      cancelClose();
+      takeExclusiveOpen(exclusiveCloseRef.current);
+      if (pin) setPinned(true);
+      setOpen(true);
+    },
+    [cancelClose],
+  );
 
   const scheduleClose = useCallback(() => {
     if (pinned) return;
@@ -69,7 +97,10 @@ export function MangaReaderPicker({
     }, 320);
   }, [pinned, cancelClose]);
 
-  useEffect(() => () => cancelClose(), [cancelClose]);
+  useEffect(() => () => {
+    cancelClose();
+    dropExclusiveOpen(exclusiveCloseRef.current);
+  }, [cancelClose]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -100,23 +131,18 @@ export function MangaReaderPicker({
     <div
       ref={rootRef}
       className="relative max-w-[16rem] shrink-0"
-      onMouseEnter={() => {
-        cancelClose();
-        setOpen(true);
-      }}
+      onMouseEnter={() => openMenu()}
       onMouseLeave={scheduleClose}
     >
       <button
         type="button"
         className="flex items-center gap-1 truncate text-xs text-white/60 hover:text-white transition-colors"
         onClick={() => {
-          cancelClose();
           if (open && pinned) {
             closeMenu();
             return;
           }
-          setPinned(true);
-          setOpen(true);
+          openMenu(true);
         }}
         aria-expanded={open}
       >
