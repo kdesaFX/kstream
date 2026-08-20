@@ -22,6 +22,7 @@ export interface UserResponse {
     colorA: string;
     colorB: string;
     icon: string;
+    avatarUrl?: string | null;
   };
 }
 
@@ -30,6 +31,7 @@ export interface UserEdit {
     colorA: string;
     colorB: string;
     icon: string;
+    avatarUrl?: string | null;
   };
   nickname?: string;
 }

@@ -224,6 +224,7 @@
         "color1": "Profile color one",
         "color2": "Profile color two",
         "header": "Enter a name for your device then pick colors and a user icon of your choosing!",
+        "headerPhoto": "Name this device and optionally add a profile photo.",
         "icon": "User icon",
         "next": "Next",
         "title": "Account information"
@@ -1339,11 +1340,12 @@
         "addPasskeyAction": "Add passkey"
       },
       "profile": {
-        "finish": "Finish editing",
-        "firstColor": "Profile color one",
-        "secondColor": "Profile color two",
-        "title": "Edit profile picture",
-        "userIcon": "User icon"
+        "finish": "Done",
+        "title": "Profile photo",
+        "hint": "JPEG, PNG, WebP, GIF, or BMP. We’ll crop it to a square.",
+        "upload": "Upload photo",
+        "uploading": "Uploading…",
+        "remove": "Remove photo"
       },
       "register": {
         "cta": "Sign up",

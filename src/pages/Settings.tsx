@@ -18,7 +18,6 @@ import { SearchBarInput } from "@/components/form/SearchBar";
 import { ThinContainer } from "@/components/layout/ThinContainer";
 import { WideContainer } from "@/components/layout/WideContainer";
 import { Modal, ModalCard, useModal } from "@/components/overlays/Modal";
-import { UserIcons } from "@/components/UserIcon";
 import { Divider } from "@/components/utils/Divider";
 import { Heading1, Heading2, Paragraph } from "@/components/utils/Text";
 import { Transition } from "@/components/utils/Transition";
@@ -136,11 +135,10 @@ export function AccountSettings(props: {
   nickname: string;
   setNickname: (s: string) => void;
   colorA: string;
-  setColorA: (s: string) => void;
   colorB: string;
-  setColorB: (s: string) => void;
-  userIcon: UserIcons;
-  setUserIcon: (s: UserIcons) => void;
+  userIcon: string;
+  avatarUrl?: string | null;
+  setAvatarUrl: (url: string | null) => void;
 }) {
   const url = useBackendUrl();
   const { account } = props;
@@ -160,11 +158,10 @@ export function AccountSettings(props: {
         nickname={props.nickname}
         setNickname={props.setNickname}
         colorA={props.colorA}
-        setColorA={props.setColorA}
         colorB={props.colorB}
-        setColorB={props.setColorB}
         userIcon={props.userIcon}
-        setUserIcon={props.setUserIcon}
+        avatarUrl={props.avatarUrl}
+        setAvatarUrl={props.setAvatarUrl}
       />
       <DeviceListPart
         error={!!sessionsResult.error}
@@ -1125,20 +1122,11 @@ export function SettingsPage() {
                 nickname={state.nickname.state}
                 setNickname={state.nickname.set}
                 colorA={state.profile.state.colorA}
-                setColorA={(v) => {
-                  state.profile.set((s) =>
-                    s ? { ...s, colorA: v } : undefined,
-                  );
-                }}
                 colorB={state.profile.state.colorB}
-                setColorB={(v) =>
-                  state.profile.set((s) =>
-                    s ? { ...s, colorB: v } : undefined,
-                  )
-                }
-                userIcon={state.profile.state.icon as any}
-                setUserIcon={(v) =>
-                  state.profile.set((s) => (s ? { ...s, icon: v } : undefined))
+                userIcon={state.profile.state.icon}
+                avatarUrl={state.profile.state.avatarUrl}
+                setAvatarUrl={(url) =>
+                  state.profile.set((s) => (s ? { ...s, avatarUrl: url } : undefined))
                 }
               />
             ) : null}

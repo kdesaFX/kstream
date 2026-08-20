@@ -13,6 +13,7 @@ import type {
 } from "@/backend/accounts/user";
 import type { WatchHistoryInput } from "@/backend/accounts/watchHistory";
 import { getSupabase, tryGetSupabase } from "@/backend/supabase/client";
+import { prepareAvatarImage } from "@/utils/avatarImage";
 import {
   bookmarkInputToRow,
   bookmarkMediaToRow,
@@ -68,6 +69,7 @@ export async function accountFromSession(session: Session): Promise<AccountWithT
       colorA: profile.color_a,
       colorB: profile.color_b,
       icon: profile.icon,
+      avatarUrl: profile.avatar_url ?? null,
     },
     nickname: profile.nickname,
   };
@@ -92,6 +94,9 @@ export async function updateProfile(
     patch.color_a = edit.profile.colorA;
     patch.color_b = edit.profile.colorB;
     patch.icon = edit.profile.icon;
+    if (edit.profile.avatarUrl !== undefined) {
+      patch.avatar_url = edit.profile.avatarUrl;
+    }
   }
   if (edit.deviceName != null) patch.device_name = edit.deviceName;
   const { data, error } = await getSupabase()
@@ -103,6 +108,37 @@ export async function updateProfile(
   if (error) throw error;
   if (edit.deviceName) await touchDevice(userId, edit.deviceName);
   return profileToUser(data as ProfileRow);
+}
+
+export async function uploadAvatar(userId: string, file: File): Promise<string> {
+  const blob = await prepareAvatarImage(file);
+  const path = `${userId}/avatar.jpg`;
+  const { error } = await getSupabase()
+    .storage
+    .from("avatars")
+    .upload(path, blob, {
+      upsert: true,
+      contentType: "image/jpeg",
+      cacheControl: "3600",
+    });
+  if (error) throw error;
+  const { data } = getSupabase().storage.from("avatars").getPublicUrl(path);
+  const avatarUrl = `${data.publicUrl}?v=${Date.now()}`;
+  const { error: updateError } = await getSupabase()
+    .from("profiles")
+    .update({ avatar_url: avatarUrl })
+    .eq("id", userId);
+  if (updateError) throw updateError;
+  return avatarUrl;
+}
+
+export async function removeAvatar(userId: string) {
+  await getSupabase().storage.from("avatars").remove([`${userId}/avatar.jpg`]);
+  const { error } = await getSupabase()
+    .from("profiles")
+    .update({ avatar_url: null })
+    .eq("id", userId);
+  if (error) throw error;
 }
 
 export async function deleteAccount() {

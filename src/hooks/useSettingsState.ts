@@ -135,7 +135,7 @@ export interface UseSettingsStateInput {
   debridService: string;
   tidbKey: string | null;
   wyzieKey: string | null;
-  profile: { colorA: string; colorB: string; icon: string } | undefined;
+  profile: { colorA: string; colorB: string; icon: string; avatarUrl?: string | null } | undefined;
   enableThumbnails: boolean;
   enableAutoplay: boolean;
   enableSkipCredits: boolean;

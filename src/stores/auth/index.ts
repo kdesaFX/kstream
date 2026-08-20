@@ -7,6 +7,7 @@ export interface Account {
     colorA: string;
     colorB: string;
     icon: string;
+    avatarUrl?: string | null;
   };
   nickname: string;
 }

@@ -13,6 +13,7 @@ export interface ProfileRow {
   color_a: string;
   color_b: string;
   icon: string;
+  avatar_url: string | null;
   device_name: string | null;
   algorithm_prefs: AlgorithmPreferences;
 }
@@ -27,6 +28,7 @@ export function profileToUser(profile: ProfileRow): UserResponse {
       colorA: profile.color_a,
       colorB: profile.color_b,
       icon: profile.icon,
+      avatarUrl: profile.avatar_url ?? null,
     },
   };
 }

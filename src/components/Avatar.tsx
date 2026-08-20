@@ -1,9 +1,11 @@
 import classNames from "classnames";
+import { useRef } from "react";
 
 import { Icon, Icons } from "@/components/Icon";
 import { UserIcon } from "@/components/UserIcon";
 import { AccountProfile } from "@/pages/parts/auth/AccountCreatePart";
 import { useAuthStore } from "@/stores/auth";
+import { AVATAR_ACCEPT } from "@/utils/avatarImage";
 
 export interface AvatarProps {
   profile: AccountProfile["profile"];
@@ -13,6 +15,7 @@ export interface AvatarProps {
 }
 
 export function Avatar(props: AvatarProps) {
+  const photo = props.profile.avatarUrl;
   return (
     <div className="relative inline-block">
       <div
@@ -20,14 +23,27 @@ export function Avatar(props: AvatarProps) {
           props.sizeClass,
           "rounded-full overflow-hidden flex items-center justify-center text-white",
         )}
-        style={{
-          background: `linear-gradient(to bottom right, ${props.profile.colorA}, ${props.profile.colorB})`,
-        }}
+        style={
+          photo
+            ? undefined
+            : {
+                background: `linear-gradient(to bottom right, ${props.profile.colorA}, ${props.profile.colorB})`,
+              }
+        }
       >
-        <UserIcon
-          className={props.iconClass}
-          icon={props.profile.icon as any}
-        />
+        {photo ? (
+          <img
+            src={photo}
+            alt=""
+            className="h-full w-full object-cover"
+            draggable={false}
+          />
+        ) : (
+          <UserIcon
+            className={props.iconClass}
+            icon={props.profile.icon as any}
+          />
+        )}
       </div>
       {props.bottom ? (
         <div className="absolute bottom-0 left-1/2 transform translate-y-1/2 -translate-x-1/2">
@@ -77,5 +93,42 @@ export function NoUserAvatar(props: { iconClass?: string }) {
         icon={Icons.MENU}
       />
     </div>
+  );
+}
+
+export function AvatarFileButton({
+  onFile,
+  disabled,
+  children,
+  className,
+}: {
+  onFile: (file: File) => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={AVATAR_ACCEPT}
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) onFile(file);
+        }}
+      />
+      <button
+        type="button"
+        disabled={disabled}
+        className={className}
+        onClick={() => inputRef.current?.click()}
+      >
+        {children}
+      </button>
+    </>
   );
 }

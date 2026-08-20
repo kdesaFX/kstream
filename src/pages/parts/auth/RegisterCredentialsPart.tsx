@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useAsyncFn } from "react-use";
 
+import { uploadAvatar } from "@/backend/supabase/data";
 import { Button } from "@/components/buttons/Button";
 import { Icon, Icons } from "@/components/Icon";
 import {
@@ -50,6 +51,13 @@ export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
         nickname: validatedEmail.split("@")[0],
       },
     });
+    if (props.userData.pendingAvatar) {
+      const avatarUrl = await uploadAvatar(
+        account.userId,
+        props.userData.pendingAvatar,
+      );
+      account.profile = { ...account.profile, avatarUrl };
+    }
     await importData(account, progressItems, bookmarkItems, watchHistoryItems, false);
     await restore(account);
     props.onNext?.();

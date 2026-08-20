@@ -1,24 +1,25 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Avatar } from "@/components/Avatar";
+import { Avatar, AvatarFileButton } from "@/components/Avatar";
 import { Button } from "@/components/buttons/Button";
-import { ColorPicker, initialColor } from "@/components/form/ColorPicker";
-import { IconPicker, initialIcon } from "@/components/form/IconPicker";
 import {
   LargeCard,
   LargeCardButtons,
   LargeCardText,
 } from "@/components/layout/LargeCard";
 import { AuthInputBox } from "@/components/text-inputs/AuthInputBox";
-import { UserIcons } from "@/components/UserIcon";
+import { initialColor } from "@/components/form/ColorPicker";
+import { initialIcon } from "@/components/form/IconPicker";
 
 export interface AccountProfile {
   device: string;
+  pendingAvatar?: File | null;
   profile: {
     colorA: string;
     colorB: string;
     icon: string;
+    avatarUrl?: string | null;
   };
 }
 
@@ -28,9 +29,8 @@ interface AccountCreatePartProps {
 
 export function AccountCreatePart(props: AccountCreatePartProps) {
   const [device, setDevice] = useState("This device");
-  const [colorA, setColorA] = useState(initialColor);
-  const [colorB, setColorB] = useState(initialColor);
-  const [userIcon, setUserIcon] = useState<UserIcons>(initialIcon);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
   const { t } = useTranslation();
   const [hasDeviceError, setHasDeviceError] = useState(false);
 
@@ -44,49 +44,53 @@ export function AccountCreatePart(props: AccountCreatePartProps) {
 
     props.onNext?.({
       device: validatedDevice,
+      pendingAvatar,
       profile: {
-        colorA,
-        colorB,
-        icon: userIcon,
+        colorA: initialColor,
+        colorB: initialColor,
+        icon: initialIcon,
+        avatarUrl: preview,
       },
     });
-  }, [device, props, colorA, colorB, userIcon]);
+  }, [device, props, pendingAvatar, preview]);
 
   return (
     <LargeCard>
       <LargeCardText
         icon={
           <Avatar
-            profile={{ colorA, colorB, icon: userIcon }}
+            profile={{
+              colorA: initialColor,
+              colorB: initialColor,
+              icon: initialIcon,
+              avatarUrl: preview,
+            }}
             iconClass="text-3xl"
             sizeClass="w-16 h-16"
           />
         }
         title={t("auth.register.information.title") ?? undefined}
       >
-        {t("auth.register.information.header")}
+        {t("auth.register.information.headerPhoto")}
       </LargeCardText>
       <div className="space-y-6">
+        <div className="flex justify-center">
+          <AvatarFileButton
+            onFile={(file) => {
+              if (preview) URL.revokeObjectURL(preview);
+              setPendingAvatar(file);
+              setPreview(URL.createObjectURL(file));
+            }}
+            className="tabbable rounded-full bg-buttons-purple px-5 py-2 text-sm font-semibold text-white"
+          >
+            {t("settings.account.profile.upload")}
+          </AvatarFileButton>
+        </div>
         <AuthInputBox
           label={t("auth.deviceNameLabel") ?? undefined}
           value={device}
           onChange={setDevice}
           placeholder={t("auth.deviceNamePlaceholder") ?? undefined}
-        />
-        <ColorPicker
-          label={t("auth.register.information.color1")}
-          value={colorA}
-          onInput={setColorA}
-        />
-        <ColorPicker
-          label={t("auth.register.information.color2")}
-          value={colorB}
-          onInput={setColorB}
-        />
-        <IconPicker
-          label={t("auth.register.information.icon")}
-          value={userIcon}
-          onInput={setUserIcon}
         />
         {hasDeviceError ? (
           <p className="text-authentication-errorText">

@@ -6,7 +6,6 @@ import { Icon, Icons } from "@/components/Icon";
 import { SettingsCard } from "@/components/layout/SettingsCard";
 import { useModal } from "@/components/overlays/Modal";
 import { AuthInputBox } from "@/components/text-inputs/AuthInputBox";
-import { UserIcons } from "@/components/UserIcon";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { ProfileEditModal } from "@/pages/parts/settings/ProfileEditModal";
 
@@ -16,11 +15,10 @@ export function AccountEditPart(props: {
   nickname: string;
   setNickname: (s: string) => void;
   colorA: string;
-  setColorA: (s: string) => void;
   colorB: string;
-  setColorB: (s: string) => void;
-  userIcon: UserIcons;
-  setUserIcon: (s: UserIcons) => void;
+  userIcon: string;
+  avatarUrl?: string | null;
+  setAvatarUrl: (url: string | null) => void;
 }) {
   const { t } = useTranslation();
   const { logout } = useAuth();
@@ -32,11 +30,10 @@ export function AccountEditPart(props: {
         id={profileEditModal.id}
         close={profileEditModal.hide}
         colorA={props.colorA}
-        setColorA={props.setColorA}
         colorB={props.colorB}
-        setColorB={props.setColorB}
         userIcon={props.userIcon}
-        setUserIcon={props.setUserIcon}
+        avatarUrl={props.avatarUrl}
+        setAvatarUrl={props.setAvatarUrl}
       />
       <div className="grid lg:grid-cols-[auto,1fr] gap-8">
         <div>
@@ -45,6 +42,7 @@ export function AccountEditPart(props: {
               colorA: props.colorA,
               colorB: props.colorB,
               icon: props.userIcon,
+              avatarUrl: props.avatarUrl,
             }}
             iconClass="text-5xl"
             sizeClass="w-32 h-32"
