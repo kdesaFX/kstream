@@ -1,16 +1,19 @@
 import type { MangaArt } from "@/backend/manga/anilistArt";
 import { fetchMangaArt } from "@/backend/manga/anilistArt";
 import { listManga } from "@/backend/manga/mangadex";
+import { resolveMangaAnimeAdaptations } from "@/backend/manga/mangaLogo";
 import type { MangaListItem, MangaStatus } from "@/backend/manga/types";
 
 export interface FeaturedMangaItem {
   id: string;
   title: string;
   overview: string;
-  /** Wide art when AniList has a banner, cover art otherwise. */
+  /** Wide art when AniList/TMDB has a banner, cover art otherwise. */
   artUrl: string;
   /** False when the art is a portrait cover being stretched across the hero. */
   wideArt: boolean;
+  /** Anime clear logo when TMDB has one for the adaptation. */
+  logoUrl?: string;
   /** MangaDex rating, 0-10. */
   rating?: number;
   year?: number;
@@ -77,6 +80,29 @@ export function pickFeaturedManga(
   return [...banners, ...covers].slice(0, count);
 }
 
+/**
+ * Prefer the anime adaptation's TMDB backdrop / logo when one exists — those
+ * usually read better on the hero than MangaDex covers or AniList banners.
+ */
+export async function applyAnimeAdaptationArt(
+  items: FeaturedMangaItem[],
+): Promise<FeaturedMangaItem[]> {
+  if (items.length === 0) return items;
+  const adaptations = await resolveMangaAnimeAdaptations(
+    items.map((item) => item.title),
+  );
+  return items.map((item) => {
+    const anime = adaptations.get(item.title);
+    if (!anime) return item;
+    return {
+      ...item,
+      artUrl: anime.backdropUrl ?? anime.posterUrl ?? item.artUrl,
+      wideArt: Boolean(anime.backdropUrl) || item.wideArt,
+      logoUrl: anime.logoUrl ?? item.logoUrl,
+    };
+  });
+}
+
 export async function fetchFeaturedManga(
   count: number,
 ): Promise<FeaturedMangaItem[]> {
@@ -87,5 +113,6 @@ export async function fetchFeaturedManga(
   ).slice(0, LOOKUP_SIZE);
   if (candidates.length === 0) return [];
   const art = await fetchMangaArt(candidates.map((item) => item.title));
-  return pickFeaturedManga(candidates, art, count);
+  const picked = pickFeaturedManga(candidates, art, count);
+  return applyAnimeAdaptationArt(picked);
 }

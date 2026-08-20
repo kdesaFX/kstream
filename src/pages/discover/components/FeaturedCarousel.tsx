@@ -71,6 +71,8 @@ export interface FeaturedMedia extends Partial<Omit<Movie & TVShow, "id">> {
   artUrl?: string;
   /** False when the art is a portrait cover rather than a wide banner. */
   wideArt?: boolean;
+  /** Pre-resolved clear logo (manga anime adaptations). */
+  logoUrl?: string;
   /** MangaDex rating, 0-10. */
   mangaRating?: number;
   mangaStatus?: MangaStatus;
@@ -206,6 +208,7 @@ export function mangaToFeatured(item: FeaturedMangaItem): FeaturedMedia {
     type: "manga",
     artUrl: item.artUrl,
     wideArt: item.wideArt,
+    logoUrl: item.logoUrl,
     mangaRating: item.rating,
     mangaStatus: item.status,
     mangaLastChapter: item.lastChapter,
@@ -669,9 +672,11 @@ export function FeaturedCarousel({
         // clear logo when Image logos is on (same setting as movies/TV).
         let logo: string | undefined;
         if (current.type === "manga") {
-          logo = current.title
-            ? await getMangaAdaptationLogo(current.title)
-            : undefined;
+          logo =
+            current.logoUrl ??
+            (current.title
+              ? await getMangaAdaptationLogo(current.title)
+              : undefined);
         } else {
           logo = await getMediaLogo(
             currentMediaId.toString(),

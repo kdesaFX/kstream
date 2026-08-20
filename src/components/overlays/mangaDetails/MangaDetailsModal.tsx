@@ -6,7 +6,10 @@ import { useNavigate } from "react-router-dom";
 
 import { mangaChapterLink } from "@/backend/manga/ids";
 import { getMangaDetails } from "@/backend/manga/catalog";
-import { getMangaAdaptationLogo } from "@/backend/manga/mangaLogo";
+import {
+  resolveMangaAnimeAdaptation,
+  type MangaAnimeAdaptation,
+} from "@/backend/manga/mangaLogo";
 import { chapterLabel } from "@/backend/manga/mangadex";
 import type { MangaDetails } from "@/backend/manga/types";
 import { mangaStatusKey } from "@/backend/manga/types";
@@ -39,7 +42,9 @@ export function MangaDetailsModal({ id }: { id: string }) {
     mangaId: string;
     message: string;
   } | null>(null);
-  const [logoUrl, setLogoUrl] = useState<string | undefined>();
+  const [adaptation, setAdaptation] = useState<MangaAnimeAdaptation | null>(
+    null,
+  );
 
   const modalIndex = modalStack.indexOf(id);
   const zIndex = modalIndex >= 0 ? 1000 + modalIndex : 999;
@@ -77,25 +82,28 @@ export function MangaDetailsModal({ id }: { id: string }) {
   }, [shouldShow, mangaId, preferredLanguage]);
 
   useEffect(() => {
-    if (!details?.title || !enableImageLogos) {
-      setLogoUrl(undefined);
+    if (!details?.title) {
+      setAdaptation(null);
       return undefined;
     }
     let cancelled = false;
-    getMangaAdaptationLogo(details.title)
-      .then((url) => {
-        if (!cancelled) setLogoUrl(url);
+    resolveMangaAnimeAdaptation(details.title)
+      .then((resolved) => {
+        if (!cancelled) setAdaptation(resolved);
       })
       .catch(() => {
-        if (!cancelled) setLogoUrl(undefined);
+        if (!cancelled) setAdaptation(null);
       });
     return () => {
       cancelled = true;
     };
-  }, [details?.title, enableImageLogos]);
+  }, [details?.title]);
 
   const resume = progress[mangaId];
   const statusKey = details ? mangaStatusKey(details.status) : null;
+  const logoUrl = adaptation?.logoUrl;
+  const heroBackdrop = adaptation?.backdropUrl ?? details?.poster;
+  const heroPoster = adaptation?.posterUrl ?? details?.poster;
   const startChapterId = useMemo(() => {
     if (resume && mangaProgressHasMeaningfulRead(resume)) return resume.chapterId;
     return details?.chapters[0]?.id;
@@ -153,22 +161,22 @@ export function MangaDetailsModal({ id }: { id: string }) {
           {details ? (
             <>
               <div className="relative h-48 shrink-0 bg-background-secondary md:h-64">
-                {details.poster ? (
+                {heroBackdrop ? (
                   <img
-                    src={details.poster}
+                    src={heroBackdrop}
                     alt=""
                     referrerPolicy="no-referrer"
-                    className="absolute inset-0 w-full h-full object-cover opacity-40"
+                    className="absolute inset-0 h-full w-full object-cover opacity-40"
                   />
                 ) : null}
                 <div className="absolute inset-0 bg-gradient-to-t from-background-main to-transparent" />
                 <div className="absolute bottom-4 left-4 right-16 flex gap-4 items-end">
-                  {details.poster ? (
+                  {heroPoster ? (
                     <img
-                      src={details.poster}
+                      src={heroPoster}
                       alt=""
                       referrerPolicy="no-referrer"
-                      className="w-24 md:w-32 rounded-lg shadow-lg"
+                      className="w-24 rounded-lg shadow-lg md:w-32"
                     />
                   ) : null}
                   <div>
