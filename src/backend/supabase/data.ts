@@ -569,7 +569,7 @@ export async function signInWithEmail(email: string, password: string, deviceNam
 }
 
 export async function signInWithGoogle() {
-  const redirectTo = `${window.location.origin}/login`;
+  const redirectTo = `${window.location.origin}/`;
   const { error } = await getSupabase().auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo },
