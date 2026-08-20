@@ -174,6 +174,8 @@
     "createAccount": "Don't have an account yet? <0>Create an account.</0>",
     "deviceNameLabel": "Device name",
     "deviceNamePlaceholder": "Personal phone",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@email.com",
     "back": "Back",
     "chooseMethod": {
       "title": "How do you want to sign in?",
@@ -186,8 +188,8 @@
       "passwordLabel": "Password",
       "confirmPasswordLabel": "Confirm password",
       "mismatch": "Passwords do not match",
-      "registerTitle": "Create your login",
-      "registerDescription": "Pick a username and password for your account."
+      "registerTitle": "Create your account",
+      "registerDescription": "Enter your email and password to finish signing up."
     },
     "generate": {
       "description": "Your passphrase acts as your username and password. Make sure to keep it safe as you will need to enter it to login to your account. <bold>Do NOT lose your passphrase!</bold>",
@@ -204,17 +206,18 @@
     },
     "hasAccount": "Already have an account? <0>Login here.</0>",
     "login": {
-      "description": "Please enter your passphrase to login to your account",
+      "description": "Sign in with your email and password, or continue with Google.",
       "deviceLengthError": "Please enter a device name",
       "passphraseLabel": "12-Word passphrase",
       "passphrasePlaceholder": "Passphrase",
-      "submit": "Login",
-      "title": "Login to your account",
-      "validationError": "Incorrect or incomplete passphrase",
+      "submit": "Sign in",
+      "title": "Sign in to your account",
+      "validationError": "Incorrect email or password",
       "usePasskey": "Use passkey",
       "usePassphrase": "Log in with a recovery phrase instead",
       "or": "or",
-      "noBackendUrl": "No backend URL"
+      "google": "Continue with Google",
+      "noBackendUrl": "Accounts are not configured"
     },
     "register": {
       "information": {
@@ -224,7 +227,8 @@
         "icon": "User icon",
         "next": "Next",
         "title": "Account information"
-      }
+      },
+      "validationError": "Enter a valid email and a password of at least 6 characters"
     },
     "backendSelection": {
       "title": "Select Account Server",
@@ -691,7 +695,8 @@
       "about": "About and FAQ",
       "algorithm": "My Algorithm",
       "logout": "Log out",
-      "register": "Sync to Cloud",
+      "login": "Sign in",
+      "register": "Sign up",
       "settings": "Settings",
       "support": "Support",
       "discover": "Discover",
@@ -1341,9 +1346,10 @@
         "userIcon": "User icon"
       },
       "register": {
-        "cta": "Get started",
-        "text": "Share your watch progress between devices and keep them synced.",
-        "title": "Sync to the Cloud"
+        "cta": "Sign up",
+        "login": "Sign in",
+        "text": "Create an account to sync bookmarks, progress, and settings across devices.",
+        "title": "Sign in or create an account"
       },
       "title": "Account"
     },

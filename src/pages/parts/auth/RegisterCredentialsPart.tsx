@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { useAsyncFn } from "react-use";
 
 import { Button } from "@/components/buttons/Button";
@@ -9,6 +9,7 @@ import {
   LargeCardButtons,
   LargeCardText,
 } from "@/components/layout/LargeCard";
+import { MwLink } from "@/components/text/Link";
 import { AuthInputBox } from "@/components/text-inputs/AuthInputBox";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { AccountProfile } from "@/pages/parts/auth/AccountCreatePart";
@@ -143,6 +144,11 @@ export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
           {t("auth.login.google") ?? "Continue with Google"}
         </Button>
       </LargeCardButtons>
+      <p className="text-center mt-6">
+        <Trans i18nKey="auth.hasAccount">
+          <MwLink to="/login">.</MwLink>
+        </Trans>
+      </p>
     </LargeCard>
   );
 }

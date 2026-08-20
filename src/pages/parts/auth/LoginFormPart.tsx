@@ -24,7 +24,7 @@ interface LoginFormPartProps {
 export function LoginFormPart(props: LoginFormPartProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [device, setDevice] = useState("");
+  const [device, setDevice] = useState("This device");
   const { login, loginWithGoogle, restore, importData } = useAuth();
   const progressItems = useProgressStore((store) => store.items);
   const bookmarkItems = useBookmarkStore((store) => store.bookmarks);

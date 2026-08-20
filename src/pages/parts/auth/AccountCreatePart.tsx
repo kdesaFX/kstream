@@ -27,7 +27,7 @@ interface AccountCreatePartProps {
 }
 
 export function AccountCreatePart(props: AccountCreatePartProps) {
-  const [device, setDevice] = useState("");
+  const [device, setDevice] = useState("This device");
   const [colorA, setColorA] = useState(initialColor);
   const [colorB, setColorB] = useState(initialColor);
   const [userIcon, setUserIcon] = useState<UserIcons>(initialIcon);

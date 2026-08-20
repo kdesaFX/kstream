@@ -281,7 +281,17 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
               </DropdownLink>
               <Divider />
             </>
-          ) : null}
+          ) : (
+            <>
+              <DropdownLink href="/login" icon={Icons.UNLOCK}>
+                {t("navigation.menu.login")}
+              </DropdownLink>
+              <DropdownLink href="/register" icon={Icons.USER} highlight>
+                {t("navigation.menu.register")}
+              </DropdownLink>
+              <Divider />
+            </>
+          )}
           <DropdownLink href="/settings" icon={Icons.SETTINGS}>
             {t("navigation.menu.settings")}
           </DropdownLink>

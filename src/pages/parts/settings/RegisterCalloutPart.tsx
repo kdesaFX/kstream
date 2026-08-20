@@ -13,7 +13,7 @@ export function RegisterCalloutPart() {
     <div>
       <SolidSettingsCard
         paddingClass="px-6 py-12"
-        className="grid grid-cols-2 gap-12 mt-5"
+        className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 mt-5"
       >
         <div>
           <Heading3>{t("settings.account.register.title")}</Heading3>
@@ -21,7 +21,10 @@ export function RegisterCalloutPart() {
             {t("settings.account.register.text")}
           </p>
         </div>
-        <div className="flex justify-end items-center">
+        <div className="flex flex-wrap justify-end items-center gap-3">
+          <Button theme="secondary" onClick={() => navigate("/login")}>
+            {t("settings.account.register.login")}
+          </Button>
           <Button theme="purple" onClick={() => navigate("/register")}>
             {t("settings.account.register.cta")}
           </Button>

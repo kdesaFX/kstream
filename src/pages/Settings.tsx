@@ -34,6 +34,7 @@ import { CaptionsPart } from "@/pages/parts/settings/CaptionsPart";
 import { ConnectionsPart } from "@/pages/parts/settings/ConnectionsPart";
 import { DeviceListPart } from "@/pages/parts/settings/DeviceListPart";
 import { LetterboxdImportPart } from "@/pages/parts/settings/LetterboxdImportPart";
+import { RegisterCalloutPart } from "@/pages/parts/settings/RegisterCalloutPart";
 import { SidebarPart } from "@/pages/parts/settings/SidebarPart";
 import { PageTitle } from "@/pages/parts/util/PageTitle";
 import { AccountWithToken, useAuthStore } from "@/stores/auth";
@@ -1141,6 +1142,17 @@ export function SettingsPage() {
                 }
               />
             ) : null}
+          </div>
+        )}
+        {(!user.account &&
+          (searchQuery.trim() ||
+            !selectedCategory ||
+            selectedCategory === "settings-account")) && (
+          <div id="settings-account">
+            <Heading1 border className="!mb-0">
+              {t("settings.account.title")}
+            </Heading1>
+            <RegisterCalloutPart />
           </div>
         )}
         {(searchQuery.trim() ||
