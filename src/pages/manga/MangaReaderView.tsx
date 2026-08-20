@@ -11,6 +11,7 @@ import {
   mangaChapterLink,
   mangaMediaLink,
 } from "@/backend/manga/ids";
+import { isComickChapterId } from "@/backend/manga/sources/comick";
 import {
   chapterLabel,
   chapterPageUrls,
@@ -92,8 +93,10 @@ export function MangaReaderView() {
   const retried = useRef(false);
 
   const chapterId = chapterParam ? decodeURIComponent(chapterParam) : undefined;
-  const pageReferrer =
-    chapterId && isWeebCentralId(chapterId) ? "no-referrer" : "origin";
+  const externalChapter =
+    chapterId &&
+    (isWeebCentralId(chapterId) || isComickChapterId(chapterId));
+  const pageReferrer = externalChapter ? "no-referrer" : "origin";
 
   // Same route serves every manga, so details are only usable for the one
   // currently in the URL — otherwise the chapter list and resume redirect below
@@ -187,6 +190,8 @@ export function MangaReaderView() {
       if (force) retried.current = false;
       try {
         const urls = await getChapterPages(id, {
+          mangaId: details?.id,
+          language: preferredLanguage,
           title: details?.title,
           alternateTitles: details?.alternateTitles,
           chapter: currentChapter?.chapter,
@@ -205,15 +210,15 @@ export function MangaReaderView() {
         setLoading(false);
       }
     },
-    [t, details?.title, details?.alternateTitles, currentChapter?.chapter],
+    [t, details?.id, details?.title, details?.alternateTitles, currentChapter?.chapter, preferredLanguage],
   );
 
   useEffect(() => {
     if (!chapterId) return;
-    if (!isWeebCentralId(chapterId) && !details) return;
+    if (!externalChapter && !details) return;
     retried.current = false;
     loadPages(chapterId);
-  }, [chapterId, details, loadPages]);
+  }, [chapterId, details, externalChapter, loadPages]);
 
   // Warm the next chapter so Next feels instant.
   useEffect(() => {
@@ -221,6 +226,8 @@ export function MangaReaderView() {
     let cancelled = false;
     const timer = window.setTimeout(() => {
       getChapterPages(nextChapter.id, {
+        mangaId: details?.id,
+        language: preferredLanguage,
         title: details?.title,
         alternateTitles: details?.alternateTitles,
         chapter: nextChapter.chapter,
@@ -232,7 +239,7 @@ export function MangaReaderView() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [nextChapter?.id, nextChapter?.chapter, details?.title, details?.alternateTitles]);
+  }, [nextChapter?.id, nextChapter?.chapter, details?.id, details?.title, details?.alternateTitles, preferredLanguage]);
 
   // Resume page within chapter
   useEffect(() => {
@@ -323,7 +330,7 @@ export function MangaReaderView() {
 
   const onPageError = async (index: number) => {
     if (!chapterId || retried.current) return;
-    if (isWeebCentralId(chapterId)) return;
+    if (externalChapter) return;
     retried.current = true;
     try {
       const atHome = await getChapterAtHome(chapterId);

@@ -1,0 +1,144 @@
+import { sortMangaLanguages } from "@/backend/manga/languages";
+import {
+  getComickAlternateHids,
+  resolveComickChapters,
+} from "@/backend/manga/sources/comick";
+import {
+  asSingleGroup,
+  mergeChapterLists,
+} from "@/backend/manga/sources/merge";
+import type {
+  MangaChapter,
+  MangaChapterGroup,
+  MangaDetails,
+} from "@/backend/manga/types";
+import { resolveWeebCentralChapters } from "@/backend/manga/weebcentral";
+
+const fallbackCache = new Map<string, Map<string, string[]>>();
+const RESOLVE_TTL_MS = 5 * 60 * 1000;
+const resolveCache = new Map<
+  string,
+  { at: number; chapters: MangaChapter[]; groups: MangaChapterGroup[] }
+>();
+
+function cacheKey(mangaId: string, language: string) {
+  return `${mangaId}:${language}`;
+}
+
+export function getChapterFallbackIds(
+  mangaId: string,
+  language: string,
+  chapterId: string,
+): string[] {
+  return fallbackCache.get(cacheKey(mangaId, language))?.get(chapterId) ?? [];
+}
+
+/**
+ * Fill English gaps from WeebCentral and Comick while keeping MangaDex chapters
+ * when they exist. Stores alternate ids for page-load retry.
+ */
+export async function resolveReadableChapters(
+  details: MangaDetails,
+  language: string,
+): Promise<Pick<MangaDetails, "chapters" | "chapterGroups" | "availableLanguages">> {
+  const key = cacheKey(details.id, language);
+  const cached = resolveCache.get(key);
+  if (cached && Date.now() - cached.at < RESOLVE_TTL_MS) {
+    return {
+      chapters: cached.chapters,
+      chapterGroups: cached.groups,
+      availableLanguages: languagesFromChapters(
+        details,
+        cached.chapters,
+        language,
+      ),
+    };
+  }
+
+  const mdChapters = details.chapters.map((ch) => ({
+    ...ch,
+    source: ch.source ?? ("mangadex" as const),
+  }));
+
+  if (language !== "en") {
+    const groups =
+      details.chapterGroups.length > 0
+        ? details.chapterGroups
+        : asSingleGroup(mdChapters);
+    resolveCache.set(key, { at: Date.now(), chapters: mdChapters, groups });
+    fallbackCache.set(key, new Map());
+    return {
+      chapters: mdChapters,
+      chapterGroups: groups,
+      availableLanguages: languagesFromChapters(details, mdChapters, language),
+    };
+  }
+
+  const [wcChapters, ckChapters] = await Promise.all([
+    resolveWeebCentralChapters(
+      details.title,
+      details.alternateTitles ?? [],
+    ).catch(() => null),
+    resolveComickChapters(details.title, details.alternateTitles ?? []).catch(
+      () => null,
+    ),
+  ]);
+
+  const merged = mergeChapterLists([
+    { source: "mangadex", chapters: mdChapters },
+    ...(wcChapters?.length
+      ? [{ source: "weebcentral" as const, chapters: wcChapters }]
+      : []),
+    ...(ckChapters?.length
+      ? [{ source: "comick" as const, chapters: ckChapters }]
+      : []),
+  ]);
+
+  const groups = asSingleGroup(merged.chapters);
+  resolveCache.set(key, {
+    at: Date.now(),
+    chapters: merged.chapters,
+    groups,
+  });
+  fallbackCache.set(key, merged.fallbacks);
+  enrichComickAlternates(merged.chapters, merged.fallbacks);
+
+  return {
+    chapters: merged.chapters,
+    chapterGroups: groups,
+    availableLanguages: languagesFromChapters(
+      details,
+      merged.chapters,
+      language,
+    ),
+  };
+}
+
+function enrichComickAlternates(
+  chapters: MangaChapter[],
+  fallbacks: Map<string, string[]>,
+) {
+  for (const ch of chapters) {
+    if (ch.source !== "comick" || !ch.id.startsWith("comick-")) continue;
+    const hid = ch.id.slice("comick-".length);
+    const alts = getComickAlternateHids(hid).map((alt) => `comick-${alt}`);
+    if (alts.length === 0) continue;
+    const existing = fallbacks.get(ch.id) ?? [];
+    fallbacks.set(ch.id, [...existing, ...alts.filter((id) => !existing.includes(id))]);
+  }
+}
+
+function languagesFromChapters(
+  details: MangaDetails,
+  chapters: MangaChapter[],
+  activeLanguage: string,
+): string[] {
+  const readable = new Set(chapters.map((ch) => ch.translatedLanguage));
+  const out = new Set<string>();
+  for (const code of details.availableLanguages ?? []) {
+    if (code === activeLanguage && !readable.has(code)) continue;
+    out.add(code);
+  }
+  for (const code of readable) out.add(code);
+  return sortMangaLanguages([...out]);
+}

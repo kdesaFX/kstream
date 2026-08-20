@@ -1,86 +1,27 @@
 import { isWeebCentralId } from "@/backend/manga/ids";
 import {
+  getChapterFallbackIds,
+  resolveReadableChapters,
+} from "@/backend/manga/sources/resolve";
+import {
+  getComickChapterPages,
+  isComickChapterId,
+} from "@/backend/manga/sources/comick";
+import {
   chapterPageUrls,
   getChapterAtHome,
   getMangaDetails as getMangaDexDetails,
   proxiedChapterPageUrls,
   searchManga as searchMangaDex,
 } from "@/backend/manga/mangadex";
-import type {
-  MangaChapter,
-  MangaChapterGroup,
-  MangaDetails,
-  MangaListItem,
-} from "@/backend/manga/types";
+import type { MangaDetails, MangaListItem } from "@/backend/manga/types";
 import {
-  resolveWeebCentralChapters,
   getWeebCentralChapterPages,
   getWeebCentralDetails,
   normalizeMangaTitle,
   pagesBelongToTitle,
   searchWeebCentral,
 } from "@/backend/manga/weebcentral";
-
-function asSingleGroup(chapters: MangaChapter[]): MangaChapterGroup[] {
-  return [{ volume: "none", chapters }];
-}
-
-function chapterNumber(ch: MangaChapter | undefined): number | null {
-  if (!ch?.chapter) return null;
-  const n = parseFloat(ch.chapter);
-  return Number.isFinite(n) ? n : null;
-}
-
-/**
- * MangaDex often only hosts later chapters (licensed gaps). When WeebCentral
- * has an earlier start or a fuller list, prefer it so "Read" opens at ch. 1.
- */
-async function enrichWithWeebCentralChapters(
-  details: MangaDetails,
-  preferredLanguage = "en",
-): Promise<MangaDetails> {
-  if (preferredLanguage !== "en") return details;
-  const wcChapters = await resolveWeebCentralChapters(
-    details.title,
-    details.alternateTitles ?? [],
-  ).catch(() => null);
-  if (!wcChapters?.length) return details;
-
-  if (details.chapters.length === 0) {
-    return {
-      ...details,
-      chapters: wcChapters,
-      chapterGroups: asSingleGroup(wcChapters),
-      lastChapter: wcChapters.at(-1)?.chapter ?? details.lastChapter,
-    };
-  }
-
-  const mdFirst = chapterNumber(details.chapters[0]);
-  const wcFirst = chapterNumber(wcChapters[0]);
-  if (
-    mdFirst != null &&
-    wcFirst != null &&
-    (wcFirst < mdFirst || mdFirst > 1)
-  ) {
-    return {
-      ...details,
-      chapters: wcChapters,
-      chapterGroups: asSingleGroup(wcChapters),
-      lastChapter: wcChapters.at(-1)?.chapter ?? details.lastChapter,
-    };
-  }
-
-  if (wcChapters.length > details.chapters.length * 2) {
-    return {
-      ...details,
-      chapters: wcChapters,
-      chapterGroups: asSingleGroup(wcChapters),
-      lastChapter: wcChapters.at(-1)?.chapter ?? details.lastChapter,
-    };
-  }
-
-  return details;
-}
 
 /**
  * MangaDex first; WeebCentral fills titles it doesn't have, and supplies
@@ -105,11 +46,56 @@ export async function getMangaDetails(
 ): Promise<MangaDetails> {
   if (isWeebCentralId(mangaId)) return getWeebCentralDetails(mangaId);
 
-  const details = await getMangaDexDetails(mangaId, preferredLanguage);
-  return enrichWithWeebCentralChapters(details, preferredLanguage);
+  const base = await getMangaDexDetails(mangaId, preferredLanguage);
+  const resolved = await resolveReadableChapters(base, preferredLanguage);
+  return { ...base, ...resolved };
 }
 
 export async function getChapterPages(
+  chapterId: string,
+  fallback?: {
+    mangaId?: string;
+    language?: string;
+    title?: string;
+    alternateTitles?: string[];
+    chapter?: string | null;
+  },
+): Promise<string[]> {
+  const tried = new Set<string>();
+  const queue = [chapterId];
+
+  if (fallback?.mangaId && fallback.language) {
+    for (const alt of getChapterFallbackIds(
+      fallback.mangaId,
+      fallback.language,
+      chapterId,
+    )) {
+      if (!queue.includes(alt)) queue.push(alt);
+    }
+  }
+
+  while (queue.length > 0) {
+    const id = queue.shift();
+    if (!id || tried.has(id)) continue;
+    tried.add(id);
+
+    const pages = await loadPagesForId(id, {
+      title: fallback?.title,
+      alternateTitles: fallback?.alternateTitles,
+      chapter: fallback?.chapter,
+    });
+    if (
+      pages.length > 0 &&
+      pagesBelongToTitle(pages, fallback?.title, fallback?.alternateTitles ?? [])
+    ) {
+      return pages;
+    }
+  }
+
+  return [];
+}
+
+async function loadPagesForId(
   chapterId: string,
   fallback?: {
     title?: string;
@@ -117,40 +103,9 @@ export async function getChapterPages(
     chapter?: string | null;
   },
 ): Promise<string[]> {
-  const pages = await loadPagesForId(chapterId);
-  if (
-    pages.length > 0 &&
-    pagesBelongToTitle(pages, fallback?.title, fallback?.alternateTitles ?? [])
-  ) {
-    return pages;
+  if (isComickChapterId(chapterId)) {
+    return getComickChapterPages(chapterId, fallback);
   }
-  if (!fallback?.title) return [];
-
-  const wcChapters = await resolveWeebCentralChapters(
-    fallback.title,
-    fallback.alternateTitles ?? [],
-  ).catch(() => null);
-  if (!wcChapters?.length) return [];
-  const wanted = fallback.chapter?.trim();
-  const match =
-    (wanted
-      ? wcChapters.find((ch) => ch.chapter === wanted)
-      : undefined) ?? wcChapters[0];
-  if (!match || match.id === chapterId) return [];
-  const resolved = await loadPagesForId(match.id);
-  if (
-    !pagesBelongToTitle(
-      resolved,
-      fallback.title,
-      fallback.alternateTitles ?? [],
-    )
-  ) {
-    return [];
-  }
-  return resolved;
-}
-
-async function loadPagesForId(chapterId: string): Promise<string[]> {
   if (isWeebCentralId(chapterId)) {
     return getWeebCentralChapterPages(chapterId);
   }

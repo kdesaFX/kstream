@@ -14,7 +14,7 @@ export type MangaStatus =
 export type MangaReadingDirection = "ltr" | "rtl";
 
 /** Where a chapter's pages actually live. MangaDex is the default. */
-export type MangaSource = "mangadex" | "weebcentral";
+export type MangaSource = "mangadex" | "weebcentral" | "comick";
 
 export interface MangaTag {
   id: string;

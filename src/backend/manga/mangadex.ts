@@ -597,7 +597,6 @@ export async function getMangaDetails(
     availableLanguages: sortMangaLanguages([
       ...(base.availableLanguages ?? []),
       ...chapters.map((ch) => ch.translatedLanguage),
-      preferredLanguage,
     ]),
   };
   detailsCache.set(cacheKey, { at: Date.now(), details });
