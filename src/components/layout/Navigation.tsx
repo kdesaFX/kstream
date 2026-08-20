@@ -110,7 +110,7 @@ function NavSearchBar(props: { lightOverHero?: boolean; className?: string }) {
   return (
     <div
       className={classNames(
-        "pointer-events-auto w-full max-w-[31.5rem] md:max-w-[36rem]",
+        "pointer-events-auto w-full min-w-0 max-w-[31.5rem] md:max-w-[36rem]",
         props.className,
       )}
     >
@@ -151,8 +151,6 @@ export function Navigation(props: NavigationProps) {
   const [rightRef, { width: rightWidth }] = useMeasure<HTMLDivElement>();
   const setLeftWidth = useNavLayoutStore((s) => s.setLeftWidth);
   const setRightWidth = useNavLayoutStore((s) => s.setRightWidth);
-  const storedLeftWidth = useNavLayoutStore((s) => s.leftWidth);
-  const storedRightWidth = useNavLayoutStore((s) => s.rightWidth);
 
   useEffect(() => {
     setLeftWidth(leftWidth);
@@ -254,60 +252,32 @@ export function Navigation(props: NavigationProps) {
           top: `${bannerHeight}px`,
         }}
       >
-        <div className="fixed left-0 right-0 flex items-center">
-          {/*
-            Desktop: viewport-centered search.
-            Mobile: sit in the measured gap between left/right clusters so the
-            pill never overlaps brand/bell/menu (was ~267px wide on 390px).
-          */}
-          {props.showSearch ? (
-            isMobile ? (
-              <div
-                className="pointer-events-none absolute z-[55] top-8 flex -translate-y-1/2 justify-center"
-                style={{
-                  left: Math.max((storedLeftWidth || leftWidth) + 12, 56),
-                  right: Math.max((storedRightWidth || rightWidth) + 12, 52),
-                }}
-              >
-                <NavSearchBar
-                  lightOverHero={Boolean(props.clearBackground)}
-                  className="!max-w-[11.25rem] w-full"
-                />
-              </div>
-            ) : (
-              <div className="pointer-events-none absolute left-1/2 top-1/2 z-[55] w-[min(100%-2rem,36rem)] -translate-x-1/2 -translate-y-1/2">
-                <NavSearchBar
-                  lightOverHero={Boolean(props.clearBackground)}
-                  className="!max-w-none"
-                />
-              </div>
-            )
-          ) : null}
-
-          <div className="px-2.5 ssm:px-7 py-2 md:py-5 relative z-[60] flex flex-1 items-center gap-1.5 ssm:gap-2 md:gap-3">
+        <div className="fixed left-0 right-0">
+          <div className="relative z-[60] grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-1.5 ssm:gap-x-2 md:gap-x-3 px-2.5 ssm:px-7 py-2 md:py-5">
             <div
               ref={leftRef}
-              className="relative z-[60] flex items-center gap-1 ssm:gap-2 md:gap-3 pointer-events-auto shrink-0"
+              className="flex items-center gap-1 ssm:gap-2 md:gap-3 pointer-events-auto shrink-0 min-w-0"
             >
               <Link
-                className="block tabbable rounded-full text-xs ssm:text-base"
+                className="block tabbable rounded-full text-xs ssm:text-base shrink-0"
                 to="/"
                 onClick={() => window.scrollTo(0, 0)}
               >
                 <BrandPill clickable header />
               </Link>
-              <div className="flex items-center gap-1.5 ssm:gap-2 md:gap-3">
+              <div className="flex items-center gap-1.5 ssm:gap-2 md:gap-3 shrink-0">
                 {showDownload ? (
                   <button
                     type="button"
                     onClick={() => openDownloadModal()}
-                    className="hidden lg:block tabbable rounded-full text-base"
+                    className="hidden lg:block tabbable rounded-full text-base shrink-0"
                     title="Download app"
                     aria-label="Download Windows app"
                   >
                     <div
                       className={classNames(
-                        "flex h-[2.67rem] items-center gap-2 rounded-full px-3.5 text-white",
+                        "flex h-10 md:h-[2.67rem] items-center gap-2 rounded-full text-white shrink-0",
+                        "px-2.5 xl:px-3.5",
                         navControlSurface,
                         navControlHover,
                       )}
@@ -316,7 +286,9 @@ export function Navigation(props: NavigationProps) {
                         icon={Icons.DOWNLOAD}
                         className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none [&>svg]:block [&>svg]:h-5 [&>svg]:w-5"
                       />
-                      <span className="font-semibold text-base">Download</span>
+                      <span className="hidden xl:inline font-semibold text-base whitespace-nowrap">
+                        Download
+                      </span>
                     </div>
                   </button>
                 ) : null}
@@ -349,14 +321,22 @@ export function Navigation(props: NavigationProps) {
               </div>
             </div>
 
-            {/* Spacer keeps left/right pinned to the edges; search is layered above. */}
-            <div className="min-w-0 flex-1" aria-hidden />
+            {props.showSearch ? (
+              <div className="pointer-events-auto z-[55] flex min-w-0 justify-center px-0.5 ssm:px-1">
+                <NavSearchBar
+                  lightOverHero={Boolean(props.clearBackground)}
+                  className="!max-w-[36rem] w-full min-w-0"
+                />
+              </div>
+            ) : (
+              <div aria-hidden />
+            )}
 
             <div
               ref={rightRef}
-              className="relative z-[60] pointer-events-auto flex items-center gap-2 md:gap-3 shrink-0"
+              className="pointer-events-auto flex items-center justify-end gap-2 md:gap-3 shrink-0 min-w-0"
             >
-              <div className="hidden lg:flex items-center gap-2">
+              <div className="hidden lg:flex items-center gap-2 shrink-0">
                 <HomeOptimizeToggle />
                 <HomeLayoutCustomizerToggle />
               </div>
