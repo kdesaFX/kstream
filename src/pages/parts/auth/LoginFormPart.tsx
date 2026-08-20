@@ -15,6 +15,7 @@ import { MwLink } from "@/components/text/Link";
 import { AuthInputBox } from "@/components/text-inputs/AuthInputBox";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useBookmarkStore } from "@/stores/bookmarks";
+import { useMangaProgressStore } from "@/stores/mangaProgress";
 import { useProgressStore } from "@/stores/progress";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
 
@@ -30,11 +31,19 @@ export function LoginFormPart(props: LoginFormPartProps) {
   const progressItems = useProgressStore((store) => store.items);
   const bookmarkItems = useBookmarkStore((store) => store.bookmarks);
   const watchHistoryItems = useWatchHistoryStore((store) => store.items);
+  const mangaProgressItems = useMangaProgressStore((store) => store.items);
   const { t } = useTranslation();
 
   const finishLogin = async (account: AsyncReturnType<typeof login>) => {
     if (!account) throw new Error(t("auth.login.validationError") ?? undefined);
-    await importData(account, progressItems, bookmarkItems, watchHistoryItems, false);
+    await importData(
+      account,
+      progressItems,
+      bookmarkItems,
+      watchHistoryItems,
+      false,
+      mangaProgressItems,
+    );
     await restore(account);
     props.onLogin?.();
   };
@@ -66,7 +75,7 @@ export function LoginFormPart(props: LoginFormPartProps) {
       }
       await finishLogin(account);
     },
-    [login, t, progressItems, bookmarkItems, watchHistoryItems],
+    [login, t, progressItems, bookmarkItems, watchHistoryItems, mangaProgressItems],
   );
 
   const [googleResult, executeGoogle] = useAsyncFn(async () => {

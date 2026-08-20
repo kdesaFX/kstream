@@ -1,11 +1,13 @@
 import {
   importBookmarksBulk,
+  importMangaProgressBulk,
   importProgressBulk,
   importWatchHistoryBulk,
   upsertGroupOrder,
   upsertSettings,
 } from "@/backend/supabase/data";
 import { AccountWithToken } from "@/stores/auth";
+import type { MangaProgressItem } from "@/stores/mangaProgress";
 
 import { BookmarkInput } from "./bookmarks";
 import { ProgressInput } from "./progress";
@@ -57,6 +59,7 @@ export interface FullImportPayload {
   watchHistoryInputs: WatchHistoryInput[];
   bookmarkInputs: BookmarkInput[];
   groupOrder: string[];
+  mangaProgress?: Record<string, MangaProgressItem>;
   settings?: SettingsInput;
 }
 
@@ -70,6 +73,9 @@ export async function importAllUserData(
     importBookmarksBulk(account.userId, payload.bookmarkInputs),
     importWatchHistoryBulk(account.userId, payload.watchHistoryInputs),
     upsertGroupOrder(account.userId, payload.groupOrder),
+    payload.mangaProgress
+      ? importMangaProgressBulk(account.userId, payload.mangaProgress)
+      : Promise.resolve(),
     payload.settings
       ? upsertSettings(account.userId, payload.settings)
       : Promise.resolve(),

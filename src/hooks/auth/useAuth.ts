@@ -36,11 +36,13 @@ import { AccountWithToken, useAuthStore } from "@/stores/auth";
 import { BookmarkMediaItem, useBookmarkStore } from "@/stores/bookmarks";
 import { useGroupOrderStore } from "@/stores/groupOrder";
 import { useLanguageStore } from "@/stores/language";
+import { useMangaProgressStore } from "@/stores/mangaProgress";
+import type { MangaProgressItem } from "@/stores/mangaProgress";
 import { usePreferencesStore } from "@/stores/preferences";
 import { ProgressMediaItem, useProgressStore } from "@/stores/progress";
 import { useSubtitleStore } from "@/stores/subtitles";
 import { useThemeStore } from "@/stores/theme";
-import { WatchHistoryItem } from "@/stores/watchHistory";
+import { useWatchHistoryStore, WatchHistoryItem } from "@/stores/watchHistory";
 
 export interface RegistrationData {
   email: string;
@@ -220,6 +222,7 @@ export function useAuth() {
       bookmarks: Record<string, BookmarkMediaItem>,
       watchHistoryItems: Record<string, WatchHistoryItem> = {},
       pushSettings = true,
+      mangaProgress: Record<string, MangaProgressItem> = {},
     ) => {
       const progressInputs = Object.entries(progressItems).flatMap(
         ([tmdbId, item]) => progressMediaItemToInputs(tmdbId, item),
@@ -234,6 +237,7 @@ export function useAuth() {
         watchHistoryInputs,
         bookmarkInputs,
         groupOrder,
+        mangaProgress,
         settings: pushSettings
           ? buildFullSettingsInput(preferences, {
               applicationLanguage,
@@ -250,6 +254,21 @@ export function useAuth() {
       applicationLanguage,
       applicationTheme,
     ],
+  );
+
+  /** Push whatever this browser watched/read as a guest into the account. */
+  const importLocalGuestLibraries = useCallback(
+    async (account: AccountWithToken, pushSettings = false) => {
+      await importData(
+        account,
+        useProgressStore.getState().items,
+        useBookmarkStore.getState().bookmarks,
+        useWatchHistoryStore.getState().items,
+        pushSettings,
+        useMangaProgressStore.getState().items,
+      );
+    },
+    [importData],
   );
 
   const restore = useCallback(
@@ -328,6 +347,7 @@ export function useAuth() {
     restore,
     restoreFromSession,
     importData,
+    importLocalGuestLibraries,
     onAuthStateChange,
   };
 }

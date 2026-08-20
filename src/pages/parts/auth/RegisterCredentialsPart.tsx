@@ -15,6 +15,7 @@ import { MwLink } from "@/components/text/Link";
 import { AuthInputBox } from "@/components/text-inputs/AuthInputBox";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useBookmarkStore } from "@/stores/bookmarks";
+import { useMangaProgressStore } from "@/stores/mangaProgress";
 import { useProgressStore } from "@/stores/progress";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
 
@@ -37,6 +38,7 @@ export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
   const progressItems = useProgressStore((store) => store.items);
   const bookmarkItems = useBookmarkStore((store) => store.bookmarks);
   const watchHistoryItems = useWatchHistoryStore((store) => store.items);
+  const mangaProgressItems = useMangaProgressStore((store) => store.items);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -59,7 +61,14 @@ export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
         nickname: validatedEmail.split("@")[0],
       },
     });
-    await importData(account, progressItems, bookmarkItems, watchHistoryItems, false);
+    await importData(
+      account,
+      progressItems,
+      bookmarkItems,
+      watchHistoryItems,
+      false,
+      mangaProgressItems,
+    );
     await restore(account);
     props.onNext?.();
   }, [
@@ -73,6 +82,7 @@ export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
     progressItems,
     bookmarkItems,
     watchHistoryItems,
+    mangaProgressItems,
     t,
   ]);
 

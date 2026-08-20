@@ -381,9 +381,22 @@ export async function upsertMangaProgress(
   mangaId: string,
   item: MangaProgressItem,
 ) {
+  const { data: existing } = await getSupabase()
+    .from("manga_progress")
+    .select("payload")
+    .eq("user_id", userId)
+    .eq("manga_id", mangaId)
+    .maybeSingle();
+  const prev = existing?.payload as MangaProgressItem | undefined;
+  // Keep whichever side was updated more recently so guest progress merges
+  // into an existing account without clobbering cloud progress.
+  const payload =
+    !prev || (item.updatedAt ?? 0) >= (prev.updatedAt ?? 0) ? item : prev;
   const { error } = await getSupabase()
     .from("manga_progress")
-    .upsert(mangaProgressToRow(userId, mangaId, item), { onConflict: "user_id,manga_id" });
+    .upsert(mangaProgressToRow(userId, mangaId, payload), {
+      onConflict: "user_id,manga_id",
+    });
   if (error) throw error;
 }
 
@@ -465,6 +478,16 @@ export async function importWatchHistoryBulk(userId: string, inputs: WatchHistor
   for (const input of inputs) {
     // eslint-disable-next-line no-await-in-loop
     await upsertWatchHistory(userId, input);
+  }
+}
+
+export async function importMangaProgressBulk(
+  userId: string,
+  items: Record<string, MangaProgressItem>,
+) {
+  for (const [mangaId, item] of Object.entries(items)) {
+    // eslint-disable-next-line no-await-in-loop
+    await upsertMangaProgress(userId, mangaId, item);
   }
 }
 
@@ -569,6 +592,12 @@ export async function signInWithEmail(email: string, password: string, deviceNam
 }
 
 export async function signInWithGoogle() {
+  // OAuth leaves this tab; flag so the return trip merges guest libraries.
+  try {
+    sessionStorage.setItem("kstream::merge-guest-on-auth", "1");
+  } catch {
+    // ignore storage failures
+  }
   const redirectTo = `${window.location.origin}/`;
   const { error } = await getSupabase().auth.signInWithOAuth({
     provider: "google",
@@ -591,14 +620,14 @@ export async function getCurrentSession() {
 }
 
 export function onAuthStateChange(
-  cb: (session: Session | null) => void,
+  cb: (event: string, session: Session | null) => void,
 ) {
   const sb = tryGetSupabase();
   if (!sb) {
     return { unsubscribe() {} };
   }
-  const { data } = sb.auth.onAuthStateChange((_event, session) => {
-    cb(session);
+  const { data } = sb.auth.onAuthStateChange((event, session) => {
+    cb(event, session);
   });
   return data.subscription;
 }
