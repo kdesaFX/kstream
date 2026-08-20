@@ -4,6 +4,7 @@ import { useAsyncFn } from "react-use";
 import type { AsyncReturnType } from "type-fest";
 
 import { Button } from "@/components/buttons/Button";
+import { Icon, Icons } from "@/components/Icon";
 import { BrandPill } from "@/components/layout/BrandPill";
 import {
   LargeCard,
@@ -133,7 +134,10 @@ export function LoginFormPart(props: LoginFormPartProps) {
           onClick={() => executeGoogle()}
           className="w-full"
         >
-          {t("auth.login.google") ?? "Continue with Google"}
+          <span className="inline-flex items-center gap-2">
+            <Icon icon={Icons.GOOGLE} className="text-xl leading-none" />
+            {t("auth.login.google") ?? "Continue with Google"}
+          </span>
         </Button>
         {googleResult.error ? (
           <p className="text-authentication-errorText text-center">

@@ -3,6 +3,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { useAsyncFn } from "react-use";
 
 import { Button } from "@/components/buttons/Button";
+import { Icon, Icons } from "@/components/Icon";
 import { initialColor } from "@/components/form/ColorPicker";
 import { initialIcon } from "@/components/form/IconPicker";
 import {
@@ -148,7 +149,10 @@ export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
           onClick={() => doGoogle()}
           className="w-full"
         >
-          {t("auth.login.google") ?? "Continue with Google"}
+          <span className="inline-flex items-center gap-2">
+            <Icon icon={Icons.GOOGLE} className="text-xl leading-none" />
+            {t("auth.login.google") ?? "Continue with Google"}
+          </span>
         </Button>
       </LargeCardButtons>
       <p className="text-center mt-6">
