@@ -444,7 +444,7 @@ export function pickBestSeriesHit(
 export function isLatinSearchTitle(value: string): boolean {
   const trimmed = value.trim();
   if (trimmed.length < 4) return false;
-  return /[a-z]/i.test(trimmed) && !/[^\u0000-\u007F]/.test(trimmed);
+  return /[a-z]/i.test(trimmed) && /^[\x20-\x7E]+$/.test(trimmed);
 }
 
 function latinTitlePrefixes(value: string): string[] {
