@@ -20,9 +20,30 @@ export function useAuthRestore() {
     if (!isSupabaseConfigured()) return undefined;
     const sub = onAuthStateChange(async (event, session) => {
       if (!session) return;
+
+      // Token refresh only needs a fresh access token — full restore caused
+      // settings (devices list) to reload/flicker on every refresh.
+      if (event === "TOKEN_REFRESHED") {
+        const existing = useAuthStore.getState().account;
+        if (existing) {
+          useAuthStore.getState().setAccount({
+            ...existing,
+            token: session.access_token,
+          });
+        }
+        return;
+      }
+
       const acc = await accountFromSession(session);
       if (!acc) return;
       useAuthStore.getState().setAccount(acc);
+
+      try {
+        const { touchDevice } = await import("@/backend/supabase/data");
+        await touchDevice(acc.userId, acc.deviceName);
+      } catch {
+        // Device tracking is best-effort
+      }
 
       // Fresh sign-in (email/password or Google OAuth return): upload whatever
       // this browser watched/read as a guest before pulling cloud libraries.

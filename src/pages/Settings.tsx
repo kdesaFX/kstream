@@ -141,11 +141,15 @@ export function AccountSettings(props: {
   setAvatarUrl: (url: string | null) => void;
 }) {
   const url = useBackendUrl();
-  const { account } = props;
-  const [sessionsResult, execSessions] = useAsyncFn(() => {
-    if (!url) return Promise.resolve([]);
+  const userId = props.account.userId;
+  // Depend only on userId — full `account` / token refresh was re-fetching
+  // devices and flipping the list into a loading spinner.
+  const [sessionsResult, execSessions] = useAsyncFn(async () => {
+    if (!url) return [];
+    const account = useAuthStore.getState().account;
+    if (!account || account.userId !== userId) return [];
     return getSessions(url, account);
-  }, [account, url]);
+  }, [userId, url]);
   useEffect(() => {
     execSessions();
   }, [execSessions]);
@@ -169,7 +173,7 @@ export function AccountSettings(props: {
         sessions={sessionsResult.value ?? []}
         onChange={execSessions}
       />
-      <AccountSecurityPart account={account} />
+      <AccountSecurityPart account={props.account} />
       <AccountActionsPart />
     </>
   );

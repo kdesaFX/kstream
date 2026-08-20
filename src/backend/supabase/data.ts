@@ -60,11 +60,13 @@ export async function accountFromSession(session: Session): Promise<AccountWithT
     profile = await fetchProfile(session.user.id);
   }
   if (!profile) return null;
+  const deviceName = profile.device_name ?? "This device";
   return {
     token: session.access_token,
     userId: session.user.id,
-    sessionId: session.user.id,
-    deviceName: profile.device_name ?? "This device",
+    // Device list keys sessions by device_name; keep sessionId aligned.
+    sessionId: deviceName,
+    deviceName,
     profile: {
       colorA: profile.color_a,
       colorB: profile.color_b,
