@@ -276,7 +276,11 @@ export function pickMatchingSeries(
 ): WeebCentralSearchHit | undefined {
   const needle = normalizeMangaTitle(query);
   if (!needle) return undefined;
-  return hits.find((hit) => normalizeMangaTitle(hit.title) === needle);
+  return hits.find(
+    (hit) =>
+      normalizeMangaTitle(hit.title) === needle ||
+      (hit.slug ? normalizeMangaTitle(slugToTitle(hit.slug)) === needle : false),
+  );
 }
 
 const SEARCH_STOP_WORDS = new Set([
@@ -411,6 +415,12 @@ export function titlesCompatible(
   return alternateTitles.some((alt) => titleSatisfiesQuery(alt, candidate));
 }
 
+function hitMatchesQuery(query: string, hit: WeebCentralSearchHit): boolean {
+  if (titleSatisfiesQuery(query, hit.title)) return true;
+  if (hit.slug && titleSatisfiesQuery(query, slugToTitle(hit.slug))) return true;
+  return false;
+}
+
 /** Pick the main series when exact-title match fails (licensed MD → WC fallback). */
 export function pickBestSeriesHit(
   query: string,
@@ -424,7 +434,7 @@ export function pickBestSeriesHit(
   if (!needle) return undefined;
 
   const ranked = [...hits]
-    .filter((hit) => titleSatisfiesQuery(query, hit.title))
+    .filter((hit) => hitMatchesQuery(query, hit))
     .sort((a, b) => {
       const score = (raw: string) => {
         const n = normalizeMangaTitle(raw);
@@ -555,13 +565,7 @@ async function loadWeebCentralMatch(
 ): Promise<ResolvedWeebCentralSeries | null> {
   const q = query.trim();
   if (!q) return null;
-  const items = await searchWeebCentral(q, 16);
-  const hits: WeebCentralSearchHit[] = items.map((item) => ({
-    id: item.id,
-    slug: "",
-    title: item.title,
-    poster: item.poster,
-  }));
+  const hits = await fetchWeebCentralSearchHits(q, 16);
   const match = pickBestSeriesHit(q, hits);
   if (!match) return null;
   const details = await getWeebCentralDetails(match.id);
@@ -627,32 +631,35 @@ const searchCache = new Map<
 >();
 const SEARCH_TTL_MS = 5 * 60 * 1000;
 
-export async function searchWeebCentral(
+async function fetchWeebCentralSearchHits(
   title: string,
   limit = 16,
-): Promise<MangaListItem[]> {
+): Promise<WeebCentralSearchHit[]> {
   const q = title.trim();
   if (!q) return [];
   const key = q.toLowerCase();
   const cached = searchCache.get(key);
-  const hits =
-    cached && Date.now() - cached.at < SEARCH_TTL_MS
-      ? cached.hits
-      : await (async () => {
-          const url = `${ORIGIN}/search/data?limit=${limit}&text=${encodeURIComponent(q)}&sort=Best%20Match&order=Descending&official=Any&display_mode=Full%20Display`;
-          const html = await wcGet(url, true);
-          const parsed = parseSearchResults(html);
-          if (parsed.length > 0) {
-            searchCache.set(key, { at: Date.now(), hits: parsed });
-          }
-          return parsed;
-        })();
+  if (cached && Date.now() - cached.at < SEARCH_TTL_MS) {
+    return cached.hits;
+  }
+  const url = `${ORIGIN}/search/data?limit=${limit}&text=${encodeURIComponent(q)}&sort=Best%20Match&order=Descending&official=Any&display_mode=Full%20Display`;
+  const html = await wcGet(url, true);
+  const parsed = parseSearchResults(html);
+  if (parsed.length > 0) {
+    searchCache.set(key, { at: Date.now(), hits: parsed });
+  }
+  return parsed;
+}
 
-  const items = hits
+export async function searchWeebCentral(
+  title: string,
+  limit = 16,
+): Promise<MangaListItem[]> {
+  const hits = await fetchWeebCentralSearchHits(title, limit);
+  return hits
     .filter((hit) => !/\(volume\)/i.test(hit.title))
     .slice(0, limit)
     .map(hitToListItem);
-  return items;
 }
 
 const detailsCache = new Map<string, { at: number; details: MangaDetails }>();

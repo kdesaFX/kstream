@@ -234,4 +234,19 @@ describe("weebcentral parsers", () => {
     );
     expect(pickBestSeriesHit("Leveling", [hclw])).toBeUndefined();
   });
+
+  it("matches romaji prefix queries against WeebCentral slug titles", () => {
+    const dressUp = {
+      id: "01J76XYCMP8059QS9PDPHBMEQW",
+      slug: "Sono-Bisque-Doll-Wa-Koi-Wo-Suru",
+      title: "My Dress-Up Darling",
+      poster: "",
+    };
+    expect(pickBestSeriesHit("Sono Bisque", [dressUp])?.title).toBe(
+      "My Dress-Up Darling",
+    );
+    expect(
+      pickBestSeriesHit("My Dress-Up Darling", [dressUp])?.title,
+    ).toBe("My Dress-Up Darling");
+  });
 });
