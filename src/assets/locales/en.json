@@ -1821,6 +1821,7 @@
       "scrollHint": "Scroll to read · arrows change chapter",
       "chapterSearch": "Search chapter number or name",
       "chapterSearchEmpty": "No matching chapters",
+      "chapterEmpty": "No chapters",
       "languageSearch": "Search language",
       "languageSearchEmpty": "No matching languages"
     }

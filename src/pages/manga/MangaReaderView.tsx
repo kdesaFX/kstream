@@ -370,18 +370,12 @@ export function MangaReaderView() {
           </Link>
           <div className="flex-1 min-w-0">
             <div className="truncate font-semibold text-sm">{title}</div>
-            <div className="flex items-center gap-3 min-w-0">
-              {chapters.length > 0 && chapterId ? (
-                <MangaChapterPicker
-                  chapters={chapters}
-                  currentChapterId={chapterId}
-                  onSelect={(ch) => goChapter(ch)}
-                />
-              ) : (
-                <div className="truncate text-xs text-white/60">
-                  {currentChapter ? chapterLabel(currentChapter) : "…"}
-                </div>
-              )}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+              <MangaChapterPicker
+                chapters={chapters}
+                currentChapterId={chapterId}
+                onSelect={(ch) => goChapter(ch)}
+              />
               <MangaLanguagePicker
                 languages={
                   details?.availableLanguages?.length

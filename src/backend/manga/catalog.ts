@@ -39,7 +39,8 @@ async function enrichWithWeebCentralChapters(
   details: MangaDetails,
   preferredLanguage = "en",
 ): Promise<MangaDetails> {
-  if (preferredLanguage !== "en") return details;  const wcChapters = await resolveWeebCentralChapters(
+  if (preferredLanguage !== "en") return details;
+  const wcChapters = await resolveWeebCentralChapters(
     details.title,
     details.alternateTitles ?? [],
   ).catch(() => null);

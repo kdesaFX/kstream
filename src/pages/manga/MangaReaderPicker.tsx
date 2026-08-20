@@ -21,12 +21,14 @@ export function MangaReaderPicker({
   selectedId,
   searchPlaceholder,
   emptyLabel,
+  emptyTriggerLabel,
   onSelect,
 }: {
   items: MangaReaderPickerItem[];
   selectedId?: string;
   searchPlaceholder: string;
   emptyLabel: string;
+  emptyTriggerLabel?: string;
   onSelect: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -92,10 +94,12 @@ export function MangaReaderPicker({
     [onSelect, closeMenu],
   );
 
+  const triggerLabel = current?.label ?? emptyTriggerLabel ?? "…";
+
   return (
     <div
       ref={rootRef}
-      className="relative max-w-[16rem]"
+      className="relative max-w-[16rem] shrink-0"
       onMouseEnter={() => {
         cancelClose();
         setOpen(true);
@@ -116,11 +120,11 @@ export function MangaReaderPicker({
         }}
         aria-expanded={open}
       >
-        <span className="truncate">{current?.label ?? "…"}</span>
+        <span className="truncate">{triggerLabel}</span>
         <Icon icon={Icons.CHEVRON_DOWN} className="text-[10px] shrink-0" />
       </button>
 
-      {open && items.length > 0 ? (
+      {open ? (
         <div
           className="absolute left-0 top-full z-40 w-[18rem] pt-2"
           onKeyDown={(e) => {

@@ -21,6 +21,7 @@ export function MangaChapterPicker({
       selectedId={currentChapterId}
       searchPlaceholder={t("manga.reader.chapterSearch")}
       emptyLabel={t("manga.reader.chapterSearchEmpty")}
+      emptyTriggerLabel={t("manga.reader.chapterEmpty")}
       onSelect={(id) => {
         const chapter = chapters.find((ch) => ch.id === id);
         if (chapter) onSelect(chapter);
