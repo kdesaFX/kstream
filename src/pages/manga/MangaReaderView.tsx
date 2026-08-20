@@ -34,12 +34,14 @@ function PageImage({
   referrerPolicy,
   eager,
   onError,
+  onLoad,
 }: {
   src: string;
   alt: string;
   referrerPolicy: "origin" | "no-referrer";
   eager?: boolean;
   onError: () => void;
+  onLoad?: () => void;
 }) {
   return (
     <img
@@ -53,6 +55,7 @@ function PageImage({
       // referrer can get you a placeholder, so those pages go out with none.
       referrerPolicy={referrerPolicy}
       onError={onError}
+      onLoad={onLoad}
       draggable={false}
     />
   );
@@ -92,6 +95,8 @@ export function MangaReaderView() {
   const touchStartX = useRef<number | null>(null);
   const retried = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pageChapterIdRef = useRef<string | undefined>(undefined);
+  const skipChapterResumeRef = useRef(false);
 
   const chapterId = chapterParam ? decodeURIComponent(chapterParam) : undefined;
   const externalChapter =
@@ -242,39 +247,68 @@ export function MangaReaderView() {
     };
   }, [nextChapter?.id, nextChapter?.chapter, details?.id, details?.title, details?.alternateTitles, preferredLanguage]);
 
-  // Resume page within chapter and reset scroll when opening a chapter.
+  const resetVerticalScroll = useCallback((top = 0) => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = top;
+  }, []);
+
+  // Keep pageIndex tied to the chapter in the URL so we never persist the
+  // previous chapter's last page onto the next one (that left readers at the
+  // bottom after hitting Next).
+  useEffect(() => {
+    if (!chapterId) return;
+    if (pageChapterIdRef.current === chapterId) return;
+    pageChapterIdRef.current = chapterId;
+    setPageIndex(0);
+    resetVerticalScroll(0);
+  }, [chapterId, resetVerticalScroll]);
+
+  // Resume page within chapter (Continue Reading), not after Next/Prev.
   useEffect(() => {
     if (!mangaId || !chapterId || pages.length === 0) return;
+    if (pageChapterIdRef.current !== chapterId) return;
+
     const resume = savedProgress[mangaId];
-    const startPage =
-      resume?.chapterId === chapterId && resume.page > 0
-        ? Math.min(resume.page, pages.length - 1)
-        : 0;
+    const shouldResume =
+      !skipChapterResumeRef.current &&
+      resume?.chapterId === chapterId &&
+      resume.page > 0;
+    skipChapterResumeRef.current = false;
+
+    const startPage = shouldResume
+      ? Math.min(resume.page, pages.length - 1)
+      : 0;
     setPageIndex(startPage);
 
     if (readerMode !== "vertical") return;
-    requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-      const el = scrollRef.current;
-      if (!el) return;
+
+    const apply = () => {
       if (startPage === 0) {
-        el.scrollTop = 0;
+        resetVerticalScroll(0);
         return;
       }
+      const el = scrollRef.current;
+      if (!el) return;
       const max = el.scrollHeight - el.clientHeight;
       if (max > 0) el.scrollTop = (startPage / pages.length) * max;
-    });
-  }, [mangaId, chapterId, pages.length, readerMode]); // eslint-disable-line react-hooks/exhaustive-deps
+    };
 
-  useEffect(() => {
-    if (readerMode !== "vertical") return;
-    window.scrollTo(0, 0);
-    scrollRef.current?.scrollTo(0, 0);
-  }, [chapterId, readerMode]);
+    apply();
+    const frame = requestAnimationFrame(apply);
+    const later = window.setTimeout(apply, 50);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(later);
+    };
+  }, [mangaId, chapterId, pages.length, readerMode, resetVerticalScroll]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist progress
+  // Persist progress only after pageIndex belongs to this chapter.
   useEffect(() => {
     if (!details || !chapterId || !currentChapter || pages.length === 0) return;
+    if (pageChapterIdRef.current !== chapterId) return;
     updateProgress({
       mangaId: details.id,
       title: details.title,
@@ -298,6 +332,10 @@ export function MangaReaderView() {
 
   const goChapter = (ch?: MangaChapter) => {
     if (!details || !ch) return;
+    skipChapterResumeRef.current = ch.id !== chapterId;
+    pageChapterIdRef.current = ch.id;
+    setPageIndex(0);
+    resetVerticalScroll(0);
     navigate(mangaChapterLink(details.id, details.title, ch.id));
   };
 
@@ -465,7 +503,7 @@ export function MangaReaderView() {
           ref={scrollRef}
           className={classNames(
             readerMode === "vertical"
-              ? "fixed inset-0 overflow-y-auto pt-14 pb-20"
+              ? "fixed inset-0 overflow-y-auto overscroll-contain pt-14 pb-20 [overflow-anchor:none]"
               : "pt-14 pb-20 flex items-center justify-center min-h-screen",
           )}
           onClick={() => setControlsVisible((v) => !v)}
@@ -507,6 +545,11 @@ export function MangaReaderView() {
                   referrerPolicy={pageReferrer}
                   eager={i < 3}
                   onError={() => onPageError(i)}
+                  onLoad={
+                    i === 0 && pageIndex === 0
+                      ? () => resetVerticalScroll(0)
+                      : undefined
+                  }
                 />
               ))}
             </div>
