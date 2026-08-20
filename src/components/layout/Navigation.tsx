@@ -139,7 +139,6 @@ export interface NavigationProps {
 }
 
 export function Navigation(props: NavigationProps) {
-  const { t } = useTranslation();
   const bannerHeight = useBannerSize();
   const { loggedIn } = useAuth();
   const { isMobile } = useIsMobile();
@@ -341,18 +340,6 @@ export function Navigation(props: NavigationProps) {
                 <HomeOptimizeToggle />
                 <HomeLayoutCustomizerToggle />
               </div>
-              {!loggedIn ? (
-                <Link
-                  to="/login"
-                  className={classNames(
-                    "tabbable hidden ssm:flex items-center h-10 md:h-[2.67rem] rounded-full px-3.5 text-white text-sm font-semibold shrink-0",
-                    navControlSurface,
-                    navControlHover,
-                  )}
-                >
-                  {t("navigation.menu.login")}
-                </Link>
-              ) : null}
               <LinksDropdown>
                 {loggedIn ? (
                   <UserAvatar
