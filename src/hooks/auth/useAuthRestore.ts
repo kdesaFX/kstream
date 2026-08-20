@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 
+import { isSupabaseConfigured } from "@/backend/supabase/client";
 import { accountFromSession } from "@/backend/supabase/data";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useAuthStore } from "@/stores/auth";
@@ -10,6 +11,7 @@ export function useAuthRestore() {
   const hasRestored = useRef(false);
 
   useEffect(() => {
+    if (!isSupabaseConfigured()) return undefined;
     const sub = onAuthStateChange(async (session) => {
       if (session) {
         const acc = await accountFromSession(session);
@@ -26,6 +28,7 @@ export function useAuthRestore() {
     if (hasRestored.current) return;
     hasRestored.current = true;
     (async () => {
+      if (!isSupabaseConfigured()) return;
       if (account) {
         await restore(account);
         return;

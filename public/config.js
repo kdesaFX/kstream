@@ -22,6 +22,10 @@ window.__CONFIG__ = {
   // The backend URL(s) to communicate with - can be a single URL or comma-separated list (e.g., "https://server1.com,https://server2.com")
   VITE_BACKEND_URL: null,
 
+  // Supabase Auth (anon/publishable key only — never a service role key)
+  VITE_SUPABASE_URL: "https://khplnaovkxvzhbimuvzn.supabase.co",
+  VITE_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtocGxuYW92a3h2emhiaW11dnpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMjM2MzAsImV4cCI6MjA5Nzc5OTYzMH0.bUotBQaOZGQMFuUP8jcn4vaMKO4YZiIv3PQBDi13i9w",
+
   // A comma separated list of disallowed IDs in the case of a DMCA claim - in the format "series-<id>" and "movie-<id>"
   VITE_DISALLOWED_IDS: "movie-831988",
   // Allowing FEBBOX API TO BE AENBALED.

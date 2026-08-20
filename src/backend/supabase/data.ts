@@ -12,7 +12,7 @@ import type {
   WatchHistoryResponse,
 } from "@/backend/accounts/user";
 import type { WatchHistoryInput } from "@/backend/accounts/watchHistory";
-import { getSupabase } from "@/backend/supabase/client";
+import { getSupabase, tryGetSupabase } from "@/backend/supabase/client";
 import {
   bookmarkInputToRow,
   bookmarkMediaToRow,
@@ -547,7 +547,9 @@ export async function signOut(scope: "local" | "global" = "local") {
 }
 
 export async function getCurrentSession() {
-  const { data, error } = await getSupabase().auth.getSession();
+  const sb = tryGetSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.auth.getSession();
   if (error) throw error;
   return data.session;
 }
@@ -555,7 +557,11 @@ export async function getCurrentSession() {
 export function onAuthStateChange(
   cb: (session: Session | null) => void,
 ) {
-  const { data } = getSupabase().auth.onAuthStateChange((_event, session) => {
+  const sb = tryGetSupabase();
+  if (!sb) {
+    return { unsubscribe() {} };
+  }
+  const { data } = sb.auth.onAuthStateChange((_event, session) => {
     cb(session);
   });
   return data.subscription;

@@ -20,6 +20,7 @@ import {
   progressResponsesToEntries,
 } from "@/backend/accounts/user";
 import { watchHistoryItemsToInputs } from "@/backend/accounts/watchHistory";
+import { isSupabaseConfigured } from "@/backend/supabase/client";
 import {
   accountFromSession,
   fetchMangaProgress,
@@ -253,6 +254,7 @@ export function useAuth() {
 
   const restore = useCallback(
     async (account: AccountWithToken) => {
+      if (!isSupabaseConfigured()) return;
       let user: { user: UserResponse; session: import("@/backend/accounts/auth").SessionResponse };
       try {
         user = await getUser("", account.token);

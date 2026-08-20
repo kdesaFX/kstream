@@ -24,3 +24,12 @@ export function getSupabase(): SupabaseClient {
   });
   return client;
 }
+
+export function tryGetSupabase(): SupabaseClient | null {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    return getSupabase();
+  } catch {
+    return null;
+  }
+}
