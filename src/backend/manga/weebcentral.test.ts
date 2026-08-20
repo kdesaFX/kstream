@@ -150,7 +150,9 @@ describe("weebcentral parsers", () => {
       ["Ijiranaide, Nagatoro-san"],
     );
     expect(queries[0]).toBe("Don't Toy With Me, Miss Nagatoro!");
-    expect(queries).toContain("Ijiranaide, Nagatoro-san");
+    expect(
+      queries.some((q) => normalizeMangaTitle(q).includes("ijiranaide")),
+    ).toBe(true);
     expect(queries).toContain("Nagatoro");
   });
 
@@ -163,7 +165,21 @@ describe("weebcentral parsers", () => {
     expect(queries).toContain("Sono Bisque");
     expect(queries).toContain("Sono Bisque Doll");
     expect(queries.some((q) => /着せ替え|ماي/.test(q))).toBe(false);
-    expect(queries.length).toBeLessThanOrEqual(8);
+    expect(queries.length).toBeLessThanOrEqual(10);
+  });
+
+  it("keeps romaji prefixes when many English alternate titles exist", () => {
+    const queries = buildFallbackSearchQueries("My Dress-Up Darling", [
+      "Sono Bisque Doll wa Koi o Suru",
+      "Sono Bisque Doll ha Koi wo Suru",
+      "The Bisque Doll Falls In Love",
+      "The Bisque Doll Is Falling In Love",
+      "Sexy Cosplay Doll",
+      "More than a Doll",
+      "Projekt Cosplay",
+    ]);
+    expect(queries.indexOf("Sono Bisque")).toBeGreaterThan(-1);
+    expect(queries.indexOf("Sono Bisque")).toBeLessThan(7);
   });
 
   it("does not search generic words like Leveling on their own", () => {

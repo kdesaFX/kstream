@@ -459,7 +459,31 @@ function latinTitlePrefixes(value: string): string[] {
   return out;
 }
 
-const MAX_FALLBACK_QUERIES = 8;
+/** Romaji titles often differ by particle spelling across catalogs (wa/ha, o/wo). */
+function romajiParticleVariants(value: string): string[] {
+  const out: string[] = [];
+  const add = (candidate: string) => {
+    const trimmed = candidate.trim();
+    if (trimmed && trimmed !== value.trim() && !out.includes(trimmed)) {
+      out.push(trimmed);
+    }
+  };
+  add(value.replace(/\bwa\b/gi, "ha"));
+  add(value.replace(/\bha\b/gi, "wa"));
+  add(value.replace(/\bKoi o\b/gi, "Koi wo"));
+  add(value.replace(/\bo Suru\b/gi, "wo Suru"));
+  return out;
+}
+
+function isRomajiLikeTitle(value: string): boolean {
+  const normalized = normalizeMangaTitle(value);
+  return (
+    /\b(wa|wo|ha|no|ga|ni|de|to|e|sono|boku|kimi)\b/.test(normalized) ||
+    normalized.split(/\s+/).length >= 5
+  );
+}
+
+const MAX_FALLBACK_QUERIES = 10;
 
 export function buildFallbackSearchQueries(
   title: string,
@@ -480,13 +504,24 @@ export function buildFallbackSearchQueries(
   add(title);
   add(title.replace(/-/g, " "));
   add(title.replace(/[!?,.'’]/g, ""));
+  for (const variant of romajiParticleVariants(title)) add(variant);
 
   const latinAlts = alternateTitles.filter(isLatinSearchTitle);
-  for (const alt of latinAlts) add(alt);
-  for (const alt of latinAlts) {
+  const latinSearchOrder = [...latinAlts].sort(
+    (a, b) => Number(isRomajiLikeTitle(b)) - Number(isRomajiLikeTitle(a)),
+  );
+
+  // Short romaji prefixes must run before long English alts — otherwise the
+  // query budget is exhausted and WeebCentral never sees "Sono Bisque".
+  for (const alt of latinSearchOrder) {
     for (const prefix of latinTitlePrefixes(alt)) add(prefix);
   }
   for (const prefix of latinTitlePrefixes(title)) add(prefix);
+
+  for (const alt of latinSearchOrder) {
+    add(alt);
+    for (const variant of romajiParticleVariants(alt)) add(variant);
+  }
 
   const tokens = title
     .replace(/[!?,.'’-]/g, " ")
@@ -672,4 +707,26 @@ export async function getWeebCentralChapterPages(
     pageCache.set(chapterId, { at: Date.now(), pages });
   }
   return pages;
+}
+
+/** Last-resort page load when merged chapter ids (e.g. Comick) have no images. */
+export async function getWeebCentralPagesForChapterNumber(
+  title: string,
+  alternateTitles: string[],
+  chapterNum: string,
+): Promise<string[]> {
+  const wanted = chapterNum.trim();
+  if (!wanted) return [];
+  const chapters = await resolveWeebCentralChapters(title, alternateTitles).catch(
+    () => null,
+  );
+  if (!chapters?.length) return [];
+  const wantedNum = parseFloat(wanted);
+  const match =
+    chapters.find((ch) => ch.chapter?.trim() === wanted) ??
+    (Number.isFinite(wantedNum)
+      ? chapters.find((ch) => parseFloat(ch.chapter ?? "") === wantedNum)
+      : undefined);
+  if (!match) return [];
+  return getWeebCentralChapterPages(match.id);
 }

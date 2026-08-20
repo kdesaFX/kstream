@@ -18,6 +18,7 @@ import type { MangaDetails, MangaListItem } from "@/backend/manga/types";
 import {
   getWeebCentralChapterPages,
   getWeebCentralDetails,
+  getWeebCentralPagesForChapterNumber,
   normalizeMangaTitle,
   pagesBelongToTitle,
   searchWeebCentral,
@@ -89,6 +90,24 @@ export async function getChapterPages(
       pagesBelongToTitle(pages, fallback?.title, fallback?.alternateTitles ?? [])
     ) {
       return pages;
+    }
+  }
+
+  if (fallback?.title && fallback.chapter?.trim()) {
+    const wcPages = await getWeebCentralPagesForChapterNumber(
+      fallback.title,
+      fallback.alternateTitles ?? [],
+      fallback.chapter.trim(),
+    );
+    if (
+      wcPages.length > 0 &&
+      pagesBelongToTitle(
+        wcPages,
+        fallback.title,
+        fallback.alternateTitles ?? [],
+      )
+    ) {
+      return wcPages;
     }
   }
 
