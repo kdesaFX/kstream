@@ -2,4 +2,4 @@
 User-agent: *
 Disallow:
 
-Sitemap: https://zstream.mov/sitemap.xml
+Sitemap: https://kdesa.stream/sitemap.xml

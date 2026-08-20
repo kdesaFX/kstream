@@ -13,7 +13,7 @@
     />
     <meta
       name="description"
-      content="Watch your favorite shows and movies for free!"
+      content="Watch movies and TV shows, and read manga for free on kstream — kdesa.stream."
     />
     <link rel="manifest" href="/manifest.json" />
 
@@ -45,21 +45,28 @@
     />
 
     <!-- kstream Preview Embed -->
-    <meta property="og:title" content="kstream" />
+    <meta property="og:title" content="kstream | Movies, TV & Manga" />
     <meta property="og:site_name" content="kstream" />
     <meta
       property="og:description"
-      content="Watch your favorite shows and movies for free!"
+      content="Watch movies and TV shows, and read manga for free on kstream — kdesa.stream."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/embed-preview.png?v=8" />
+    <meta property="og:url" content="https://kdesa.stream/" />
+    <meta
+      property="og:image"
+      content="https://kdesa.stream/embed-preview.png?v=8"
+    />
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="kstream" />
+    <meta property="twitter:title" content="kstream | Movies, TV & Manga" />
     <meta
       property="twitter:description"
-      content="Watch your favorite shows and movies for free!"
+      content="Watch movies and TV shows, and read manga for free on kstream — kdesa.stream."
     />
-    <meta property="twitter:image" content="/embed-preview.png?v=8" />
+    <meta
+      property="twitter:image"
+      content="https://kdesa.stream/embed-preview.png?v=8"
+    />
 
     <link
       rel="apple-touch-startup-image"
@@ -251,7 +258,7 @@
     <!-- <meta name="referrer" content="no-referrer" /> -->
     <meta name="referrer" content="always" />
 
-    <title>kstream</title>
+    <title>kstream | Movies, TV & Manga</title>
 
     {{#if opensearchEnabled }}
     <!-- OpenSearch -->
@@ -261,20 +268,22 @@
       title="kstream"
       href="/opensearch.xml"
     />
+    {{/if}}
 
-    <!-- Google Sitelinks -->
+    <!-- Google Sitelinks / brand structured data (always on) -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": "kstream",
         "alternateName": ["kdesa.stream", "kstream"],
-        "url": "{{ routeDomain }}",
+        "url": "https://kdesa.stream",
+        "description": "Watch movies and TV shows, and read manga for free on kstream — kdesa.stream.",
         "potentialAction": {
           "@type": "SearchAction",
           "target": {
             "@type": "EntryPoint",
-            "urlTemplate": "{{ routeDomain }}/browse/?q={search_term_string}"
+            "urlTemplate": "https://kdesa.stream/browse/?q={search_term_string}"
           },
           "query-input": "required name=search_term_string"
         }
@@ -285,18 +294,19 @@
         "@context": "https://schema.org",
         "@type": "Organization",
         "name": "kstream",
-        "url": "{{ routeDomain }}"
+        "alternateName": "kdesa.stream",
+        "url": "https://kdesa.stream",
+        "description": "Free movie and TV streaming and manga reader."
       }
     </script>
-    {{/if}}
   </head>
 
   <body>
     <noscript>
       <h1>kstream</h1>
       <p>
-        kstream is a free movie and TV show streaming site. No ads, no signup,
-        just watch.
+        Watch movies and TV shows, and read manga for free on kstream —
+        kdesa.stream.
       </p>
       <p>Enable JavaScript to load the site.</p>
     </noscript>
