@@ -111,3 +111,22 @@ GitHub “TMDB Embed API” repos mostly wrap VidSrc/Videasy/Vidlink/Showbox. Al
 \*Interesting as a download helper, not a player source.
 
 **Takeaway:** Stop feeding Gemini the same brief. Hunt by reverse-engineering live SPA bundles (like Flicky) or recent provider commits that return `.m3u8` — not download-page URLs.
+
+## Batch 2026-08-23d (independent hunt — no Gemini)
+
+Shipped sources today: `fsonline`, `tqq`, `reyna`, `oneembed`, `sevenmovies`, `anidap`.
+
+| Check | Result |
+|------|--------|
+| Anidap `chad.anidap.lol` | OK (`{"status":"ok"}`) |
+| FSOnline `www3.fsonline.app` | Alive |
+| Sevenmovies / animecurx | Home alive; source API needs proper playback-token dance (403 without it) |
+| **Reyna** (`api.reallyfast.xyz` via `goated.cx`) | **DOWN** — CF 1016 on challenge/resolve. Source is currently broken in prod. |
+| MoviesAPI scrapify | Discover JSON works; scrapify POST 405; not a clean public HLS API |
+| Filmex / Pressplayz / Vidnest / DioStream | Catalog SPAs; no open first-party HLS JSON via proxy |
+| Leftover hosts (`reallyfast`, `coitus`, `aether.mom`, `flashstream`, …) | Dead / timeout / CF |
+| **Vidrock** `vidrock.ru/api/movie/{id}` | Returns JSON+m3u8 but **identical stub playlist for every TMDB/TV id** — not a real catalog |
+| NovaHD `/api/sources` | Exists but rate-limited / gated |
+| `dl.vidzee.wtf` | Downloads only (goodstream pages); v2–v7 blocked |
+
+**Decision:** Do not implement a new source from this hunt. Highest-value follow-up is **fix or disable Reyna** (backend origin down), not adding another wrapper.
