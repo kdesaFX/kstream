@@ -59,3 +59,24 @@
 | https://seanime.app/ | No | Docs site for a self-hosted desktop app |
 
 \*KAA could be revisited if we add a krussdomi/BirdStream extractor.
+
+## Batch 2026-08-23 (Gemini Type-A shortlist — live proxy probe)
+
+Probed through `https://kdesa.stream/api/proxy` with TMDB `27205` / IMDb `tt1375666` where applicable. None qualify for a new free public source.
+
+| Site | Qualify? | Why |
+|------|----------|-----|
+| https://voidboost.net/embed/… | No | Hard 403 via proxy (empty body) |
+| https://voidboost.cc / .link | No | Cloudflare 1016 (origin down / unreachable) |
+| https://hdrezka.ag / .me | No | Access error 105 (geo / IP block) |
+| https://api.collaps.org/embed/… | No | 200 but JS “Redirecting…” anti-bot shell — no scrapable JSON/m3u8 |
+| https://kodikapi.com / kodik.biz | No | Cloudflare 1016; search without token fails |
+| https://kisskh.co | No | Cloudflare “Just a moment” on home + API |
+| https://api.anify.tv | No | 522 origin down; public Anify API unmaintained |
+| https://kinobox.tv/api/players | No | Timeout via proxy |
+| https://api.alloha.tv | No | Alive but `not valid token` — paid/dev token required |
+| https://lookmovie2.to | No | Hard 403 |
+| https://ridomovies.tv | No | 403 “connection denied”; already marked known/implemented in goon scripts |
+| HiAnime / Consumet-style MegaCloud unwrap | No | Wrapper of stacks we already cover, not a new CDN |
+
+**Takeaway:** CIS CDNs (VoidBoost / HDRezka / Collaps / Kodik / Alloha) are the right *class*, but none are open through our current proxy path without geo/token/anti-bot. Keep hunting 7Movies/Anidap-style first-party JSON backends instead of Western embed resolvers.
