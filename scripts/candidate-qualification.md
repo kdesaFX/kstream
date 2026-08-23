@@ -80,3 +80,14 @@ Probed through `https://kdesa.stream/api/proxy` with TMDB `27205` / IMDb `tt1375
 | HiAnime / Consumet-style MegaCloud unwrap | No | Wrapper of stacks we already cover, not a new CDN |
 
 **Takeaway:** CIS CDNs (VoidBoost / HDRezka / Collaps / Kodik / Alloha) are the right *class*, but none are open through our current proxy path without geo/token/anti-bot. Keep hunting 7Movies/Anidap-style first-party JSON backends instead of Western embed resolvers.
+
+## Batch 2026-08-23b (Gemini retry — Rive / AutoEmbed / Embed.su / AllAnime)
+
+| Site | Qualify? | Why |
+|------|----------|-----|
+| https://api.rive.stream / rive.stream | No | Cloudflare 1016 origin down on root + claimed `/media/v2/tmdb/...` paths |
+| https://autoembed.cc `/api/getVideoSource` | No | 1016; also rejected class (embed resolver family) |
+| https://embed.su `/api/e/...` | No | 1016; VidSrc-family |
+| https://api.allanime.day | No | Cloudflare “Just a moment”; home timed out |
+
+**Takeaway:** Gemini is inventing or recycling dead/wrapped endpoints. Prefer GitHub code-search for *recent* commits with real `m3u8` extractors over LLM candidate lists.
