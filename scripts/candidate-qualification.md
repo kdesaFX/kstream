@@ -91,3 +91,23 @@ Probed through `https://kdesa.stream/api/proxy` with TMDB `27205` / IMDb `tt1375
 | https://api.allanime.day | No | Cloudflare “Just a moment”; home timed out |
 
 **Takeaway:** Gemini is inventing or recycling dead/wrapped endpoints. Prefer GitHub code-search for *recent* commits with real `m3u8` extractors over LLM candidate lists.
+
+## Batch 2026-08-23c (GitHub hunt + VidZee/FlickyStream)
+
+Same Gemini table (Rive/AllAnime/AutoEmbed/Embed.su) still dead — do not re-probe.
+
+GitHub “TMDB Embed API” repos mostly wrap VidSrc/Videasy/Vidlink/Showbox. Alive oddballs:
+
+| Site | Qualify? | Why |
+|------|----------|-----|
+| https://4khdhub.* | No | Cloudflare challenge |
+| https://mp4hydra.org | No | “Back soon” |
+| https://xprime.tv | No | CF 525 |
+| https://vidcore.net / .io | No | SPA shell; no open stream JSON via proxy |
+| https://dl.vidzee.wtf | No* | Live JSON API (`/download/movie/v1/{tmdb}`) but returns **goodstream.cc download pages**, not HLS; v2–v7 return `Blocked` via our proxy |
+| https://api.flickystream.dad | No | Account/preferences API only (`/api/preferences`) |
+| https://mid.vidzee.wtf | No | TMDB metadata proxy (`/tmdb`), not streams |
+
+\*Interesting as a download helper, not a player source.
+
+**Takeaway:** Stop feeding Gemini the same brief. Hunt by reverse-engineering live SPA bundles (like Flicky) or recent provider commits that return `.m3u8` — not download-page URLs.
