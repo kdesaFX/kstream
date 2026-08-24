@@ -709,11 +709,14 @@
   "desktopApp": {
     "settings": {
       "title": "App settings",
-      "description": "The desktop app loads kstream with native scraping.",
+      "description": "The desktop app loads a local copy of kstream with native scraping — no Cloudflare needed for the UI.",
       "url": "URL",
       "mode": "Mode",
+      "origin": "UI origin",
       "installFolder": "Install folder",
       "version": "Desktop version",
+      "originBundled": "Bundled (local)",
+      "originRemote": "Remote site",
       "smartScreenNote": "Unsigned builds may show a Windows SmartScreen warning. Choose More info, then Run anyway.",
       "close": "Close"
     }

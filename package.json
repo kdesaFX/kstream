@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:local": "vite build",
     "build:pwa": "cross-env VITE_PWA_ENABLED=true vite build",
+    "serve:local": "pnpm build:local && pnpm dlx wrangler@4 dev",
     "update-and-build": "pnpm remove @p-stream/providers && pnpm add github:kdesaFX/providers#production && pnpm run build",
     "update-providers": "pnpm update @p-stream/providers",
     "test": "vitest run",

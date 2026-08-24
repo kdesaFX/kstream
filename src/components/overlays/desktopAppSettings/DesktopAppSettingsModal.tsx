@@ -6,10 +6,12 @@ import { Icon, Icons } from "@/components/Icon";
 import { FancyModal, useModal } from "@/components/overlays/Modal";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
+import { isLocalOrigin } from "@/utils/hosting/isLocalOrigin";
 
 export type DesktopAppInfo = {
   streamUrl: string;
   runMode: string;
+  originMode: string;
   installDir: string;
   version: string;
 };
@@ -25,6 +27,7 @@ async function fetchDesktopAppInfo(): Promise<DesktopAppInfo | null> {
     return {
       streamUrl: String(res.streamUrl || ""),
       runMode: String(res.runMode || "unknown"),
+      originMode: String(res.originMode || ""),
       installDir: String(res.installDir || ""),
       version: String(res.version || ""),
     };
@@ -72,6 +75,16 @@ export function DesktopAppSettingsModal({ id = MODAL_ID }: { id?: string }) {
     };
   }, [modal.isShown]);
 
+  const originMode =
+    info?.originMode ||
+    (isDesktop && isLocalOrigin() ? "bundled" : isDesktop ? "remote" : "");
+  const originLabel =
+    originMode === "bundled"
+      ? t("desktopApp.settings.originBundled")
+      : originMode === "remote"
+        ? t("desktopApp.settings.originRemote")
+        : originMode;
+
   // Keep mounted on web too so the id always exists; content only loads on desktop.
   return (
     <FancyModal id={id} title={t("desktopApp.settings.title")} size="md">
@@ -95,6 +108,10 @@ export function DesktopAppSettingsModal({ id = MODAL_ID }: { id?: string }) {
             <InfoRow
               label={t("desktopApp.settings.mode")}
               value={info?.runMode || ""}
+            />
+            <InfoRow
+              label={t("desktopApp.settings.origin")}
+              value={originLabel}
             />
             <InfoRow
               label={t("desktopApp.settings.installFolder")}

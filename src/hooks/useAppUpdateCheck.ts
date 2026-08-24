@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
+
 const DISMISSED_KEY = "zstream::update-dismissed-version";
 const CHECK_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -16,11 +18,14 @@ async function fetchLatestVersion(): Promise<string | null> {
   }
 }
 
-
 export function useAppUpdateCheck() {
   const [newVersion, setNewVersion] = useState<string | null>(null);
+  const isDesktop = useIsDesktopApp();
 
   useEffect(() => {
+    // Desktop uses electron-updater; skip the web version.json poll.
+    if (isDesktop) return;
+
     let cancelled = false;
 
     const check = async () => {
@@ -48,7 +53,7 @@ export function useAppUpdateCheck() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
+  }, [isDesktop]);
 
   const dismiss = () => {
     if (newVersion) {
