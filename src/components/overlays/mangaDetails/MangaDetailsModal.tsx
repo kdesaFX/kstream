@@ -22,6 +22,7 @@ import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { useMangaProgressStore } from "@/stores/mangaProgress";
 import { mangaProgressHasMeaningfulRead } from "@/stores/mangaProgress/utils";
 import { usePreferencesStore } from "@/stores/preferences";
+import { resolveCardArtworkUrl } from "@/utils/media/artwork";
 
 export function MangaDetailsModal({ id }: { id: string }) {
   const { t } = useTranslation();
@@ -102,8 +103,12 @@ export function MangaDetailsModal({ id }: { id: string }) {
   const resume = progress[mangaId];
   const statusKey = details ? mangaStatusKey(details.status) : null;
   const logoUrl = adaptation?.logoUrl;
-  const heroBackdrop = adaptation?.backdropUrl ?? details?.poster;
-  const heroPoster = adaptation?.posterUrl ?? details?.poster;
+  const heroBackdrop = resolveCardArtworkUrl(
+    adaptation?.backdropUrl ?? details?.poster,
+  );
+  const heroPoster = resolveCardArtworkUrl(
+    adaptation?.posterUrl ?? details?.poster,
+  );
   const startChapterId = useMemo(() => {
     if (resume && mangaProgressHasMeaningfulRead(resume)) return resume.chapterId;
     return details?.chapters[0]?.id;

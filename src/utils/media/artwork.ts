@@ -27,6 +27,13 @@ function isArtworkUrl(url: string): boolean {
   );
 }
 
+export function isMangaDexCoverUrl(url: string): boolean {
+  return (
+    url.includes("uploads.mangadex.org") ||
+    url.includes("mangadex.org/covers")
+  );
+}
+
 export function maybeProxyArtworkUrl(
   url: string,
   opts?: { proxyTmdb?: boolean; proxyArtwork?: boolean },
@@ -51,7 +58,17 @@ export function resolveCardArtworkUrl(
   if (!url) return undefined;
   const { posterQuality, proxyTmdb, proxyArtwork } =
     usePreferencesStore.getState();
-  return maybeProxyArtworkUrl(rewriteTmdbPosterUrl(url, posterQuality), {
+  const sized = rewriteTmdbPosterUrl(url, posterQuality);
+
+  // MangaDex serves a "read this at mangadex.org" card when the referrer is
+  // wrong. CSS backgrounds can't control Referer; mobile Safari is flaky with
+  // no-referrer alone — always fetch covers through our proxy (Referer stamp).
+  if (isMangaDexCoverUrl(sized)) {
+    const proxied = proxiedMangaUrl(sized, getProxyUrls());
+    return proxied ?? sized;
+  }
+
+  return maybeProxyArtworkUrl(sized, {
     proxyTmdb,
     proxyArtwork,
   });

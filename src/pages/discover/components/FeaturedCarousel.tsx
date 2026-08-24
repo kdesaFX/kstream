@@ -47,6 +47,7 @@ import { useWatchHistoryStore } from "@/stores/watchHistory";
 import { fetchImdbRating } from "@/utils/services/imdbRating";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { shouldAllowMatureTitles } from "@/utils/media/mature";
+import { resolveCardArtworkUrl } from "@/utils/media/artwork";
 
 import { RandomMovieButton } from "./RandomMovieButton";
 
@@ -161,7 +162,8 @@ function isFeatureWorthy(item: {
  * across the frame.
  */
 function MangaSlideArt({ item }: { item: FeaturedMedia }) {
-  if (!item.artUrl) return null;
+  const artUrl = resolveCardArtworkUrl(item.artUrl);
+  if (!artUrl) return null;
 
   const readOverlay = (
     <>
@@ -174,7 +176,7 @@ function MangaSlideArt({ item }: { item: FeaturedMedia }) {
     return (
       <>
         <img
-          src={item.artUrl}
+          src={artUrl}
           alt=""
           referrerPolicy="no-referrer"
           decoding="async"
@@ -189,7 +191,7 @@ function MangaSlideArt({ item }: { item: FeaturedMedia }) {
     <>
       <div className="absolute inset-0 bg-gradient-to-br from-background-secondary via-background-main to-black" />
       <img
-        src={item.artUrl}
+        src={artUrl}
         alt=""
         referrerPolicy="no-referrer"
         decoding="async"

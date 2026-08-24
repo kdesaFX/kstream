@@ -248,12 +248,10 @@ function MediaCardContent({
               enableMinimalCards ? "" : "mb-4",
             )}
           >
-            {media.type === "manga" && isIntersecting && posterUrl ? (
-              // MangaDex swaps covers for a "read this at mangadex.org" card
-              // when a foreign referrer comes along, and CSS backgrounds have
-              // no say in what gets sent — an element does.
+            {media.type === "manga" && posterUrl ? (
+              // Same-origin proxy URL from resolveCardArtworkUrl; lazy when off-screen.
               <img
-                src={posterUrl}
+                src={isIntersecting ? posterUrl : undefined}
                 alt=""
                 referrerPolicy="no-referrer"
                 decoding="async"
