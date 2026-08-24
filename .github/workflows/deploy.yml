@@ -5,40 +5,60 @@ on:
     branches:
       - production
   workflow_dispatch:
+
 jobs:
   deploy:
-    if: ${{ secrets.SSH_KEY != '' && secrets.SSH_HOST != '' && secrets.SSH_USER != '' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Skip when VPS credentials are not configured
+        id: deploy_gate
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          if [ -z "$SSH_KEY" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "SSH_KEY not configured — skipping VPS deploy for this fork."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
+        if: steps.deploy_gate.outputs.ready == 'true'
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
       - name: Setup pnpm
+        if: steps.deploy_gate.outputs.ready == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 9.14.4
 
       - name: Setup Node
+        if: steps.deploy_gate.outputs.ready == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install SSH key
+        if: steps.deploy_gate.outputs.ready == 'true'
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.SSH_KEY }}
           known_hosts: unnecessary
 
       - name: Add known hosts
+        if: steps.deploy_gate.outputs.ready == 'true'
         run: ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Clone private providers
+        if: steps.deploy_gate.outputs.ready == 'true'
         run: |
           git clone --depth 1 https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/xp-technologies-dev/private-providers.git /tmp/private-providers
           ls /tmp/private-providers/lib/
+
       - name: Force private providers
+        if: steps.deploy_gate.outputs.ready == 'true'
         run: |
           node -e "
             const fs = require('fs');
@@ -48,10 +68,13 @@ jobs:
           "
           grep providers package.json
           rm -f pnpm-lock.yaml
+
       - name: Install dependencies
+        if: steps.deploy_gate.outputs.ready == 'true'
         run: pnpm install --force
 
       - name: Build
+        if: steps.deploy_gate.outputs.ready == 'true'
         run: pnpm build
         env:
           VITE_TMDB_READ_API_KEY: ${{ secrets.VITE_TMDB_READ_API_KEY }}
@@ -83,11 +106,13 @@ jobs:
           VITE_SIMKL_CLIENT_SECRET: ${{ secrets.VITE_SIMKL_CLIENT_SECRET }}
           VITE_SIMKL_REDIRECT_URI: "https://zstream.mov/settings"
           VITE_DMCA_EMAIL: "zstream-dmca@proton.me"
+
       - name: Clean credentials
-        if: always()
+        if: always() && steps.deploy_gate.outputs.ready == 'true'
         run: rm -rf /tmp/private-providers
 
       - name: Deploy to VPS
+        if: steps.deploy_gate.outputs.ready == 'true'
         run: |
           tar -czf /tmp/dist.tar.gz -C dist .
           scp /tmp/dist.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/dist.tar.gz
@@ -103,6 +128,7 @@ jobs:
           "
 
       - name: Purge Cloudflare cache
+        if: steps.deploy_gate.outputs.ready == 'true'
         env:
           CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
