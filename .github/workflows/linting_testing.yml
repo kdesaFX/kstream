@@ -26,20 +26,34 @@ jobs:
           node-version: 20
           cache: "pnpm"
 
-      - name: Auth private GitHub deps
-        env:
-          PROVIDERS_READ_TOKEN: ${{ secrets.PROVIDERS_READ_TOKEN }}
+      - name: Checkout providers
+        uses: actions/checkout@v4
+        with:
+          repository: kdesaFX/providers
+          ref: production
+          ssh-key: ${{ secrets.PROVIDERS_DEPLOY_KEY }}
+          path: .providers-src
+
+      - name: Wire local providers
         run: |
-          if [ -z "$PROVIDERS_READ_TOKEN" ]; then
-            echo "::error::PROVIDERS_READ_TOKEN secret required for private providers"
-            exit 1
-          fi
-          printf 'machine github.com\nlogin x-access-token\npassword %s\n\nmachine codeload.github.com\nlogin x-access-token\npassword %s\n' \
-            "$PROVIDERS_READ_TOKEN" "$PROVIDERS_READ_TOKEN" > "$HOME/.netrc"
-          chmod 600 "$HOME/.netrc"
+          cd .providers-src
+          pnpm install
+          pnpm run build
+          cd -
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.dependencies['@p-stream/providers'] = 'file:./.providers-src';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          rm -f pnpm-lock.yaml
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
 
       - name: Install pnpm packages
         run: pnpm install
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
 
       - name: Run ESLint
         run: pnpm run lint
@@ -51,6 +65,40 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Checkout providers
+        uses: actions/checkout@v4
+        with:
+          repository: kdesaFX/providers
+          ref: production
+          ssh-key: ${{ secrets.PROVIDERS_DEPLOY_KEY }}
+          path: .providers-src
+
+      - name: Wire local providers for Docker context
+        run: |
+          cd .providers-src
+          pnpm install
+          pnpm run build
+          cd -
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.dependencies['@p-stream/providers'] = 'file:./.providers-src';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          rm -f pnpm-lock.yaml
+          pnpm install
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
 
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v3

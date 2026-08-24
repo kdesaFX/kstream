@@ -6,6 +6,8 @@ RUN corepack enable
 
 COPY package.json ./
 COPY pnpm-lock.yaml ./
+# CI wires private @p-stream/providers as file:./.providers-src before build.
+COPY .providers-src ./.providers-src
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 ARG PWA_ENABLED="true"
