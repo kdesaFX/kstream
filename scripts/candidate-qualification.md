@@ -134,3 +134,24 @@ Shipped sources today: `fsonline`, `tqq`, `reyna`, `oneembed`, `sevenmovies`, `a
 ## 2026-08-23e — Reyna disabled
 
 `api.reallyfast.xyz` remains CF 1016. Disabled Reyna in `kdesaFX/providers#production` (`786c28b`) so scrapes skip it. Re-enable when a live challenge/resolve host returns.
+
+## Batch 2026-08-23f — independent hunt (live probe, no Gemini)
+
+Method: mine SPA bundles + probe through `kdesa.stream/api/proxy`, cross-title URL checks, playlist `#EXTM3U` validation.
+
+| Site | Qualify? | Why |
+|------|----------|-----|
+| https://cornclick.com | **Yes** | `GET /player/movie/{tmdb}` and `/player/tv/{tmdb}/{s}/{e}` → JSON `{ sources: [{ type: "hls", url }] }`. Per-title Vaplayer HLS via `/v1/proxy`. Playlists validate through proxy. → source `cornclick` |
+| https://dulo.cx | No* | `/api/sources?type=movie&tmdbId=` exists but returns `session_required` without browser session cookie |
+| https://novahd.cc | No* | `/api/sources?type=movie&tmdbId=` returns real HLS JSON when allowed, but datacenter/proxy IPs get 403 after first hit; already implemented as `nova` (disabled — edge worker origin lock) |
+| https://showby.to | No | Same brand UI as CornClick but `/player/*` serves HTML shell, not JSON API |
+| https://ezvidapi.com | No | Origin 502 |
+| https://streamprovider.byteful.me | No | 502 |
+| https://2embed.cc | No | Dead parking page; not a 1embed clone |
+| https://vidrock.ru | No | Still identical stub m3u8 for every TMDB id |
+| https://api.coitus.ca | No | CF 1016 |
+| https://anidb.app / anikototv | No | No open JSON source routes |
+
+\*Revisit dulo if session token extraction from embed page is worth the maintenance cost.
+
+**Shipped:** `cornclick` in `kdesaFX/providers#production` (`f1e8085`) and bumped in kstream.

@@ -46,8 +46,8 @@ importers:
         specifier: ^1.8.0
         version: 1.8.0
       '@p-stream/providers':
-        specifier: github:kdesaFX/providers#786c28b13d78b0f176a42cfc3b52a0b39ec757da
-        version: https://codeload.github.com/kdesaFX/providers/tar.gz/786c28b13d78b0f176a42cfc3b52a0b39ec757da
+        specifier: github:kdesaFX/providers#f1e8085
+        version: https://codeload.github.com/kdesaFX/providers/tar.gz/f1e8085
       '@plasmohq/messaging':
         specifier: ^0.6.2
         version: 0.6.2(react@18.3.1)
@@ -1847,8 +1847,8 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@p-stream/providers@https://codeload.github.com/kdesaFX/providers/tar.gz/786c28b13d78b0f176a42cfc3b52a0b39ec757da':
-    resolution: {tarball: https://codeload.github.com/kdesaFX/providers/tar.gz/786c28b13d78b0f176a42cfc3b52a0b39ec757da}
+  '@p-stream/providers@https://codeload.github.com/kdesaFX/providers/tar.gz/f1e8085':
+    resolution: {tarball: https://codeload.github.com/kdesaFX/providers/tar.gz/f1e8085}
     version: 3.2.0
 
   '@pkgjs/parseargs@0.11.0':
@@ -7173,7 +7173,7 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@p-stream/providers@https://codeload.github.com/kdesaFX/providers/tar.gz/786c28b13d78b0f176a42cfc3b52a0b39ec757da':
+  '@p-stream/providers@https://codeload.github.com/kdesaFX/providers/tar.gz/f1e8085':
     dependencies:
       abort-controller: 3.0.0
       cheerio: 1.0.0-rc.12
