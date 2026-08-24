@@ -1073,7 +1073,8 @@
       "items": {
         "failure": "Error occurred",
         "notFound": "Doesn't have the video.",
-        "pending": "Checking for videos..."
+        "pending": "Checking...",
+        "waiting": "Queued..."
       },
       "notFound": {
         "badge": "Not found",

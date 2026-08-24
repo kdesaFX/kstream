@@ -24,6 +24,7 @@ const statusTextMap: Partial<Record<ScrapeCardProps["status"], string>> = {
   notfound: "player.scraping.items.notFound",
   failure: "player.scraping.items.failure",
   pending: "player.scraping.items.pending",
+  waiting: "player.scraping.items.waiting",
 };
 
 const statusMap: Record<ScrapeCardProps["status"], StatusCircleProps["type"]> =
