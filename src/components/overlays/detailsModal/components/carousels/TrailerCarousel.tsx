@@ -61,7 +61,7 @@ export function TrailerCarousel({
   if (allTrailers.length === 0) return null;
 
   return (
-    <div className="space-y-4 pt-8">
+    <div className="space-y-4">
       <h3 className="text-lg font-semibold text-white/90">
         {t("details.trailers")}
       </h3>

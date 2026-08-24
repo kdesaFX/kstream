@@ -1,42 +1,58 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import { Icon, Icons } from "@/components/Icon";
-
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { conf } from "@/setup/config";
 import { useAdsStore } from "@/stores/ads";
 
-
-const BTAG_SRC = "https://aqle3.com/btag.min.js";
-const LOAD_TIMEOUT_MS = 8000;
+const LOAD_TIMEOUT_MS = 10000;
 const PRIMARY_BANNER_GIF_SRC = "/ads/primary-banner.gif";
+const DEFAULT_ADSTERRA_HOST = "https://www.highrevenueformat.com";
 
-export type AdSlot = "primary" | "secondary" | "bookmarks";
+/**
+ * Deferred (Tier B/C) — not wired yet; keys live in public/config.js comments:
+ * - Home → Discover seam / Discover under tabs (728×90)
+ * - Search under tabs (728×90 / 320×50)
+ * - Watch/read history foot
+ * - Manga details mid
+ * - Global footer band
+ * - 468×60 / 160×300 / native container units
+ */
 
+export type AdSlot =
+  | "primary"
+  | "secondary"
+  | "secondaryRail"
+  | "bookmarks"
+  | "details";
 
-function loadBannerTag(
+function adScriptSrc(key: string): string {
+  const base =
+    conf().ADSTERRA_SCRIPT_HOST?.replace(/\/$/, "") || DEFAULT_ADSTERRA_HOST;
+  return `${base}/${key}/invoke.js`;
+}
+
+/** Isolated iframe so multiple banners don't fight over window.atOptions. */
+function loadAdsterraBanner(
   container: HTMLElement,
-  zoneId: string,
+  key: string,
   width: number,
   height: number,
 ) {
-  if (typeof window === "undefined" || !zoneId) return;
-  const dedupeId = `btag-${zoneId}`;
-  if (document.getElementById(dedupeId)) return;
-  const s = document.createElement("script");
-  s.id = dedupeId;
-  s.async = true;
-  s.dataset.cfasync = "false";
-  s.dataset.size = `${width}x${height}`;
-  s.dataset.category = "common";
-  s.dataset.id = `dl-banner-${width}x${height}`;
-  s.dataset.zone = zoneId;
-  s.src = BTAG_SRC;
-  container.appendChild(s);
+  container.replaceChildren();
+  const iframe = document.createElement("iframe");
+  iframe.title = "Advertisement";
+  iframe.setAttribute("scrolling", "no");
+  iframe.setAttribute("loading", "lazy");
+  iframe.style.cssText = `width:${width}px;height:${height}px;border:0;overflow:hidden;display:block;max-width:100%;background:transparent;`;
+  const src = adScriptSrc(key);
+  iframe.srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=${width}"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}</style></head><body><script>atOptions={key:${JSON.stringify(key)},format:"iframe",height:${height},width:${width},params:{}};<\/script><script src="${src}"><\/script></body></html>`;
+  container.appendChild(iframe);
 }
 
 interface SlotConfig {
-  zoneId: string;
+  key: string;
   width: number;
   height: number;
 }
@@ -50,34 +66,43 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
   const isWatchPage = location.pathname.startsWith("/media/");
 
   useEffect(() => {
-
     if (isWatchPage) {
       setAdState("failed");
       return;
     }
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || !cfg.key) return;
 
-    loadBannerTag(container, cfg.zoneId, cfg.width, cfg.height);
+    setAdState("loading");
+    loadAdsterraBanner(container, cfg.key, cfg.width, cfg.height);
 
     const update = () => {
-      if (container.querySelector("iframe, img")) {
+      const frame = container.querySelector("iframe");
+      if (!frame) return;
+      try {
+        const doc = frame.contentDocument;
+        if (doc?.querySelector("iframe, img, a")) {
+          setAdState("loaded");
+        }
+      } catch {
+        // Cross-origin fill still counts as loaded once the shell iframe exists.
         setAdState("loaded");
       }
     };
+
     update();
     const observer = new MutationObserver(update);
     observer.observe(container, { childList: true, subtree: true });
-
-    const timeout = setTimeout(() => {
-      setAdState((s) => (s === "loading" ? "failed" : s));
+    const timeout = window.setTimeout(() => {
+      setAdState((s) => (s === "loading" ? "loaded" : s));
     }, LOAD_TIMEOUT_MS);
 
     return () => {
       observer.disconnect();
-      clearTimeout(timeout);
+      window.clearTimeout(timeout);
+      container.replaceChildren();
     };
-  }, [cfg.zoneId, cfg.width, cfg.height, isWatchPage]);
+  }, [cfg.key, cfg.width, cfg.height, isWatchPage]);
 
   if (adState === "failed") return null;
 
@@ -89,7 +114,7 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
       style={{
         maxWidth: `${wrapperMaxWidth}px`,
         width: "100%",
-        opacity: adState === "loaded" ? 1 : 0.6,
+        opacity: adState === "loading" ? 0.6 : 1,
       }}
     >
       <div className="rounded-lg overflow-hidden">
@@ -98,14 +123,14 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
             Advertisement
           </span>
         </div>
-
         <div className="px-2 pb-2 pt-0.5">
           <div
             ref={containerRef}
-            className="flex items-center justify-center mx-auto"
+            className="flex items-center justify-center mx-auto overflow-hidden"
             style={{
               minHeight: `${cfg.height}px`,
-              minWidth: 0,
+              width: "100%",
+              maxWidth: `${cfg.width}px`,
             }}
           />
         </div>
@@ -115,7 +140,7 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
 }
 
 const PRIMARY_GIF_DISMISS_KEY = "primaryBannerGifDismissedUntil";
-const PRIMARY_GIF_DISMISS_MS = 24 * 60 * 60 * 1000; // 24 hours
+const PRIMARY_GIF_DISMISS_MS = 24 * 60 * 60 * 1000;
 
 function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
   const [dismissed, setDismissed] = useState(() => {
@@ -134,16 +159,14 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
         String(Date.now() + PRIMARY_GIF_DISMISS_MS),
       );
     } catch {
-      // ignore storage errors
+      // ignore
     }
   }, []);
 
   if (dismissed) return null;
 
   return (
-    <div
-      className="relative mx-auto w-full max-w-[640px] rounded-[0.95rem] bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group"
-    >
+    <div className="relative mx-auto w-full max-w-[640px] rounded-[0.95rem] bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group">
       <button
         onClick={dismiss}
         type="button"
@@ -184,6 +207,23 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
 export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
   const cfg = conf();
   const adsDisabled = useAdsStore((s) => s.adsDisabled);
+  const { isMobile } = useIsMobile();
+
+  const primarySlot = useMemo((): SlotConfig | null => {
+    if (!cfg.ENABLE_HOME_AD) return null;
+    if (isMobile && cfg.HOME_AD_MOBILE_ZONE_ID) {
+      return { key: cfg.HOME_AD_MOBILE_ZONE_ID, width: 320, height: 50 };
+    }
+    if (cfg.HOME_AD_ZONE_ID) {
+      return { key: cfg.HOME_AD_ZONE_ID, width: 728, height: 90 };
+    }
+    return null;
+  }, [
+    cfg.ENABLE_HOME_AD,
+    cfg.HOME_AD_MOBILE_ZONE_ID,
+    cfg.HOME_AD_ZONE_ID,
+    isMobile,
+  ]);
 
   if (adsDisabled) return null;
 
@@ -192,25 +232,13 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
       cfg.ENABLE_PRIMARY_BANNER_GIF && cfg.PRIMARY_BANNER_GIF_URL
         ? cfg.PRIMARY_BANNER_GIF_URL
         : null;
-    const homeAdZoneId =
-      cfg.ENABLE_HOME_AD && cfg.HOME_AD_ZONE_ID ? cfg.HOME_AD_ZONE_ID : null;
-
-    if (!gifUrl && !homeAdZoneId) return null;
-
+    if (!gifUrl && !primarySlot) return null;
     return (
       <div className="flex w-full flex-col items-center gap-3">
         {gifUrl && (
           <PrimaryGifBanner img={PRIMARY_BANNER_GIF_SRC} href={gifUrl} />
         )}
-        {homeAdZoneId && (
-          <AdSlotInner
-            cfg={{
-              zoneId: homeAdZoneId,
-              width: 728,
-              height: 90,
-            }}
-          />
-        )}
+        {primarySlot && <AdSlotInner cfg={primarySlot} />}
       </div>
     );
   }
@@ -220,19 +248,47 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
     return (
       <AdSlotInner
         cfg={{
-          zoneId: cfg.BOOKMARKS_AD_ZONE_ID,
-          width: 336,
-          height: 280,
+          key: cfg.BOOKMARKS_AD_ZONE_ID,
+          width: 300,
+          height: 250,
         }}
       />
     );
   }
 
+  if (slot === "details") {
+    if (!cfg.ENABLE_DETAILS_AD || !cfg.DETAILS_AD_ZONE_ID) return null;
+    return (
+      <AdSlotInner
+        cfg={{
+          key: cfg.DETAILS_AD_ZONE_ID,
+          width: 300,
+          height: 250,
+        }}
+      />
+    );
+  }
+
+  if (slot === "secondaryRail") {
+    if (!cfg.ENABLE_SECONDARY_AD || !cfg.SECONDARY_AD_SKYSCRAPER_ZONE_ID)
+      return null;
+    return (
+      <AdSlotInner
+        cfg={{
+          key: cfg.SECONDARY_AD_SKYSCRAPER_ZONE_ID,
+          width: 160,
+          height: 600,
+        }}
+      />
+    );
+  }
+
+  // secondary — mid-page MREC
   if (!cfg.ENABLE_SECONDARY_AD || !cfg.SECONDARY_AD_ZONE_ID) return null;
   return (
     <AdSlotInner
       cfg={{
-        zoneId: cfg.SECONDARY_AD_ZONE_ID,
+        key: cfg.SECONDARY_AD_ZONE_ID,
         width: 300,
         height: 250,
       }}

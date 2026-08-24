@@ -201,8 +201,8 @@ export function HomePage() {
     <HomeLayout showBg={s.searching}>
       <div className="relative mb-2">
         {hasWideMargins && (
-          <div className="absolute right-6 top-2 z-10">
-            <HomeAd slot="secondary" />
+          <div className="absolute right-4 top-2 z-10">
+            <HomeAd slot="secondaryRail" />
           </div>
         )}
         <Helmet>

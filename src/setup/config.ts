@@ -32,13 +32,18 @@ interface Config {
   HOME_AD_SCRIPT_URL: string;
   HOME_AD_CLASS: string;
   HOME_AD_ZONE_ID: string;
+  HOME_AD_MOBILE_ZONE_ID: string;
   HOME_AD_SUB: string;
   ENABLE_SECONDARY_AD: boolean;
   SECONDARY_AD_CLASS: string;
   SECONDARY_AD_ZONE_ID: string;
+  SECONDARY_AD_SKYSCRAPER_ZONE_ID: string;
   SECONDARY_AD_SUB: string;
   ENABLE_BOOKMARKS_AD: boolean;
   BOOKMARKS_AD_ZONE_ID: string;
+  ENABLE_DETAILS_AD: boolean;
+  DETAILS_AD_ZONE_ID: string;
+  ADSTERRA_SCRIPT_HOST: string;
   ENABLE_PRIMARY_BANNER_GIF: boolean;
   PRIMARY_BANNER_GIF_URL: string;
   TRACK_SCRIPT: string; // like <script src="https://umami.com/script.js"></script>
@@ -94,13 +99,18 @@ export interface RuntimeConfig {
   HOME_AD_SCRIPT_URL: string | null;
   HOME_AD_CLASS: string | null;
   HOME_AD_ZONE_ID: string | null;
+  HOME_AD_MOBILE_ZONE_ID: string | null;
   HOME_AD_SUB: string | null;
   ENABLE_SECONDARY_AD: boolean;
   SECONDARY_AD_CLASS: string | null;
   SECONDARY_AD_ZONE_ID: string | null;
+  SECONDARY_AD_SKYSCRAPER_ZONE_ID: string | null;
   SECONDARY_AD_SUB: string | null;
   ENABLE_BOOKMARKS_AD: boolean;
   BOOKMARKS_AD_ZONE_ID: string | null;
+  ENABLE_DETAILS_AD: boolean;
+  DETAILS_AD_ZONE_ID: string | null;
+  ADSTERRA_SCRIPT_HOST: string | null;
   ENABLE_PRIMARY_BANNER_GIF: boolean;
   PRIMARY_BANNER_GIF_URL: string | null;
   TRACK_SCRIPT: string | null;
@@ -159,13 +169,19 @@ const env: Record<keyof Config, undefined | string> = {
   HOME_AD_SCRIPT_URL: import.meta.env.VITE_HOME_AD_SCRIPT_URL,
   HOME_AD_CLASS: import.meta.env.VITE_HOME_AD_CLASS,
   HOME_AD_ZONE_ID: import.meta.env.VITE_HOME_AD_ZONE_ID,
+  HOME_AD_MOBILE_ZONE_ID: import.meta.env.VITE_HOME_AD_MOBILE_ZONE_ID,
   HOME_AD_SUB: import.meta.env.VITE_HOME_AD_SUB,
   ENABLE_SECONDARY_AD: import.meta.env.VITE_ENABLE_SECONDARY_AD,
   SECONDARY_AD_CLASS: import.meta.env.VITE_SECONDARY_AD_CLASS,
   SECONDARY_AD_ZONE_ID: import.meta.env.VITE_SECONDARY_AD_ZONE_ID,
+  SECONDARY_AD_SKYSCRAPER_ZONE_ID: import.meta.env
+    .VITE_SECONDARY_AD_SKYSCRAPER_ZONE_ID,
   SECONDARY_AD_SUB: import.meta.env.VITE_SECONDARY_AD_SUB,
   ENABLE_BOOKMARKS_AD: import.meta.env.VITE_ENABLE_BOOKMARKS_AD,
   BOOKMARKS_AD_ZONE_ID: import.meta.env.VITE_BOOKMARKS_AD_ZONE_ID,
+  ENABLE_DETAILS_AD: import.meta.env.VITE_ENABLE_DETAILS_AD,
+  DETAILS_AD_ZONE_ID: import.meta.env.VITE_DETAILS_AD_ZONE_ID,
+  ADSTERRA_SCRIPT_HOST: import.meta.env.VITE_ADSTERRA_SCRIPT_HOST,
   ENABLE_PRIMARY_BANNER_GIF: import.meta.env.VITE_PRIMARY_BANNER_GIF,
   PRIMARY_BANNER_GIF_URL: import.meta.env.VITE_PRIMARY_BANNER_GIF_URL,
   TRACK_SCRIPT: import.meta.env.VITE_TRACK_SCRIPT,
@@ -285,13 +301,18 @@ export function conf(): RuntimeConfig {
     HOME_AD_SCRIPT_URL: getKey("HOME_AD_SCRIPT_URL"),
     HOME_AD_CLASS: getKey("HOME_AD_CLASS"),
     HOME_AD_ZONE_ID: getKey("HOME_AD_ZONE_ID"),
+    HOME_AD_MOBILE_ZONE_ID: getKey("HOME_AD_MOBILE_ZONE_ID"),
     HOME_AD_SUB: getKey("HOME_AD_SUB"),
     ENABLE_SECONDARY_AD: getKey("ENABLE_SECONDARY_AD", "false") === "true",
     SECONDARY_AD_CLASS: getKey("SECONDARY_AD_CLASS"),
     SECONDARY_AD_ZONE_ID: getKey("SECONDARY_AD_ZONE_ID"),
+    SECONDARY_AD_SKYSCRAPER_ZONE_ID: getKey("SECONDARY_AD_SKYSCRAPER_ZONE_ID"),
     SECONDARY_AD_SUB: getKey("SECONDARY_AD_SUB"),
     ENABLE_BOOKMARKS_AD: getKey("ENABLE_BOOKMARKS_AD", "false") === "true",
     BOOKMARKS_AD_ZONE_ID: getKey("BOOKMARKS_AD_ZONE_ID"),
+    ENABLE_DETAILS_AD: getKey("ENABLE_DETAILS_AD", "false") === "true",
+    DETAILS_AD_ZONE_ID: getKey("DETAILS_AD_ZONE_ID"),
+    ADSTERRA_SCRIPT_HOST: getKey("ADSTERRA_SCRIPT_HOST"),
     ENABLE_PRIMARY_BANNER_GIF: getKey("ENABLE_PRIMARY_BANNER_GIF", "false") === "true",
     PRIMARY_BANNER_GIF_URL: getKey("PRIMARY_BANNER_GIF_URL"),
     TRACK_SCRIPT: getKey("TRACK_SCRIPT"),

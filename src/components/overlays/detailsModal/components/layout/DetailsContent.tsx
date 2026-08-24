@@ -14,6 +14,7 @@ import { scrapeIMDb } from "@/utils/services/imdbScraper";
 import { fetchImdbRating } from "@/utils/services/imdbRating";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { scrapeRottenTomatoes } from "@/utils/services/rottenTomatoesScraper";
+import { HomeAd } from "@/pages/parts/home/HomeAd";
 
 import { DetailsContentProps } from "../../types";
 import { EpisodeCarousel } from "../carousels/EpisodeCarousel";
@@ -499,32 +500,37 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
           />
         )}
 
-        {/* Trailer Carousel */}
+        {/* Trailers + Tier A details MREC in the empty side space */}
         {data.id && (
-          <TrailerCarousel
-            mediaId={data.id.toString()}
-            mediaType={
-              data.type === "movie"
-                ? TMDBContentTypes.MOVIE
-                : TMDBContentTypes.TV
-            }
-            imdbData={imdbData}
-            onTrailerClick={(videoKey, isImdbTrailer) => {
-              let trailerUrl: string;
-              if (isImdbTrailer) {
-                // IMDb trailer is already a full URL
-                trailerUrl = videoKey;
-              } else {
-                // TMDB trailer needs to be converted to YouTube embed URL
-                trailerUrl = `https://www.youtube.com/embed/${videoKey}?autoplay=1&rel=0`;
-              }
-              setShowTrailer(true);
-              setImdbData((prev: any) => ({
-                ...prev,
-                trailer_url: trailerUrl,
-              }));
-            }}
-          />
+          <div className="flex flex-col lg:flex-row gap-4 items-start pt-8">
+            <div className="min-w-0 flex-1 w-full">
+              <TrailerCarousel
+                mediaId={data.id.toString()}
+                mediaType={
+                  data.type === "movie"
+                    ? TMDBContentTypes.MOVIE
+                    : TMDBContentTypes.TV
+                }
+                imdbData={imdbData}
+                onTrailerClick={(videoKey, isImdbTrailer) => {
+                  let trailerUrl: string;
+                  if (isImdbTrailer) {
+                    trailerUrl = videoKey;
+                  } else {
+                    trailerUrl = `https://www.youtube.com/embed/${videoKey}?autoplay=1&rel=0`;
+                  }
+                  setShowTrailer(true);
+                  setImdbData((prev: any) => ({
+                    ...prev,
+                    trailer_url: trailerUrl,
+                  }));
+                }}
+              />
+            </div>
+            <div className="w-full lg:w-auto flex justify-center lg:justify-end lg:pt-10 lg:sticky lg:top-4">
+              <HomeAd slot="details" />
+            </div>
+          </div>
         )}
 
         {/* Similar Media Carousel */}
