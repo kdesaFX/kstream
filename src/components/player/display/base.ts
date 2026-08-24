@@ -107,15 +107,21 @@ function pickBestLevelAtOrBelow(
 
 /**
  * Prefer a fast, playable start level.
- * - No extension (browser proxy): cap at 720p AVC — 1080p init through the
- *   proxy is multi‑MB and slows first frame.
- * - Extension or Windows app: prefer 1080p AVC — direct fetches can take it.
+ * Browser/proxy: start at 1080p AVC when available.
+ * Extension or desktop app: start at the highest AVC rung on the ladder.
  */
 function pickBrowserStartLevel(levels: Level[]): Level | null {
   if (!levels.length) return null;
-  const maxHeight = isExtensionActiveCached() ? 1080 : 720;
+  if (isExtensionActiveCached()) {
+    const avc = levels.filter((l) => isAvcLevel(l) && (l.height || 0) > 0);
+    const nonHevc = levels.filter(
+      (l) => !isHevcLevel(l) && (l.height || 0) > 0,
+    );
+    const pool = avc.length ? avc : nonHevc.length ? nonHevc : levels;
+    return sortLevelsByQuality(pool)[0] ?? null;
+  }
   return (
-    pickBestLevelAtOrBelow(levels, maxHeight) ??
+    pickBestLevelAtOrBelow(levels, 1080) ??
     sortLevelsByQuality(levels)[0] ??
     null
   );
@@ -123,7 +129,7 @@ function pickBrowserStartLevel(levels: Level[]): Level | null {
 
 /**
  * Max quality Auto is allowed to climb to.
- * Browser/proxy: 1080p (start 720, seamless upgrade). Extension: no cap.
+ * Browser/proxy: 1080p cap. Extension: no cap (highest on ladder).
  */
 function pickBrowserAutoCapLevel(levels: Level[]): Level | null {
   if (!levels.length || isExtensionActiveCached()) return null;
@@ -612,9 +618,10 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   }
 
   /**
-   * After Auto starts at 720, wait until we have a healthy buffer, then ask
-   * hls.js to load the next fragments at the upgrade rung (1080). Playback
-   * keeps using already-buffered 720 until the switch point — no pause/spinner.
+   * After Auto starts at up to 1080p, wait until we have a healthy buffer, then
+   * ask hls.js to load the next fragments at the upgrade rung when capped below
+   * the ladder top. Playback keeps using already-buffered lower rungs until the
+   * switch point — no pause/spinner.
    */
   function armSeamlessQualityClimb() {
     clearQualityClimb();
@@ -702,8 +709,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         }
       }
     } else {
-      // Auto: first fragment at a fast rung (720 proxy / 1080 extension), then
-      // unlock ABR so higher rungs preload and switch at fragment boundaries.
+      // Auto: start at 1080p AVC when the ladder has it, then let ABR hold
+      // there (browser caps at 1080; extension may climb higher).
       const startLevel = pickBrowserStartLevel(hls.levels);
       const topIndex = startLevel ? hls.levels.indexOf(startLevel) : -1;
       if (topIndex !== -1) {
