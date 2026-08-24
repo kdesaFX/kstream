@@ -155,3 +155,18 @@ Method: mine SPA bundles + probe through `kdesa.stream/api/proxy`, cross-title U
 \*Revisit dulo if session token extraction from embed page is worth the maintenance cost.
 
 **Shipped:** `cornclick` in `kdesaFX/providers#production` (`f1e8085`) and bumped in kstream.
+
+## Batch 2026-08-23g — second hunt (Cinnamon scrapers + clones)
+
+| Site | Qualify? | Why |
+|------|----------|-----|
+| https://novahd.cc | **Yes (re-enable)** | Unique HLS per title; master/variant/segment all play through `kdesa.stream/api/m3u8-proxy` with novahd Origin. Can 429 under burst probes — acceptable as a scrape miss. |
+| https://dulo.cx | No | Real SSE `/api/source` but `/api/session` is 429/`too_many_session_requests` and Turnstile-gated from datacenter IPs |
+| https://vidspark.to | No | `/api/vidora/v1/movie/{id}` + `x-player-key` from Cinnamon still `403 Forbidden` via proxy |
+| https://anidb.app | No | Catalog SPA (anilab.so); no open stream JSON in bundles |
+| https://anikototv.to | No | Search HTML loads; HiAnime-style ajax scrape, not a TMDB JSON API |
+| https://vixsrc.to | No | Cloudflare challenge |
+| https://xprime.tv | No | CF 525 |
+| https://anilab.so | No | Marketing/home only; `api.anilab.so` CF 1016 |
+
+**Shipped:** re-enable `nova` after end-to-end m3u8-proxy playback check (API + variant + segment).
