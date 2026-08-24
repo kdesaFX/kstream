@@ -8,133 +8,91 @@ on:
 
 jobs:
   deploy:
+    name: Deploy to Cloudflare Workers
     runs-on: ubuntu-latest
     steps:
-      - name: Skip when VPS credentials are not configured
-        id: deploy_gate
-        env:
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-        run: |
-          if [ -z "$SSH_KEY" ]; then
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "SSH_KEY not configured — skipping VPS deploy for this fork."
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Checkout
-        if: steps.deploy_gate.outputs.ready == 'true'
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
 
       - name: Setup pnpm
-        if: steps.deploy_gate.outputs.ready == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 9.14.4
 
       - name: Setup Node
-        if: steps.deploy_gate.outputs.ready == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install SSH key
-        if: steps.deploy_gate.outputs.ready == 'true'
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.SSH_KEY }}
-          known_hosts: unnecessary
-
-      - name: Add known hosts
-        if: steps.deploy_gate.outputs.ready == 'true'
-        run: ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Clone private providers
-        if: steps.deploy_gate.outputs.ready == 'true'
+      - name: Build providers from source
         run: |
-          git clone --depth 1 https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/xp-technologies-dev/private-providers.git /tmp/private-providers
-          ls /tmp/private-providers/lib/
-
-      - name: Force private providers
-        if: steps.deploy_gate.outputs.ready == 'true'
-        run: |
+          git clone --depth 1 --branch production https://github.com/kdesaFX/providers.git /tmp/providers
+          cd /tmp/providers
+          pnpm install
+          pnpm run build
+          cd -
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.dependencies['@p-stream/providers'] = 'file:/tmp/private-providers';
+            pkg.dependencies['@p-stream/providers'] = 'file:/tmp/providers';
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
-          grep providers package.json
           rm -f pnpm-lock.yaml
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
 
-      - name: Install dependencies
-        if: steps.deploy_gate.outputs.ready == 'true'
-        run: pnpm install --force
+      - name: Install
+        run: pnpm install
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
 
       - name: Build
-        if: steps.deploy_gate.outputs.ready == 'true'
-        run: pnpm build
+        run: pnpm run build
         env:
-          VITE_TMDB_READ_API_KEY: ${{ secrets.VITE_TMDB_READ_API_KEY }}
+          # Runtime config still comes from public/config.js; these only fill
+          # build-time fallbacks when a secret/var is present.
+          VITE_TMDB_READ_API_KEY: ${{ secrets.VITE_TMDB_READ_API_KEY || 'placeholder' }}
           VITE_SHOW_SUPPORT_BAR: "true"
           VITE_ALLOW_FEBBOX_KEY: "true"
           VITE_TRAKT_CLIENT_ID: ${{ secrets.VITE_TRAKT_CLIENT_ID }}
           VITE_TRAKT_CLIENT_SECRET: ${{ secrets.VITE_TRAKT_CLIENT_SECRET }}
           VITE_TRAKT_REDIRECT_URI: ${{ secrets.VITE_TRAKT_REDIRECT_URI }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL }}
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://example.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'placeholder' }}
           VITE_ENABLE_HOME_AD: "false"
-          VITE_HOME_AD_ZONE_ID: "11371369"
           VITE_ENABLE_SECONDARY_AD: "false"
-          VITE_SECONDARY_AD_ZONE_ID: "11283340"
-          VITE_ENABLE_BOOKMARKS_AD: "true"
+          VITE_ENABLE_BOOKMARKS_AD: "false"
           VITE_PRIMARY_BANNER_GIF: "false"
-          VITE_PRIMARY_BANNER_GIF_LINK: "https://i.ibb.co/Mk3BfjG2/undefined-Imgur-ezgif-com-optimize-1.gif"
-          VITE_PRIMARY_BANNER_GIF_URL: "https://clixou.com/"
-          VITE_BOOKMARKS_AD_ZONE_ID: "11283340"
-          VITE_ENABLE_POPUNDER: "true"
-          VITE_POPUNDER_SCRIPT_URL: "https://llvpn.com/tag.min.js"
-          VITE_POPUNDER_ZONE_ID: "11455429"
-          VITE_ENABLE_RYBBIT: "true"
+          VITE_ENABLE_POPUNDER: "false"
+          VITE_ENABLE_RYBBIT: ${{ vars.VITE_ENABLE_RYBBIT || 'false' }}
           VITE_RYBBIT_SCRIPT_URL: ${{ vars.VITE_RYBBIT_SCRIPT_URL }}
-          VITE_RYBBIT_SITE_ID: "034c3186af9d"
-          VITE_USE_SIMKL: "true"
-          VITE_SIMKL_CLIENT_ID: "ba3e36f42507238bc3466a995763505b0cf4407953f286e09935c51bf3347ebc"
+          VITE_RYBBIT_SITE_ID: ${{ vars.VITE_RYBBIT_SITE_ID }}
+          VITE_USE_SIMKL: ${{ vars.VITE_USE_SIMKL || 'false' }}
+          VITE_SIMKL_CLIENT_ID: ${{ vars.VITE_SIMKL_CLIENT_ID }}
           VITE_SIMKL_CLIENT_SECRET: ${{ secrets.VITE_SIMKL_CLIENT_SECRET }}
-          VITE_SIMKL_REDIRECT_URI: "https://zstream.mov/settings"
-          VITE_DMCA_EMAIL: "zstream-dmca@proton.me"
+          VITE_SIMKL_REDIRECT_URI: ${{ vars.VITE_SIMKL_REDIRECT_URI }}
+          VITE_DMCA_EMAIL: ${{ vars.VITE_DMCA_EMAIL }}
+          VITE_APP_DOMAIN: ${{ vars.VITE_APP_DOMAIN || 'https://kdesa.stream' }}
+          VITE_CORS_PROXY_URL: /api/proxy
+          VITE_M3U8_PROXY_URL: /api
+          VITE_HAS_ONBOARDING: "true"
+          VITE_NORMAL_ROUTER: "true"
 
-      - name: Clean credentials
-        if: always() && steps.deploy_gate.outputs.ready == 'true'
-        run: rm -rf /tmp/private-providers
-
-      - name: Deploy to VPS
-        if: steps.deploy_gate.outputs.ready == 'true'
-        run: |
-          tar -czf /tmp/dist.tar.gz -C dist .
-          scp /tmp/dist.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/dist.tar.gz
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            set -e
-            rm -rf /var/www/zstream.new && mkdir -p /var/www/zstream.new
-            tar -xzf /tmp/dist.tar.gz -C /var/www/zstream.new
-            rm -f /tmp/dist.tar.gz
-            rm -rf /var/www/zstream.old
-            mv /var/www/zstream /var/www/zstream.old
-            mv /var/www/zstream.new /var/www/zstream
-            rm -rf /var/www/zstream.old
-          "
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
 
       - name: Purge Cloudflare cache
-        if: steps.deploy_gate.outputs.ready == 'true'
         env:
           CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           if [ -z "$CF_ZONE_ID" ] || [ -z "$CF_API_TOKEN" ]; then
-            echo "Cloudflare purge skipped (CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN not set)"
+            echo "Cloudflare purge skipped (CLOUDFLARE_ZONE_ID not set)"
             exit 0
           fi
           curl -sf -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
