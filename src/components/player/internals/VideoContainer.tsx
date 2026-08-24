@@ -7,6 +7,7 @@ import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
 
 import { useInitializeSource } from "../hooks/useInitializePlayer";
+import { useMediaSubtitlePrefs } from "../hooks/useMediaSubtitlePrefs";
 
 function getPlaybackKey(
   meta: ReturnType<typeof usePlayerStore.getState>["meta"],
@@ -296,6 +297,7 @@ function VideoElement() {
 export function VideoContainer() {
   const show = useShouldShowVideoElement();
   useDisplayInterface();
+  useMediaSubtitlePrefs();
   useInitializeSource();
 
   if (!show) return null;

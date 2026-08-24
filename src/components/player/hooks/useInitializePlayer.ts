@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 
 import { usePlayerStore } from "@/stores/player/store";
+import { useSubtitleStore } from "@/stores/subtitles";
 import { useVolumeStore } from "@/stores/volume";
 
 import { useCaptions } from "./useCaptions";
@@ -24,11 +25,15 @@ export function useInitializeSource() {
     () => (source ? JSON.stringify(source) : null),
     [source],
   );
-  const { selectLastUsedLanguageIfEnabled } = useCaptions();
+  const enabled = useSubtitleStore((s) => s.enabled);
+  const { selectLastUsedLanguageIfEnabled, disable } = useCaptions();
 
   useEffect(() => {
-    if (sourceIdentifier) {
-      selectLastUsedLanguageIfEnabled();
+    if (!sourceIdentifier) return;
+    if (enabled) {
+      void selectLastUsedLanguageIfEnabled();
+    } else {
+      void disable();
     }
-  }, [sourceIdentifier, selectLastUsedLanguageIfEnabled]);
+  }, [sourceIdentifier, enabled, selectLastUsedLanguageIfEnabled, disable]);
 }

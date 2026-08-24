@@ -58,6 +58,15 @@ export interface SubtitleStyling {
   lineHeight: number;
 }
 
+/** Per movie / episode caption choices (delay, track, enabled). */
+export interface MediaSubtitlePrefs {
+  delay: number;
+  enabled: boolean;
+  language: string | null;
+  subtitleId: string | null;
+  overrideCasing: boolean;
+}
+
 export interface SubtitleStore {
   lastSync: {
     lastSelectedLanguage: string | null;
@@ -70,6 +79,8 @@ export interface SubtitleStore {
   overrideCasing: boolean;
   delay: number;
   showDelayIndicator: boolean;
+  /** Keys from getMediaKey — movie or specific episode. */
+  prefsByMedia: Record<string, MediaSubtitlePrefs>;
   updateStyling(newStyling: Partial<SubtitleStyling>): void;
   resetStyling(): void;
   setSubtitle(
@@ -83,6 +94,8 @@ export interface SubtitleStore {
   importSubtitleLanguage(lang: string | null): void;
   resetSubtitleSpecificSettings(): void;
   setShowDelayIndicator: (show: boolean) => void;
+  applyPrefsForMedia(mediaKey: string): void;
+  savePrefsForMedia(mediaKey: string): void;
 }
 
 export const useSubtitleStore = create(
@@ -97,6 +110,7 @@ export const useSubtitleStore = create(
       isOpenSubtitles: false,
       overrideCasing: false,
       delay: 0,
+      prefsByMedia: {},
       styling: {
         color: "#ffffff",
         backgroundOpacity: 0.5,
@@ -112,8 +126,35 @@ export const useSubtitleStore = create(
       showDelayIndicator: false,
       resetSubtitleSpecificSettings() {
         set((s) => {
-          s.delay = 0;
+          // Delay is remembered per movie/episode — don't wipe it on track change.
           s.overrideCasing = false;
+        });
+      },
+      applyPrefsForMedia(mediaKey) {
+        set((s) => {
+          const prefs = s.prefsByMedia[mediaKey];
+          if (!prefs) {
+            // New title: don't carry over the previous title's delay.
+            s.delay = 0;
+            s.overrideCasing = false;
+            return;
+          }
+          s.delay = Math.max(Math.min(500, prefs.delay), -500);
+          s.enabled = prefs.enabled;
+          s.lastSelectedLanguage = prefs.language;
+          s.lastSelectedSubtitleId = prefs.subtitleId;
+          s.overrideCasing = prefs.overrideCasing;
+        });
+      },
+      savePrefsForMedia(mediaKey) {
+        set((s) => {
+          s.prefsByMedia[mediaKey] = {
+            delay: s.delay,
+            enabled: s.enabled,
+            language: s.lastSelectedLanguage,
+            subtitleId: s.lastSelectedSubtitleId,
+            overrideCasing: s.overrideCasing,
+          };
         });
       },
       setIsOpenSubtitles(isOpenSubtitles) {
@@ -178,12 +219,13 @@ export const useSubtitleStore = create(
       setSubtitle(enabled, language, subtitleId) {
         set((s) => {
           s.enabled = enabled;
+          // Keep last language/id when turning captions off so toggle + per-media
+          // restore can bring the same track back.
           if (enabled) {
-            s.lastSelectedLanguage = language ?? null;
-            s.lastSelectedSubtitleId = subtitleId ?? null;
-          } else {
-            s.lastSelectedLanguage = null;
-            s.lastSelectedSubtitleId = null;
+            if (language !== undefined)
+              s.lastSelectedLanguage = language ?? null;
+            if (subtitleId !== undefined)
+              s.lastSelectedSubtitleId = subtitleId ?? null;
           }
         });
       },
@@ -211,7 +253,11 @@ export const useSubtitleStore = create(
     })),
     {
       name: "__MW::subtitles",
-      merge: (persisted, current) => merge({}, current, persisted),
+      merge: (persisted, current) => {
+        const merged = merge({}, current, persisted) as SubtitleStore;
+        if (!merged.prefsByMedia) merged.prefsByMedia = {};
+        return merged;
+      },
     },
   ),
 );
