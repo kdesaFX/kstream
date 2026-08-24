@@ -19,6 +19,7 @@ import {
 } from "@/stores/player/utils/qualities";
 import { mergeQualityStreamOptions } from "@/stores/player/utils/qualityStreams";
 import type { QualityStreamOption } from "@/stores/player/utils/qualityStreams";
+import { isUrlAlreadyProxied } from "@/components/player/utils/proxy";
 import { useQualityStore } from "@/stores/quality";
 import { usePreferencesStore } from "@/stores/preferences";
 import { runtimeVerdict } from "@/utils/media/runtimeMismatch";
@@ -178,6 +179,7 @@ export interface QualityHopFallback {
   sourceId: string | null;
   embedId: string | null;
   quality: SourceQuality | null;
+  automaticQuality: boolean;
   startAt: number;
   expiresAt: number;
 }
@@ -574,6 +576,11 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
           sourceId,
         ];
       }
+      // Drop alternate quality rows for the dead provider so the menu cannot
+      // keep advertising e.g. "1080 · Nova" after Nova already failed.
+      s.qualityStreamOptions = s.qualityStreamOptions.filter(
+        (option) => option.sourceId !== sourceId,
+      );
     });
   },
   addFailedEmbed(sourceId: string, embedId: string) {
@@ -749,7 +756,14 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     if (!option) return;
 
     const startAt = store.progress.time;
-    useQualityStore.getState().setAutomaticQuality(false);
+    const previousAutomatic =
+      useQualityStore.getState().quality.automaticQuality;
+    // Proxied HLS (Nova-edge via /api/m3u8-proxy) cannot hard-lock 1080 on the
+    // first fragment — init segments are multi-MB and die. Soft-target the tier
+    // with Auto + climb; extension / direct URLs keep the hard lock.
+    const softHop =
+      option.source.type === "hls" && isUrlAlreadyProxied(option.source.url);
+    useQualityStore.getState().setAutomaticQuality(softHop);
     useQualityStore.getState().setLastChosenQuality(quality);
 
     // Asking for a different tier is not the same as the current stream dying,
@@ -763,6 +777,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
           sourceId: store.sourceId,
           embedId: store.embedId,
           quality: store.currentQuality,
+          automaticQuality: previousAutomatic,
           startAt,
           expiresAt: Date.now() + QUALITY_HOP_PROBATION_MS,
         }
@@ -773,6 +788,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.embedId = option.embedId ?? null;
       s.currentAudioStreamId = null;
       s.qualityHopFallback = fallback;
+      s.mediaPlaying.hasPlayedOnce = false;
     });
     store.setSource(option.source, option.captions, startAt);
   },
@@ -787,6 +803,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
 
     // The tier the user asked for can't be served, so stop pinning it —
     // otherwise the restored stream gets asked for the same missing rung.
+    useQualityStore.getState().setAutomaticQuality(fallback.automaticQuality);
     useQualityStore.getState().setLastChosenQuality(fallback.quality);
     set((s) => {
       s.sourceId = fallback.sourceId;

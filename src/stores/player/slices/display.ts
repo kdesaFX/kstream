@@ -28,13 +28,31 @@ export const createDisplaySlice: MakeSlice<DisplaySlice> = (set, get) => ({
         s.mediaPlaying.isPlaying = false;
       }),
     );
-    newDisplay.on("play", () =>
+    newDisplay.on("play", () => {
       set((s) => {
         s.mediaPlaying.hasPlayedOnce = true;
         s.mediaPlaying.isPaused = false;
         s.mediaPlaying.isPlaying = true;
-      }),
-    );
+      });
+      // Quality hops keep the previous stream until this one is stable. Clearing
+      // on the first loading=false is too early — Nova can buffer a fragment
+      // then die on 1080 through the proxy, which used to dump into the source
+      // checker instead of restoring the working stream.
+      const fallback = get().qualityHopFallback;
+      if (!fallback) return;
+      const expiresAt = fallback.expiresAt;
+      window.setTimeout(() => {
+        const still = get().qualityHopFallback;
+        if (!still || still.expiresAt !== expiresAt) return;
+        if (!get().mediaPlaying.isPlaying || get().mediaPlaying.isLoading) return;
+        if (get().status !== playerStatus.PLAYING) return;
+        set((s) => {
+          if (s.qualityHopFallback?.expiresAt === expiresAt) {
+            s.qualityHopFallback = null;
+          }
+        });
+      }, 8_000);
+    });
     newDisplay.on("fullscreen", (isFullscreen) =>
       set((s) => {
         s.interface.isFullscreen = isFullscreen;
@@ -66,8 +84,6 @@ export const createDisplaySlice: MakeSlice<DisplaySlice> = (set, get) => ({
     newDisplay.on("loading", (isLoading) =>
       set((s) => {
         s.mediaPlaying.isLoading = isLoading;
-        // Buffered means the tier we hopped to works — nothing left to undo.
-        if (!isLoading) s.qualityHopFallback = null;
       }),
     );
     newDisplay.on("qualities", (qualities) => {

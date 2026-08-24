@@ -107,7 +107,8 @@ function pickBestLevelAtOrBelow(
 
 /**
  * Prefer a fast, playable start level.
- * Browser/proxy: start at 1080p AVC when available.
+ * Browser (no extension): start at 720p AVC — 1080 init through the same-origin
+ * m3u8 proxy is multi-MB and regularly kills Nova; climb to 1080 after buffer.
  * Extension or desktop app: start at the highest AVC rung on the ladder.
  */
 function pickBrowserStartLevel(levels: Level[]): Level | null {
@@ -121,7 +122,7 @@ function pickBrowserStartLevel(levels: Level[]): Level | null {
     return sortLevelsByQuality(pool)[0] ?? null;
   }
   return (
-    pickBestLevelAtOrBelow(levels, 1080) ??
+    pickBestLevelAtOrBelow(levels, 720) ??
     sortLevelsByQuality(levels)[0] ??
     null
   );
@@ -709,8 +710,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         }
       }
     } else {
-      // Auto: start at 1080p AVC when the ladder has it, then let ABR hold
-      // there (browser caps at 1080; extension may climb higher).
+      // Auto: start at 720p AVC in the browser (proxy-friendly), then climb to
+      // the 1080 cap. Extension starts at the highest rung with no cap.
       const startLevel = pickBrowserStartLevel(hls.levels);
       const topIndex = startLevel ? hls.levels.indexOf(startLevel) : -1;
       if (topIndex !== -1) {
