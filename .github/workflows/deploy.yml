@@ -79,11 +79,43 @@ jobs:
           VITE_HAS_ONBOARDING: "true"
           VITE_NORMAL_ROUTER: "true"
 
+      - name: Resolve Cloudflare account
+        id: cf
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CF_ACCOUNT_ID" ]; then
+            echo "account_id=$CF_ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+            echo "Using CLOUDFLARE_ACCOUNT_ID secret"
+            exit 0
+          fi
+          if [ -z "$CF_API_TOKEN" ]; then
+            echo "::error::Need CLOUDFLARE_API_TOKEN (or CLOUDFLARE_ACCOUNT_ID)"
+            exit 1
+          fi
+          # Prefer /accounts (Workers token has Account Settings Read).
+          ACCOUNT_ID=$(curl -sf -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts?per_page=50" \
+            | jq -r '.result[0].id // empty')
+          if [ -z "$ACCOUNT_ID" ] && [ -n "$CF_ZONE_ID" ]; then
+            ACCOUNT_ID=$(curl -sf -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}" \
+              | jq -r '.result.account.id // empty')
+          fi
+          if [ -z "$ACCOUNT_ID" ]; then
+            echo "::error::Could not resolve Cloudflare account id from token"
+            exit 1
+          fi
+          echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+          echo "Resolved account id from API"
+
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          accountId: ${{ steps.cf.outputs.account_id }}
           wranglerVersion: "4.54.0"
           command: deploy
 
@@ -96,8 +128,11 @@ jobs:
             echo "Cloudflare purge skipped (CLOUDFLARE_ZONE_ID not set)"
             exit 0
           fi
-          curl -sf -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
+          if curl -sf -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
             -H "Authorization: Bearer ${CF_API_TOKEN}" \
             -H "Content-Type: application/json" \
-            --data '{"purge_everything":true}'
-          echo "Cloudflare cache purged"
+            --data '{"purge_everything":true}'; then
+            echo "Cloudflare cache purged"
+          else
+            echo "Cloudflare cache purge skipped (token may lack Cache Purge)"
+          fi
