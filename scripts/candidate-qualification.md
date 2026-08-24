@@ -130,3 +130,7 @@ Shipped sources today: `fsonline`, `tqq`, `reyna`, `oneembed`, `sevenmovies`, `a
 | `dl.vidzee.wtf` | Downloads only (goodstream pages); v2–v7 blocked |
 
 **Decision:** Do not implement a new source from this hunt. Highest-value follow-up is **fix or disable Reyna** (backend origin down), not adding another wrapper.
+
+## 2026-08-23e — Reyna disabled
+
+`api.reallyfast.xyz` remains CF 1016. Disabled Reyna in `kdesaFX/providers#production` (`786c28b`) so scrapes skip it. Re-enable when a live challenge/resolve host returns.
