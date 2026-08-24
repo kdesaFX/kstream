@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - production
+  pull_request:
+    branches:
+      - production
+  schedule:
+    # Weekly build check on production branch.
+    - cron: "0 13 * * 1"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.14.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
+
+      - name: Build
+        run: pnpm run build
+        env:
+          VITE_TMDB_READ_API_KEY: placeholder
+          VITE_BACKEND_URL: https://example.com
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder
