@@ -47,7 +47,7 @@ function loadAdsterraBanner(
   iframe.setAttribute("loading", "lazy");
   iframe.style.cssText = `width:${width}px;height:${height}px;border:0;overflow:hidden;display:block;max-width:100%;background:transparent;`;
   const src = adScriptSrc(key);
-  iframe.srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=${width}"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}</style></head><body><script>atOptions={key:${JSON.stringify(key)},format:"iframe",height:${height},width:${width},params:{}};<\/script><script src="${src}"><\/script></body></html>`;
+  iframe.srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=${width}"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}</style></head><body><script>atOptions={key:${JSON.stringify(key)},format:"iframe",height:${height},width:${width},params:{}};</script><script src="${src}"></script></body></html>`;
   container.appendChild(iframe);
 }
 
