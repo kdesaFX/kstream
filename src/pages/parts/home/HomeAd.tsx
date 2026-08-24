@@ -33,22 +33,68 @@ function adScriptSrc(key: string): string {
   return `${base}/${key}/invoke.js`;
 }
 
-/** Isolated iframe so multiple banners don't fight over window.atOptions. */
+declare global {
+  interface Window {
+    atOptions?: {
+      key: string;
+      format: string;
+      height: number;
+      width: number;
+      params: Record<string, unknown>;
+    };
+  }
+}
+
+/**
+ * Adsterra's invoke.js bails out when window !== top (anti-iframe).
+ * Load on the real page, one at a time, so atOptions isn't clobbered.
+ */
+let adLoadQueue: Promise<void> = Promise.resolve();
+
 function loadAdsterraBanner(
   container: HTMLElement,
   key: string,
   width: number,
   height: number,
-) {
-  container.replaceChildren();
-  const iframe = document.createElement("iframe");
-  iframe.title = "Advertisement";
-  iframe.setAttribute("scrolling", "no");
-  iframe.setAttribute("loading", "lazy");
-  iframe.style.cssText = `width:${width}px;height:${height}px;border:0;overflow:hidden;display:block;max-width:100%;background:transparent;`;
-  const src = adScriptSrc(key);
-  iframe.srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=${width}"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}</style></head><body><script>atOptions={key:${JSON.stringify(key)},format:"iframe",height:${height},width:${width},params:{}};</script><script src="${src}"></script></body></html>`;
-  container.appendChild(iframe);
+): Promise<void> {
+  const job = () =>
+    new Promise<void>((resolve) => {
+      container.replaceChildren();
+      window.atOptions = {
+        key,
+        format: "iframe",
+        height,
+        width,
+        params: {},
+      };
+
+      const script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src = adScriptSrc(key);
+      script.dataset.cfasync = "false";
+      script.async = false;
+
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        // Give invoke.js time to insert its iframe before the next banner.
+        window.setTimeout(resolve, 400);
+      };
+
+      script.addEventListener("load", finish);
+      script.addEventListener("error", finish);
+      container.appendChild(script);
+      // Safety if neither load nor error fires.
+      window.setTimeout(finish, 5000);
+    });
+
+  const run = adLoadQueue.then(job, job);
+  adLoadQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
 }
 
 interface SlotConfig {
@@ -73,34 +119,36 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
     const container = containerRef.current;
     if (!container || !cfg.key) return;
 
+    let cancelled = false;
     setAdState("loading");
-    loadAdsterraBanner(container, cfg.key, cfg.width, cfg.height);
 
-    const update = () => {
-      const frame = container.querySelector("iframe");
-      if (!frame) return;
-      try {
-        const doc = frame.contentDocument;
-        if (doc?.querySelector("iframe, img, a")) {
+    void loadAdsterraBanner(container, cfg.key, cfg.width, cfg.height).then(
+      () => {
+        if (cancelled) return;
+        if (container.querySelector("iframe, img, a")) {
+          setAdState("loaded");
+        } else {
           setAdState("loaded");
         }
-      } catch {
-        // Cross-origin fill still counts as loaded once the shell iframe exists.
+      },
+    );
+
+    const observer = new MutationObserver(() => {
+      if (cancelled) return;
+      if (container.querySelector("iframe, img, a")) {
         setAdState("loaded");
       }
-    };
-
-    update();
-    const observer = new MutationObserver(update);
+    });
     observer.observe(container, { childList: true, subtree: true });
+
     const timeout = window.setTimeout(() => {
-      setAdState((s) => (s === "loading" ? "loaded" : s));
+      if (!cancelled) setAdState((s) => (s === "loading" ? "loaded" : s));
     }, LOAD_TIMEOUT_MS);
 
     return () => {
+      cancelled = true;
       observer.disconnect();
       window.clearTimeout(timeout);
-      container.replaceChildren();
     };
   }, [cfg.key, cfg.width, cfg.height, isWatchPage]);
 
