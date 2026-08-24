@@ -48,6 +48,7 @@ declare global {
 /**
  * Adsterra's invoke.js bails out when window !== top (anti-iframe).
  * Load on the real page, one at a time, so atOptions isn't clobbered.
+ * Wait until this container gets an iframe (or timeout) before the next slot.
  */
 let adLoadQueue: Promise<void> = Promise.resolve();
 
@@ -70,23 +71,45 @@ function loadAdsterraBanner(
 
       const script = document.createElement("script");
       script.type = "text/javascript";
-      script.src = adScriptSrc(key);
+      script.src = `${adScriptSrc(key)}?t=${Date.now()}`;
       script.dataset.cfasync = "false";
-      script.async = false;
+      // Keep order with the queue; async true lets the browser download without
+      // blocking, but we still serialize via adLoadQueue.
+      script.async = true;
 
       let settled = false;
       const finish = () => {
         if (settled) return;
         settled = true;
-        // Give invoke.js time to insert its iframe before the next banner.
-        window.setTimeout(resolve, 400);
+        resolve();
       };
 
-      script.addEventListener("load", finish);
-      script.addEventListener("error", finish);
+      const observer = new MutationObserver(() => {
+        if (container.querySelector("iframe, img")) finish();
+      });
+      observer.observe(container, { childList: true, subtree: true });
+
+      script.addEventListener("load", () => {
+        // invoke.js starts an async XHR; poll briefly for the creative iframe.
+        const started = Date.now();
+        const poll = window.setInterval(() => {
+          if (container.querySelector("iframe, img") || Date.now() - started > 4000) {
+            window.clearInterval(poll);
+            observer.disconnect();
+            finish();
+          }
+        }, 100);
+      });
+      script.addEventListener("error", () => {
+        observer.disconnect();
+        finish();
+      });
+
       container.appendChild(script);
-      // Safety if neither load nor error fires.
-      window.setTimeout(finish, 5000);
+      window.setTimeout(() => {
+        observer.disconnect();
+        finish();
+      }, 6000);
     });
 
   const run = adLoadQueue.then(job, job);

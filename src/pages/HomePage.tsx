@@ -66,20 +66,8 @@ export function HomePage() {
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showWatching, setShowWatching] = useState(false);
   const [showReading, setShowReading] = useState(false);
-  // Real width check (not a CSS breakpoint) so exactly one <HomeAd> instance
-  // ever mounts -- rendering two copies toggled by CSS visibility both hits
-  // the ad script's dedupe-by-id guard, so whichever one mounts first can
-  // "win" the real script even while sitting in a display:none container,
-  // leaving the visible copy permanently empty.
-  const [hasWideMargins, setHasWideMargins] = useState(false);
-  useEffect(() => {
-    function onResize() {
-      setHasWideMargins(window.innerWidth >= 1536);
-    }
-    onResize();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
+  // Real width check kept only if needed elsewhere; ads always use bottom stack
+  // (Chrome ultra-wide used to swap in a side skyscraper — user prefers two bottom).
   const { showModal } = useOverlayStack();
   const enableDiscover = usePreferencesStore((state) => state.enableDiscover);
   const carouselRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -200,11 +188,6 @@ export function HomePage() {
   return (
     <HomeLayout showBg={s.searching}>
       <div className="relative mb-2">
-        {hasWideMargins && (
-          <div className="absolute right-4 top-2 z-10">
-            <HomeAd slot="secondaryRail" />
-          </div>
-        )}
         <Helmet>
           <style type="text/css">{`
             html, body {
@@ -224,8 +207,9 @@ export function HomePage() {
       </div>
 
       {!search && (
-        <div className="w-full flex justify-center px-4 my-6">
+        <div className="w-full flex flex-col items-center gap-4 px-4 my-6">
           <HomeAd />
+          <HomeAd slot="secondary" />
         </div>
       )}
 
@@ -244,16 +228,7 @@ export function HomePage() {
         </WideContainer>
       )}
 
-      {!search && (
-        <div>
-          {renderHomeSections()}
-          {!hasWideMargins && (
-            <div className="w-full flex justify-center my-6 px-4">
-              <HomeAd slot="secondary" />
-            </div>
-          )}
-        </div>
-      )}
+      {!search && <div>{renderHomeSections()}</div>}
 
       <WideContainer ultraWide classNames="!px-3 md:!px-9">
         {!(showBookmarks || showWatching || showReading) &&
