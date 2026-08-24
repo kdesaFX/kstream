@@ -27,17 +27,24 @@ jobs:
         with:
           node-version: 20
 
+      - name: Checkout providers
+        uses: actions/checkout@v4
+        with:
+          repository: kdesaFX/providers
+          ref: production
+          token: ${{ secrets.PROVIDERS_READ_TOKEN }}
+          path: .providers-src
+
       - name: Build providers from source
         run: |
-          git clone --depth 1 --branch production https://github.com/kdesaFX/providers.git /tmp/providers
-          cd /tmp/providers
+          cd .providers-src
           pnpm install
           pnpm run build
           cd -
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.dependencies['@p-stream/providers'] = 'file:/tmp/providers';
+            pkg.dependencies['@p-stream/providers'] = 'file:./.providers-src';
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
           rm -f pnpm-lock.yaml

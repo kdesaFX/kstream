@@ -26,6 +26,18 @@ jobs:
           node-version: 20
           cache: "pnpm"
 
+      - name: Auth private GitHub deps
+        env:
+          PROVIDERS_READ_TOKEN: ${{ secrets.PROVIDERS_READ_TOKEN }}
+        run: |
+          if [ -z "$PROVIDERS_READ_TOKEN" ]; then
+            echo "::error::PROVIDERS_READ_TOKEN secret required for private providers"
+            exit 1
+          fi
+          printf 'machine github.com\nlogin x-access-token\npassword %s\n\nmachine codeload.github.com\nlogin x-access-token\npassword %s\n' \
+            "$PROVIDERS_READ_TOKEN" "$PROVIDERS_READ_TOKEN" > "$HOME/.netrc"
+          chmod 600 "$HOME/.netrc"
+
       - name: Install pnpm packages
         run: pnpm install
 
