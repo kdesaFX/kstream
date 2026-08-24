@@ -32,6 +32,11 @@ jobs:
         env:
           PUPPETEER_SKIP_DOWNLOAD: "1"
 
+      - name: Build providers dependency
+        run: pnpm --dir node_modules/@p-stream/providers run build
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
+
       - name: Build
         run: pnpm run build
         env:
