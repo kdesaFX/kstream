@@ -34,7 +34,8 @@ const defaultUserData = {
 
 export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
   const { t } = useTranslation();
-  const { register, loginWithGoogle, restore, importData } = useAuth();
+  const { register, loginWithGoogle, loginWithDiscord, restore, importData } =
+    useAuth();
   const progressItems = useProgressStore((store) => store.items);
   const bookmarkItems = useBookmarkStore((store) => store.bookmarks);
   const watchHistoryItems = useWatchHistoryStore((store) => store.items);
@@ -90,6 +91,12 @@ export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
     await loginWithGoogle();
   }, [loginWithGoogle]);
 
+  const [discordResult, doDiscord] = useAsyncFn(async () => {
+    await loginWithDiscord();
+  }, [loginWithDiscord]);
+
+  const oauthBusy = googleResult.loading || discordResult.loading;
+
   return (
     <LargeCard>
       <LargeCardText
@@ -123,9 +130,11 @@ export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
           passwordToggleable
         />
       </div>
-      {(registerResult.error || googleResult.error) && (
+      {(registerResult.error || googleResult.error || discordResult.error) && (
         <p className="mt-3 text-authentication-errorText">
-          {registerResult.error?.message ?? googleResult.error?.message}
+          {registerResult.error?.message ??
+            googleResult.error?.message ??
+            discordResult.error?.message}
         </p>
       )}
       <LargeCardButtons>
@@ -133,7 +142,7 @@ export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
           theme="purple"
           loading={registerResult.loading}
           disabled={
-            googleResult.loading ||
+            oauthBusy ||
             !email.trim() ||
             !password ||
             !confirmPassword
@@ -155,13 +164,25 @@ export function RegisterCredentialsPart(props: RegisterCredentialsPartProps) {
         <Button
           theme="secondary"
           loading={googleResult.loading}
-          disabled={registerResult.loading}
+          disabled={registerResult.loading || discordResult.loading}
           onClick={() => doGoogle()}
           className="w-full"
         >
           <span className="inline-flex items-center gap-2">
             <Icon icon={Icons.GOOGLE} className="text-xl leading-none" />
             {t("auth.login.google") ?? "Continue with Google"}
+          </span>
+        </Button>
+        <Button
+          theme="secondary"
+          loading={discordResult.loading}
+          disabled={registerResult.loading || googleResult.loading}
+          onClick={() => doDiscord()}
+          className="w-full"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Icon icon={Icons.DISCORD} className="text-xl leading-none" />
+            {t("auth.login.discord") ?? "Continue with Discord"}
           </span>
         </Button>
       </LargeCardButtons>

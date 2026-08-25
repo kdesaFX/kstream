@@ -530,20 +530,32 @@ export async function getAuthProviderInfo(): Promise<{
   hasPassword: boolean;
   email: string | null;
   isGoogle: boolean;
+  isDiscord: boolean;
 }> {
   const { data } = await getSupabase().auth.getUser();
   const user = data.user;
-  if (!user) return { hasPassword: false, email: null, isGoogle: false };
+  if (!user) {
+    return {
+      hasPassword: false,
+      email: null,
+      isGoogle: false,
+      isDiscord: false,
+    };
+  }
   const providers = user.app_metadata?.providers as string[] | undefined;
-  const isGoogle = Boolean(
-    user.app_metadata?.provider === "google" ||
-      providers?.includes("google") ||
-      user.identities?.some((i) => i.provider === "google"),
-  );
+  const hasProvider = (name: string) =>
+    Boolean(
+      user.app_metadata?.provider === name ||
+        providers?.includes(name) ||
+        user.identities?.some((i) => i.provider === name),
+    );
+  const isGoogle = hasProvider("google");
+  const isDiscord = hasProvider("discord");
   return {
-    hasPassword: !isGoogle && Boolean(user.email),
+    hasPassword: !isGoogle && !isDiscord && Boolean(user.email),
     email: user.email ?? null,
     isGoogle,
+    isDiscord,
   };
 }
 
@@ -593,7 +605,7 @@ export async function signInWithEmail(email: string, password: string, deviceNam
   return accountFromSession(data.session);
 }
 
-export async function signInWithGoogle() {
+async function signInWithOAuthProvider(provider: "google" | "discord") {
   // OAuth leaves this tab; flag so the return trip merges guest libraries.
   try {
     sessionStorage.setItem("kstream::merge-guest-on-auth", "1");
@@ -602,10 +614,18 @@ export async function signInWithGoogle() {
   }
   const redirectTo = `${window.location.origin}/`;
   const { error } = await getSupabase().auth.signInWithOAuth({
-    provider: "google",
+    provider,
     options: { redirectTo },
   });
   if (error) throw error;
+}
+
+export async function signInWithGoogle() {
+  await signInWithOAuthProvider("google");
+}
+
+export async function signInWithDiscord() {
+  await signInWithOAuthProvider("discord");
 }
 
 export async function signOut(scope: "local" | "global" = "local") {

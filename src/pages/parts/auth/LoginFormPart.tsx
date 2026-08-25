@@ -27,7 +27,8 @@ export function LoginFormPart(props: LoginFormPartProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [device, setDevice] = useState("This device");
-  const { login, loginWithGoogle, restore, importData } = useAuth();
+  const { login, loginWithGoogle, loginWithDiscord, restore, importData } =
+    useAuth();
   const progressItems = useProgressStore((store) => store.items);
   const bookmarkItems = useBookmarkStore((store) => store.bookmarks);
   const watchHistoryItems = useWatchHistoryStore((store) => store.items);
@@ -82,6 +83,12 @@ export function LoginFormPart(props: LoginFormPartProps) {
     await loginWithGoogle();
   }, [loginWithGoogle]);
 
+  const [discordResult, executeDiscord] = useAsyncFn(async () => {
+    await loginWithDiscord();
+  }, [loginWithDiscord]);
+
+  const oauthBusy = googleResult.loading || discordResult.loading;
+
   return (
     <LargeCard top={<BrandPill backgroundClass="bg-[#161527]" />}>
       <LargeCardText title={t("auth.login.title")}>
@@ -121,7 +128,7 @@ export function LoginFormPart(props: LoginFormPartProps) {
         <Button
           theme="purple"
           loading={loginResult.loading}
-          disabled={googleResult.loading}
+          disabled={oauthBusy}
           onClick={() => executeLogin(email, password, device)}
         >
           {t("auth.login.submit")}
@@ -139,7 +146,7 @@ export function LoginFormPart(props: LoginFormPartProps) {
         <Button
           theme="secondary"
           loading={googleResult.loading}
-          disabled={loginResult.loading}
+          disabled={loginResult.loading || discordResult.loading}
           onClick={() => executeGoogle()}
           className="w-full"
         >
@@ -148,9 +155,21 @@ export function LoginFormPart(props: LoginFormPartProps) {
             {t("auth.login.google") ?? "Continue with Google"}
           </span>
         </Button>
-        {googleResult.error ? (
+        <Button
+          theme="secondary"
+          loading={discordResult.loading}
+          disabled={loginResult.loading || googleResult.loading}
+          onClick={() => executeDiscord()}
+          className="w-full"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Icon icon={Icons.DISCORD} className="text-xl leading-none" />
+            {t("auth.login.discord") ?? "Continue with Discord"}
+          </span>
+        </Button>
+        {googleResult.error || discordResult.error ? (
           <p className="text-authentication-errorText text-center">
-            {googleResult.error.message}
+            {(googleResult.error ?? discordResult.error)?.message}
           </p>
         ) : null}
       </LargeCardButtons>

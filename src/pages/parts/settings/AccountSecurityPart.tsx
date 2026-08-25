@@ -81,6 +81,8 @@ export function AccountSecurityPart(props: { account: AccountWithToken }) {
   if (statusResult.loading || !status) return null;
 
   const isGoogle = status.isGoogle;
+  const isDiscord = status.isDiscord;
+  const isOAuthOnly = isGoogle || isDiscord;
 
   return (
     <div id="settings-account-security" className="pt-6">
@@ -93,10 +95,13 @@ export function AccountSecurityPart(props: { account: AccountWithToken }) {
           <h3 className="font-bold text-white">
             {t("settings.account.security.passwordTitle") ?? "Password"}
           </h3>
-          {isGoogle ? (
+          {isOAuthOnly ? (
             <Paragraph className="!mt-0 text-sm">
-              {t("settings.account.security.googleLinked") ??
-                "This account uses Google sign-in. Password changes are managed through Google."}
+              {isDiscord
+                ? (t("settings.account.security.discordLinked") ??
+                  "This account uses Discord sign-in. Password changes are managed through Discord.")
+                : (t("settings.account.security.googleLinked") ??
+                  "This account uses Google sign-in. Password changes are managed through Google.")}
             </Paragraph>
           ) : showPasswordForm ? (
             <ChangePasswordForm onDone={() => setShowPasswordForm(false)} />

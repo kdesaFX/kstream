@@ -206,7 +206,7 @@
     },
     "hasAccount": "Already have an account? <0>Login here.</0>",
     "login": {
-      "description": "Sign in with your email and password, or continue with Google.",
+      "description": "Sign in with your email and password, or continue with Google or Discord.",
       "deviceLengthError": "Please enter a device name",
       "passphraseLabel": "12-Word passphrase",
       "passphrasePlaceholder": "Passphrase",
@@ -217,6 +217,7 @@
       "usePassphrase": "Log in with a recovery phrase instead",
       "or": "or",
       "google": "Continue with Google",
+      "discord": "Continue with Discord",
       "noBackendUrl": "Accounts are not configured"
     },
     "register": {
@@ -1338,6 +1339,7 @@
         "passwordSetGeneric": "You can change your account password here.",
         "emailSignedIn": "Signed in as {{email}}",
         "googleLinked": "This account uses Google sign-in. Password changes are managed through Google.",
+        "discordLinked": "This account uses Discord sign-in. Password changes are managed through Discord.",
         "changePasswordAction": "Change password",
         "changePasswordSubmit": "Change password",
         "passwordTooShort": "Password must be at least 6 characters",

@@ -29,6 +29,7 @@ import {
   onAuthStateChange,
   signInWithEmail,
   signInWithGoogle,
+  signInWithDiscord,
   signUpWithEmail,
 } from "@/backend/supabase/data";
 import { useAuthData } from "@/hooks/auth/useAuthData";
@@ -196,6 +197,10 @@ export function useAuth() {
     await signInWithGoogle();
   }, []);
 
+  const loginWithDiscord = useCallback(async () => {
+    await signInWithDiscord();
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await sbSignOut("", currentAccount?.token ?? "", "local");
@@ -341,6 +346,7 @@ export function useAuth() {
     login,
     register,
     loginWithGoogle,
+    loginWithDiscord,
     logout,
     signOutEverywhere,
     disconnectFromBackend,

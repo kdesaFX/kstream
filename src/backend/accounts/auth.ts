@@ -7,6 +7,7 @@ export interface AuthStatusResponse {
   email: string | null;
   hasPasskey: boolean;
   isGoogle: boolean;
+  isDiscord: boolean;
 }
 
 export interface SessionResponse {
@@ -40,5 +41,6 @@ export async function getAuthStatus(
     email: info.email,
     hasPasskey: false,
     isGoogle: info.isGoogle,
+    isDiscord: info.isDiscord,
   };
 }
