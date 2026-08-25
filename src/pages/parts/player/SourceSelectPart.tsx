@@ -16,6 +16,7 @@ import {
   usePreferencesStore,
 } from "@/stores/preferences";
 import { orderSourcesForPlayback, detectPlaybackEnv } from "@/utils/media/sourceOrder";
+import { isDeferredRegionalSource } from "@/utils/media/regionalSources";
 
 // Embed option component
 function EmbedOption(props: {
@@ -168,7 +169,8 @@ export function SourceSelectPart(props: { media: ScrapeMedia }) {
     if (!metaType) return [];
     const allSources = getCachedMetadata()
       .filter((v) => v.type === "source")
-      .filter((v) => v.mediaTypes?.includes(metaType));
+      .filter((v) => v.mediaTypes?.includes(metaType))
+      .filter((v) => !isDeferredRegionalSource(v.id));
 
     const prioritizeSource = enableLastSuccessfulSource
       ? getPreferredSourceForTitle(

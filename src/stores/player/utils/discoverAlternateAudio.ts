@@ -7,25 +7,17 @@ import { getMediaKey, playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { streamsToAudioOptions } from "@/stores/player/utils/audioStreams";
 import { streamsToQualityOptions } from "@/stores/player/utils/qualityStreams";
+import {
+  isDeferredRegionalSource,
+  missingRegionalLanguages,
+  orderRankedCandidates,
+  orderRegionalCandidates,
+} from "@/utils/media/regionalSources";
 
-/**
- * Discovery now feeds quality tiers as well as audio tracks, and identifying a
- * ladder is a cached background read rather than something the loop waits on.
- * A five-source budget was tuned for the old serial behaviour and left the
- * higher tiers on later-ranked sources undiscovered.
- */
 const DEFAULT_MAX_SOURCE_ATTEMPTS = 8;
-/**
- * Let the primary stream get its first fragments away before scraping others.
- * Scrapes are small API calls rather than media, so this only has to clear the
- * initial burst — a longer head start just delays the alternate options.
- */
+const REGIONAL_DISCOVERY_MAX_ATTEMPTS = 10;
 const DISCOVERY_START_DELAY_MS = 1_500;
 const BETWEEN_SOURCE_YIELD_MS = 350;
-/**
- * Probe a few providers at once. Sequential scraping meant the first alternate
- * option waited on the slowest earlier source, which took ~10s to surface.
- */
 const DISCOVERY_CONCURRENCY = 3;
 const WORKER_STAGGER_MS = 150;
 
@@ -34,19 +26,6 @@ function delay(ms: number): Promise<void> {
     window.setTimeout(resolve, ms);
   });
 }
-
-/** Sources known to often provide Spanish audio — try early when `es` is missing. */
-const SPANISH_LEANING_SOURCES = new Set([
-  "pelisplushd",
-  "cuevana3",
-  "cinehdplus",
-]);
-/**
- * How many Spanish-leaning sources may jump the ranked order. Promoting all of
- * them handed most of the budget to providers picked for their audio, so the
- * ranked sources that carry 1080p and 4K never got looked at.
- */
-const SPANISH_PRIORITY_SLOTS = 1;
 
 function haveEnoughLanguages(languages: Set<string>): boolean {
   if (languages.has("en") && languages.has("es")) return true;
@@ -91,25 +70,24 @@ function stillSameMedia(mediaKey: string): boolean {
   );
 }
 
+export function buildDiscoveryCandidates(
+  sourceIds: string[],
+  have: Set<string>,
+): string[] {
+  const regional = sourceIds.filter(isDeferredRegionalSource);
+  const ranked = sourceIds.filter((id) => !isDeferredRegionalSource(id));
+  return [
+    ...orderRegionalCandidates(regional, have),
+    ...orderRankedCandidates(ranked),
+  ];
+}
+
+/** @deprecated Use buildDiscoveryCandidates — kept for unit tests. */
 export function orderCandidates(
   sourceIds: string[],
   have: Set<string>,
 ): string[] {
-  if (have.has("es")) return [...sourceIds];
-
-  const prefer: string[] = [];
-  const rest: string[] = [];
-  for (const id of sourceIds) {
-    if (
-      SPANISH_LEANING_SOURCES.has(id) &&
-      prefer.length < SPANISH_PRIORITY_SLOTS
-    ) {
-      prefer.push(id);
-      continue;
-    }
-    rest.push(id);
-  }
-  return [...prefer, ...rest];
+  return buildDiscoveryCandidates(sourceIds, have);
 }
 
 async function registerStreams(
@@ -118,15 +96,11 @@ async function registerStreams(
   embedId: string | null,
   mediaKey: string,
 ): Promise<void> {
-  // Read languages live — workers run concurrently, so a captured snapshot
-  // goes stale as soon as a sibling registers something.
   const have = currentLanguages();
   const missing = streams.filter((stream) => {
     const lang = stream.audioLanguage?.trim();
     return lang && !have.has(lang);
   });
-  // One prepareStream call is enough for extension proxy warmup when an
-  // alternate audio stream needs registering.
   if (missing.length && isExtensionActiveCached()) {
     try {
       await prepareStream(missing[0]);
@@ -141,10 +115,6 @@ async function registerStreams(
       streamsToAudioOptions(missing, sourceId, embedId),
     );
   }
-  // Identifying which tiers a stream offers means reading the other source's
-  // manifest, and a cold origin can take its time. Nothing here depends on the
-  // answer — the menu just gains rows once it lands — so don't hold this
-  // source, or the ones queued behind it, waiting for the read.
   void streamsToQualityOptions(streams, sourceId, embedId).then((options) => {
     if (!stillSameMedia(mediaKey)) return;
     usePlayerStore.getState().registerQualityStreamOptions(options);
@@ -188,9 +158,8 @@ async function scrapeCandidate(
 }
 
 /**
- * After primary playback starts, quietly scrape other sources for streams that
- * expose a different audioLanguage or additional quality tiers.
- * Non-blocking; aborts if the user leaves the title.
+ * After primary playback starts, quietly scrape regional dub sources and other
+ * ranked sources for extra audio languages / quality tiers.
  */
 export async function discoverAlternateAudioLanguages(opts: {
   media: ScrapeMedia;
@@ -201,17 +170,24 @@ export async function discoverAlternateAudioLanguages(opts: {
   await delay(DISCOVERY_START_DELAY_MS);
   if (!stillSameMedia(opts.mediaKey)) return;
 
-  const maxAttempts = opts.maxAttempts ?? DEFAULT_MAX_SOURCE_ATTEMPTS;
+  const have = currentLanguages();
+  const regionalMissing = missingRegionalLanguages(have);
+  const maxAttempts =
+    opts.maxAttempts ??
+    (regionalMissing.size > 0
+      ? REGIONAL_DISCOVERY_MAX_ATTEMPTS
+      : DEFAULT_MAX_SOURCE_ATTEMPTS);
+
   const providers = getProviders();
   const failed =
     usePlayerStore.getState().failedSourcesPerMedia[opts.mediaKey] ?? [];
 
-  const candidates = orderCandidates(
+  const candidates = buildDiscoveryCandidates(
     providers
       .listSources()
       .map((s) => s.id)
       .filter((id) => id !== opts.skipSourceId && !failed.includes(id)),
-    currentLanguages(),
+    have,
   );
 
   if (haveEnoughAlternates()) return;

@@ -21,6 +21,10 @@ import {
 } from "@/stores/preferences/deviceProfile";
 import { isAutoplayAllowed } from "@/utils/media/autoplay";
 import { getLocaleInfo, sortLangCodes } from "@/utils/locale/language";
+import {
+  excludeDeferredFromPrimary,
+  isDeferredRegionalSource,
+} from "@/utils/media/regionalSources";
 
 function Section({
   title,
@@ -173,15 +177,37 @@ export function PreferencesPart(props: {
   );
 
   const allSources = getAllProviders().listSources();
+  const primarySourceIds = useMemo(
+    () => excludeDeferredFromPrimary(allSources.map((s) => s.id)),
+    [allSources],
+  );
 
   const sourceItems = useMemo(() => {
     const currentDeviceSources = getProviders().listSources();
-    return props.sourceOrder.map((id) => ({
+    const orderedPrimary = props.sourceOrder.filter(
+      (id) => !isDeferredRegionalSource(id),
+    );
+    const trailing = primarySourceIds.filter(
+      (id) => !orderedPrimary.includes(id),
+    );
+    return [...orderedPrimary, ...trailing].map((id) => ({
       id,
       name: allSources.find((s) => s.id === id)?.name || id,
       disabled: !currentDeviceSources.find((s) => s.id === id),
     }));
-  }, [props.sourceOrder, allSources]);
+  }, [props.sourceOrder, allSources, primarySourceIds]);
+
+  const regionalSourceItems = useMemo(
+    () =>
+      allSources
+        .filter((s) => isDeferredRegionalSource(s.id))
+        .map((s) => ({
+          id: s.id,
+          name: s.name,
+          disabled: true,
+        })),
+    [allSources],
+  );
 
   const minimumResolutionOptions = useMemo(
     () => [
@@ -450,6 +476,23 @@ export function PreferencesPart(props: {
                     }
                   />
                 </div>
+                {regionalSourceItems.length > 0 ? (
+                  <div className="px-1 space-y-2 border-t border-white/10 pt-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                      {t(
+                        "settings.preferences.regionalDubsLabel",
+                        "Regional dubs (background)",
+                      )}
+                    </p>
+                    <p className="text-sm text-type-secondary leading-snug">
+                      {t(
+                        "settings.preferences.regionalDubsDescription",
+                        "Checked after playback starts to add Spanish, Italian, and other dubs without slowing your first source.",
+                      )}
+                    </p>
+                    <SortableList items={regionalSourceItems} setItems={() => {}} />
+                  </div>
+                ) : null}
                 <div className="flex flex-wrap gap-2">
                   {sourceItems.length > 10 && (
                     <Button
@@ -472,9 +515,7 @@ export function PreferencesPart(props: {
                   )}
                   <Button
                     theme="secondary"
-                    onClick={() =>
-                      props.setSourceOrder(allSources.map((s) => s.id))
-                    }
+                    onClick={() => props.setSourceOrder(primarySourceIds)}
                   >
                     {t("settings.reset")}
                   </Button>

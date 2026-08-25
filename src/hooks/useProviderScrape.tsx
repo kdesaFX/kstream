@@ -22,6 +22,7 @@ import {
   usePreferencesStore,
 } from "@/stores/preferences";
 import { isAnimeSourceId, isAnimeTitle } from "@/utils/media/anime";
+import { excludeDeferredFromPrimary } from "@/utils/media/regionalSources";
 import {
   orderSourceIdsForPlayback,
   detectPlaybackEnv,
@@ -303,7 +304,9 @@ export function useScrape() {
         : {};
 
       // Start with all available sources (DO NOT filter failed ones yet, so we can find startFromSourceId)
-      let baseSourceOrder = allSources.map((source) => source.id);
+      let baseSourceOrder = excludeDeferredFromPrimary(
+        allSources.map((source) => source.id),
+      );
 
       // Apply custom source ordering if enabled
       if (enableSourceOrder && (preferredSourceOrder || []).length > 0) {
