@@ -27,28 +27,10 @@ jobs:
         with:
           node-version: 20
 
-      - name: Checkout providers
-        uses: actions/checkout@v4
-        with:
-          repository: kdesaFX/providers
-          ref: production
-          ssh-key: ${{ secrets.PROVIDERS_DEPLOY_KEY }}
-          path: .providers-src
-
-      - name: Build providers from source
-        run: |
-          cd .providers-src
-          pnpm install
-          pnpm run build
-          cd -
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.dependencies['@p-stream/providers'] = 'file:./.providers-src';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
-          rm -f pnpm-lock.yaml
+      - name: Prepare providers
+        run: node scripts/prepare-providers.mjs
         env:
+          PROVIDERS_DEPLOY_KEY: ${{ secrets.PROVIDERS_DEPLOY_KEY }}
           PUPPETEER_SKIP_DOWNLOAD: "1"
 
       - name: Install

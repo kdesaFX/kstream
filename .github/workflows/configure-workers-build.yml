@@ -1,0 +1,57 @@
+name: Configure Workers Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  configure:
+    name: Patch Cloudflare Workers Builds settings
+    runs-on: ubuntu-latest
+    env:
+      CF_ACCOUNT_ID: 9ab13b1e93e6b589c918dbe9c340134b
+      CF_SCRIPT_NAME: kstream
+      CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PROVIDERS_DEPLOY_KEY: ${{ secrets.PROVIDERS_DEPLOY_KEY }}
+    steps:
+      - name: Require secrets
+        run: |
+          test -n "$CF_API_TOKEN" || { echo "::error::CLOUDFLARE_API_TOKEN missing"; exit 1; }
+          test -n "$PROVIDERS_DEPLOY_KEY" || { echo "::error::PROVIDERS_DEPLOY_KEY missing"; exit 1; }
+
+      - name: Update build triggers
+        run: |
+          set -euo pipefail
+          triggers="$(curl -sf \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/workers/${CF_SCRIPT_NAME}/triggers")"
+          echo "$triggers" | jq -e '.success' >/dev/null
+
+          echo "$triggers" | jq -c '.result[]' | while read -r trigger; do
+            uuid="$(echo "$trigger" | jq -r '.trigger_uuid')"
+            name="$(echo "$trigger" | jq -r '.trigger_name')"
+            echo "Updating trigger ${name} (${uuid})"
+
+            curl -sf \
+              -X PATCH \
+              -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/triggers/${uuid}" \
+              --data '{"build_command":"pnpm run build:workers","deploy_command":"pnpm exec wrangler deploy"}' \
+              | jq -e '.success' >/dev/null
+
+            curl -sf \
+              -X PATCH \
+              -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/triggers/${uuid}/environment_variables" \
+              --data "$(jq -n \
+                --arg key "$PROVIDERS_DEPLOY_KEY" \
+                '{
+                  SKIP_DEPENDENCY_INSTALL: { value: "1", is_secret: false },
+                  PROVIDERS_DEPLOY_KEY: { value: $key, is_secret: true },
+                  PUPPETEER_SKIP_DOWNLOAD: { value: "1", is_secret: false }
+                }')" \
+              | jq -e '.success' >/dev/null
+          done
+
+          echo "Cloudflare Workers Builds configured for private providers checkout."
