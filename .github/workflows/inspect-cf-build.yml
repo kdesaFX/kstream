@@ -1,0 +1,58 @@
+name: Inspect Cloudflare Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_uuid:
+        description: Cloudflare build UUID (optional; latest if empty)
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      CF_ACCOUNT_ID: 9ab13b1e93e6b589c918dbe9c340134b
+      CF_SCRIPT_NAME: kstream
+      CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      BUILD_UUID: ${{ inputs.build_uuid }}
+    steps:
+      - name: Inspect
+        run: |
+          set -euo pipefail
+          worker_tag="$(curl -sf \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts" \
+            | jq -r --arg name "${CF_SCRIPT_NAME}" '.result[] | select(.id == $name) | .tag' | head -n1)"
+
+          if [ -z "${BUILD_UUID}" ]; then
+            BUILD_UUID="$(curl -sf \
+              -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/workers/${worker_tag}/builds" \
+              | jq -r '.result[0].build_uuid')"
+          fi
+          echo "Inspecting ${BUILD_UUID}"
+
+          info="$(curl -sf \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/builds/${BUILD_UUID}")"
+          echo "$info" | jq '{
+            status: .result.status,
+            build_outcome: .result.build_outcome,
+            created_on: .result.created_on,
+            stopped_on: .result.stopped_on,
+            build_command: .result.trigger.build_command,
+            deploy_command: .result.trigger.deploy_command
+          }'
+
+          # Newest Cloudflare Builds logs API returns { result: { lines: [[ts, msg], ...] } }
+          logs="$(curl -sf \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/builds/${BUILD_UUID}/logs")"
+          echo "----- last 80 log lines -----"
+          echo "$logs" | jq -r '
+            (.result.lines // [])
+            | .[-80:][]
+            | (if type=="array" then .[1] else (.message // .line // tostring) end)
+          '
