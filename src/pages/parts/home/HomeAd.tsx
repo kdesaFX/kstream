@@ -281,7 +281,7 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
   if (dismissed) return null;
 
   return (
-    <div className="relative mx-auto w-full max-w-[640px] rounded-[0.95rem] bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group">
+    <div className="relative mx-auto w-full max-w-[640px] lg:mx-0 rounded-[0.95rem] bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group">
       <button
         onClick={dismiss}
         type="button"
@@ -349,7 +349,7 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
         : null;
     if (!gifUrl && !primarySlot) return null;
     return (
-      <div className="flex w-full flex-col items-center gap-3">
+      <div className="flex w-full max-w-[640px] lg:w-auto lg:max-w-none flex-col items-center gap-3 shrink-0">
         {gifUrl && (
           <PrimaryGifBanner img={PRIMARY_BANNER_GIF_SRC} href={gifUrl} />
         )}
@@ -398,15 +398,17 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
     );
   }
 
-  // secondary — mid-page MREC
+  // secondary — mid-page MREC (sits beside primary on large screens)
   if (!cfg.ENABLE_SECONDARY_AD || !cfg.SECONDARY_AD_ZONE_ID) return null;
   return (
-    <AdSlotInner
-      cfg={{
-        key: cfg.SECONDARY_AD_ZONE_ID,
-        width: 300,
-        height: 250,
-      }}
-    />
+    <div className="shrink-0">
+      <AdSlotInner
+        cfg={{
+          key: cfg.SECONDARY_AD_ZONE_ID,
+          width: 300,
+          height: 250,
+        }}
+      />
+    </div>
   );
 }
