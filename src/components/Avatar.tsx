@@ -32,7 +32,7 @@ function isKnownUserIcon(icon: string): icon is UserIcons {
 export function Avatar(props: AvatarProps) {
   const photo = props.profile.avatarUrl;
   const letter = avatarLetterFromNickname(props.nickname);
-  const knownIcon = isKnownUserIcon(props.profile.icon);
+  const icon = props.profile.icon;
 
   return (
     <div className="relative inline-block">
@@ -66,8 +66,8 @@ export function Avatar(props: AvatarProps) {
           >
             {letter}
           </span>
-        ) : knownIcon ? (
-          <UserIcon className={props.iconClass} icon={knownIcon} />
+        ) : isKnownUserIcon(icon) ? (
+          <UserIcon className={props.iconClass} icon={icon} />
         ) : (
           <Icon className={props.iconClass} icon={Icons.USER} />
         )}
