@@ -95,12 +95,20 @@ export async function getChapterPages(
       },
       force,
     );
+    if (pages.length === 0) continue;
+    // Drop wrong-series mirrors (e.g. shared-word WeebCentral hits). Catalog
+    // chapter ids are usually fine; this guards number-based contamination.
     if (
-      pages.length > 0 &&
-      pagesBelongToTitle(pages, fallback?.title, fallback?.alternateTitles ?? [])
+      fallback?.title &&
+      !pagesBelongToTitle(
+        pages,
+        fallback.title,
+        fallback.alternateTitles ?? [],
+      )
     ) {
-      return pages;
+      continue;
     }
+    return pages;
   }
 
   if (fallback?.title && fallback.chapter?.trim()) {

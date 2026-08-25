@@ -97,6 +97,8 @@ export function MangaReaderView() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const pageChapterIdRef = useRef<string | undefined>(undefined);
   const skipChapterResumeRef = useRef(false);
+  /** Empty stubs we already bounced past so we don't loop forever. */
+  const skippedEmptyRef = useRef<Set<string>>(new Set());
 
   const chapterId = chapterParam ? decodeURIComponent(chapterParam) : undefined;
   const externalChapter =
@@ -154,17 +156,23 @@ export function MangaReaderView() {
     };
   }, [mangaId, preferredLanguage]);
 
-  // Redirect /manga/:id → first chapter or resume after meaningful read
+  // Redirect /manga/:id → first readable chapter or resume after meaningful read
   useEffect(() => {
     if (!mangaId || !details || chapterId) return;
+    skippedEmptyRef.current = new Set();
     const resume = savedProgress[mangaId];
     const resumeStillValid =
       resume &&
       mangaProgressHasMeaningfulRead(resume) &&
       details.chapters.some((ch) => ch.id === resume.chapterId);
-    const target = resumeStillValid
-      ? resume.chapterId
-      : details.chapters[0]?.id;
+    const firstReadable =
+      details.chapters.find(
+        (ch) =>
+          (ch.pages ?? 0) > 0 ||
+          ch.source === "weebcentral" ||
+          ch.source === "comick",
+      )?.id ?? details.chapters[0]?.id;
+    const target = resumeStillValid ? resume.chapterId : firstReadable;
     if (target) {
       navigate(mangaChapterLink(details.id, details.title, target), {
         replace: true,
@@ -195,7 +203,10 @@ export function MangaReaderView() {
     async (id: string, force = false) => {
       setLoading(true);
       setError(null);
-      if (force) retried.current = false;
+      if (force) {
+        retried.current = false;
+        skippedEmptyRef.current.delete(id);
+      }
       try {
         const urls = await getChapterPages(
           id,
@@ -209,6 +220,23 @@ export function MangaReaderView() {
           force,
         );
         if (urls.length === 0) {
+          // Licensed / external stubs: jump to the next chapter that might work.
+          skippedEmptyRef.current.add(id);
+          const idx = chapters.findIndex((c) => c.id === id);
+          const nextReadable =
+            idx >= 0
+              ? chapters
+                  .slice(idx + 1)
+                  .find((c) => !skippedEmptyRef.current.has(c.id))
+              : undefined;
+          if (nextReadable && details) {
+            skipChapterResumeRef.current = true;
+            navigate(
+              mangaChapterLink(details.id, details.title, nextReadable.id),
+              { replace: true },
+            );
+            return;
+          }
           setError(t("manga.reader.emptyChapter"));
           setPages([]);
           return;
@@ -222,7 +250,14 @@ export function MangaReaderView() {
         setLoading(false);
       }
     },
-    [t, details?.id, details?.title, details?.alternateTitles, currentChapter?.chapter, preferredLanguage],
+    [
+      t,
+      details,
+      chapters,
+      currentChapter?.chapter,
+      preferredLanguage,
+      navigate,
+    ],
   );
 
   useEffect(() => {

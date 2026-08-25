@@ -522,23 +522,27 @@ async function loadChapters(
       const entry = vol.chapters[chKey];
       if (externalIds.has(entry.id)) continue;
       const full = byId.get(entry.id);
+      // Aggregate can list ids that aren't in the feed (or are empty stubs).
+      // Never surface those — they produce "no pages" in the reader.
+      if (!full || (full.attributes.pages ?? 0) <= 0) continue;
       chapters.push({
         id: entry.id,
         volume: vol.volume === "none" ? null : vol.volume,
         chapter: entry.chapter === "none" ? null : entry.chapter,
-        title: full?.attributes.title ?? null,
-        pages: full?.attributes.pages ?? 0,
+        title: full.attributes.title ?? null,
+        pages: full.attributes.pages ?? 0,
         translatedLanguage:
-          full?.attributes.translatedLanguage ?? preferredLanguage,
-        publishAt: full?.attributes.publishAt,
+          full.attributes.translatedLanguage ?? preferredLanguage,
+        publishAt: full.attributes.publishAt,
       });
     }
   }
 
-  // If aggregate was empty, use feed as-is (skip external-only chapters).
+  // If aggregate was empty, use feed as-is (skip external / empty stubs).
   if (chapters.length === 0) {
     for (const c of feedData) {
       if (c.attributes.externalUrl) continue;
+      if ((c.attributes.pages ?? 0) <= 0) continue;
       chapters.push({
         id: c.id,
         volume: c.attributes.volume ?? null,

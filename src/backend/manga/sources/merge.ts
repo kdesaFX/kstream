@@ -26,8 +26,8 @@ export interface MergedChapters {
 }
 
 /**
- * Union chapters by chapter number. For each number, keep the highest-priority
- * source as primary and stash the rest for page-load fallback.
+ * Union chapters by chapter number. Prefer a source that actually has pages
+ * when MangaDex only has a licensed stub (pages: 0 / external).
  */
 export function mergeChapterLists(
   lists: { source: MangaSource; chapters: MangaChapter[] }[],
@@ -37,6 +37,13 @@ export function mergeChapterLists(
     { primary: MangaChapter; alts: string[] }
   >();
 
+  const readableScore = (ch: MangaChapter) => {
+    if ((ch.pages ?? 0) > 0) return 1;
+    // WC/Comick chapter lists don't include page counts — treat as readable.
+    if (ch.source === "weebcentral" || ch.source === "comick") return 1;
+    return 0;
+  };
+
   for (const list of lists) {
     for (const ch of list.chapters) {
       const key = ch.chapter?.trim() || ch.id;
@@ -45,15 +52,17 @@ export function mergeChapterLists(
         byNumber.set(key, { primary: ch, alts: [] });
         continue;
       }
+      const curRead = readableScore(existing.primary);
+      const newRead = readableScore(ch);
       const curPri = sourcePriority(existing.primary.source);
       const newPri = sourcePriority(ch.source);
-      if (newPri < curPri) {
+
+      // A readable mirror beats an empty MangaDex official stub.
+      if (newRead > curRead || (newRead === curRead && newPri < curPri)) {
         byNumber.set(key, {
           primary: ch,
           alts: [existing.primary.id, ...existing.alts],
         });
-      } else if (newPri > curPri) {
-        existing.alts.push(ch.id);
       } else if (existing.primary.id !== ch.id) {
         existing.alts.push(ch.id);
       }

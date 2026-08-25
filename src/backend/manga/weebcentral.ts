@@ -199,7 +199,17 @@ export function pagesBelongToTitle(
   if (!title || pages.length === 0) return true;
   const slug = pages.map(seriesSlugFromPageUrl).find(Boolean);
   if (!slug) return true;
-  return titlesCompatible(title, slug, alternateTitles);
+  if (titlesCompatible(title, slug, alternateTitles)) return true;
+  // Official CDNs often use the romaji folder name; accept when the distinctive
+  // proper noun from the English title appears in the slug (Nagatoro, etc.).
+  const tokens = significantTokens(title).filter(
+    (token) => token.length >= 6 && !isGenericSearchToken(token),
+  );
+  if (tokens.length === 1) {
+    const hay = normalizeMangaTitle(slug);
+    if (hay.includes(tokens[0])) return true;
+  }
+  return false;
 }
 
 function parseStrongList(html: string, label: string): string[] {

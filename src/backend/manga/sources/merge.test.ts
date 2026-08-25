@@ -8,13 +8,14 @@ function ch(
   id: string,
   chapter: string,
   source: MangaChapter["source"],
+  pages = 0,
 ): MangaChapter {
   return {
     id,
     volume: null,
     chapter,
     title: null,
-    pages: 0,
+    pages,
     translatedLanguage: "en",
     source,
   };
@@ -23,10 +24,13 @@ function ch(
 describe("mergeChapterLists", () => {
   it("prefers MangaDex over Comick for the same chapter number", () => {
     const merged = mergeChapterLists([
-      { source: "mangadex", chapters: [ch("md-114", "114", "mangadex")] },
+      { source: "mangadex", chapters: [ch("md-114", "114", "mangadex", 20)] },
       {
         source: "comick",
-        chapters: [ch("comick-a", "1", "comick"), ch("comick-b", "114", "comick")],
+        chapters: [
+          ch("comick-a", "1", "comick"),
+          ch("comick-b", "114", "comick"),
+        ],
       },
     ]);
     expect(merged.chapters.map((c) => c.chapter)).toEqual(["1", "114"]);
@@ -34,9 +38,21 @@ describe("mergeChapterLists", () => {
     expect(merged.fallbacks.get("md-114")).toEqual(["comick-b"]);
   });
 
+  it("prefers WeebCentral when MangaDex is an empty licensed stub", () => {
+    const merged = mergeChapterLists([
+      { source: "mangadex", chapters: [ch("md-0", "0", "mangadex", 0)] },
+      {
+        source: "weebcentral",
+        chapters: [ch("wc-0", "0", "weebcentral")],
+      },
+    ]);
+    expect(merged.chapters[0]?.id).toBe("wc-0");
+    expect(merged.fallbacks.get("wc-0")).toEqual(["md-0"]);
+  });
+
   it("fills early chapters from Comick when MangaDex starts late", () => {
     const merged = mergeChapterLists([
-      { source: "mangadex", chapters: [ch("md-21", "21", "mangadex")] },
+      { source: "mangadex", chapters: [ch("md-21", "21", "mangadex", 18)] },
       {
         source: "comick",
         chapters: [ch("comick-1", "1", "comick"), ch("comick-21", "21", "comick")],
