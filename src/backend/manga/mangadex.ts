@@ -603,18 +603,45 @@ export async function getMangaDetails(
   return details;
 }
 
+const AT_HOME_TTL_MS = 10 * 60 * 1000;
+const atHomeCache = new Map<string, { at: number; value: MangaAtHome }>();
+const atHomeInFlight = new Map<string, Promise<MangaAtHome>>();
+
 export async function getChapterAtHome(
   chapterId: string,
+  force = false,
 ): Promise<MangaAtHome> {
-  const res = await mdGet<MdAtHome>(`/at-home/server/${chapterId}`, {
-    forcePort443: "true",
-  });
-  return {
-    baseUrl: res.baseUrl,
-    hash: res.chapter.hash,
-    data: res.chapter.data ?? [],
-    dataSaver: res.chapter.dataSaver ?? [],
-  };
+  if (!force) {
+    const cached = atHomeCache.get(chapterId);
+    if (cached && Date.now() - cached.at < AT_HOME_TTL_MS) {
+      return cached.value;
+    }
+    const inflight = atHomeInFlight.get(chapterId);
+    if (inflight) return inflight;
+  } else {
+    atHomeCache.delete(chapterId);
+  }
+
+  const promise = (async () => {
+    const res = await mdGet<MdAtHome>(`/at-home/server/${chapterId}`, {
+      forcePort443: "true",
+    });
+    const value: MangaAtHome = {
+      baseUrl: res.baseUrl,
+      hash: res.chapter.hash,
+      data: res.chapter.data ?? [],
+      dataSaver: res.chapter.dataSaver ?? [],
+    };
+    atHomeCache.set(chapterId, { at: Date.now(), value });
+    return value;
+  })();
+
+  atHomeInFlight.set(chapterId, promise);
+  try {
+    return await promise;
+  } finally {
+    atHomeInFlight.delete(chapterId);
+  }
 }
 
 /** Full-quality page URLs; caller may fall back to data-saver. */

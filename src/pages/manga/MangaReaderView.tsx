@@ -4,7 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { getChapterPages, getMangaDetails } from "@/backend/manga/catalog";
+import { getChapterPages, getMangaDetails, prefetchChapterPages } from "@/backend/manga/catalog";
 import {
   decodeMangaId,
   isWeebCentralId,
@@ -139,7 +139,9 @@ export function MangaReaderView() {
     if (!mangaId) return undefined;
     let cancelled = false;
     setError(null);
-    getMangaDetails(mangaId, preferredLanguage)
+    getMangaDetails(mangaId, preferredLanguage, (partial) => {
+      if (!cancelled) setLoadedDetails({ mangaId, details: partial });
+    })
       .then((d) => {
         if (!cancelled) setLoadedDetails({ mangaId, details: d });
       })
@@ -195,13 +197,17 @@ export function MangaReaderView() {
       setError(null);
       if (force) retried.current = false;
       try {
-        const urls = await getChapterPages(id, {
-          mangaId: details?.id,
-          language: preferredLanguage,
-          title: details?.title,
-          alternateTitles: details?.alternateTitles,
-          chapter: currentChapter?.chapter,
-        });
+        const urls = await getChapterPages(
+          id,
+          {
+            mangaId: details?.id,
+            language: preferredLanguage,
+            title: details?.title,
+            alternateTitles: details?.alternateTitles,
+            chapter: currentChapter?.chapter,
+          },
+          force,
+        );
         if (urls.length === 0) {
           setError(t("manga.reader.emptyChapter"));
           setPages([]);
@@ -231,14 +237,13 @@ export function MangaReaderView() {
     if (!nextChapter?.id) return undefined;
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      getChapterPages(nextChapter.id, {
+      if (cancelled) return;
+      prefetchChapterPages(nextChapter.id, {
         mangaId: details?.id,
         language: preferredLanguage,
         title: details?.title,
         alternateTitles: details?.alternateTitles,
         chapter: nextChapter.chapter,
-      }).catch(() => {
-        if (cancelled) return;
       });
     }, 1500);
     return () => {

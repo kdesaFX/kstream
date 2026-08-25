@@ -23,9 +23,9 @@ export interface FeaturedMangaItem {
 }
 
 /** Titles pulled from MangaDex before art lookup narrows them down. */
-const POOL_SIZE = 48;
-/** How many of those get an AniList lookup (batched — two requests at 20 each). */
-const LOOKUP_SIZE = 48;
+const POOL_SIZE = 24;
+/** How many of those get an AniList lookup (one batch of 20 + a small remainder). */
+const LOOKUP_SIZE = 24;
 
 export function shuffle<T>(
   items: T[],
@@ -106,7 +106,12 @@ export async function applyAnimeAdaptationArt(
 export async function fetchFeaturedManga(
   count: number,
 ): Promise<FeaturedMangaItem[]> {
-  const pool = await listManga({ order: "followedCount", limit: POOL_SIZE });
+  // Stats add another MD round-trip; featured only needs posters + descriptions.
+  const pool = await listManga({
+    order: "followedCount",
+    limit: POOL_SIZE,
+    includeStats: false,
+  });
   // Shuffled so the hero isn't the same handful of titles on every visit.
   const candidates = shuffle(
     pool.filter((item) => item.description?.trim() && item.poster),

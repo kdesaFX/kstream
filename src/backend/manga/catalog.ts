@@ -44,10 +44,14 @@ export async function searchManga(
 export async function getMangaDetails(
   mangaId: string,
   preferredLanguage = "en",
+  onPartial?: (details: MangaDetails) => void,
 ): Promise<MangaDetails> {
   if (isWeebCentralId(mangaId)) return getWeebCentralDetails(mangaId);
 
+  // Return MangaDex chapters as soon as they're ready; fill WC/Comick gaps after.
   const base = await getMangaDexDetails(mangaId, preferredLanguage);
+  onPartial?.(base);
+
   const resolved = await resolveReadableChapters(base, preferredLanguage);
   return { ...base, ...resolved };
 }
@@ -61,6 +65,7 @@ export async function getChapterPages(
     alternateTitles?: string[];
     chapter?: string | null;
   },
+  force = false,
 ): Promise<string[]> {
   const tried = new Set<string>();
   const queue = [chapterId];
@@ -80,11 +85,15 @@ export async function getChapterPages(
     if (!id || tried.has(id)) continue;
     tried.add(id);
 
-    const pages = await loadPagesForId(id, {
-      title: fallback?.title,
-      alternateTitles: fallback?.alternateTitles,
-      chapter: fallback?.chapter,
-    });
+    const pages = await loadPagesForId(
+      id,
+      {
+        title: fallback?.title,
+        alternateTitles: fallback?.alternateTitles,
+        chapter: fallback?.chapter,
+      },
+      force,
+    );
     if (
       pages.length > 0 &&
       pagesBelongToTitle(pages, fallback?.title, fallback?.alternateTitles ?? [])
@@ -114,6 +123,9 @@ export async function getChapterPages(
   return [];
 }
 
+const PAGE_LIST_TTL_MS = 10 * 60 * 1000;
+const pageListCache = new Map<string, { at: number; pages: string[] }>();
+
 async function loadPagesForId(
   chapterId: string,
   fallback?: {
@@ -121,20 +133,62 @@ async function loadPagesForId(
     alternateTitles?: string[];
     chapter?: string | null;
   },
+  force = false,
 ): Promise<string[]> {
+  if (!force) {
+    const cached = pageListCache.get(chapterId);
+    if (cached && Date.now() - cached.at < PAGE_LIST_TTL_MS) {
+      return cached.pages;
+    }
+  } else {
+    pageListCache.delete(chapterId);
+  }
+
+  let pages: string[] = [];
   if (isComickChapterId(chapterId)) {
-    return getComickChapterPages(chapterId, fallback);
+    pages = await getComickChapterPages(chapterId, fallback);
+  } else if (isWeebCentralId(chapterId)) {
+    pages = await getWeebCentralChapterPages(chapterId);
+  } else {
+    try {
+      const atHome = await getChapterAtHome(chapterId, force);
+      const full = chapterPageUrls(atHome, "data");
+      const urls =
+        full.length > 0 ? full : chapterPageUrls(atHome, "data-saver");
+      pages = proxiedChapterPageUrls(urls);
+    } catch {
+      pages = [];
+    }
   }
-  if (isWeebCentralId(chapterId)) {
-    return getWeebCentralChapterPages(chapterId);
+
+  if (pages.length > 0) {
+    pageListCache.set(chapterId, { at: Date.now(), pages });
   }
-  try {
-    const atHome = await getChapterAtHome(chapterId);
-    const full = chapterPageUrls(atHome, "data");
-    const urls =
-      full.length > 0 ? full : chapterPageUrls(atHome, "data-saver");
-    return proxiedChapterPageUrls(urls);
-  } catch {
-    return [];
-  }
+  return pages;
+}
+
+/** Warm chapter page URL list and kick off the first few image downloads. */
+export function prefetchChapterPages(
+  chapterId: string,
+  fallback?: {
+    mangaId?: string;
+    language?: string;
+    title?: string;
+    alternateTitles?: string[];
+    chapter?: string | null;
+  },
+  imageCount = 3,
+): void {
+  void getChapterPages(chapterId, fallback)
+    .then((urls) => {
+      if (typeof window === "undefined") return;
+      for (const url of urls.slice(0, imageCount)) {
+        const img = new Image();
+        img.decoding = "async";
+        img.src = url;
+      }
+    })
+    .catch(() => {
+      // Prefetch is best-effort
+    });
 }

@@ -28,6 +28,27 @@ export function corsHeaders(extra: Record<string, string> = {}): Headers {
   });
 }
 
+/** MangaDex cover/page CDN paths are content-addressed — safe to cache briefly. */
+export function isImmutableMangaCdnUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    const path = parsed.pathname;
+    if (host === "uploads.mangadex.org" && path.includes("/covers/")) {
+      return true;
+    }
+    if (
+      host.endsWith(".mangadex.network") &&
+      (path.includes("/data/") || path.includes("/data-saver/"))
+    ) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function handleOptions(): Response {
   return new Response(null, { status: 204, headers: corsHeaders() });
 }
@@ -106,6 +127,12 @@ export function afterResponseHeaders(
 ): Headers {
   const headers = corsHeaders({
     "X-Final-Destination": finalUrl,
+    ...(isImmutableMangaCdnUrl(finalUrl)
+      ? {
+          // Covers/pages are hash-pathed on MangaDex CDNs; keep scrape/API as no-store.
+          "Cache-Control": "public, max-age=3600, s-maxage=86400",
+        }
+      : {}),
   });
   const setCookie = upstream.get("set-cookie");
   if (setCookie) headers.set("X-Set-Cookie", setCookie);

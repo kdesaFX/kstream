@@ -65,7 +65,9 @@ export function MangaDetailsModal({ id }: { id: string }) {
   useEffect(() => {
     if (!shouldShow || !mangaId) return undefined;
     let cancelled = false;
-    getMangaDetails(mangaId, preferredLanguage)
+    getMangaDetails(mangaId, preferredLanguage, (partial) => {
+      if (!cancelled) setLoaded({ mangaId, details: partial });
+    })
       .then((d) => {
         if (!cancelled) setLoaded({ mangaId, details: d });
       })

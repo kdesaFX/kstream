@@ -178,47 +178,49 @@ function orderAdaptationTitles(
 async function collectCandidates(
   orderedTitles: string[],
 ): Promise<RankedCandidate[]> {
-  const candidates: RankedCandidate[] = [];
-
-  for (const guess of orderedTitles.slice(0, 4)) {
-    // eslint-disable-next-line no-await-in-loop
-    const [shows, movies] = await Promise.all([
-      searchTVShows(guess).catch(() => []),
-      searchMovies(guess).catch(() => []),
-    ]);
-
-    for (const s of shows) {
-      candidates.push({
-        id: s.id,
-        type: TMDBContentTypes.TV,
-        backdropPath: s.backdrop_path,
-        posterPath: s.poster_path,
-        score: scoreAnimeCandidate({
-          originalLanguage: s.original_language,
-          genreIds: s.genre_ids,
-          originCountry: s.origin_country,
-          popularity: s.popularity,
+  const guesses = orderedTitles.slice(0, 2);
+  const batches = await Promise.all(
+    guesses.map(async (guess) => {
+      const [shows, movies] = await Promise.all([
+        searchTVShows(guess).catch(() => []),
+        searchMovies(guess).catch(() => []),
+      ]);
+      const candidates: RankedCandidate[] = [];
+      for (const s of shows) {
+        candidates.push({
+          id: s.id,
+          type: TMDBContentTypes.TV,
           backdropPath: s.backdrop_path,
-        }),
-      });
-    }
-    for (const m of movies) {
-      candidates.push({
-        id: m.id,
-        type: TMDBContentTypes.MOVIE,
-        backdropPath: m.backdrop_path,
-        posterPath: m.poster_path,
-        score: scoreAnimeCandidate({
-          originalLanguage: m.original_language,
-          genreIds: m.genre_ids,
-          popularity: m.popularity,
+          posterPath: s.poster_path,
+          score: scoreAnimeCandidate({
+            originalLanguage: s.original_language,
+            genreIds: s.genre_ids,
+            originCountry: s.origin_country,
+            popularity: s.popularity,
+            backdropPath: s.backdrop_path,
+          }),
+        });
+      }
+      for (const m of movies) {
+        candidates.push({
+          id: m.id,
+          type: TMDBContentTypes.MOVIE,
           backdropPath: m.backdrop_path,
-        }),
-      });
-    }
-  }
+          posterPath: m.poster_path,
+          score: scoreAnimeCandidate({
+            originalLanguage: m.original_language,
+            genreIds: m.genre_ids,
+            popularity: m.popularity,
+            backdropPath: m.backdrop_path,
+          }),
+        });
+      }
+      return candidates;
+    }),
+  );
 
-  return candidates
+  return batches
+    .flat()
     .filter((c) => c.score >= 10_000)
     .sort((a, b) => b.score - a.score);
 }
