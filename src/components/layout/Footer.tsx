@@ -96,7 +96,9 @@ export function FooterView(props: {
         " ",
       )}
     >
-      <div style={{ flex: "1 0 auto" }}>{props.children}</div>
+      <div className="relative overflow-visible" style={{ flex: "1 0 auto" }}>
+        {props.children}
+      </div>
       <Footer />
     </div>
   );

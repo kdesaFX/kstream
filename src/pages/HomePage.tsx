@@ -22,7 +22,13 @@ import { SearchListPart } from "@/pages/parts/search/SearchListPart";
 import { SearchLoadingPart } from "@/pages/parts/search/SearchLoadingPart";
 import { conf } from "@/setup/config";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
+import {
+  shouldShowMangaProgress,
+  useMangaProgressStore,
+} from "@/stores/mangaProgress";
 import { usePreferencesStore } from "@/stores/preferences";
+import { useProgressStore } from "@/stores/progress";
+import { shouldShowProgress } from "@/stores/progress/utils";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { AdsPart } from "./parts/home/AdsPart";
@@ -83,6 +89,14 @@ export function HomePage() {
     (state) => state.homeSectionOrder,
   );
 
+  const hasContinueWatching = useProgressStore((state) =>
+    Object.values(state.items).some((item) => shouldShowProgress(item).show),
+  );
+  const hasContinueReading = useMangaProgressStore((state) =>
+    Object.values(state.items).some((item) => shouldShowMangaProgress(item)),
+  );
+  const hasContinueRows = hasContinueWatching || hasContinueReading;
+
   const [carouselContainerRef, enableCarouselAnimate] =
     useAutoAnimate<HTMLDivElement>();
   const [listContainerRef, enableListAnimate] = useAutoAnimate<HTMLDivElement>();
@@ -120,11 +134,21 @@ export function HomePage() {
       order.splice(watchingIdx >= 0 ? watchingIdx + 1 : 0, 0, "reading");
     }
 
-    // Ads sit under Continue Watching + Continue Reading (whichever appear
-    // last in the order), not above them under Featured.
+    // Ads sit under Continue Watching / Reading when those rows exist.
+    // If both are empty, park ads after the rest of the home sections so they
+    // don't sit directly under the hero.
     const lastContinueIdx = Math.max(
       order.indexOf("watching"),
       order.indexOf("reading"),
+    );
+    const homeAds = (
+      <div
+        key="home-ads"
+        className="w-full flex flex-col items-center gap-4 px-4"
+      >
+        <HomeAd />
+        <HomeAd slot="secondary" />
+      </div>
     );
 
     const sections: ReactNode[] = [];
@@ -185,18 +209,18 @@ export function HomePage() {
           break;
       }
 
-      if (index === lastContinueIdx && lastContinueIdx >= 0) {
-        sections.push(
-          <div
-            key="home-ads"
-            className="w-full flex flex-col items-center gap-4 px-4"
-          >
-            <HomeAd />
-            <HomeAd slot="secondary" />
-          </div>,
-        );
+      if (
+        hasContinueRows &&
+        index === lastContinueIdx &&
+        lastContinueIdx >= 0
+      ) {
+        sections.push(homeAds);
       }
     });
+
+    if (!hasContinueRows) {
+      sections.push(homeAds);
+    }
 
     if (enableCarouselView) {
       return (
@@ -220,7 +244,8 @@ export function HomePage() {
     <HomeLayout
       showBg={s.searching}
       showLightbar={!enableFeatured}
-      showNavSearch
+      // Classic hero already has the big search — don't duplicate it in the nav.
+      showNavSearch={enableFeatured}
     >
       <div className="relative mb-2">
         <Helmet>

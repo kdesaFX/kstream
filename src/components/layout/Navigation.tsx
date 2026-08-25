@@ -183,15 +183,15 @@ export function Navigation(props: NavigationProps) {
 
   return (
     <>
-      {/* lightbar */}
+      {/* lightbar — keep overflow visible so the glow isn't clipped to the nav strip */}
       {!props.noLightbar ? (
         <div
-          className="absolute inset-x-0 top-0 flex h-[88px] items-center justify-center"
+          className="pointer-events-none absolute inset-x-0 top-0 z-[15] overflow-visible"
           style={{
             top: `${bannerHeight}px`,
           }}
         >
-          <div className="absolute inset-x-0 -mt-[22%] flex items-center sm:mt-0">
+          <div className="absolute inset-x-0 top-0 flex items-center overflow-visible sm:mt-0 -mt-[12%]">
             <Lightbar noParticles={enableLowPerformanceMode} />
           </div>
         </div>
