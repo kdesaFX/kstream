@@ -36,7 +36,7 @@ import { LoginPage } from "@/pages/Login";
 import { RegisterPage } from "@/pages/Register";
 import { AllBookmarks } from "@/pages/bookmarks/AllBookmarks";
 import { Layout } from "@/setup/Layout";
-import { useAdsStore } from "@/stores/ads";
+import { useAdsStore, areAdsBlocked } from "@/stores/ads";
 import { useHistoryListener } from "@/stores/history";
 import { useClearModalsOnNavigation } from "@/stores/interface/overlayStack";
 import { LanguageProvider } from "@/stores/language";
@@ -217,7 +217,7 @@ function App() {
 
   useEffect(() => {
     if (isWatchPage) return;
-    if (adsDisabled) return;
+    if (areAdsBlocked(adsDisabled)) return;
     const cfg = conf();
     if (
       !cfg.ENABLE_POPUNDER ||

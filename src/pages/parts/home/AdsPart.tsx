@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { Icon, Icons } from "@/components/Icon";
 import { conf } from "@/setup/config";
+import { areAdsBlocked, useAdsStore } from "@/stores/ads";
 
 function getCookie(name: string): string | null {
   const cookies = document.cookie.split(";");
@@ -21,6 +22,7 @@ function setCookie(name: string, value: string, expiryDays: number): void {
 }
 
 export function AdsPart(): JSX.Element | null {
+  const adsDisabled = useAdsStore((s) => s.adsDisabled);
   const [isAdDismissed, setIsAdDismissed] = useState(() => {
     return getCookie("adDismissed") === "true";
   });
@@ -30,7 +32,7 @@ export function AdsPart(): JSX.Element | null {
     setCookie("adDismissed", "true", 2); // Expires after 2 days
   }, []);
 
-  if (isAdDismissed) return null;
+  if (areAdsBlocked(adsDisabled) || isAdDismissed) return null;
 
   return (
     <div className="w-fit max-w-[16rem] mx-auto relative group pb-4">

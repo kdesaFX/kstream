@@ -2,10 +2,17 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
+import { isDesktopApp } from "@/hooks/useIsDesktopApp";
+
 export interface AdsStore {
   adsDisabled: boolean;
   disableAds(): void;
   enableAds(): void;
+}
+
+/** Secret toggle + desktop shell — native app never loads ad scripts/iframes. */
+export function areAdsBlocked(adsDisabled: boolean): boolean {
+  return adsDisabled || isDesktopApp();
 }
 
 export const useAdsStore = create(

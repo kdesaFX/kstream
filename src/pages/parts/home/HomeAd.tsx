@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom";
 import { Icon, Icons } from "@/components/Icon";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { conf } from "@/setup/config";
-import { useAdsStore } from "@/stores/ads";
+import { useAdsStore, areAdsBlocked } from "@/stores/ads";
 
 const LOAD_TIMEOUT_MS = 10000;
 const PRIMARY_BANNER_GIF_SRC = "/ads/primary-banner.gif";
@@ -340,7 +340,7 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
     isMobile,
   ]);
 
-  if (adsDisabled) return null;
+  if (areAdsBlocked(adsDisabled)) return null;
 
   if (slot === "primary") {
     const gifUrl =
