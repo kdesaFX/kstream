@@ -162,7 +162,13 @@ function isFeatureWorthy(item: {
  * like TMDB backdrops; portrait covers sit on the right instead of being blurred
  * across the frame.
  */
-function MangaSlideArt({ item }: { item: FeaturedMedia }) {
+function MangaSlideArt({
+  item,
+  isActive,
+}: {
+  item: FeaturedMedia;
+  isActive?: boolean;
+}) {
   const artUrl = resolveCardArtworkUrl(item.artUrl);
   if (!artUrl) return null;
 
@@ -180,7 +186,10 @@ function MangaSlideArt({ item }: { item: FeaturedMedia }) {
           src={artUrl}
           alt=""
           referrerPolicy="no-referrer"
-          decoding="async"
+          decoding={isActive ? "sync" : "async"}
+          loading={isActive ? "eager" : "lazy"}
+          // eslint-disable-next-line react/no-unknown-property -- LCP hint
+          fetchPriority={isActive ? "high" : "low"}
           className="absolute inset-0 h-full w-full object-cover object-[center_20%]"
         />
         {readOverlay}
@@ -197,6 +206,7 @@ function MangaSlideArt({ item }: { item: FeaturedMedia }) {
         alt=""
         referrerPolicy="no-referrer"
         decoding="async"
+        loading={isActive ? "eager" : "lazy"}
         aria-hidden
         className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_15%] opacity-80 blur-2xl"
       />
@@ -204,7 +214,10 @@ function MangaSlideArt({ item }: { item: FeaturedMedia }) {
         src={artUrl}
         alt=""
         referrerPolicy="no-referrer"
-        decoding="async"
+        decoding={isActive ? "sync" : "async"}
+        loading={isActive ? "eager" : "lazy"}
+        // eslint-disable-next-line react/no-unknown-property -- LCP hint
+        fetchPriority={isActive ? "high" : "low"}
         className="absolute inset-0 h-full w-full object-cover object-[center_20%]"
       />
       {readOverlay}
@@ -239,11 +252,13 @@ function FeaturedCarouselSkeleton({
     <div
       className={classNames(
         "relative w-full transition-[height] duration-300 ease-in-out",
+        // Heights must match the loaded carousel or the swap spikes CLS.
         // While searching the loaded carousel is only h-24, so a full-height
         // placeholder collapses by most of the viewport the moment it resolves,
         // dragging the results out from under whatever the viewer was clicking.
         searching && "h-24",
-        !searching && (shorter ? "h-[75vh]" : "h-[75vh] md:h-[100vh]"),
+        !searching &&
+          (shorter ? "h-[40rem] md:h-[85vh]" : "h-[40rem] md:h-[100vh]"),
       )}
     >
       <div className="relative w-full h-full overflow-hidden">
@@ -329,6 +344,10 @@ export function FeaturedCarousel({
   const [contentOpacity, setContentOpacity] = useState(1);
   /** Defer logo / IMDb / release until after first hero can paint. */
   const [enrichmentReady, setEnrichmentReady] = useState(false);
+  /** Skip 1s opacity fade on first paint — it delays LCP on the hero image. */
+  const [slideFadesEnabled, setSlideFadesEnabled] = useState(false);
+  /** Load adjacent slides only after the active hero has a chance to win LCP. */
+  const [prefetchNeighbors, setPrefetchNeighbors] = useState(false);
 
   // Refresh hero when algorithm / high-% watch signal changes.
   const algorithmTick = useRatingsStore((s) =>
@@ -354,6 +373,24 @@ export function FeaturedCarousel({
   );
 
   const currentMedia = media[currentIndex];
+
+  // Enable crossfades after the first hero paint window; neighbors wait too.
+  useEffect(() => {
+    if (isLoading || media.length === 0) {
+      setSlideFadesEnabled(false);
+      setPrefetchNeighbors(false);
+      return undefined;
+    }
+    const fadeTimer = window.setTimeout(() => setSlideFadesEnabled(true), 1200);
+    const neighborTimer = window.setTimeout(
+      () => setPrefetchNeighbors(true),
+      800,
+    );
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(neighborTimer);
+    };
+  }, [isLoading, media.length]);
 
   // After hero media lands, wait for idle before secondary fetches.
   useEffect(() => {
@@ -889,10 +926,13 @@ export function FeaturedCarousel({
             Math.abs(index - currentIndex),
             media.length - Math.abs(index - currentIndex),
           );
-          const shouldLoad = dist <= 1;
-          const fade = `absolute inset-0 transition-opacity duration-1000 ${
-            index === currentIndex ? "opacity-100" : "opacity-0"
-          }`;
+          const isActive = index === currentIndex;
+          const shouldLoad = isActive || (prefetchNeighbors && dist <= 1);
+          const fade = classNames(
+            "absolute inset-0",
+            slideFadesEnabled && "transition-opacity duration-1000",
+            isActive ? "opacity-100" : "opacity-0",
+          );
           const mask = {
             maskImage:
               "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 700px)",
@@ -903,7 +943,9 @@ export function FeaturedCarousel({
           if (item.type === "manga") {
             return (
               <div key={item.id} className={fade} style={mask}>
-                {shouldLoad ? <MangaSlideArt item={item} /> : null}
+                {shouldLoad ? (
+                  <MangaSlideArt item={item} isActive={isActive} />
+                ) : null}
               </div>
             );
           }
@@ -913,13 +955,14 @@ export function FeaturedCarousel({
               {shouldLoad && item.backdrop_path ? (
                 <img
                   src={`https://image.tmdb.org/t/p/w780${item.backdrop_path}`}
-                  srcSet={`https://image.tmdb.org/t/p/w780${item.backdrop_path} 780w, https://image.tmdb.org/t/p/w1280${item.backdrop_path} 1280w`}
+                  srcSet={`https://image.tmdb.org/t/p/w500${item.backdrop_path} 500w, https://image.tmdb.org/t/p/w780${item.backdrop_path} 780w`}
                   sizes="100vw"
                   alt=""
-                  decoding="async"
+                  decoding={isActive ? "sync" : "async"}
+                  loading={isActive ? "eager" : "lazy"}
                   // React 18 DOM: fetchPriority is valid; eslint rule lags.
                   // eslint-disable-next-line react/no-unknown-property -- LCP hint
-                  fetchPriority={index === currentIndex ? "high" : "low"}
+                  fetchPriority={isActive ? "high" : "low"}
                   className="absolute inset-0 h-full w-full object-cover object-top"
                 />
               ) : null}

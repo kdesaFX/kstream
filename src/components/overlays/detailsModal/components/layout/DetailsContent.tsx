@@ -358,11 +358,8 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
           )}
         </div>
         <div
-          className="absolute inset-0 bg-cover bg-top before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(0,0,0,0.4)_100%)]"
+          className="absolute inset-0 bg-top before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(0,0,0,0.4)_100%)]"
           style={{
-            backgroundImage: data.backdrop
-              ? `url(${data.backdrop})`
-              : undefined,
             backgroundPosition: "center top",
             maskImage:
               "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 150px)",
@@ -370,7 +367,18 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
               "linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 150px)",
             zIndex: -1,
           }}
-        />
+        >
+          {data.backdrop ? (
+            <img
+              src={data.backdrop}
+              alt=""
+              decoding="async"
+              // eslint-disable-next-line react/no-unknown-property -- LCP hint
+              fetchPriority="high"
+              className="absolute inset-0 h-full w-full object-cover object-top"
+            />
+          ) : null}
+        </div>
       </div>
 
       {/* Content */}

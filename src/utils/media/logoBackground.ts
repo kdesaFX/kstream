@@ -109,7 +109,9 @@ export function hasBakedBackground(pixels: LogoAlphaSource): boolean {
  * channel intact and give the same verdict for a fraction of the bytes.
  */
 export function probeUrlFor(url: string): string {
-  return url.replace("/t/p/original/", "/t/p/w300/");
+  return url
+    .replace("/t/p/original/", "/t/p/w300/")
+    .replace("/t/p/w500/", "/t/p/w300/");
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {

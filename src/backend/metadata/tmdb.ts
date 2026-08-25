@@ -578,8 +578,8 @@ export function getMediaBackdrop(
   backdropPath: string | null,
 ): string | undefined {
   const shouldProxyTmdb = usePreferencesStore.getState().proxyTmdb;
-  // w1280 is sharp enough for full-bleed UI; original is often multi-MB.
-  const imgUrl = `https://image.tmdb.org/t/p/w1280${backdropPath}`;
+  // w780 is enough for details/hero UIs and ~40% lighter than w1280 for LCP.
+  const imgUrl = `https://image.tmdb.org/t/p/w780${backdropPath}`;
   const proxyUrl = getProxyUrls()[0];
   if (proxyUrl && shouldProxyTmdb) {
     return `${proxyUrl}/?destination=${imgUrl}`;
@@ -766,7 +766,8 @@ export async function getMediaLogo(
       MAX_LOGO_CANDIDATES,
     );
     for (const logo of candidates) {
-      const logoUrl = `https://image.tmdb.org/t/p/original${logo.file_path}`;
+      // w500 is sharp at on-screen logo sizes; original PNGs are often multi-MB.
+      const logoUrl = `https://image.tmdb.org/t/p/w500${logo.file_path}`;
       // eslint-disable-next-line no-await-in-loop
       if (!(await logoHasBakedBackground(logoUrl))) return logoUrl;
     }

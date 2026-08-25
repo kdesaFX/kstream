@@ -56,6 +56,12 @@ describe("probeUrlFor", () => {
     );
   });
 
+  it("downgrades w500 logos used for display", () => {
+    expect(probeUrlFor("https://image.tmdb.org/t/p/w500/abc.png")).toBe(
+      "https://image.tmdb.org/t/p/w300/abc.png",
+    );
+  });
+
   it("leaves unfamiliar urls alone", () => {
     expect(probeUrlFor("https://example.com/logo.png")).toBe(
       "https://example.com/logo.png",
