@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { get } from "@/backend/metadata/tmdb";
 import type { DiscoverMedia, MediaType } from "@/pages/discover/types/discover";
 import { useLanguageStore } from "@/stores/language";
+import { usePreferencesStore } from "@/stores/preferences";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { detectUserRegion } from "@/utils/locale/userRegion";
 import {
@@ -79,7 +80,8 @@ export function useDedupedCarouselMedia(
     attemptsRef.current = round;
 
     let cancelled = false;
-    const pageCount = 4;
+    const proxyTmdb = usePreferencesStore.getState().proxyTmdb;
+    const pageCount = proxyTmdb ? 2 : 4;
     const startPage = Math.min(
       1 + (priority + round - 1) * pageCount,
       41 - pageCount,

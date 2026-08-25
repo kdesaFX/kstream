@@ -192,10 +192,30 @@ function recentReleaseDateParams(
 
 /**
  * Enough items for a full carousel after unreleased-filter + cross-row
- * dedupe. 28/3 looked cheap but later rows collapsed to ~6 posters.
+ * dedupe. Mid/Low proxy TMDB — keep the pool smaller so 4 eager rows don't
+ * saturate the proxy and collapse every carousel to empty.
  */
 const CAROUSEL_POOL_SIZE = 80;
+const CAROUSEL_POOL_SIZE_PROXY = 28;
 const CAROUSEL_MAX_PAGES = 5;
+const CAROUSEL_MAX_PAGES_PROXY = 2;
+
+function carouselPoolSize(): number {
+  return usePreferencesStore.getState().proxyTmdb
+    ? CAROUSEL_POOL_SIZE_PROXY
+    : CAROUSEL_POOL_SIZE;
+}
+
+function carouselMaxPages(): number {
+  return usePreferencesStore.getState().proxyTmdb
+    ? CAROUSEL_MAX_PAGES_PROXY
+    : CAROUSEL_MAX_PAGES;
+}
+
+/** Prefer TMDB list endpoints — Trakt→detail waterfall breaks proxy Mid/Low. */
+function shouldUseTmdbNotTrakt(): boolean {
+  return !isTraktEnabled() || usePreferencesStore.getState().proxyTmdb;
+}
 
 export function useDiscoverOptions(mediaType: MediaType) {
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -342,13 +362,15 @@ export function useDiscoverMedia({
         // Carousel: keep paging until we have a full pool. Earlier rows
         // claim titles via dedupe, and genre chips client-filter list
         // endpoints — a single page of 20 often shrinks to 2–4 posters.
+        const poolSize = carouselPoolSize();
+        const maxPages = carouselMaxPages();
         const accumulated: any[] = [];
         const seen = new Set<number>();
         let totalPages = 1;
 
         for (
           let p = 1;
-          p <= CAROUSEL_MAX_PAGES && accumulated.length < CAROUSEL_POOL_SIZE;
+          p <= maxPages && accumulated.length < poolSize;
           p += 1
         ) {
           const data = await fetchTmdbCached(endpoint, {
@@ -373,14 +395,14 @@ export function useDiscoverMedia({
             if (item?.id == null || seen.has(item.id)) continue;
             seen.add(item.id);
             accumulated.push(item);
-            if (accumulated.length >= CAROUSEL_POOL_SIZE) break;
+            if (accumulated.length >= poolSize) break;
           }
 
           if (p >= totalPages) break;
         }
 
         return {
-          results: mapResults(accumulated.slice(0, CAROUSEL_POOL_SIZE)),
+          results: mapResults(accumulated.slice(0, poolSize)),
           hasMore: false,
         };
       } catch (err) {
@@ -393,14 +415,9 @@ export function useDiscoverMedia({
 
   const fetchTraktMedia = useCallback(
     async (traktFunction: () => Promise<TraktListResponse>) => {
-      // Trakt is off for this deployment - go straight to the TMDB
-      // fallback instead of making (and then discarding) a call.
-      if (!isTraktEnabled()) {
-        throw new TraktDisabledError();
-      }
-      // Optimize Mid/Low proxies TMDB — Trakt → N detail GETs saturates the
-      // proxy and every carousel hides empty. Prefer TMDB list endpoints.
-      if (usePreferencesStore.getState().proxyTmdb) {
+      // Prefer TMDB list endpoints — Trakt → N detail GETs saturates the
+      // Mid/Low proxy and every carousel hides empty.
+      if (shouldUseTmdbNotTrakt()) {
         throw new TraktDisabledError();
       }
 
@@ -420,7 +437,8 @@ export function useDiscoverMedia({
 
         // Paginate the results — carousels need a surplus so genre filter
         // and cross-row dedupe don't leave a half-empty strip.
-        const pageSize = isCarouselView ? CAROUSEL_POOL_SIZE : 100;
+        const poolSize = carouselPoolSize();
+        const pageSize = isCarouselView ? poolSize : 100;
         const { tmdb_ids: tmdbIds, hasMore: hasMoreResults } = paginateResults(
           response,
           page,
@@ -430,7 +448,7 @@ export function useDiscoverMedia({
 
         // For carousel views, fetch details for the full pool (not just 20).
         const idsToFetch = isCarouselView
-          ? tmdbIds.slice(0, CAROUSEL_POOL_SIZE)
+          ? tmdbIds.slice(0, poolSize)
           : tmdbIds;
 
         // Fetch details for each TMDB ID
@@ -581,7 +599,7 @@ export function useDiscoverMedia({
               results: filterReleasedDiscoverMedia(data.results, today),
             };
             // Pad if hype filtering emptied the row.
-            if (isCarouselView && data.results.length < CAROUSEL_POOL_SIZE) {
+            if (isCarouselView && data.results.length < carouselPoolSize()) {
               const fill = await fetchTMDBMedia(`/discover/${mediaType}`, {
                 sort_by: "popularity.desc",
                 ...recentReleaseDateParams(mediaType, today, 6),
@@ -601,7 +619,7 @@ export function useDiscoverMedia({
                 if (item.id == null || seen.has(item.id)) continue;
                 seen.add(item.id);
                 merged.push(item);
-                if (merged.length >= CAROUSEL_POOL_SIZE) break;
+                if (merged.length >= carouselPoolSize()) break;
               }
               data = { ...data, results: merged };
             }
@@ -618,7 +636,7 @@ export function useDiscoverMedia({
           if (genreId) {
             // Random deep pages (not page 1–N popularity) so this isn't a
             // shuffled clone of "Most Popular" under the same genre.
-            const pagesNeeded = Math.max(1, Math.ceil(CAROUSEL_POOL_SIZE / 20));
+            const pagesNeeded = Math.max(1, Math.ceil(carouselPoolSize() / 20));
             const maxPage = mediaType === "movie" ? 40 : 20;
             const pageSet = new Set<number>();
             while (pageSet.size < pagesNeeded) {
@@ -656,14 +674,14 @@ export function useDiscoverMedia({
               [merged[i], merged[j]] = [merged[j]!, merged[i]!];
             }
             data = {
-              results: merged.slice(0, CAROUSEL_POOL_SIZE),
+              results: merged.slice(0, carouselPoolSize()),
               hasMore: true,
             };
           } else {
             const randomItems =
               mediaType === "movie"
-                ? await getAllTimeBestMovies(CAROUSEL_POOL_SIZE)
-                : await getAllTimeBestShows(CAROUSEL_POOL_SIZE);
+                ? await getAllTimeBestMovies(carouselPoolSize())
+                : await getAllTimeBestShows(carouselPoolSize());
             const mapped = randomItems.map((item) => ({
               ...item,
               type: mediaType === "movie" ? "movie" : "show",
@@ -750,22 +768,65 @@ export function useDiscoverMedia({
           break;
 
         case "top10":
-          data = await fetchTraktMedia(getTop10Movies);
+          // Day trending ≈ Top 10 without Trakt detail waterfall.
+          if (shouldUseTmdbNotTrakt()) {
+            const today = todayIsoDate();
+            data = await fetchTMDBMedia(
+              mediaType === "movie"
+                ? "/trending/movie/day"
+                : "/trending/tv/day",
+            );
+            data = {
+              ...data,
+              results: filterReleasedDiscoverMedia(data.results, today),
+            };
+          } else {
+            data = await fetchTraktMedia(getTop10Movies);
+          }
           setSectionTitle(t("discover.carousel.title.top10"));
           break;
 
         case "latest":
-          data = await fetchTraktMedia(getLatestReleases);
+          if (shouldUseTmdbNotTrakt()) {
+            if (mediaType === "movie") {
+              const today = todayIsoDate();
+              data = await fetchTMDBMedia("/movie/now_playing");
+              data = {
+                ...data,
+                results: data.results.filter((item: DiscoverMedia) => {
+                  if (!item.poster_path) return false;
+                  const released = item.release_date || "";
+                  return released.length >= 10 && released <= today;
+                }),
+              };
+            } else {
+              data = await fetchTMDBMedia("/tv/on_the_air");
+            }
+          } else {
+            data = await fetchTraktMedia(getLatestReleases);
+          }
           setSectionTitle(t("discover.carousel.title.latestReleases"));
           break;
 
         case "latest4k":
-          data = await fetchTraktMedia(getLatest4KReleases);
+          if (shouldUseTmdbNotTrakt()) {
+            data = await fetchTMDBMedia(`/discover/${mediaType}`, {
+              sort_by: "popularity.desc",
+              "vote_count.gte": 200,
+              "vote_average.gte": 6.5,
+            });
+          } else {
+            data = await fetchTraktMedia(getLatest4KReleases);
+          }
           setSectionTitle(t("discover.carousel.title.4kReleases"));
           break;
 
         case "latesttv":
-          data = await fetchTraktMedia(getLatestTVReleases);
+          if (shouldUseTmdbNotTrakt()) {
+            data = await fetchTMDBMedia("/tv/on_the_air");
+          } else {
+            data = await fetchTraktMedia(getLatestTVReleases);
+          }
           setSectionTitle(t("discover.carousel.title.latestTVReleases"));
           break;
 
@@ -872,7 +933,7 @@ export function useDiscoverMedia({
         !isCarouselView ||
         !genreId ||
         noDiscoverPad.has(fetchedType) ||
-        data.results.length >= CAROUSEL_POOL_SIZE
+        data.results.length >= carouselPoolSize()
       ) {
         return data;
       }
@@ -910,7 +971,7 @@ export function useDiscoverMedia({
         if (!item.poster_path) continue;
         seen.add(item.id);
         merged.push(item);
-        if (merged.length >= CAROUSEL_POOL_SIZE) break;
+        if (merged.length >= carouselPoolSize()) break;
       }
       return { ...data, results: merged };
     };

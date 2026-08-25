@@ -372,18 +372,10 @@ export function MediaCarousel({
     return null;
   }, [moreLink]);
 
-  // Hide the entire section if there's an error or no content
+  // Hide empty/failed rows. Mid/Low eager-mounts capped siblings, so we
+  // don't need zero-content stubs that used to show raw i18n keys.
   if (shouldHide) {
-    // Keep a stub so Mid/Low lazy siblings don't all collapse under the tabs.
-    return (
-      <div className="h-[12rem] flex items-center justify-center px-4">
-        <p className="text-sm text-type-secondary">
-          {error
-            ? (t("discover.carousel.failed") ?? "Couldn't load this row.")
-            : (t("discover.carousel.empty") ?? "Nothing to show here.")}
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return (

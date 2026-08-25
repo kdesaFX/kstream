@@ -401,7 +401,10 @@ export function DiscoverContent() {
   };
 
   return (
-    <div className="relative min-h-screen">
+    <div
+      className="relative min-h-screen"
+      key={`discover-${enableLowPerformanceMode ? "lp" : "full"}-${posterQuality}-${shouldCapDiscover ? "cap" : "all"}`}
+    >
       <DiscoverNavigation
         selectedCategory={selectedCategory}
         onCategoryChange={handleCategoryChange}

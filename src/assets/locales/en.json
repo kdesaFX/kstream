@@ -1715,7 +1715,9 @@
         }
       },
       "change": "Change",
-      "more": "View more"
+      "more": "View more",
+      "empty": "Nothing to show here.",
+      "failed": "Couldn't load this row."
     },
     "featured": {
       "playNow": "Play Now",
