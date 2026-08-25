@@ -26,8 +26,8 @@ jobs:
             status="$(echo "$info" | jq -r '.result.status // empty')"
             echo "attempt ${i}: status=${status}"
             case "$status" in
-              success|failed|canceled|cancelled|error)
-                echo "$info" | jq '{status: .result.status, created_on: .result.created_on, stopped_on: .result.stopped_on, build_command: .result.trigger.build_command, env_keys: (.result.trigger.environment_variables|keys)}'
+              success|failed|canceled|cancelled|error|stopped)
+                echo "$info" | jq '{status: .result.status, created_on: .result.created_on, stopped_on: .result.stopped_on, build_command: .result.trigger.build_command, env_keys: (.result.trigger.environment_variables|keys), full: .result}'
                 logs="$(curl -sf \
                   -H "Authorization: Bearer ${CF_API_TOKEN}" \
                   "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/builds/${BUILD_UUID}/logs" || true)"
@@ -35,9 +35,9 @@ jobs:
                 echo "$logs" | jq -r '
                   (.result.lines // .result // [])
                   | if type=="array" then . else [] end
-                  | .[-60:][]?
+                  | .[-80:][]?
                   | (if type=="object" then (.message // .line // .text // tostring) else tostring end)
-                ' 2>/dev/null || echo "$logs" | tail -c 12000
+                ' 2>/dev/null || echo "$logs" | tail -c 20000
                 if [ "$status" = "success" ]; then exit 0; fi
                 exit 1
                 ;;
