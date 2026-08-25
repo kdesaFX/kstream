@@ -18,6 +18,7 @@ import { useBookmarkStore } from "@/stores/bookmarks";
 import { useMangaProgressStore } from "@/stores/mangaProgress";
 import { useProgressStore } from "@/stores/progress";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
+import { suggestDeviceName } from "@/utils/deviceClient";
 
 interface LoginFormPartProps {
   onLogin?: () => void;
@@ -26,7 +27,7 @@ interface LoginFormPartProps {
 export function LoginFormPart(props: LoginFormPartProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [device, setDevice] = useState("This device");
+  const [device, setDevice] = useState(() => suggestDeviceName());
   const { login, loginWithGoogle, loginWithDiscord, restore, importData } =
     useAuth();
   const progressItems = useProgressStore((store) => store.items);

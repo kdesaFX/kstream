@@ -9,12 +9,12 @@ import { AccountWithToken, useAuthStore } from "@/stores/auth";
 export async function getSessions(_url: string, account: AccountWithToken) {
   const devices = await fetchDevices(account.userId);
   return devices.map((d) => ({
-    id: d.device_name,
+    id: d.client_id,
     userId: account.userId,
     createdAt: d.last_seen,
     accessedAt: d.last_seen,
     device: d.device_name,
-    userAgent: "",
+    userAgent: d.user_agent ?? "",
   }));
 }
 

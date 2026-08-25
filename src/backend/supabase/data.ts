@@ -33,6 +33,10 @@ import type { MangaProgressItem } from "@/stores/mangaProgress";
 import type { ProgressMediaItem } from "@/stores/progress";
 import type { AlgorithmPreferences, RatedMediaItem } from "@/stores/ratings";
 import type { WatchHistoryItem } from "@/stores/watchHistory";
+import {
+  getDeviceClientId,
+  suggestDeviceName,
+} from "@/utils/deviceClient";
 
 import { progressInputToMediaItem, mergeProgressPayload } from "./progressMerge";
 
@@ -137,13 +141,19 @@ export async function accountFromSession(session: Session): Promise<AccountWithT
     profile = { ...profile, nickname: preferredNickname };
   }
   if (!profile) return null;
-  const deviceName = profile.device_name ?? "This device";
+  // Register / refresh this browser under a stable client id so "This device"
+  // on phone + desktop no longer collapses into a single row.
+  const touched = await touchDevice(session.user.id, {
+    deviceName:
+      profile.device_name && !isGenericDeviceName(profile.device_name)
+        ? profile.device_name
+        : undefined,
+  });
   return {
     token: session.access_token,
     userId: session.user.id,
-    // Device list keys sessions by device_name; keep sessionId aligned.
-    sessionId: deviceName,
-    deviceName,
+    sessionId: touched.clientId,
+    deviceName: touched.deviceName,
     profile: {
       colorA: profile.color_a,
       colorB: profile.color_b,
@@ -154,13 +164,57 @@ export async function accountFromSession(session: Session): Promise<AccountWithT
   };
 }
 
-export async function touchDevice(userId: string, deviceName: string) {
-  await getSupabase()
+function isGenericDeviceName(name: string): boolean {
+  return /^(this device|unknown device)$/i.test(name.trim());
+}
+
+export async function touchDevice(
+  userId: string,
+  opts?: { deviceName?: string; clientId?: string },
+): Promise<{ clientId: string; deviceName: string }> {
+  const clientId = opts?.clientId ?? getDeviceClientId();
+  const userAgent =
+    typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 512) : "";
+
+  const { data: existing, error: lookupError } = await getSupabase()
     .from("devices")
-    .upsert(
-      { user_id: userId, device_name: deviceName, last_seen: new Date().toISOString() },
-      { onConflict: "user_id,device_name" },
-    );
+    .select("client_id, device_name")
+    .eq("user_id", userId)
+    .eq("client_id", clientId)
+    .maybeSingle();
+  if (lookupError) throw lookupError;
+
+  let deviceName =
+    opts?.deviceName?.trim() ||
+    (existing?.device_name && !isGenericDeviceName(existing.device_name)
+      ? existing.device_name
+      : null) ||
+    suggestDeviceName(userAgent || undefined);
+
+  const lastSeen = new Date().toISOString();
+  if (existing) {
+    const { error } = await getSupabase()
+      .from("devices")
+      .update({
+        device_name: deviceName,
+        user_agent: userAgent || null,
+        last_seen: lastSeen,
+      })
+      .eq("user_id", userId)
+      .eq("client_id", clientId);
+    if (error) throw error;
+  } else {
+    const { error } = await getSupabase().from("devices").insert({
+      user_id: userId,
+      client_id: clientId,
+      device_name: deviceName,
+      user_agent: userAgent || null,
+      last_seen: lastSeen,
+    });
+    if (error) throw error;
+  }
+
+  return { clientId, deviceName };
 }
 
 export async function updateProfile(
@@ -185,7 +239,9 @@ export async function updateProfile(
     .select("*")
     .single();
   if (error) throw error;
-  if (edit.deviceName) await touchDevice(userId, edit.deviceName);
+  if (edit.deviceName) {
+    await touchDevice(userId, { deviceName: edit.deviceName });
+  }
   return profileToUser(data as ProfileRow);
 }
 
@@ -587,19 +643,24 @@ export async function importBookmarksFromStore(
 export async function fetchDevices(userId: string) {
   const { data, error } = await getSupabase()
     .from("devices")
-    .select("*")
+    .select("client_id, device_name, user_agent, last_seen")
     .eq("user_id", userId)
     .order("last_seen", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as Array<{
+    client_id: string;
+    device_name: string;
+    user_agent: string | null;
+    last_seen: string;
+  }>;
 }
 
-export async function removeDevice(userId: string, deviceName: string) {
+export async function removeDevice(userId: string, clientId: string) {
   const { error } = await getSupabase()
     .from("devices")
     .delete()
     .eq("user_id", userId)
-    .eq("device_name", deviceName);
+    .eq("client_id", clientId);
   if (error) throw error;
 }
 
@@ -669,7 +730,7 @@ export async function signUpWithEmail(opts: {
     profile: opts.profile,
     deviceName: opts.deviceName,
   });
-  await touchDevice(data.session.user.id, opts.deviceName);
+  await touchDevice(data.session.user.id, { deviceName: opts.deviceName });
   return accountFromSession(data.session);
 }
 
@@ -678,7 +739,7 @@ export async function signInWithEmail(email: string, password: string, deviceNam
   if (error) throw error;
   if (!data.session) throw new Error("Sign in failed");
   await updateProfile(data.session.user.id, { deviceName });
-  await touchDevice(data.session.user.id, deviceName);
+  await touchDevice(data.session.user.id, { deviceName });
   return accountFromSession(data.session);
 }
 

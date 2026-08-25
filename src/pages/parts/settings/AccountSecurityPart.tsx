@@ -8,7 +8,6 @@ import { Button } from "@/components/buttons/Button";
 import { SettingsCard } from "@/components/layout/SettingsCard";
 import { AuthInputBox } from "@/components/text-inputs/AuthInputBox";
 import { Heading2, Paragraph } from "@/components/utils/Text";
-import { useAuth } from "@/hooks/auth/useAuth";
 import { AccountWithToken } from "@/stores/auth";
 
 function ChangePasswordForm(props: { onDone: () => void }) {
@@ -65,17 +64,11 @@ function ChangePasswordForm(props: { onDone: () => void }) {
 
 export function AccountSecurityPart(props: { account: AccountWithToken }) {
   const { t } = useTranslation();
-  const { signOutEverywhere } = useAuth();
   const [showPasswordForm, setShowPasswordForm] = useState(false);
 
   const statusResult = useAsync(async () => {
     return getAuthStatus("", props.account.token);
   }, [props.account.token, props.account.userId]);
-
-  const [signOutResult, executeSignOutEverywhere] = useAsyncFn(async () => {
-    await signOutEverywhere();
-    window.location.href = "/login";
-  }, [signOutEverywhere]);
 
   const status = statusResult.value;
   if (statusResult.loading || !status) return null;
@@ -121,31 +114,6 @@ export function AccountSecurityPart(props: { account: AccountWithToken }) {
               </Button>
             </>
           )}
-        </div>
-      </SettingsCard>
-
-      <SettingsCard>
-        <div className="space-y-3">
-          <h3 className="font-bold text-white">
-            {t("settings.account.security.sessionsTitle") ?? "Sessions"}
-          </h3>
-          <Paragraph className="!mt-0 text-sm">
-            {t("settings.account.security.signOutEverywhereDescription") ??
-              "Sign out on every device where you are logged in to K-Stream."}
-          </Paragraph>
-          {signOutResult.error ? (
-            <p className="text-authentication-errorText">
-              {signOutResult.error.message}
-            </p>
-          ) : null}
-          <Button
-            theme="danger"
-            loading={signOutResult.loading}
-            onClick={() => executeSignOutEverywhere()}
-          >
-            {t("settings.account.security.signOutEverywhere") ??
-              "Sign out everywhere"}
-          </Button>
         </div>
       </SettingsCard>
     </div>

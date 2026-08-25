@@ -18,13 +18,14 @@ import { useBookmarkStore } from "@/stores/bookmarks";
 import { useMangaProgressStore } from "@/stores/mangaProgress";
 import { useProgressStore } from "@/stores/progress";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
+import { suggestDeviceName } from "@/utils/deviceClient";
 
 interface RegisterCredentialsPartProps {
   onNext?: () => void;
 }
 
 const defaultUserData = {
-  device: "This device",
+  device: suggestDeviceName(),
   profile: {
     colorA: initialColor,
     colorB: initialColor,

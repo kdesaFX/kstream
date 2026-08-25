@@ -40,7 +40,7 @@ export function useAuthRestore() {
 
       try {
         const { touchDevice } = await import("@/backend/supabase/data");
-        await touchDevice(acc.userId, acc.deviceName);
+        await touchDevice(acc.userId);
       } catch {
         // Device tracking is best-effort
       }
