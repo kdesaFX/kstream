@@ -38,6 +38,70 @@ import { progressInputToMediaItem, mergeProgressPayload } from "./progressMerge"
 
 export { profileToUser } from "@/backend/supabase/mappers";
 
+function firstNonEmptyString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) return trimmed;
+    }
+  }
+  return null;
+}
+
+function sessionHasProvider(session: Session, provider: string): boolean {
+  const user = session.user;
+  const providers = user.app_metadata?.providers as string[] | undefined;
+  return Boolean(
+    user.app_metadata?.provider === provider ||
+      providers?.includes(provider) ||
+      user.identities?.some((i) => i.provider === provider),
+  );
+}
+
+/** Prefer OAuth display identity over email local-part (Discord username, etc.). */
+function nicknameFromSession(session: Session): string {
+  const user = session.user;
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const customClaims = (meta.custom_claims ?? {}) as Record<string, unknown>;
+  const discordIdentity = user.identities?.find((i) => i.provider === "discord");
+  const discordData = (discordIdentity?.identity_data ?? {}) as Record<
+    string,
+    unknown
+  >;
+
+  if (sessionHasProvider(session, "discord")) {
+    const discordName = firstNonEmptyString(
+      // Discord username (not the email local-part)
+      meta.preferred_username,
+      meta.user_name,
+      meta.name,
+      discordData.preferred_username,
+      discordData.user_name,
+      discordData.name,
+      // Fallbacks if username fields are missing
+      customClaims.global_name,
+      meta.full_name,
+      discordData.full_name,
+      discordData.global_name,
+    );
+    if (discordName) return discordName;
+  }
+
+  if (sessionHasProvider(session, "google")) {
+    const googleName = firstNonEmptyString(
+      meta.full_name,
+      meta.name,
+      meta.preferred_username,
+    );
+    if (googleName) return googleName;
+  }
+
+  const fromSignupMeta = firstNonEmptyString(meta.nickname);
+  if (fromSignupMeta) return fromSignupMeta;
+
+  return user.email?.split("@")[0] ?? "User";
+}
+
 export async function fetchProfile(userId: string): Promise<ProfileRow | null> {
   const { data, error } = await getSupabase()
     .from("profiles")
@@ -51,13 +115,26 @@ export async function fetchProfile(userId: string): Promise<ProfileRow | null> {
 export async function accountFromSession(session: Session): Promise<AccountWithToken | null> {
   if (!session.access_token || !session.user?.id) return null;
   let profile = await fetchProfile(session.user.id);
+  const preferredNickname = nicknameFromSession(session);
   if (!profile) {
     const { error } = await getSupabase().from("profiles").insert({
       id: session.user.id,
-      nickname: session.user.email?.split("@")[0] ?? "User",
+      nickname: preferredNickname,
     });
     if (error) throw error;
     profile = await fetchProfile(session.user.id);
+  } else if (
+    sessionHasProvider(session, "discord") &&
+    session.user.email &&
+    profile.nickname === session.user.email.split("@")[0] &&
+    preferredNickname !== profile.nickname
+  ) {
+    // One-time fix: Discord accounts created with email local-part as nickname.
+    await getSupabase()
+      .from("profiles")
+      .update({ nickname: preferredNickname })
+      .eq("id", session.user.id);
+    profile = { ...profile, nickname: preferredNickname };
   }
   if (!profile) return null;
   const deviceName = profile.device_name ?? "This device";
