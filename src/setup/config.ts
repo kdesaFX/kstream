@@ -209,8 +209,13 @@ const env: Record<keyof Config, undefined | string> = {
   SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
 };
 
-function coerceUndefined(value: string | null | undefined): string | undefined {
+function coerceUndefined(value: unknown): string | undefined {
   if (value == null) return undefined;
+  // public/config.js sometimes uses booleans (e.g. VITE_NORMAL_ROUTER: true)
+  if (typeof value === "boolean" || typeof value === "number") {
+    return String(value);
+  }
+  if (typeof value !== "string") return undefined;
   if (value.length === 0) return undefined;
   const trimmed = value.trim();
   if (trimmed.length === 0) return undefined;
