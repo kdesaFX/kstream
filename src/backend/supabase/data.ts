@@ -52,6 +52,11 @@ function firstNonEmptyString(...values: unknown[]): string | null {
   return null;
 }
 
+/** Discord OAuth sometimes still appends the legacy discriminator (`#0`). */
+function stripDiscordDiscriminator(name: string): string {
+  return name.replace(/#\d{1,4}$/, "").trim() || name;
+}
+
 function sessionHasProvider(session: Session, provider: string): boolean {
   const user = session.user;
   const providers = user.app_metadata?.providers as string[] | undefined;
@@ -88,7 +93,7 @@ function nicknameFromSession(session: Session): string {
       discordData.full_name,
       discordData.global_name,
     );
-    if (discordName) return discordName;
+    if (discordName) return stripDiscordDiscriminator(discordName);
   }
 
   if (sessionHasProvider(session, "google")) {
@@ -129,11 +134,11 @@ export async function accountFromSession(session: Session): Promise<AccountWithT
     profile = await fetchProfile(session.user.id);
   } else if (
     sessionHasProvider(session, "discord") &&
-    session.user.email &&
-    profile.nickname === session.user.email.split("@")[0] &&
-    preferredNickname !== profile.nickname
+    preferredNickname !== profile.nickname &&
+    (profile.nickname === session.user.email?.split("@")[0] ||
+      /#\d{1,4}$/.test(profile.nickname))
   ) {
-    // One-time fix: Discord accounts created with email local-part as nickname.
+    // One-time fix: email local-part nicknames, or leftover Discord `#0` tags.
     await getSupabase()
       .from("profiles")
       .update({ nickname: preferredNickname })
