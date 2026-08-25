@@ -40,13 +40,20 @@ describe("device profile store", () => {
     expect(usePreferencesStore.getState().lastAppliedDeviceProfile).toBeNull();
   });
 
-  it("does not stomp image logos when toggling performance mode", () => {
-    const { applyDeviceProfile, setEnableLowPerformanceMode } =
+  it("restores discover after clearAccountBoundState (logout)", () => {
+    const { applyDeviceProfile, clearAccountBoundState } =
       usePreferencesStore.getState();
-    applyDeviceProfile("high");
-    setEnableLowPerformanceMode(true);
-    expect(usePreferencesStore.getState().enableImageLogos).toBe(true);
-    setEnableLowPerformanceMode(false);
-    expect(usePreferencesStore.getState().enableImageLogos).toBe(true);
+    applyDeviceProfile("low");
+    expect(usePreferencesStore.getState().enableDiscover).toBe(false);
+    expect(usePreferencesStore.getState().enableLowPerformanceMode).toBe(true);
+
+    clearAccountBoundState();
+    const after = usePreferencesStore.getState();
+    expect(after.enableDiscover).toBe(true);
+    expect(after.enableLowPerformanceMode).toBe(false);
+    expect(after.posterQuality).toBe("standard");
+    expect(after.proxyArtwork).toBe(false);
+    expect(after.lastAppliedDeviceProfile).toBeNull();
+    expect(after.deviceProfileSnapshot).toBeNull();
   });
 });

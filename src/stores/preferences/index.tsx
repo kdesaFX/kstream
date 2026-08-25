@@ -161,6 +161,8 @@ export interface PreferencesStore {
   setVolumeBoostForTitle(titleKey: string, boost: number): void;
   clearVolumeBoostForTitle(titleKey: string): void;
   applySync(partial: Partial<PreferencesStore>): void;
+  /** Undo account-synced prefs so guest mode isn’t stuck on Optimize Low / empty home. */
+  clearAccountBoundState(): void;
 }
 
 export const usePreferencesStore = create(
@@ -557,6 +559,47 @@ export const usePreferencesStore = create(
           if (partial.gamepadMapping !== undefined) {
             s.gamepadMapping = partial.gamepadMapping ?? {};
           }
+        });
+      },
+      clearAccountBoundState() {
+        set((s) => {
+          // Device / performance flags that login pulls from cloud settings
+          s.enableThumbnails = false;
+          s.enableAutoplay = true;
+          s.enableSkipCredits = true;
+          s.enableAutoSkipSegments = false;
+          s.enableDiscover = true;
+          s.enableMatureTitles = false;
+          s.enableFeatured = false;
+          s.enableDetailsModal = false;
+          s.enableImageLogos = true;
+          s.enableCarouselView = false;
+          s.enableMinimalCards = false;
+          s.forceCompactEpisodeView = false;
+          s.enableLowPerformanceMode = false;
+          s.lowPerformanceSnapshot = null;
+          s.proxyTmdb = false;
+          s.proxyArtwork = false;
+          s.posterQuality = "standard";
+          s.lastAppliedDeviceProfile = null;
+          s.deviceProfileSnapshot = null;
+          s.enablePauseOverlay = false;
+          s.enableNativeSubtitles = false;
+          s.enableHoldToBoost = true;
+          s.enableDoubleClickToSeek = false;
+          s.enableAutoResumeOnPlaybackError = true;
+          s.enableNumberKeySeeking = true;
+          s.manualSourceSelection = false;
+          s.preferredMinimumResolution = "none";
+          s.homeSectionOrder = ["watching", "reading"];
+          s.bookmarkRowsToShow = 1;
+          s.watchingRowsToShow = 1;
+          // Account-only API keys / tokens
+          s.febboxKey = null;
+          s.debridToken = null;
+          s.debridService = "realdebrid";
+          s.tidbKey = null;
+          s.wyzieKey = null;
         });
       },
     })),

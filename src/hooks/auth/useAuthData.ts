@@ -47,6 +47,9 @@ export function useAuthData() {
   const saveCustomTheme = useThemeStore((s) => s.saveCustomTheme);
   const hideDefaultTheme = useThemeStore((s) => s.hideDefaultTheme);
   const setFebboxKey = usePreferencesStore((s) => s.setFebboxKey);
+  const clearAccountBoundPreferences = usePreferencesStore(
+    (s) => s.clearAccountBoundState,
+  );
   const applyPreferencesSync = usePreferencesStore((s) => s.applySync);
 
   const replaceBookmarks = useBookmarkStore((s) => s.replaceBookmarks);
@@ -83,6 +86,10 @@ export function useAuthData() {
     clearGroupOrder();
     clearMangaProgress();
     clearRatings();
+    // Drop cloud proxy list + account prefs so guest home isn’t stuck with
+    // Discover off / low-perf from Optimize (empty Continue + no Discover).
+    setProxySet(null);
+    clearAccountBoundPreferences();
     setFebboxKey(null);
   }, [
     removeAccount,
@@ -92,6 +99,8 @@ export function useAuthData() {
     clearGroupOrder,
     clearMangaProgress,
     clearRatings,
+    setProxySet,
+    clearAccountBoundPreferences,
     setFebboxKey,
   ]);
 
