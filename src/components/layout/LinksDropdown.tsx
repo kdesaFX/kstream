@@ -11,6 +11,7 @@ import { Icon, Icons } from "@/components/Icon";
 import { navControlSurface } from "@/components/layout/navControl";
 import { Spinner } from "@/components/layout/Spinner";
 import { useDesktopAppSettingsModal } from "@/components/overlays/desktopAppSettings";
+import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { Transition } from "@/components/utils/Transition";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
@@ -239,6 +240,7 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
 
   const isDesktopApp = useIsDesktopApp();
   const { openDesktopAppSettings } = useDesktopAppSettingsModal();
+  const { openDownloadModal } = useDownloadModal();
   const { isMobile } = useIsMobile();
   const hasWatchHistory = useProgressStore((s) =>
     Object.values(s.items).some(shouldShowInWatchHistory),
@@ -320,6 +322,17 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
               {t("navigation.menu.desktop")}
             </DropdownLink>
           )}
+          {!isDesktopApp ? (
+            <DropdownLink
+              onClick={() => {
+                setOpen(false);
+                openDownloadModal("ads");
+              }}
+              icon={Icons.CIRCLE_CHECK}
+            >
+              {t("navigation.removeAds.menu")}
+            </DropdownLink>
+          ) : null}
           {hasWatchHistory ? (
             <DropdownLink href="/watch-history" icon={Icons.CLOCK}>
               {t("home.watchHistory.sectionTitle")}

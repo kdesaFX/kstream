@@ -1,5 +1,6 @@
 import { Icon, Icons } from "@/components/Icon";
 import { FancyModal } from "@/components/overlays/Modal";
+import { useOverlayStack } from "@/stores/interface/overlayStack";
 import {
   WINDOWS_APP_DOWNLOAD_FILENAME,
   WINDOWS_APP_DOWNLOAD_PATH,
@@ -31,17 +32,37 @@ const STEPS = [
 ] as const;
 
 export function DownloadModal({ id }: { id: string }) {
+  const intent = useOverlayStack((s) => s.getModalData(id)?.intent);
+  const fromAds = intent === "ads";
+
   return (
-    <FancyModal id={id} title="Download kstream for Windows" size="xl">
+    <FancyModal
+      id={id}
+      title={
+        fromAds
+          ? "Want an ad-free experience?"
+          : "Download kstream for Windows"
+      }
+      size="xl"
+    >
       <div className="space-y-5">
-        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3">
-          <p className="text-sm leading-relaxed text-emerald-100/90">
-            <span className="font-semibold text-emerald-200">You’re safe.</span>{" "}
-            This is the official Windows app. Windows may show a SmartScreen
-            warning because the installer isn’t code-signed yet, so follow the
-            steps below and you’re good.
+        {fromAds ? (
+          <p className="text-base leading-relaxed text-type-secondary">
+            Get the Windows app — no Adsterra, no popunders. Same kstream, built
+            for the desktop.
           </p>
-        </div>
+        ) : (
+          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3">
+            <p className="text-sm leading-relaxed text-emerald-100/90">
+              <span className="font-semibold text-emerald-200">
+                You’re safe.
+              </span>{" "}
+              This is the official Windows app. Windows may show a SmartScreen
+              warning because the installer isn’t code-signed yet, so follow the
+              steps below and you’re good.
+            </p>
+          </div>
+        )}
 
         <button
           type="button"
@@ -55,7 +76,9 @@ export function DownloadModal({ id }: { id: string }) {
             <div className="min-w-0 flex-1">
               <div className="font-medium text-white">Download Windows app</div>
               <div className="mt-0.5 text-xs text-type-secondary">
-                {WINDOWS_APP_DOWNLOAD_FILENAME} · starts right away
+                {fromAds
+                  ? "Ad-free · native app · starts right away"
+                  : `${WINDOWS_APP_DOWNLOAD_FILENAME} · starts right away`}
               </div>
             </div>
             <span className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/80 transition-all group-hover:bg-white/10 group-hover:text-white">
@@ -67,6 +90,25 @@ export function DownloadModal({ id }: { id: string }) {
             </span>
           </div>
         </button>
+
+        {!fromAds ? (
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <p className="text-sm leading-relaxed text-type-secondary">
+              Bonus: the Windows app runs{" "}
+              <span className="font-semibold text-white">without ads</span>.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3">
+            <p className="text-sm leading-relaxed text-emerald-100/90">
+              <span className="font-semibold text-emerald-200">
+                You’re safe.
+              </span>{" "}
+              Official installer from our site. Windows SmartScreen may warn
+              because it isn’t code-signed yet — use More info → Run anyway.
+            </p>
+          </div>
+        )}
 
         <div className="space-y-4">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-type-secondary">
