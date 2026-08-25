@@ -65,19 +65,28 @@ export function DeviceProfileCards({
           <button
             key={profile}
             type="button"
-            disabled={disabled}
-            onClick={() => onSelect(profile)}
+            disabled={disabled || active}
+            aria-pressed={active}
+            onClick={() => {
+              if (active) return;
+              onSelect(profile);
+            }}
             className={classNames(
               "rounded-2xl border p-4 text-left transition-colors",
               active
-                ? "border-type-link bg-type-link/15"
+                ? "cursor-default border-type-link bg-type-link/15"
                 : isRecommended
-                  ? "border-type-link/60 bg-type-link/10"
+                  ? "border-type-link/60 bg-type-link/10 hover:border-type-link hover:bg-type-link/15"
                   : "border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/10",
-              disabled && "cursor-wait opacity-70",
+              disabled && !active && "cursor-wait opacity-70",
+              active && "opacity-100",
             )}
           >
-            {isRecommended ? (
+            {active ? (
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-type-link">
+                {t("settings.optimize.current") ?? "Currently selected"}
+              </p>
+            ) : isRecommended ? (
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-type-link">
                 {t("settings.optimize.recommended")}
               </p>
@@ -106,6 +115,9 @@ export function OptimizeModal() {
 
   const recommended = useMemo(() => recommendDeviceProfile(), []);
 
+  const currentProfile =
+    inferred === "custom" ? lastApplied : inferred;
+
   const [phase, setPhase] = useState<"pick" | "applying" | "done">("pick");
   const [activeProfile, setActiveProfile] = useState<DeviceProfile | null>(
     null,
@@ -117,6 +129,7 @@ export function OptimizeModal() {
     : [];
 
   const runApply = (profile: DeviceProfile) => {
+    if (currentProfile === profile) return;
     applyDeviceProfile(profile);
     void syncDeviceProfileSettings(backendUrl, account);
     setActiveProfile(profile);
@@ -173,15 +186,20 @@ export function OptimizeModal() {
         <div className="space-y-5 text-base">
           <p>{t("settings.optimize.subtitle")}</p>
           <DeviceProfileCards
-            selected={
-              inferred === "custom" ? lastApplied : inferred
-            }
+            selected={currentProfile}
             recommended={recommended}
             onSelect={runApply}
           />
-          <Button theme="purple" onClick={() => runApply(recommended)}>
-            {t("settings.optimize.useRecommended")}
-          </Button>
+          {currentProfile !== recommended ? (
+            <Button theme="purple" onClick={() => runApply(recommended)}>
+              {t("settings.optimize.useRecommended")}
+            </Button>
+          ) : (
+            <p className="text-sm text-type-secondary">
+              {t("settings.optimize.alreadyOnRecommended") ??
+                "You're already on the recommended build for this device."}
+            </p>
+          )}
           {showReset ? (
             <p className="text-sm text-type-secondary">
               {t("settings.optimize.resetHint")}{" "}
