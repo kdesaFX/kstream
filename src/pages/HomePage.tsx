@@ -244,8 +244,9 @@ export function HomePage() {
     <HomeLayout
       showBg={s.searching}
       showLightbar={!enableFeatured}
-      // Classic hero already has the big search — don't duplicate it in the nav.
-      showNavSearch={enableFeatured}
+      // Classic hero owns the big search at rest; once results show the hero
+      // collapses, so put search back in the nav (Low/Mid Featured-off).
+      showNavSearch={enableFeatured || s.searching}
     >
       <div className="relative mb-2">
         <Helmet>
