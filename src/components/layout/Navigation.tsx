@@ -35,25 +35,33 @@ function HomeRemoveAdsToggle() {
   const { t } = useTranslation();
   const { openDownloadModal } = useDownloadModal();
   const isDesktopApp = useIsDesktopApp();
+  // Web desktop only — same visibility as Download (not mobile, not desktop app).
   if (isDesktopApp) return null;
 
   return (
     <button
       type="button"
       onClick={() => openDownloadModal("ads")}
-      className={`group flex items-center h-10 md:h-[2.67rem] rounded-full transition-all duration-300 ease-out overflow-hidden ${navControlSurface} text-white hover:bg-pill-backgroundHover/80 hover:pr-4 active:scale-105`}
+      className="tabbable rounded-full text-base shrink-0"
       title={t("navigation.removeAds.button")}
       aria-label={t("navigation.removeAds.button")}
     >
-      <div className="flex items-center justify-center w-10 h-10 md:w-[2.67rem] md:h-[2.67rem] shrink-0">
+      <div
+        className={classNames(
+          "flex h-10 md:h-[2.67rem] items-center gap-2 rounded-full text-white shrink-0",
+          "px-2.5 xl:px-3.5",
+          navControlSurface,
+          navControlHover,
+        )}
+      >
         <Icon
           icon={Icons.CIRCLE_CHECK}
           className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none [&>svg]:block [&>svg]:h-5 [&>svg]:w-5"
         />
+        <span className="hidden xl:inline font-semibold text-base whitespace-nowrap">
+          {t("navigation.removeAds.button")}
+        </span>
       </div>
-      <span className="font-medium text-sm whitespace-nowrap transition-all duration-300 ease-out max-w-0 opacity-0 group-hover:max-w-[140px] group-hover:opacity-100">
-        {t("navigation.removeAds.button")}
-      </span>
     </button>
   );
 }
