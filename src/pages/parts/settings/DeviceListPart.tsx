@@ -22,32 +22,21 @@ export const signOutAllDevices = () => {
   });
 };
 
-function formatLastSeen(iso: string, t: (key: string, opts?: object) => string) {
+function formatLastSeen(iso: string): string | null {
   const then = new Date(iso).getTime();
   if (!Number.isFinite(then)) return null;
   const seconds = Math.round((Date.now() - then) / 1000);
-  if (seconds < 60) {
-    return t("settings.account.devices.lastSeenJustNow") ?? "Active just now";
-  }
+  if (seconds < 60) return "Active just now";
   if (seconds < 3600) {
     const mins = Math.floor(seconds / 60);
-    return (
-      t("settings.account.devices.lastSeenMinutes", { count: mins }) ??
-      `Active ${mins}m ago`
-    );
+    return `Active ${mins}m ago`;
   }
   if (seconds < 86400) {
     const hours = Math.floor(seconds / 3600);
-    return (
-      t("settings.account.devices.lastSeenHours", { count: hours }) ??
-      `Active ${hours}h ago`
-    );
+    return `Active ${hours}h ago`;
   }
   const days = Math.floor(seconds / 86400);
-  return (
-    t("settings.account.devices.lastSeenDays", { count: days }) ??
-    `Active ${days}d ago`
-  );
+  return `Active ${days}d ago`;
 }
 
 export function Device(props: {
@@ -67,9 +56,7 @@ export function Device(props: {
     props.onRemove?.();
   }, [url, token, props.id, props.onRemove]);
 
-  const lastSeenLabel = props.lastSeen
-    ? formatLastSeen(props.lastSeen, t)
-    : null;
+  const lastSeenLabel = props.lastSeen ? formatLastSeen(props.lastSeen) : null;
 
   return (
     <SettingsCard

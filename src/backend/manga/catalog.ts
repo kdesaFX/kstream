@@ -65,7 +65,7 @@ export async function getChapterPages(
     alternateTitles?: string[];
     chapter?: string | null;
   },
-  force = false,
+  force?: boolean,
 ): Promise<string[]> {
   const tried = new Set<string>();
   const queue = [chapterId];
