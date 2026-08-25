@@ -46,6 +46,8 @@ export function MangaDetailsModal({ id }: { id: string }) {
   const [adaptation, setAdaptation] = useState<MangaAnimeAdaptation | null>(
     null,
   );
+  /** True while WeebCentral/Comick fill licensed MangaDex gaps. */
+  const [chaptersPending, setChaptersPending] = useState(false);
 
   const modalIndex = modalStack.indexOf(id);
   const zIndex = modalIndex >= 0 ? 1000 + modalIndex : 999;
@@ -65,14 +67,22 @@ export function MangaDetailsModal({ id }: { id: string }) {
   useEffect(() => {
     if (!shouldShow || !mangaId) return undefined;
     let cancelled = false;
+    setChaptersPending(true);
     getMangaDetails(mangaId, preferredLanguage, (partial) => {
-      if (!cancelled) setLoaded({ mangaId, details: partial });
+      if (cancelled) return;
+      setLoaded({ mangaId, details: partial });
+      // MD returned first — keep the chapters section in a loading state when
+      // empty so we don't flash "official sites only" before mirrors arrive.
+      setChaptersPending(partial.chapters.length === 0);
     })
       .then((d) => {
-        if (!cancelled) setLoaded({ mangaId, details: d });
+        if (cancelled) return;
+        setLoaded({ mangaId, details: d });
+        setChaptersPending(false);
       })
       .catch((e) => {
         if (!cancelled) {
+          setChaptersPending(false);
           setFailed({
             mangaId,
             message: e instanceof Error ? e.message : "Failed to load",
@@ -264,7 +274,9 @@ export function MangaDetailsModal({ id }: { id: string }) {
                   >
                     {details.chapters.length === 0 ? (
                       <p className="text-sm text-type-secondary">
-                        {t("manga.details.noChapters")}
+                        {chaptersPending
+                          ? t("manga.details.loadingChapters")
+                          : t("manga.details.noChapters")}
                       </p>
                     ) : (
                       details.chapters.map((ch) => (

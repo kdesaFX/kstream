@@ -87,6 +87,8 @@ export function MangaReaderView() {
     mangaId: string;
     details: MangaDetails;
   } | null>(null);
+  /** False until getMangaDetails finishes (partial MD may have zero chapters). */
+  const [detailsReady, setDetailsReady] = useState(false);
   const [pages, setPages] = useState<string[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -141,15 +143,21 @@ export function MangaReaderView() {
     if (!mangaId) return undefined;
     let cancelled = false;
     setError(null);
+    setDetailsReady(false);
     getMangaDetails(mangaId, preferredLanguage, (partial) => {
       if (!cancelled) setLoadedDetails({ mangaId, details: partial });
     })
       .then((d) => {
-        if (!cancelled) setLoadedDetails({ mangaId, details: d });
+        if (!cancelled) {
+          setLoadedDetails({ mangaId, details: d });
+          setDetailsReady(true);
+        }
       })
       .catch((e) => {
-        if (!cancelled)
+        if (!cancelled) {
+          setDetailsReady(true);
           setError(e instanceof Error ? e.message : "Failed to load manga");
+        }
       });
     return () => {
       cancelled = true;
@@ -159,6 +167,8 @@ export function MangaReaderView() {
   // Redirect /manga/:id → first readable chapter or resume after meaningful read
   useEffect(() => {
     if (!mangaId || !details || chapterId) return;
+    // Wait for WC/Comick merge — empty MD partial must not flash "no chapters".
+    if (!detailsReady && details.chapters.length === 0) return;
     skippedEmptyRef.current = new Set();
     const resume = savedProgress[mangaId];
     const resumeStillValid =
@@ -177,11 +187,11 @@ export function MangaReaderView() {
       navigate(mangaChapterLink(details.id, details.title, target), {
         replace: true,
       });
-    } else {
+    } else if (detailsReady) {
       setError(t("manga.reader.noChapters"));
       setLoading(false);
     }
-  }, [mangaId, details, chapterId, savedProgress, navigate, t]);
+  }, [mangaId, details, detailsReady, chapterId, savedProgress, navigate, t]);
 
   // Drop chapter ids that aren't in the current language's list (wrong-series
   // leftover, or we just switched translation). Prefer the same chapter number.
