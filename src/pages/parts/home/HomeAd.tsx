@@ -14,10 +14,12 @@ const DEFAULT_ADSTERRA_HOST = "https://www.highrevenueformat.com";
  * Deferred (Tier B/C) — not wired yet; keys live in public/config.js comments:
  * - Home → Discover seam / Discover under tabs (728×90)
  * - Search under tabs (728×90 / 320×50)
- * - Watch/read history foot
  * - Manga details mid
  * - Global footer band
  * - 468×60 / 160×300 / native container units
+ *
+ * Live: home primary/secondary, details, bookmarks, watch/read history foot
+ * (history reuses the bookmarks 300×250 zone).
  */
 
 export type AdSlot =
@@ -25,6 +27,7 @@ export type AdSlot =
   | "secondary"
   | "secondaryRail"
   | "bookmarks"
+  | "history"
   | "details";
 
 function adScriptSrc(key: string): string {
@@ -314,7 +317,7 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
     );
   }
 
-  if (slot === "bookmarks") {
+  if (slot === "bookmarks" || slot === "history") {
     if (!cfg.ENABLE_BOOKMARKS_AD || !cfg.BOOKMARKS_AD_ZONE_ID) return null;
     return (
       <AdSlotInner

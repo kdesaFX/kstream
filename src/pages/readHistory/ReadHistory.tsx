@@ -13,6 +13,7 @@ import { ReadMediaCard } from "@/components/media/ReadMediaCard";
 import { Heading1 } from "@/components/utils/Text";
 import { useRandomTranslation } from "@/hooks/useRandomTranslation";
 import { SubPageLayout } from "@/pages/layouts/SubPageLayout";
+import { HomeAd } from "@/pages/parts/home/HomeAd";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import {
   shouldShowMangaProgress,
@@ -140,6 +141,10 @@ export function ReadHistory({ onShowDetails }: ReadHistoryProps) {
             </div>
           ))}
         </MediaGrid>
+
+        <div className="w-full flex justify-center my-10 px-4">
+          <HomeAd slot="history" />
+        </div>
       </WideContainer>
     </SubPageLayout>
   );
