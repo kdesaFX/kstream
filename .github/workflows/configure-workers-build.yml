@@ -2,6 +2,11 @@ name: Configure Workers Build
 
 on:
   workflow_dispatch:
+    inputs:
+      trigger_build:
+        description: "Trigger a production Cloudflare build after patching"
+        type: boolean
+        default: true
 
 jobs:
   configure:
@@ -19,6 +24,7 @@ jobs:
           test -n "$PROVIDERS_DEPLOY_KEY" || { echo "::error::PROVIDERS_DEPLOY_KEY missing"; exit 1; }
 
       - name: Update build triggers
+        id: patch
         run: |
           set -euo pipefail
           worker_tag="$(curl -sf \
@@ -30,11 +36,12 @@ jobs:
             exit 1
           fi
           echo "Resolved Worker tag: ${worker_tag}"
+          echo "worker_tag=${worker_tag}" >> "$GITHUB_OUTPUT"
 
           triggers="$(curl -sf \
             -H "Authorization: Bearer ${CF_API_TOKEN}" \
             "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/workers/${worker_tag}/triggers")"
-          echo "$triggers" | jq .
+          echo "$triggers" | jq '{success, count: (.result|length), triggers: [.result[] | {trigger_name, trigger_uuid, build_command, deploy_command}]}'
           echo "$triggers" | jq -e '.success' >/dev/null
 
           count="$(echo "$triggers" | jq '.result | length')"
@@ -43,6 +50,7 @@ jobs:
             exit 0
           fi
 
+          prod_uuid=""
           echo "$triggers" | jq -c '.result[]' | while read -r trigger; do
             uuid="$(echo "$trigger" | jq -r '.trigger_uuid')"
             name="$(echo "$trigger" | jq -r '.trigger_name')"
@@ -69,6 +77,33 @@ jobs:
                   PUPPETEER_SKIP_DOWNLOAD: { value: "1", is_secret: false }
                 }')" \
               | jq -e '.success' >/dev/null
+
+            echo "Env vars for ${name}:"
+            curl -sf \
+              -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/triggers/${uuid}/environment_variables" \
+              | jq '{success, keys: (.result | keys)}'
           done
 
+          # Prefer the production/"default branch" trigger for a manual rebuild.
+          prod_uuid="$(echo "$triggers" | jq -r '.result[] | select(.trigger_name | test("default|production"; "i")) | .trigger_uuid' | head -n1)"
+          if [ -z "$prod_uuid" ] || [ "$prod_uuid" = "null" ]; then
+            prod_uuid="$(echo "$triggers" | jq -r '.result[0].trigger_uuid')"
+          fi
+          echo "prod_trigger_uuid=${prod_uuid}" >> "$GITHUB_OUTPUT"
           echo "Cloudflare Workers Builds configured for private providers checkout."
+
+      - name: Trigger production build
+        if: ${{ inputs.trigger_build }}
+        run: |
+          set -euo pipefail
+          uuid="${{ steps.patch.outputs.prod_trigger_uuid }}"
+          test -n "$uuid" || { echo "::error::No production trigger UUID"; exit 1; }
+          echo "Triggering build for ${uuid}"
+          curl -sf \
+            -X POST \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/triggers/${uuid}/builds" \
+            --data '{}' \
+            | jq .
