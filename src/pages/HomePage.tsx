@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
@@ -120,52 +120,81 @@ export function HomePage() {
       order.splice(watchingIdx >= 0 ? watchingIdx + 1 : 0, 0, "reading");
     }
 
-    const sections = order.map((section) => {
+    // Ads sit under Continue Watching + Continue Reading (whichever appear
+    // last in the order), not above them under Featured.
+    const lastContinueIdx = Math.max(
+      order.indexOf("watching"),
+      order.indexOf("reading"),
+    );
+
+    const sections: ReactNode[] = [];
+    order.forEach((section, index) => {
       switch (section) {
         case "watching":
-          return enableCarouselView ? (
-            <WatchingCarousel
-              key="watching"
-              carouselRefs={carouselRefs}
-              onShowDetails={handleShowDetails}
-            />
-          ) : (
-            <WatchingGrid
-              key="watching"
-              onItemsChange={setShowWatching}
-              onShowDetails={handleShowDetails}
-            />
+          sections.push(
+            enableCarouselView ? (
+              <WatchingCarousel
+                key="watching"
+                carouselRefs={carouselRefs}
+                onShowDetails={handleShowDetails}
+              />
+            ) : (
+              <WatchingGrid
+                key="watching"
+                onItemsChange={setShowWatching}
+                onShowDetails={handleShowDetails}
+              />
+            ),
           );
+          break;
         case "reading":
-          return enableCarouselView ? (
-            <ReadingCarousel
-              key="reading"
-              carouselRefs={carouselRefs}
-              onShowDetails={handleShowDetails}
-            />
-          ) : (
-            <ReadingGrid
-              key="reading"
-              onItemsChange={setShowReading}
-              onShowDetails={handleShowDetails}
-            />
+          sections.push(
+            enableCarouselView ? (
+              <ReadingCarousel
+                key="reading"
+                carouselRefs={carouselRefs}
+                onShowDetails={handleShowDetails}
+              />
+            ) : (
+              <ReadingGrid
+                key="reading"
+                onItemsChange={setShowReading}
+                onShowDetails={handleShowDetails}
+              />
+            ),
           );
+          break;
         case "bookmarks":
-          return enableCarouselView ? (
-            <BookmarksCarousel
-              key="bookmarks"
-              carouselRefs={carouselRefs}
-              onShowDetails={handleShowDetails}
-            />
-          ) : (
-            <BookmarksGrid
-              key="bookmarks"
-              onItemsChange={setShowBookmarks}
-              onShowDetails={handleShowDetails}
-            />
+          sections.push(
+            enableCarouselView ? (
+              <BookmarksCarousel
+                key="bookmarks"
+                carouselRefs={carouselRefs}
+                onShowDetails={handleShowDetails}
+              />
+            ) : (
+              <BookmarksGrid
+                key="bookmarks"
+                onItemsChange={setShowBookmarks}
+                onShowDetails={handleShowDetails}
+              />
+            ),
           );
+          break;
         default:
-          return null;
+          break;
+      }
+
+      if (index === lastContinueIdx && lastContinueIdx >= 0) {
+        sections.push(
+          <div
+            key="home-ads"
+            className="w-full flex flex-col items-center gap-4 px-4"
+          >
+            <HomeAd />
+            <HomeAd slot="secondary" />
+          </div>,
+        );
       }
     });
 
@@ -215,13 +244,6 @@ export function HomePage() {
         {conf().SHOW_SUPPORT_BAR ? <SupportBar /> : null}
         {conf().SHOW_AD ? <AdsPart /> : null}
       </div>
-
-      {!search && (
-        <div className="w-full flex flex-col items-center gap-4 px-4 my-6">
-          <HomeAd />
-          <HomeAd slot="secondary" />
-        </div>
-      )}
 
       {search && (
         <WideContainer>
