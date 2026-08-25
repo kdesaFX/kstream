@@ -44,10 +44,10 @@ export function HomeHero(props: { searching?: boolean }) {
         "relative z-0 w-full transition-[height,opacity] duration-300 ease-in-out",
         props.searching
           ? "h-24 opacity-0 pointer-events-none"
-          : "min-h-[22rem] md:min-h-[28rem] opacity-100",
+          : "opacity-100",
       )}
     >
-      <div className="flex flex-col items-center justify-center px-6 pt-28 pb-12 text-center gap-6 md:pt-32">
+      <div className="flex flex-col items-center justify-start px-6 pt-28 pb-4 text-center gap-5 md:pt-32 md:pb-6">
         <HeroTitle className="max-w-3xl">{title}</HeroTitle>
         <div className="w-full max-w-xl pointer-events-auto">
           <SearchBarInput
