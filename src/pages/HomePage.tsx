@@ -144,7 +144,7 @@ export function HomePage() {
     const homeAds = (
       <div
         key="home-ads"
-        className="w-full flex flex-col items-center lg:flex-row lg:items-start lg:justify-center gap-4 px-4"
+        className="w-full flex flex-wrap items-start justify-center gap-4 px-4"
       >
         <HomeAd />
         <HomeAd slot="secondary" />

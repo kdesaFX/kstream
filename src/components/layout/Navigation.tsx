@@ -310,7 +310,7 @@ export function Navigation(props: NavigationProps) {
                   <button
                     type="button"
                     onClick={() => openDownloadModal()}
-                    className="hidden lg:block tabbable rounded-full text-base shrink-0"
+                    className="hidden sm:block tabbable rounded-full text-base shrink-0"
                     title="Download app"
                     aria-label="Download Windows app"
                   >
@@ -376,7 +376,7 @@ export function Navigation(props: NavigationProps) {
               ref={rightRef}
               className="pointer-events-auto flex items-center justify-end gap-2 md:gap-3 shrink-0 min-w-0"
             >
-              <div className="hidden lg:flex items-center gap-2 shrink-0">
+              <div className="hidden sm:flex items-center gap-1.5 md:gap-2 shrink-0">
                 <HomeRemoveAdsToggle />
                 <HomeOptimizeToggle />
                 <HomeLayoutCustomizerToggle />

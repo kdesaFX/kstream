@@ -225,10 +225,10 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
 
   return (
     <div
-      className="relative rounded-lg ring-1 ring-white/20 bg-black/30 transition-opacity duration-500"
+      className="relative max-w-full rounded-lg ring-1 ring-white/20 bg-black/30 transition-opacity duration-500"
       style={{
-        maxWidth: `${wrapperMaxWidth}px`,
-        width: "100%",
+        width: `${wrapperMaxWidth}px`,
+        maxWidth: "100%",
         opacity: adState === "loading" || !readyToLoad ? 0.6 : 1,
       }}
     >
@@ -281,7 +281,7 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
   if (dismissed) return null;
 
   return (
-    <div className="relative mx-auto w-full max-w-[640px] lg:mx-0 rounded-[0.95rem] bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group">
+    <div className="relative mx-auto w-full max-w-[min(100%,40rem)] rounded-[0.95rem] bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group">
       <button
         onClick={dismiss}
         type="button"
@@ -349,7 +349,7 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
         : null;
     if (!gifUrl && !primarySlot) return null;
     return (
-      <div className="flex w-full max-w-[640px] lg:w-auto lg:max-w-none flex-col items-center gap-3 shrink-0">
+      <div className="flex max-w-full shrink-0 flex-col items-center gap-3">
         {gifUrl && (
           <PrimaryGifBanner img={PRIMARY_BANNER_GIF_SRC} href={gifUrl} />
         )}
