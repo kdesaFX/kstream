@@ -13,6 +13,7 @@ import DiscoverContent from "@/pages/discover/discoverContent";
 import { HomeLayout } from "@/pages/layouts/HomeLayout";
 import { BookmarksCarousel } from "@/pages/parts/home/BookmarksCarousel";
 import { BookmarksGrid } from "@/pages/parts/home/BookmarksGrid";
+import { HomeHero } from "@/pages/parts/home/HomeHero";
 import { ReadingCarousel } from "@/pages/parts/home/ReadingCarousel";
 import { ReadingGrid } from "@/pages/parts/home/ReadingGrid";
 import { WatchingCarousel } from "@/pages/parts/home/WatchingCarousel";
@@ -70,6 +71,7 @@ export function HomePage() {
   // (Chrome ultra-wide used to swap in a side skyscraper — user prefers two bottom).
   const { showModal } = useOverlayStack();
   const enableDiscover = usePreferencesStore((state) => state.enableDiscover);
+  const enableFeatured = usePreferencesStore((state) => state.enableFeatured);
   const carouselRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const enableCarouselView = usePreferencesStore(
     (state) => state.enableCarouselView,
@@ -186,7 +188,11 @@ export function HomePage() {
   };
 
   return (
-    <HomeLayout showBg={s.searching}>
+    <HomeLayout
+      showBg={s.searching}
+      showLightbar={!enableFeatured}
+      showNavSearch
+    >
       <div className="relative mb-2">
         <Helmet>
           <style type="text/css">{`
@@ -197,10 +203,14 @@ export function HomePage() {
           <title>{t("global.name")}</title>
         </Helmet>
 
-        <FeaturedCarousel
-          onShowDetails={handleShowDetails}
-          searching={s.searching}
-        />
+        {enableFeatured ? (
+          <FeaturedCarousel
+            onShowDetails={handleShowDetails}
+            searching={s.searching}
+          />
+        ) : (
+          <HomeHero searching={s.searching} />
+        )}
 
         {conf().SHOW_SUPPORT_BAR ? <SupportBar /> : null}
         {conf().SHOW_AD ? <AdsPart /> : null}
