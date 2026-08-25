@@ -43,16 +43,17 @@ export async function searchManga(
 
 export async function getMangaDetails(
   mangaId: string,
-  preferredLanguage = "en",
+  preferredLanguage?: string,
   onPartial?: (details: MangaDetails) => void,
 ): Promise<MangaDetails> {
+  const language = preferredLanguage || "en";
   if (isWeebCentralId(mangaId)) return getWeebCentralDetails(mangaId);
 
   // Return MangaDex chapters as soon as they're ready; fill WC/Comick gaps after.
-  const base = await getMangaDexDetails(mangaId, preferredLanguage);
+  const base = await getMangaDexDetails(mangaId, language);
   onPartial?.(base);
 
-  const resolved = await resolveReadableChapters(base, preferredLanguage);
+  const resolved = await resolveReadableChapters(base, language);
   return { ...base, ...resolved };
 }
 
@@ -133,7 +134,7 @@ async function loadPagesForId(
     alternateTitles?: string[];
     chapter?: string | null;
   },
-  force = false,
+  force?: boolean,
 ): Promise<string[]> {
   if (!force) {
     const cached = pageListCache.get(chapterId);
