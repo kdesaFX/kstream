@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { preloadSettingsPage } from "@/setup/routePreload";
 import { useAuthStore } from "@/stores/auth";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import {
@@ -34,6 +35,7 @@ function GoToLink(props: {
   href?: string;
   className?: string;
   onClick?: () => void;
+  onIntent?: () => void;
 }) {
   const navigate = useNavigate();
 
@@ -50,6 +52,8 @@ function GoToLink(props: {
     <a
       tabIndex={0}
       href={props.href}
+      onMouseEnter={props.onIntent}
+      onFocus={props.onIntent}
       onClick={(evt) => {
         evt.preventDefault();
         if (props.href) goTo(props.href);
@@ -69,10 +73,12 @@ function DropdownLink(props: {
   highlight?: boolean;
   className?: string;
   onClick?: () => void;
+  onIntent?: () => void;
 }) {
   return (
     <GoToLink
       onClick={props.onClick}
+      onIntent={props.onIntent}
       href={props.href}
       className={classNames(
         "tabbable cursor-pointer flex gap-3 items-center m-3 p-1 rounded font-medium transition-colors duration-100",
@@ -275,7 +281,11 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
         <div className="rounded-xl absolute w-64 bg-dropdown-altBackground top-full mt-3 right-0">
           {deviceName ? (
             <>
-              <DropdownLink className="text-white" href="/settings">
+              <DropdownLink
+                className="text-white"
+                href="/settings"
+                onIntent={preloadSettingsPage}
+              >
                 <UserAvatar />
                 {nickname}
               </DropdownLink>
@@ -292,7 +302,11 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
               <Divider />
             </>
           )}
-          <DropdownLink href="/settings" icon={Icons.SETTINGS}>
+          <DropdownLink
+            href="/settings"
+            icon={Icons.SETTINGS}
+            onIntent={preloadSettingsPage}
+          >
             {t("navigation.menu.settings")}
           </DropdownLink>
           {isDesktopApp && (

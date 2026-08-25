@@ -29,6 +29,7 @@ import {
 import { resolveCardArtworkUrl } from "@/utils/media/artwork";
 import { isMatureMedia } from "@/utils/media/mature";
 import { MediaItem } from "@/utils/media/mediaTypes";
+import { preloadPlayerView } from "@/setup/routePreload";
 
 import { MediaBookmarkButton } from "./MediaBookmark";
 import { IconPatch } from "../buttons/IconPatch";
@@ -759,6 +760,12 @@ export function MediaCard(props: MediaCardProps) {
           "tabbable relative block",
           props.closable ? "hover:cursor-default" : "",
         )}
+        onMouseEnter={() => {
+          if (link.startsWith("/media/")) preloadPlayerView();
+        }}
+        onFocus={() => {
+          if (link.startsWith("/media/")) preloadPlayerView();
+        }}
         onClick={handleCardClick}
         onContextMenu={handleCardContextMenu}
       >

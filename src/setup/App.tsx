@@ -1,5 +1,4 @@
-import { ReactElement, Suspense, useEffect, useState } from "react";
-import { lazyWithPreload } from "react-lazy-with-preload";
+import { ReactElement, Suspense, lazy, useEffect, useState } from "react";
 import {
   Navigate,
   Route,
@@ -30,44 +29,107 @@ import { useGlobalKeyboardEvents } from "@/hooks/useGlobalKeyboardEvents";
 import { useOnlineListener } from "@/hooks/usePing";
 import { useScrollLockRestore } from "@/hooks/useScrollLockRestore";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
-import { AboutPage } from "@/pages/About";
-import { AppsPage } from "@/pages/Apps";
-import { AdminPage } from "@/pages/admin/AdminPage";
-import { AllBookmarks } from "@/pages/bookmarks/AllBookmarks";
 import MaintenancePage from "@/pages/errors/MaintenancePage";
 import { NotFoundPage } from "@/pages/errors/NotFoundPage";
 import { HomePage } from "@/pages/HomePage";
-import { MangaReaderView } from "@/pages/manga/MangaReaderView";
-import { PersonView } from "@/pages/PersonView";
-import { CelPage } from "@/pages/Cel";
-import { LegalPage, shouldHaveLegalPage } from "@/pages/Legal";
 import { LoginPage } from "@/pages/Login";
-import { MigrationPage } from "@/pages/migration/Migration";
-import { MigrationDirectPage } from "@/pages/migration/MigrationDirect";
-import { MigrationDownloadPage } from "@/pages/migration/MigrationDownload";
-import { MigrationPasskeyPage } from "@/pages/migration/MigrationPasskey";
-import { MigrationUploadPage } from "@/pages/migration/MigrationUpload";
-import { OnboardingPage } from "@/pages/onboarding/Onboarding";
-import { OnboardingExtensionPage } from "@/pages/onboarding/OnboardingExtension";
-import { OnboardingProxyPage } from "@/pages/onboarding/OnboardingProxy";
-import { PasPage } from "@/pages/Pas";
 import { RegisterPage } from "@/pages/Register";
-import { SupportPage } from "@/pages/Support";
-import { MyAlgorithmPage } from "@/pages/algorithm/MyAlgorithm";
-import { ReadHistory } from "@/pages/readHistory/ReadHistory";
-import { WatchHistory } from "@/pages/watchHistory/WatchHistory";
+import { AllBookmarks } from "@/pages/bookmarks/AllBookmarks";
 import { Layout } from "@/setup/Layout";
 import { useAdsStore } from "@/stores/ads";
 import { useHistoryListener } from "@/stores/history";
 import { useClearModalsOnNavigation } from "@/stores/interface/overlayStack";
 import { LanguageProvider } from "@/stores/language";
 import { conf } from "@/setup/config";
+import { PlayerView, SettingsPage, preloadPlayerView, preloadSettingsPage } from "@/setup/routePreload";
 
-const PlayerView = lazyWithPreload(() => import("@/pages/PlayerView"));
-const SettingsPage = lazyWithPreload(() => import("@/pages/Settings"));
+const AboutPage = lazy(() =>
+  import("@/pages/About").then((m) => ({ default: m.AboutPage })),
+);
+const AppsPage = lazy(() =>
+  import("@/pages/Apps").then((m) => ({ default: m.AppsPage })),
+);
+const AdminPage = lazy(() =>
+  import("@/pages/admin/AdminPage").then((m) => ({ default: m.AdminPage })),
+);
+const MangaReaderView = lazy(() =>
+  import("@/pages/manga/MangaReaderView").then((m) => ({
+    default: m.MangaReaderView,
+  })),
+);
+const PersonView = lazy(() =>
+  import("@/pages/PersonView").then((m) => ({ default: m.PersonView })),
+);
+const CelPage = lazy(() =>
+  import("@/pages/Cel").then((m) => ({ default: m.CelPage })),
+);
+const MigrationPage = lazy(() =>
+  import("@/pages/migration/Migration").then((m) => ({
+    default: m.MigrationPage,
+  })),
+);
+const MigrationDirectPage = lazy(() =>
+  import("@/pages/migration/MigrationDirect").then((m) => ({
+    default: m.MigrationDirectPage,
+  })),
+);
+const MigrationDownloadPage = lazy(() =>
+  import("@/pages/migration/MigrationDownload").then((m) => ({
+    default: m.MigrationDownloadPage,
+  })),
+);
+const MigrationPasskeyPage = lazy(() =>
+  import("@/pages/migration/MigrationPasskey").then((m) => ({
+    default: m.MigrationPasskeyPage,
+  })),
+);
+const MigrationUploadPage = lazy(() =>
+  import("@/pages/migration/MigrationUpload").then((m) => ({
+    default: m.MigrationUploadPage,
+  })),
+);
+const OnboardingPage = lazy(() =>
+  import("@/pages/onboarding/Onboarding").then((m) => ({
+    default: m.OnboardingPage,
+  })),
+);
+const OnboardingExtensionPage = lazy(() =>
+  import("@/pages/onboarding/OnboardingExtension").then((m) => ({
+    default: m.OnboardingExtensionPage,
+  })),
+);
+const OnboardingProxyPage = lazy(() =>
+  import("@/pages/onboarding/OnboardingProxy").then((m) => ({
+    default: m.OnboardingProxyPage,
+  })),
+);
+const PasPage = lazy(() =>
+  import("@/pages/Pas").then((m) => ({ default: m.PasPage })),
+);
+const SupportPage = lazy(() =>
+  import("@/pages/Support").then((m) => ({ default: m.SupportPage })),
+);
+const MyAlgorithmPage = lazy(() =>
+  import("@/pages/algorithm/MyAlgorithm").then((m) => ({
+    default: m.MyAlgorithmPage,
+  })),
+);
+const ReadHistory = lazy(() =>
+  import("@/pages/readHistory/ReadHistory").then((m) => ({
+    default: m.ReadHistory,
+  })),
+);
+const WatchHistory = lazy(() =>
+  import("@/pages/watchHistory/WatchHistory").then((m) => ({
+    default: m.WatchHistory,
+  })),
+);
+const LegalPage = lazy(() =>
+  import("@/pages/Legal").then((m) => ({ default: m.LegalPage })),
+);
 
-PlayerView.preload();
-SettingsPage.preload();
+/** Re-export intent preloads for callers that already import from App. */
+export { preloadPlayerView, preloadSettingsPage } from "@/setup/routePreload";
 
 function LegacyUrlView({ children }: { children: ReactElement }) {
   const location = useLocation();
@@ -133,6 +195,11 @@ function App() {
   // Footer/nav Link navigations keep the previous scroll offset otherwise.
   useScrollRestoration();
   useScrollLockRestore();
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/media/")) preloadPlayerView();
+    if (location.pathname.startsWith("/settings")) preloadSettingsPage();
+  }, [location.pathname]);
 
   useEffect(() => {
     const cfg = conf();
@@ -254,42 +321,162 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/apps" element={<AppsPage />} />
-          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route
+            path="/about"
+            element={
+              <Suspense fallback={null}>
+                <AboutPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/apps"
+            element={
+              <Suspense fallback={null}>
+                <AppsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/onboarding"
+            element={
+              <Suspense fallback={null}>
+                <OnboardingPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/onboarding/extension"
-            element={<OnboardingExtensionPage />}
+            element={
+              <Suspense fallback={null}>
+                <OnboardingExtensionPage />
+              </Suspense>
+            }
           />
-          <Route path="/onboarding/proxy" element={<OnboardingProxyPage />} />
+          <Route
+            path="/onboarding/proxy"
+            element={
+              <Suspense fallback={null}>
+                <OnboardingProxyPage />
+              </Suspense>
+            }
+          />
 
           {/* Migration pages - awaiting import and export fixes */}
-          <Route path="/migration" element={<MigrationPage />} />
-          <Route path="/migration/direct" element={<MigrationDirectPage />} />
+          <Route
+            path="/migration"
+            element={
+              <Suspense fallback={null}>
+                <MigrationPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/migration/direct"
+            element={
+              <Suspense fallback={null}>
+                <MigrationDirectPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/migration/download"
-            element={<MigrationDownloadPage />}
+            element={
+              <Suspense fallback={null}>
+                <MigrationDownloadPage />
+              </Suspense>
+            }
           />
-          <Route path="/migration/upload" element={<MigrationUploadPage />} />
-          <Route path="/migration/passkey" element={<MigrationPasskeyPage />} />
+          <Route
+            path="/migration/upload"
+            element={
+              <Suspense fallback={null}>
+                <MigrationUploadPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/migration/passkey"
+            element={
+              <Suspense fallback={null}>
+                <MigrationPasskeyPage />
+              </Suspense>
+            }
+          />
 
-          {shouldHaveLegalPage() ? (
-            <Route path="/legal" element={<LegalPage />} />
+          {conf().DMCA_EMAIL ? (
+            <Route
+              path="/legal"
+              element={
+                <Suspense fallback={null}>
+                  <LegalPage />
+                </Suspense>
+              }
+            />
           ) : null}
           {/* Support page */}
-          <Route path="/support" element={<SupportPage />} />
-          <Route path="/cel" element={<CelPage />} />
-          <Route path="/pas" element={<PasPage />} />
+          <Route
+            path="/support"
+            element={
+              <Suspense fallback={null}>
+                <SupportPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/cel"
+            element={
+              <Suspense fallback={null}>
+                <CelPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/pas"
+            element={
+              <Suspense fallback={null}>
+                <PasPage />
+              </Suspense>
+            }
+          />
           {/* Legacy discover URLs → home */}
           <Route path="/discover/*" element={<Navigate to="/" replace />} />
           <Route path="/discover" element={<Navigate to="/" replace />} />
           {/* Bookmarks page */}
           <Route path="/bookmarks" element={<AllBookmarks />} />
-          <Route path="/person/:id" element={<PersonView />} />
+          <Route
+            path="/person/:id"
+            element={
+              <Suspense fallback={null}>
+                <PersonView />
+              </Suspense>
+            }
+          />
           {/* Watch History page */}
-          <Route path="/watch-history" element={<WatchHistory />} />
-          <Route path="/read-history" element={<ReadHistory />} />
-          <Route path="/algorithm" element={<MyAlgorithmPage />} />
+          <Route
+            path="/watch-history"
+            element={
+              <Suspense fallback={null}>
+                <WatchHistory />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/read-history"
+            element={
+              <Suspense fallback={null}>
+                <ReadHistory />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/algorithm"
+            element={
+              <Suspense fallback={null}>
+                <MyAlgorithmPage />
+              </Suspense>
+            }
+          />
           {/* Settings page */}
           <Route
             path="/settings"
@@ -300,7 +487,14 @@ function App() {
             }
           />
           {/* admin routes */}
-          <Route path="/admin" element={<AdminPage />} />
+          <Route
+            path="/admin"
+            element={
+              <Suspense fallback={null}>
+                <AdminPage />
+              </Suspense>
+            }
+          />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       )}

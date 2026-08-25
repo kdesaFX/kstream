@@ -37,6 +37,7 @@ import {
   fetchPersonalRecommendations,
 } from "@/pages/discover/lib/personalRecommendations";
 import { hydrateMissingCompletedGenres } from "@/pages/discover/lib/watchHistoryGenres";
+import { preloadPlayerView } from "@/setup/routePreload";
 import { useDiscoverStore } from "@/stores/discover";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -317,6 +318,8 @@ export function FeaturedCarousel({
     null,
   );
   const [contentOpacity, setContentOpacity] = useState(1);
+  /** Defer logo / IMDb / release until after first hero can paint. */
+  const [enrichmentReady, setEnrichmentReady] = useState(false);
 
   // Refresh hero when algorithm / high-% watch signal changes.
   const algorithmTick = useRatingsStore((s) =>
@@ -343,9 +346,39 @@ export function FeaturedCarousel({
 
   const currentMedia = media[currentIndex];
 
+  // After hero media lands, wait for idle before secondary fetches.
+  useEffect(() => {
+    if (isLoading || media.length === 0) {
+      setEnrichmentReady(false);
+      return undefined;
+    }
+    let cancelled = false;
+    let idleId: number | undefined;
+    let timeoutId: number | undefined;
+    const mark = () => {
+      if (!cancelled) setEnrichmentReady(true);
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(mark, { timeout: 2000 });
+    } else {
+      timeoutId = window.setTimeout(mark, 400);
+    }
+    return () => {
+      cancelled = true;
+      if (
+        idleId !== undefined &&
+        typeof window.cancelIdleCallback === "function"
+      ) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, [isLoading, media]);
+
   // Check for extension on mount
   // Fetch IMDb ratings when media changes (OMDb key, extension, or proxy)
   useEffect(() => {
+    if (!enrichmentReady) return;
     const fetchImdbRatings = async () => {
       const imdbId = currentMedia?.external_ids?.imdb_id;
       if (!imdbId || currentMedia.type === "manga") return;
@@ -364,7 +397,7 @@ export function FeaturedCarousel({
       void fetchImdbRatings();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- skip re-fetch when cache already has this id
-  }, [currentMedia]);
+  }, [currentMedia, enrichmentReady]);
 
   useEffect(() => {
     const mediaKind = effectiveCategory === "movies" ? "movie" : "tv";
@@ -526,7 +559,7 @@ export function FeaturedCarousel({
 
         const pickedIds = pickAvoidingRecent(
           primaryPool,
-          Math.min(SLIDE_QUANTITY * 2, primaryPool.length),
+          Math.min(SLIDE_QUANTITY, primaryPool.length),
         );
         let mediaItems = await fetchDetailsForIds(pickedIds);
 
@@ -534,7 +567,7 @@ export function FeaturedCarousel({
           const have = new Set(mediaItems.map((item) => item.id));
           const more = pickAvoidingRecent(
             backupPool.filter((id) => !have.has(id)),
-            SLIDE_QUANTITY * 2,
+            SLIDE_QUANTITY,
           );
           const extras = await fetchDetailsForIds(more);
           mediaItems = [...mediaItems, ...extras];
@@ -545,7 +578,7 @@ export function FeaturedCarousel({
           const have = new Set(mediaItems.map((item) => item.id));
           const more = pickAvoidingRecent(
             extraIds.filter((id) => !have.has(id)),
-            SLIDE_QUANTITY * 2,
+            SLIDE_QUANTITY,
           );
           const extras = await fetchDetailsForIds(more);
           mediaItems = [...mediaItems, ...extras];
@@ -653,6 +686,8 @@ export function FeaturedCarousel({
 
   // Fetch clear logo when current media changes
   useEffect(() => {
+    if (!enrichmentReady) return undefined;
+
     const fetchLogo = async () => {
       // Cancel any in-progress logo fetch
       if (logoFetchController.current) {
@@ -708,7 +743,7 @@ export function FeaturedCarousel({
         logoFetchController.current.abort();
       }
     };
-  }, [currentIndex, media]);
+  }, [currentIndex, media, enrichmentReady]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -744,6 +779,7 @@ export function FeaturedCarousel({
   }, [isAutoPlaying, media.length]);
 
   useEffect(() => {
+    if (!enrichmentReady) return;
     const fetchReleaseInfo = async () => {
       if (currentMedia?.type === "manga") {
         setReleaseInfo(null);
@@ -759,7 +795,7 @@ export function FeaturedCarousel({
       }
     };
     fetchReleaseInfo();
-  }, [currentMedia?.id, currentMedia?.type]);
+  }, [currentMedia?.id, currentMedia?.type, enrichmentReady]);
 
   if (isLoading) {
     return <FeaturedCarouselSkeleton shorter={shorter} searching={searching} />;
@@ -864,20 +900,21 @@ export function FeaturedCarousel({
           }
 
           return (
-            <div
-              key={item.id}
-              className={fade}
-              style={
-                shouldLoad
-                  ? {
-                      backgroundImage: `url(https://image.tmdb.org/t/p/w1280${item.backdrop_path})`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center top",
-                      ...mask,
-                    }
-                  : undefined
-              }
-            />
+            <div key={item.id} className={fade} style={mask}>
+              {shouldLoad && item.backdrop_path ? (
+                <img
+                  src={`https://image.tmdb.org/t/p/w780${item.backdrop_path}`}
+                  srcSet={`https://image.tmdb.org/t/p/w780${item.backdrop_path} 780w, https://image.tmdb.org/t/p/w1280${item.backdrop_path} 1280w`}
+                  sizes="100vw"
+                  alt=""
+                  decoding="async"
+                  // React 18 DOM: fetchPriority is valid; eslint rule lags.
+                  // eslint-disable-next-line react/no-unknown-property -- LCP hint
+                  fetchPriority={index === currentIndex ? "high" : "low"}
+                  className="absolute inset-0 h-full w-full object-cover object-top"
+                />
+              ) : null}
+            </div>
           );
         })}
       </div>
@@ -1069,11 +1106,17 @@ export function FeaturedCarousel({
             </p>
             <div
               className="flex gap-4 justify-center items-center sm:justify-start"
-              onMouseEnter={() => setIsAutoPlaying(false)}
+              onMouseEnter={() => {
+                setIsAutoPlaying(false);
+                if (currentMedia.type !== "manga") preloadPlayerView();
+              }}
               onMouseLeave={() => setIsAutoPlaying(true)}
             >
               <button
                 type="button"
+                onFocus={() => {
+                  if (currentMedia.type !== "manga") preloadPlayerView();
+                }}
                 onClick={() =>
                   navigate(
                     currentMedia.type === "manga"

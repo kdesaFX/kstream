@@ -134,14 +134,60 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
   const [adState, setAdState] = useState<"loading" | "loaded" | "failed">(
     "loading",
   );
+  const [readyToLoad, setReadyToLoad] = useState(false);
   const location = useLocation();
   const isWatchPage = location.pathname.startsWith("/media/");
+
+  // Don't compete with LCP — wait until near view or idle.
+  useEffect(() => {
+    if (isWatchPage) return undefined;
+    const el = containerRef.current;
+    if (!el) return undefined;
+
+    let cancelled = false;
+    let idleId: number | undefined;
+    let timeoutId: number | undefined;
+
+    const markReady = () => {
+      if (!cancelled) setReadyToLoad(true);
+    };
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          markReady();
+          io.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(markReady, { timeout: 2500 });
+    } else {
+      timeoutId = window.setTimeout(markReady, 1200);
+    }
+
+    return () => {
+      cancelled = true;
+      io.disconnect();
+      if (
+        idleId !== undefined &&
+        typeof window.cancelIdleCallback === "function"
+      ) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, [isWatchPage]);
 
   useEffect(() => {
     if (isWatchPage) {
       setAdState("failed");
       return;
     }
+    if (!readyToLoad) return;
     const container = containerRef.current;
     if (!container || !cfg.key) return;
 
@@ -150,12 +196,7 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
 
     void loadAdsterraBanner(container, cfg.key, cfg.width, cfg.height).then(
       () => {
-        if (cancelled) return;
-        if (container.querySelector("iframe, img, a")) {
-          setAdState("loaded");
-        } else {
-          setAdState("loaded");
-        }
+        if (!cancelled) setAdState("loaded");
       },
     );
 
@@ -176,7 +217,7 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
       observer.disconnect();
       window.clearTimeout(timeout);
     };
-  }, [cfg.key, cfg.width, cfg.height, isWatchPage]);
+  }, [cfg.key, cfg.width, cfg.height, isWatchPage, readyToLoad]);
 
   if (adState === "failed") return null;
 
@@ -188,7 +229,7 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
       style={{
         maxWidth: `${wrapperMaxWidth}px`,
         width: "100%",
-        opacity: adState === "loading" ? 0.6 : 1,
+        opacity: adState === "loading" || !readyToLoad ? 0.6 : 1,
       }}
     >
       <div className="rounded-lg overflow-hidden">

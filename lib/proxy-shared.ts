@@ -28,7 +28,7 @@ export function corsHeaders(extra: Record<string, string> = {}): Headers {
   });
 }
 
-/** MangaDex cover/page CDN paths are content-addressed — safe to cache briefly. */
+/** MangaDex cover/page CDN + TMDB artwork paths are content-addressed — safe to cache briefly. */
 export function isImmutableMangaCdnUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -41,6 +41,10 @@ export function isImmutableMangaCdnUrl(url: string): boolean {
       host.endsWith(".mangadex.network") &&
       (path.includes("/data/") || path.includes("/data-saver/"))
     ) {
+      return true;
+    }
+    // TMDB image CDN: /t/p/w342/abc.jpg etc.
+    if (host === "image.tmdb.org" && path.startsWith("/t/p/")) {
       return true;
     }
     return false;

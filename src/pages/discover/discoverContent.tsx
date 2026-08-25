@@ -124,12 +124,11 @@ export function DiscoverContent() {
 
   // Render Movies content with lazy loading. Earlier rows keep overlapping
   // titles; later rows drop them so each poster shows once (All and genre).
-  // Keep first two rows priority; never eager-mount the whole page under a
-  // genre chip (that used to fire every carousel's TMDB fetch at once).
+  // Only the first row mounts eagerly; the rest stay intersection-lazy.
   const renderMoviesContent = () => {
     const carousels = [];
     let dedupe = 0;
-    const rowPriority = () => carousels.length < 2;
+    const rowPriority = () => carousels.length < 1;
 
     // Because You Watched — All only (not under a genre chip)
     if (movieProgressItems.length > 0 && !selectedGenreId) {
@@ -242,7 +241,7 @@ export function DiscoverContent() {
   const renderTVShowsContent = () => {
     const carousels = [];
     let dedupe = 0;
-    const rowPriority = () => carousels.length < 2;
+    const rowPriority = () => carousels.length < 1;
 
     // Because You Watched — All only (not under a genre chip)
     if (tvProgressItems.length > 0 && !selectedGenreId) {
@@ -351,7 +350,7 @@ export function DiscoverContent() {
   const renderMangaContent = () => {
     const carousels: ReactNode[] = [];
     let dedupe = 0;
-    const rowPriority = () => carousels.length < 3;
+    const rowPriority = () => carousels.length < 1;
 
     if (mangaRecSources.length > 0) {
       carousels.push(

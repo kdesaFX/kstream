@@ -211,8 +211,14 @@ function MigrationRunner() {
     changeAppLanguage(useLanguageStore.getState().language);
     await initializeOldStores();
 
-    const region = await detectRegion();
-    useRegionStore.getState().setRegion(region);
+    // Region can hit external IP APIs — don't block first paint on it.
+    void detectRegion()
+      .then((region) => {
+        useRegionStore.getState().setRegion(region);
+      })
+      .catch(() => {
+        // Keep whatever region is already cached / default.
+      });
   }, []);
   const { t } = useTranslation();
 
