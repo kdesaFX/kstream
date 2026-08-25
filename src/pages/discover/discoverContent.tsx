@@ -22,6 +22,7 @@ import {
 } from "./components/MangaRecommendationsCarousel";
 import { ScrollToTopButton } from "./components/ScrollToTopButton";
 import type { MangaCarouselKind } from "./hooks/useMangaDiscoverMedia";
+import { HomeAd } from "@/pages/parts/home/HomeAd";
 
 export function DiscoverContent() {
   const { t } = useTranslation();
@@ -409,6 +410,8 @@ export function DiscoverContent() {
         selectedCategory={selectedCategory}
         onCategoryChange={handleCategoryChange}
       />
+
+      <HomeAd slot="discover" />
 
       <WideContainer ultraWide classNames="!px-0">
         {/* Movies Tab */}

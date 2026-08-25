@@ -6,6 +6,7 @@ import type { RequireExactlyOne } from "type-fest";
 import { Icon, Icons } from "@/components/Icon";
 import { BrandPill } from "@/components/layout/BrandPill";
 import { WideContainer } from "@/components/layout/WideContainer";
+import { HomeAd } from "@/pages/parts/home/HomeAd";
 import { shouldHaveLegalPage } from "@/pages/Legal";
 
 // to and href are mutually exclusive
@@ -60,6 +61,7 @@ export function Footer() {
 
   return (
     <footer className="mt-16 border-t border-type-divider py-16 md:py-8">
+      <HomeAd slot="footer" />
       <WideContainer ultraWide classNames="grid md:grid-cols-2 gap-16 md:gap-8">
         <div>
           <div className="inline-block">

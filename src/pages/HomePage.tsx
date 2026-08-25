@@ -297,12 +297,23 @@ export function HomePage() {
         ) : null}
 
         {/* Breathing room between the last home row and the discover tabs. */}
-        {enableDiscover && <div className="pb-12" />}
-
         {enableDiscover && !search ? (
-          <DiscoverContent />
+          <>
+            <HomeAd slot="discoverSeam" />
+            <div className="pb-6" />
+            <DiscoverContent />
+          </>
         ) : null}
       </WideContainer>
+
+      {/* Ultra-wide skyscraper rail — Tier A #2, ≥1536px only */}
+      {!search ? (
+        <div className="pointer-events-none fixed right-3 top-28 z-[40] hidden min-[1536px]:block">
+          <div className="pointer-events-auto">
+            <HomeAd slot="secondaryRail" />
+          </div>
+        </div>
+      ) : null}
     </HomeLayout>
   );
 }

@@ -17,6 +17,7 @@ import {
   SearchCategoryTabs,
 } from "@/pages/parts/search/SearchCategoryTabs";
 import { SearchLoadingPart } from "@/pages/parts/search/SearchLoadingPart";
+import { HomeAd } from "@/pages/parts/home/HomeAd";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { usePreferencesStore } from "@/stores/preferences";
 import { MediaItem } from "@/utils/media/mediaTypes";
@@ -173,6 +174,8 @@ export function SearchListPart({
           showManga={showMangaTab}
         />
       ) : null}
+
+      <HomeAd slot="search" />
 
       {emptyActiveTab ? (
         <p className="text-center text-type-secondary">

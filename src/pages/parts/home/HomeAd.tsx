@@ -11,15 +11,8 @@ const PRIMARY_BANNER_GIF_SRC = "/ads/primary-banner.gif";
 const DEFAULT_ADSTERRA_HOST = "https://www.highrevenueformat.com";
 
 /**
- * Deferred (Tier B/C) — not wired yet; keys live in public/config.js comments:
- * - Home → Discover seam / Discover under tabs (728×90)
- * - Search under tabs (728×90 / 320×50)
- * - Manga details mid
- * - Global footer band
- * - 468×60 / 160×300 / native container units
- *
- * Live: home primary/secondary, details, bookmarks, watch/read history foot
- * (history reuses the bookmarks 300×250 zone).
+ * Live Adsterra banner slots (no player / no popunder).
+ * Flip ENABLE_* flags in public/config.js to pull any placement.
  */
 
 export type AdSlot =
@@ -28,7 +21,36 @@ export type AdSlot =
   | "secondaryRail"
   | "bookmarks"
   | "history"
-  | "details";
+  | "details"
+  | "discoverSeam"
+  | "discover"
+  | "search"
+  | "mangaMid"
+  | "footer"
+  | "onboarding";
+
+type SlotConfig = { key: string; width: number; height: number };
+
+function leaderboardSlot(
+  enabled: boolean,
+  desktopId: string | null | undefined,
+  mobileId: string | null | undefined,
+  isMobile: boolean,
+): SlotConfig | null {
+  if (!enabled) return null;
+  if (isMobile && mobileId) return { key: mobileId, width: 320, height: 50 };
+  if (desktopId) return { key: desktopId, width: 728, height: 90 };
+  if (mobileId) return { key: mobileId, width: 320, height: 50 };
+  return null;
+}
+
+function mrecSlot(
+  enabled: boolean,
+  zoneId: string | null | undefined,
+): SlotConfig | null {
+  if (!enabled || !zoneId) return null;
+  return { key: zoneId, width: 300, height: 250 };
+}
 
 function adScriptSrc(key: string): string {
   const base =
@@ -121,12 +143,6 @@ function loadAdsterraBanner(
     () => undefined,
   );
   return run;
-}
-
-interface SlotConfig {
-  key: string;
-  width: number;
-  height: number;
 }
 
 function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
@@ -324,21 +340,21 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
   const adsDisabled = useAdsStore((s) => s.adsDisabled);
   const { isMobile } = useIsMobile();
 
-  const primarySlot = useMemo((): SlotConfig | null => {
-    if (!cfg.ENABLE_HOME_AD) return null;
-    if (isMobile && cfg.HOME_AD_MOBILE_ZONE_ID) {
-      return { key: cfg.HOME_AD_MOBILE_ZONE_ID, width: 320, height: 50 };
-    }
-    if (cfg.HOME_AD_ZONE_ID) {
-      return { key: cfg.HOME_AD_ZONE_ID, width: 728, height: 90 };
-    }
-    return null;
-  }, [
-    cfg.ENABLE_HOME_AD,
-    cfg.HOME_AD_MOBILE_ZONE_ID,
-    cfg.HOME_AD_ZONE_ID,
-    isMobile,
-  ]);
+  const primarySlot = useMemo(
+    () =>
+      leaderboardSlot(
+        cfg.ENABLE_HOME_AD,
+        cfg.HOME_AD_ZONE_ID,
+        cfg.HOME_AD_MOBILE_ZONE_ID,
+        isMobile,
+      ),
+    [
+      cfg.ENABLE_HOME_AD,
+      cfg.HOME_AD_MOBILE_ZONE_ID,
+      cfg.HOME_AD_ZONE_ID,
+      isMobile,
+    ],
+  );
 
   if (areAdsBlocked(adsDisabled)) return null;
 
@@ -359,34 +375,43 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
   }
 
   if (slot === "bookmarks" || slot === "history") {
-    if (!cfg.ENABLE_BOOKMARKS_AD || !cfg.BOOKMARKS_AD_ZONE_ID) return null;
-    return (
-      <AdSlotInner
-        cfg={{
-          key: cfg.BOOKMARKS_AD_ZONE_ID,
-          width: 300,
-          height: 250,
-        }}
-      />
-    );
+    const mrec = mrecSlot(cfg.ENABLE_BOOKMARKS_AD, cfg.BOOKMARKS_AD_ZONE_ID);
+    return mrec ? <AdSlotInner cfg={mrec} /> : null;
   }
 
   if (slot === "details") {
-    if (!cfg.ENABLE_DETAILS_AD || !cfg.DETAILS_AD_ZONE_ID) return null;
-    return (
-      <AdSlotInner
-        cfg={{
-          key: cfg.DETAILS_AD_ZONE_ID,
-          width: 300,
-          height: 250,
-        }}
-      />
+    const mrec = mrecSlot(cfg.ENABLE_DETAILS_AD, cfg.DETAILS_AD_ZONE_ID);
+    return mrec ? <AdSlotInner cfg={mrec} /> : null;
+  }
+
+  if (slot === "mangaMid") {
+    const mrec = mrecSlot(cfg.ENABLE_MANGA_MID_AD, cfg.MANGA_MID_AD_ZONE_ID);
+    return mrec ? (
+      <div className="flex w-full justify-center py-4">
+        <AdSlotInner cfg={mrec} />
+      </div>
+    ) : null;
+  }
+
+  if (slot === "onboarding") {
+    const mrec = mrecSlot(
+      cfg.ENABLE_ONBOARDING_AD,
+      cfg.ONBOARDING_AD_ZONE_ID,
     );
+    return mrec ? (
+      <div className="flex w-full justify-center pt-4">
+        <AdSlotInner cfg={mrec} />
+      </div>
+    ) : null;
   }
 
   if (slot === "secondaryRail") {
-    if (!cfg.ENABLE_SECONDARY_AD || !cfg.SECONDARY_AD_SKYSCRAPER_ZONE_ID)
+    if (
+      !cfg.ENABLE_SECONDARY_RAIL_AD ||
+      !cfg.SECONDARY_AD_SKYSCRAPER_ZONE_ID
+    ) {
       return null;
+    }
     return (
       <AdSlotInner
         cfg={{
@@ -398,17 +423,64 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
     );
   }
 
-  // secondary — mid-page MREC (sits beside primary on large screens)
-  if (!cfg.ENABLE_SECONDARY_AD || !cfg.SECONDARY_AD_ZONE_ID) return null;
+  if (slot === "secondary") {
+    if (!cfg.ENABLE_SECONDARY_AD || !cfg.SECONDARY_AD_ZONE_ID) return null;
+    return (
+      <div className="shrink-0">
+        <AdSlotInner
+          cfg={{
+            key: cfg.SECONDARY_AD_ZONE_ID,
+            width: 300,
+            height: 250,
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (slot === "footer") {
+    if (!cfg.ENABLE_FOOTER_AD || !cfg.FOOTER_AD_ZONE_ID) return null;
+    return (
+      <div className="flex w-full justify-center px-4 pb-6">
+        <AdSlotInner
+          cfg={{
+            key: cfg.FOOTER_AD_ZONE_ID,
+            width: 468,
+            height: 60,
+          }}
+        />
+      </div>
+    );
+  }
+
+  const banner =
+    slot === "discoverSeam"
+      ? leaderboardSlot(
+          cfg.ENABLE_DISCOVER_SEAM_AD,
+          cfg.DISCOVER_SEAM_AD_ZONE_ID,
+          cfg.HOME_AD_MOBILE_ZONE_ID,
+          isMobile,
+        )
+      : slot === "discover"
+        ? leaderboardSlot(
+            cfg.ENABLE_DISCOVER_AD,
+            cfg.DISCOVER_AD_ZONE_ID,
+            cfg.HOME_AD_MOBILE_ZONE_ID,
+            isMobile,
+          )
+        : slot === "search"
+          ? leaderboardSlot(
+              cfg.ENABLE_SEARCH_AD,
+              cfg.SEARCH_AD_ZONE_ID,
+              cfg.SEARCH_AD_MOBILE_ZONE_ID,
+              isMobile,
+            )
+          : null;
+
+  if (!banner) return null;
   return (
-    <div className="shrink-0">
-      <AdSlotInner
-        cfg={{
-          key: cfg.SECONDARY_AD_ZONE_ID,
-          width: 300,
-          height: 250,
-        }}
-      />
+    <div className="flex w-full justify-center px-4 py-4">
+      <AdSlotInner cfg={banner} />
     </div>
   );
 }

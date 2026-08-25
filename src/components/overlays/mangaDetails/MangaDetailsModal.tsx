@@ -592,6 +592,8 @@ export function MangaDetailsModal({ id }: { id: string }) {
                       </div>
                     </div>
 
+                    <HomeAd slot="mangaMid" />
+
                     {/* Chapters */}
                     <div className="space-y-3 pt-8">
                       <div className="flex flex-wrap items-baseline justify-between gap-2">

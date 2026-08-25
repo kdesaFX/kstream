@@ -38,6 +38,7 @@ import { conf } from "@/setup/config";
 import { usePreferencesStore } from "@/stores/preferences";
 import { isMobileOnboardingClient, isWindowsDesktopClient } from "@/utils/hosting/onboarding";
 import { getProxyUrls } from "@/utils/hosting/proxyUrls";
+import { HomeAd } from "@/pages/parts/home/HomeAd";
 
 import { DebridEdit, FebboxSetup } from "../parts/settings/ConnectionsPart";
 
@@ -329,6 +330,7 @@ export function OnboardingPage() {
             mode="onboarding"
           />
         </div>
+        <HomeAd slot="onboarding" />
       </BiggerCenterContainer>
     </MinimalPageLayout>
   );

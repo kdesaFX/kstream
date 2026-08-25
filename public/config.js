@@ -39,6 +39,7 @@ window.__CONFIG__ = {
   VITE_HOME_AD_MOBILE_ZONE_ID: "5b495d1b87680daa6bd47f0f1b07f96c", // 320x50
   VITE_ENABLE_SECONDARY_AD: "true",
   VITE_SECONDARY_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250 mid-home
+  VITE_ENABLE_SECONDARY_RAIL_AD: "true",
   VITE_SECONDARY_AD_SKYSCRAPER_ZONE_ID: "78f365b3820dd67709f7fdd363bba49b", // 160x600 ultra-wide rail
   VITE_ENABLE_BOOKMARKS_AD: "true",
   VITE_BOOKMARKS_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250
@@ -47,9 +48,20 @@ window.__CONFIG__ = {
   VITE_ENABLE_POPUNDER: "false",
   VITE_ENABLE_PRIMARY_BANNER_GIF: "false",
 
-  // Tier B/C deferred (ask to enable later):
-  // 468x60: 9892ee4f111b1de1153026c1d13f385c — footer / compact strip
-  // 160x300: 1acd97db364bcc22c93d4698d289ffb0 — optional rail
-  // Native container: e8a04cad2b3910cf896ceda231564b07 (confirm format before use)
-  // Placements: home→discover seam, search under tabs, history feet, manga mid, footer
+  // Tier B/C — enabled for review (flip to false to pull any you dislike):
+  VITE_ENABLE_DISCOVER_SEAM_AD: "true",
+  VITE_DISCOVER_SEAM_AD_ZONE_ID: "d56373d865242f2b129220783c979952", // 728x90
+  VITE_ENABLE_DISCOVER_AD: "true",
+  VITE_DISCOVER_AD_ZONE_ID: "d56373d865242f2b129220783c979952", // 728x90 under tabs
+  VITE_ENABLE_SEARCH_AD: "true",
+  VITE_SEARCH_AD_ZONE_ID: "d56373d865242f2b129220783c979952", // 728x90
+  VITE_SEARCH_AD_MOBILE_ZONE_ID: "5b495d1b87680daa6bd47f0f1b07f96c", // 320x50
+  VITE_ENABLE_MANGA_MID_AD: "true",
+  VITE_MANGA_MID_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250
+  VITE_ENABLE_FOOTER_AD: "true",
+  VITE_FOOTER_AD_ZONE_ID: "9892ee4f111b1de1153026c1d13f385c", // 468x60
+  VITE_ENABLE_ONBOARDING_AD: "true",
+  VITE_ONBOARDING_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250
+  // Held: native container e8a04cad2b3910cf896ceda231564b07 (confirm format first)
+  // Optional compact rail 160x300: 1acd97db364bcc22c93d4698d289ffb0
 };
