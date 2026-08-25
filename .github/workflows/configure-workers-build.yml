@@ -21,10 +21,27 @@ jobs:
       - name: Update build triggers
         run: |
           set -euo pipefail
+          worker_tag="$(curl -sf \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts" \
+            | jq -r --arg name "${CF_SCRIPT_NAME}" '.result[] | select(.id == $name) | .tag' | head -n1)"
+          if [ -z "$worker_tag" ] || [ "$worker_tag" = "null" ]; then
+            echo "::error::Could not resolve Worker tag for ${CF_SCRIPT_NAME}"
+            exit 1
+          fi
+          echo "Resolved Worker tag: ${worker_tag}"
+
           triggers="$(curl -sf \
             -H "Authorization: Bearer ${CF_API_TOKEN}" \
-            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/workers/${CF_SCRIPT_NAME}/triggers")"
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/workers/${worker_tag}/triggers")"
+          echo "$triggers" | jq .
           echo "$triggers" | jq -e '.success' >/dev/null
+
+          count="$(echo "$triggers" | jq '.result | length')"
+          if [ "$count" = "0" ]; then
+            echo "::warning::No Workers Builds triggers found for ${CF_SCRIPT_NAME}. Configure Git integration in the Cloudflare dashboard, or rely on GitHub Actions deploy.yml."
+            exit 0
+          fi
 
           echo "$triggers" | jq -c '.result[]' | while read -r trigger; do
             uuid="$(echo "$trigger" | jq -r '.trigger_uuid')"
