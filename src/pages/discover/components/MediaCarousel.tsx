@@ -374,7 +374,16 @@ export function MediaCarousel({
 
   // Hide the entire section if there's an error or no content
   if (shouldHide) {
-    return null;
+    // Keep a stub so Mid/Low lazy siblings don't all collapse under the tabs.
+    return (
+      <div className="h-[12rem] flex items-center justify-center px-4">
+        <p className="text-sm text-type-secondary">
+          {error
+            ? (t("discover.carousel.failed") ?? "Couldn't load this row.")
+            : (t("discover.carousel.empty") ?? "Nothing to show here.")}
+        </p>
+      </div>
+    );
   }
 
   return (

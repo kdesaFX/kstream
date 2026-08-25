@@ -398,6 +398,11 @@ export function useDiscoverMedia({
       if (!isTraktEnabled()) {
         throw new TraktDisabledError();
       }
+      // Optimize Mid/Low proxies TMDB — Trakt → N detail GETs saturates the
+      // proxy and every carousel hides empty. Prefer TMDB list endpoints.
+      if (usePreferencesStore.getState().proxyTmdb) {
+        throw new TraktDisabledError();
+      }
 
       try {
         // Create a timeout promise

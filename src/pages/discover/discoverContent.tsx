@@ -124,11 +124,13 @@ export function DiscoverContent() {
 
   // Render Movies content with lazy loading. Earlier rows keep overlapping
   // titles; later rows drop them so each poster shows once (All and genre).
-  // Only the first row mounts eagerly; the rest stay intersection-lazy.
+  // Mid/low-perf: eager-mount every capped row so they don't wait on
+  // intersection after a failed first row collapses to zero height.
   const renderMoviesContent = () => {
     const carousels = [];
     let dedupe = 0;
-    const rowPriority = () => carousels.length < 1;
+    const eagerCount = shouldCapDiscover ? MID_DISCOVER_CAROUSEL_CAP : 1;
+    const rowPriority = () => carousels.length < eagerCount;
 
     // Because You Watched — All only (not under a genre chip)
     if (movieProgressItems.length > 0 && !selectedGenreId) {
@@ -241,7 +243,8 @@ export function DiscoverContent() {
   const renderTVShowsContent = () => {
     const carousels = [];
     let dedupe = 0;
-    const rowPriority = () => carousels.length < 1;
+    const eagerCount = shouldCapDiscover ? MID_DISCOVER_CAROUSEL_CAP : 1;
+    const rowPriority = () => carousels.length < eagerCount;
 
     // Because You Watched — All only (not under a genre chip)
     if (tvProgressItems.length > 0 && !selectedGenreId) {
@@ -350,7 +353,8 @@ export function DiscoverContent() {
   const renderMangaContent = () => {
     const carousels: ReactNode[] = [];
     let dedupe = 0;
-    const rowPriority = () => carousels.length < 1;
+    const eagerCount = shouldCapDiscover ? MID_DISCOVER_CAROUSEL_CAP : 1;
+    const rowPriority = () => carousels.length < eagerCount;
 
     if (mangaRecSources.length > 0) {
       carousels.push(
