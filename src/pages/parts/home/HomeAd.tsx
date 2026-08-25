@@ -52,6 +52,13 @@ function mrecSlot(
   return { key: zoneId, width: 300, height: 250 };
 }
 
+function cornerBannerSlot(
+  zoneId: string | null | undefined,
+): SlotConfig | null {
+  if (!zoneId) return null;
+  return { key: zoneId, width: 468, height: 60 };
+}
+
 function adScriptSrc(key: string): string {
   const base =
     conf().ADSTERRA_SCRIPT_HOST?.replace(/\/$/, "") || DEFAULT_ADSTERRA_HOST;
@@ -297,7 +304,7 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
   if (dismissed) return null;
 
   return (
-    <div className="relative mx-auto w-full max-w-[min(100%,40rem)] rounded-[0.95rem] bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group">
+    <div className="relative mx-auto w-full max-w-[min(100%,728px)] rounded-[0.95rem] bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group">
       <button
         onClick={dismiss}
         type="button"
@@ -330,6 +337,108 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
             />
           </a>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Home hero ad block: GIF + leaderboard in the left column, MREC on the right.
+ * The second leaderboard sits under the GIF (not centered below the row).
+ */
+export function HomeTopAds() {
+  const cfg = conf();
+  const adsDisabled = useAdsStore((s) => s.adsDisabled);
+  const { isMobile } = useIsMobile();
+
+  const primarySlot = useMemo(
+    () =>
+      leaderboardSlot(
+        cfg.ENABLE_HOME_AD,
+        cfg.HOME_AD_ZONE_ID,
+        cfg.HOME_AD_MOBILE_ZONE_ID,
+        isMobile,
+      ),
+    [
+      cfg.ENABLE_HOME_AD,
+      cfg.HOME_AD_MOBILE_ZONE_ID,
+      cfg.HOME_AD_ZONE_ID,
+      isMobile,
+    ],
+  );
+
+  const secondarySlot = useMemo(
+    () => mrecSlot(cfg.ENABLE_SECONDARY_AD, cfg.SECONDARY_AD_ZONE_ID),
+    [cfg.ENABLE_SECONDARY_AD, cfg.SECONDARY_AD_ZONE_ID],
+  );
+
+  const cornerSlot = useMemo(
+    () => cornerBannerSlot(cfg.FOOTER_AD_ZONE_ID),
+    [cfg.FOOTER_AD_ZONE_ID],
+  );
+
+  const gifUrl =
+    cfg.ENABLE_PRIMARY_BANNER_GIF && cfg.PRIMARY_BANNER_GIF_URL
+      ? cfg.PRIMARY_BANNER_GIF_URL
+      : null;
+
+  if (areAdsBlocked(adsDisabled)) return null;
+  if (!gifUrl && !primarySlot && !secondarySlot && !cornerSlot) return null;
+
+  if (isMobile) {
+    return (
+      <div className="flex w-full flex-col items-center gap-4 px-4">
+        {gifUrl && (
+          <PrimaryGifBanner img={PRIMARY_BANNER_GIF_SRC} href={gifUrl} />
+        )}
+        {primarySlot && <AdSlotInner cfg={primarySlot} />}
+        {secondarySlot && <AdSlotInner cfg={secondarySlot} />}
+        {cornerSlot && <AdSlotInner cfg={cornerSlot} />}
+      </div>
+    );
+  }
+
+  const useTwoColGrid =
+    secondarySlot && (gifUrl || primarySlot || cornerSlot);
+
+  return (
+    <div className="flex w-full justify-center px-4">
+      <div
+        className={
+          useTwoColGrid
+            ? "grid max-w-full items-start justify-items-center gap-4 grid-cols-1 min-[1060px]:grid-cols-[728px_300px]"
+            : "flex max-w-full flex-col items-center gap-4"
+        }
+      >
+        {gifUrl ? (
+          <div className="w-full max-w-[728px] min-[1060px]:col-start-1 min-[1060px]:row-start-1 min-[1060px]:justify-self-stretch">
+            <PrimaryGifBanner img={PRIMARY_BANNER_GIF_SRC} href={gifUrl} />
+          </div>
+        ) : null}
+
+        {secondarySlot ? (
+          <div className="min-[1060px]:col-start-2 min-[1060px]:row-start-1">
+            <AdSlotInner cfg={secondarySlot} />
+          </div>
+        ) : null}
+
+        {primarySlot ? (
+          <div
+            className={
+              gifUrl
+                ? "w-full max-w-[728px] min-[1060px]:col-start-1 min-[1060px]:row-start-2 min-[1060px]:justify-self-stretch"
+                : "min-[1060px]:col-start-1 min-[1060px]:row-start-1"
+            }
+          >
+            <AdSlotInner cfg={primarySlot} />
+          </div>
+        ) : null}
+
+        {cornerSlot ? (
+          <div className="w-full max-w-[300px] min-[1060px]:col-start-2 min-[1060px]:row-start-2 min-[1060px]:justify-self-center">
+            <AdSlotInner cfg={cornerSlot} />
+          </div>
+        ) : null}
       </div>
     </div>
   );

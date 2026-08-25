@@ -32,7 +32,7 @@ import { shouldShowProgress } from "@/stores/progress/utils";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { AdsPart } from "./parts/home/AdsPart";
-import { HomeAd } from "./parts/home/HomeAd";
+import { HomeAd, HomeTopAds } from "./parts/home/HomeAd";
 import { SupportBar } from "./parts/home/SupportBar";
 
 function useSearch(search: string) {
@@ -141,15 +141,7 @@ export function HomePage() {
       order.indexOf("watching"),
       order.indexOf("reading"),
     );
-    const homeAds = (
-      <div
-        key="home-ads"
-        className="w-full flex flex-wrap items-start justify-center gap-4 px-4"
-      >
-        <HomeAd />
-        <HomeAd slot="secondary" />
-      </div>
-    );
+    const homeAds = <HomeTopAds key="home-ads" />;
 
     const sections: ReactNode[] = [];
     order.forEach((section, index) => {
