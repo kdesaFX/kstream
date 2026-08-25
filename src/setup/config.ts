@@ -212,14 +212,28 @@ const env: Record<keyof Config, undefined | string> = {
 function coerceUndefined(value: string | null | undefined): string | undefined {
   if (value == null) return undefined;
   if (value.length === 0) return undefined;
-  return value;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return undefined;
+  // Deploy used to bake these in when GitHub secrets were missing; ignore them
+  // so public/config.js can supply the real project URL/key.
+  const lower = trimmed.toLowerCase();
+  if (
+    lower === "placeholder" ||
+    lower === "null" ||
+    lower === "undefined" ||
+    lower.includes("example.supabase.co") ||
+    lower.includes("your-project.supabase.co")
+  ) {
+    return undefined;
+  }
+  return trimmed;
 }
 
-// loads from different locations, in order: environment (VITE_{KEY}), window (public/config.js)
+// Prefer runtime public/config.js over build-time VITE_* (deploy ships real values in config.js).
 function getKeyValue(key: keyof Config): string | undefined {
   const windowValue = (window as any)?.__CONFIG__?.[`VITE_${key}`];
 
-  return coerceUndefined(env[key]) ?? coerceUndefined(windowValue) ?? undefined;
+  return coerceUndefined(windowValue) ?? coerceUndefined(env[key]) ?? undefined;
 }
 
 function getKey(key: keyof Config): string | null;
