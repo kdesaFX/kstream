@@ -27,17 +27,22 @@ jobs:
             echo "attempt ${i}: status=${status}"
             case "$status" in
               success|failed|canceled|cancelled|error|stopped)
-                echo "$info" | jq '{status: .result.status, created_on: .result.created_on, stopped_on: .result.stopped_on, build_command: .result.trigger.build_command, env_keys: (.result.trigger.environment_variables|keys), full: .result}'
+                echo "$info" | jq '{status: .result.status, created_on: .result.created_on, stopped_on: .result.stopped_on, build_command: .result.trigger.build_command, trigger: .result.trigger, build_outcome: .result.build_outcome, failure_reason: .result.failure_reason, message: .result.message}'
+                echo "----- raw result keys -----"
+                echo "$info" | jq '.result | keys'
                 logs="$(curl -sf \
                   -H "Authorization: Bearer ${CF_API_TOKEN}" \
                   "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/builds/${BUILD_UUID}/logs" || true)"
-                echo "----- log tail -----"
+                echo "----- logs raw (truncated) -----"
+                echo "$logs" | head -c 25000
+                echo
+                echo "----- log lines -----"
                 echo "$logs" | jq -r '
-                  (.result.lines // .result // [])
-                  | if type=="array" then . else [] end
-                  | .[-80:][]?
+                  (.result.lines // .result.log // .result // [])
+                  | if type=="array" then . else [.] end
+                  | .[-100:][]?
                   | (if type=="object" then (.message // .line // .text // tostring) else tostring end)
-                ' 2>/dev/null || echo "$logs" | tail -c 20000
+                ' 2>/dev/null || true
                 if [ "$status" = "success" ]; then exit 0; fi
                 exit 1
                 ;;
