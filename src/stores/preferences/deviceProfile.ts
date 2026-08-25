@@ -117,7 +117,34 @@ export function applyDeviceProfileFlags(
   s.posterQuality = flags.posterQuality;
 }
 
-/** Account-settings fields owned by a device profile (pushed on apply/reset). */
+/** Preference keys owned by Optimize — stay on this device, never account-synced. */
+export const DEVICE_LOCAL_PREF_KEYS = [
+  "enableThumbnails",
+  "enableAutoplay",
+  "enableDiscover",
+  "enableFeatured",
+  "enableDetailsModal",
+  "enableImageLogos",
+  "enablePauseOverlay",
+  "forceCompactEpisodeView",
+  "enableCarouselView",
+  "enableLowPerformanceMode",
+  "proxyTmdb",
+  "proxyArtwork",
+  "posterQuality",
+  "lastAppliedDeviceProfile",
+  "deviceProfileSnapshot",
+] as const;
+
+export type DeviceLocalPrefKey = (typeof DEVICE_LOCAL_PREF_KEYS)[number];
+
+const DEVICE_LOCAL_PREF_KEY_SET = new Set<string>(DEVICE_LOCAL_PREF_KEYS);
+
+export function isDeviceLocalPrefKey(key: string): boolean {
+  return DEVICE_LOCAL_PREF_KEY_SET.has(key);
+}
+
+/** Account-settings fields owned by a device profile (local only — not synced). */
 export function deviceProfileToSettingsPatch(
   s: DeviceProfileFlags,
 ): {

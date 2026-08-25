@@ -173,29 +173,20 @@ export function useAuthData() {
 
       const partial: Partial<PreferencesStore> = {};
 
-      if (settings.enableThumbnails !== undefined) partial.enableThumbnails = settings.enableThumbnails;
-      if (settings.enableAutoplay !== undefined) partial.enableAutoplay = settings.enableAutoplay;
+      // Optimize / device-profile prefs stay local — do not overwrite from account.
       if (settings.enableSkipCredits !== undefined) partial.enableSkipCredits = settings.enableSkipCredits;
-      if (settings.enableDiscover !== undefined) partial.enableDiscover = settings.enableDiscover;
       if (settings.enableMatureTitles !== undefined) partial.enableMatureTitles = settings.enableMatureTitles;
-      if (settings.enableFeatured !== undefined) partial.enableFeatured = settings.enableFeatured;
-      if (settings.enableDetailsModal !== undefined) partial.enableDetailsModal = settings.enableDetailsModal;
-      if (settings.enableImageLogos !== undefined) partial.enableImageLogos = settings.enableImageLogos;
-      if (settings.enableCarouselView !== undefined) partial.enableCarouselView = settings.enableCarouselView;
-      if (settings.forceCompactEpisodeView !== undefined) partial.forceCompactEpisodeView = settings.forceCompactEpisodeView;
       if (settings.sourceOrder !== undefined) partial.sourceOrder = settings.sourceOrder ?? [];
       if (settings.enableSourceOrder !== undefined) partial.enableSourceOrder = settings.enableSourceOrder;
       if (settings.lastSuccessfulSource !== undefined) partial.lastSuccessfulSource = settings.lastSuccessfulSource;
       if (settings.enableLastSuccessfulSource !== undefined) partial.enableLastSuccessfulSource = settings.enableLastSuccessfulSource;
       if (settings.embedOrder !== undefined) partial.embedOrder = settings.embedOrder ?? [];
       if (settings.enableEmbedOrder !== undefined) partial.enableEmbedOrder = settings.enableEmbedOrder;
-      if (settings.proxyTmdb !== undefined) partial.proxyTmdb = settings.proxyTmdb;
       if (settings.febboxKey !== undefined) partial.febboxKey = settings.febboxKey;
       if (settings.debridToken !== undefined) partial.debridToken = settings.debridToken;
       if (settings.debridService !== undefined) partial.debridService = settings.debridService;
       if (settings.tidbKey !== undefined) partial.tidbKey = settings.tidbKey;
       if (settings.wyzieKey !== undefined) partial.wyzieKey = settings.wyzieKey;
-      if (settings.enableLowPerformanceMode !== undefined) partial.enableLowPerformanceMode = settings.enableLowPerformanceMode;
       if (settings.enableNativeSubtitles !== undefined) partial.enableNativeSubtitles = settings.enableNativeSubtitles;
       if (settings.enableHoldToBoost !== undefined) partial.enableHoldToBoost = settings.enableHoldToBoost;
       if (settings.homeSectionOrder !== undefined) partial.homeSectionOrder = settings.homeSectionOrder ?? ["watching", "bookmarks"];
@@ -207,19 +198,10 @@ export function useAuthData() {
       if (settings.keyboardShortcuts) partial.keyboardShortcuts = settings.keyboardShortcuts;
       if (settings.enableMinimalCards !== undefined) partial.enableMinimalCards = settings.enableMinimalCards;
       if (settings.enableAutoSkipSegments !== undefined) partial.enableAutoSkipSegments = settings.enableAutoSkipSegments;
-      if (settings.enablePauseOverlay !== undefined) partial.enablePauseOverlay = settings.enablePauseOverlay;
       if (settings.bookmarkRowsToShow !== undefined) partial.bookmarkRowsToShow = settings.bookmarkRowsToShow;
       if (settings.watchingRowsToShow !== undefined) partial.watchingRowsToShow = settings.watchingRowsToShow;
       if (settings.enableGamepadControls !== undefined) partial.enableGamepadControls = settings.enableGamepadControls;
       if (settings.gamepadMapping) partial.gamepadMapping = settings.gamepadMapping;
-      if (settings.proxyArtwork !== undefined) partial.proxyArtwork = settings.proxyArtwork;
-      if (settings.posterQuality !== undefined) partial.posterQuality = settings.posterQuality;
-      if (settings.lastAppliedDeviceProfile !== undefined) {
-        partial.lastAppliedDeviceProfile = settings.lastAppliedDeviceProfile;
-      }
-      if (settings.deviceProfileSnapshot !== undefined) {
-        partial.deviceProfileSnapshot = settings.deviceProfileSnapshot;
-      }
 
       applyPreferencesSync(partial);
 

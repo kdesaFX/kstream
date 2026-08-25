@@ -24,7 +24,7 @@ import { Transition } from "@/components/utils/Transition";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { useIsIOS, useIsMobile, useIsPWA } from "@/hooks/useIsMobile";
-import { SETTINGS_FIELDS, useSettingsState } from "@/hooks/useSettingsState";
+import { SETTINGS_FIELDS, isAccountSyncedSettingsField, useSettingsState } from "@/hooks/useSettingsState";
 import { AccountActionsPart } from "@/pages/parts/settings/AccountActionsPart";
 import { AccountEditPart } from "@/pages/parts/settings/AccountEditPart";
 import { AccountSecurityPart } from "@/pages/parts/settings/AccountSecurityPart";
@@ -646,35 +646,15 @@ export function SettingsPage() {
         if (settings.debridService) {
           setdebridService(settings.debridService);
         }
-        if (settings.enableLowPerformanceMode !== undefined) {
-          setEnableLowPerformanceMode(settings.enableLowPerformanceMode);
-        }
-        if (settings.enableThumbnails !== undefined) {
-          setEnableThumbnails(settings.enableThumbnails);
-        }
-        if (settings.enableAutoplay !== undefined) {
-          setEnableAutoplay(settings.enableAutoplay);
-        }
+        // Skip Optimize / device-profile prefs — those stay per-device.
         if (settings.enableSkipCredits !== undefined) {
           setEnableSkipCredits(settings.enableSkipCredits);
         }
         if (settings.enableAutoSkipSegments !== undefined) {
           setEnableAutoSkipSegments(settings.enableAutoSkipSegments);
         }
-        if (settings.enableDiscover !== undefined) {
-          setEnableDiscover(settings.enableDiscover);
-        }
         if (settings.enableMatureTitles !== undefined) {
           setEnableMatureTitles(settings.enableMatureTitles);
-        }
-        if (settings.enableFeatured !== undefined) {
-          setEnableFeatured(settings.enableFeatured);
-        }
-        if (settings.enableDetailsModal !== undefined) {
-          setEnableDetailsModal(settings.enableDetailsModal);
-        }
-        if (settings.enableImageLogos !== undefined) {
-          setEnableImageLogos(settings.enableImageLogos);
         }
         if (
           settings.sourceOrder !== undefined &&
@@ -691,17 +671,8 @@ export function SettingsPage() {
         if (settings.enableLastSuccessfulSource !== undefined) {
           setEnableLastSuccessfulSource(settings.enableLastSuccessfulSource);
         }
-        if (settings.proxyTmdb !== undefined) {
-          setProxyTmdb(settings.proxyTmdb);
-        }
-        if (settings.enableCarouselView !== undefined) {
-          setEnableCarouselView(settings.enableCarouselView);
-        }
         if (settings.enableMinimalCards !== undefined) {
           setEnableMinimalCards(settings.enableMinimalCards);
-        }
-        if (settings.forceCompactEpisodeView !== undefined) {
-          setForceCompactEpisodeView(settings.forceCompactEpisodeView);
         }
         if (settings.enableHoldToBoost !== undefined) {
           setEnableHoldToBoost(settings.enableHoldToBoost);
@@ -725,9 +696,6 @@ export function SettingsPage() {
           setEnableAutoResumeOnPlaybackError(
             settings.enableAutoResumeOnPlaybackError,
           );
-        }
-        if (settings.enablePauseOverlay !== undefined) {
-          setEnablePauseOverlay(settings.enablePauseOverlay);
         }
         if (settings.enableNumberKeySeeking !== undefined) {
           setEnableNumberKeySeeking(settings.enableNumberKeySeeking);
@@ -783,31 +751,20 @@ export function SettingsPage() {
     setFebboxKey,
     setdebridToken,
     setdebridService,
-    setEnableThumbnails,
-    setEnableAutoplay,
     setEnableSkipCredits,
     setEnableAutoSkipSegments,
-    setEnableDiscover,
     setEnableMatureTitles,
-    setEnableFeatured,
-    setEnableDetailsModal,
-    setEnableImageLogos,
     setSourceOrder,
     setEnableSourceOrder,
     setLastSuccessfulSource,
     setEnableLastSuccessfulSource,
-    setProxyTmdb,
-    setEnableCarouselView,
     setEnableMinimalCards,
-    setForceCompactEpisodeView,
-    setEnableLowPerformanceMode,
     setEnableHoldToBoost,
     setHomeSectionOrder,
     setManualSourceSelection,
     setPreferredMinimumResolution,
     setEnableDoubleClickToSeek,
     setEnableAutoResumeOnPlaybackError,
-    setEnablePauseOverlay,
     setEnableNumberKeySeeking,
     setCustomTheme,
   ]);
@@ -937,7 +894,9 @@ export function SettingsPage() {
   const saveChanges = useCallback(async () => {
     if (account && backendUrl) {
       const settingsChanged =
-        SETTINGS_FIELDS.some((f) => state[f.key].changed) ||
+        SETTINGS_FIELDS.some(
+          (f) => isAccountSyncedSettingsField(f.key) && state[f.key].changed,
+        ) ||
         state.customTheme.changed ||
         state.savedCustomThemes.changed ||
         state.hiddenDefaultThemes.changed;
@@ -945,6 +904,7 @@ export function SettingsPage() {
       if (settingsChanged) {
         const body: Record<string, unknown> = {};
         SETTINGS_FIELDS.forEach((f) => {
+          if (!isAccountSyncedSettingsField(f.key)) return;
           body[f.backendKey] = state[f.key].state;
         });
         body.proxyUrls =

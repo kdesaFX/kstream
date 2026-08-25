@@ -3,12 +3,11 @@ import {
   upsertSettings,
 } from "@/backend/supabase/data";
 import { AccountWithToken, useAuthStore } from "@/stores/auth";
-import { PreferencesStore, usePreferencesStore } from "@/stores/preferences";
-import {
-  deviceProfileToSettingsPatch,
-  type DeviceProfile,
-  type DeviceProfileSnapshot,
-  type PosterQuality,
+import { PreferencesStore } from "@/stores/preferences";
+import type {
+  DeviceProfile,
+  DeviceProfileSnapshot,
+  PosterQuality,
 } from "@/stores/preferences/deviceProfile";
 import { KeyboardShortcuts } from "@/utils/browser/keyboardShortcuts";
 
@@ -114,18 +113,10 @@ export function buildFullSettingsInput(
     debridService: preferences.debridService,
     tidbKey: preferences.tidbKey,
     wyzieKey: preferences.wyzieKey,
-    enableThumbnails: preferences.enableThumbnails,
-    enableAutoplay: preferences.enableAutoplay,
     enableSkipCredits: preferences.enableSkipCredits,
     enableAutoSkipSegments: preferences.enableAutoSkipSegments,
-    enableDiscover: preferences.enableDiscover,
     enableMatureTitles: preferences.enableMatureTitles,
-    enableFeatured: preferences.enableFeatured,
-    enableDetailsModal: preferences.enableDetailsModal,
-    enableImageLogos: preferences.enableImageLogos,
-    enableCarouselView: preferences.enableCarouselView,
     enableMinimalCards: preferences.enableMinimalCards,
-    forceCompactEpisodeView: preferences.forceCompactEpisodeView,
     sourceOrder:
       preferences.sourceOrder.length > 0 ? preferences.sourceOrder : undefined,
     enableSourceOrder: preferences.enableSourceOrder,
@@ -134,8 +125,6 @@ export function buildFullSettingsInput(
     embedOrder:
       preferences.embedOrder.length > 0 ? preferences.embedOrder : undefined,
     enableEmbedOrder: preferences.enableEmbedOrder,
-    proxyTmdb: preferences.proxyTmdb,
-    enableLowPerformanceMode: preferences.enableLowPerformanceMode,
     enableNativeSubtitles: preferences.enableNativeSubtitles,
     enableHoldToBoost: preferences.enableHoldToBoost,
     homeSectionOrder:
@@ -146,24 +135,19 @@ export function buildFullSettingsInput(
     preferredMinimumResolution: preferences.preferredMinimumResolution,
     enableDoubleClickToSeek: preferences.enableDoubleClickToSeek,
     enableAutoResumeOnPlaybackError: preferences.enableAutoResumeOnPlaybackError,
-    enablePauseOverlay: preferences.enablePauseOverlay,
     enableNumberKeySeeking: preferences.enableNumberKeySeeking,
     keyboardShortcuts: preferences.keyboardShortcuts,
     bookmarkRowsToShow: preferences.bookmarkRowsToShow,
     watchingRowsToShow: preferences.watchingRowsToShow,
     enableGamepadControls: preferences.enableGamepadControls,
     gamepadMapping: preferences.gamepadMapping,
-    proxyArtwork: preferences.proxyArtwork,
-    posterQuality: preferences.posterQuality,
-    lastAppliedDeviceProfile: preferences.lastAppliedDeviceProfile,
-    deviceProfileSnapshot: preferences.deviceProfileSnapshot,
   };
 }
 
+/** No-op: Optimize / device-profile prefs stay on this device only. */
 export async function syncDeviceProfileSettings(
   _url: string | null | undefined,
-  account: AccountWithToken | null | undefined,
+  _account: AccountWithToken | null | undefined,
 ): Promise<void> {
-  if (!account) return;
-  await updateSettings("", account, deviceProfileToSettingsPatch(usePreferencesStore.getState()));
+  return undefined;
 }

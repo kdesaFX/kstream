@@ -113,6 +113,31 @@ export const SETTINGS_FIELDS = [
   { key: "gamepadMapping", backendKey: "gamepadMapping" },
 ] as const satisfies { key: string; backendKey: string }[];
 
+/** Tracked in Settings draft UI, but never written to the account. */
+export const DEVICE_LOCAL_SETTINGS_FIELD_KEYS = [
+  "enableThumbnails",
+  "enableAutoplay",
+  "enableDiscover",
+  "enableFeatured",
+  "enableDetailsModal",
+  "enableImageLogos",
+  "enablePauseOverlay",
+  "forceCompactEpisodeView",
+  "enableCarouselView",
+  "enableLowPerformanceMode",
+  "proxyTmdb",
+] as const satisfies readonly (typeof SETTINGS_FIELDS)[number]["key"][];
+
+const DEVICE_LOCAL_SETTINGS_FIELD_KEY_SET = new Set<string>(
+  DEVICE_LOCAL_SETTINGS_FIELD_KEYS,
+);
+
+export function isAccountSyncedSettingsField(
+  key: (typeof SETTINGS_FIELDS)[number]["key"],
+): boolean {
+  return !DEVICE_LOCAL_SETTINGS_FIELD_KEY_SET.has(key);
+}
+
 // Tracked here (for a UI control's dirty/reset behavior) but pushed to the
 // backend through their own dedicated call elsewhere, not through
 // Settings.tsx's main save button -- kept out of SETTINGS_FIELDS so the main

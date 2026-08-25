@@ -12,6 +12,14 @@ export function isMobileOnboardingClient(): boolean {
   return ua.includes("Mac") && "ontouchend" in document;
 }
 
+/** Windows desktop browser only — Chromebook / Mac / Linux have no app build. */
+export function isWindowsDesktopClient(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  if (/CrOS|Android|iPhone|iPad|iPod/i.test(ua)) return false;
+  return /Windows/i.test(ua);
+}
+
 export async function needsOnboarding(): Promise<boolean> {
   // if onboarding is dislabed, no onboarding needed
   if (!conf().HAS_ONBOARDING) return false;
