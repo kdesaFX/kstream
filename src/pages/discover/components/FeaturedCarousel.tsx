@@ -188,15 +188,24 @@ function MangaSlideArt({ item }: { item: FeaturedMedia }) {
     );
   }
 
+  // Portrait cover only — fill the hero with a blurred plane + cropped cover
+  // so we never show an empty black field with a tiny strip of art.
   return (
     <>
-      <div className="absolute inset-0 bg-gradient-to-br from-background-secondary via-background-main to-black" />
       <img
         src={artUrl}
         alt=""
         referrerPolicy="no-referrer"
         decoding="async"
-        className="absolute top-0 right-0 h-full w-auto max-w-[min(58%,26rem)] object-contain object-top [mask-image:linear-gradient(to_left,black_55%,transparent)]"
+        aria-hidden
+        className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_15%] opacity-80 blur-2xl"
+      />
+      <img
+        src={artUrl}
+        alt=""
+        referrerPolicy="no-referrer"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover object-[center_20%]"
       />
       {readOverlay}
     </>

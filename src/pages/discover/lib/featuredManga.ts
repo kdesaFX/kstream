@@ -94,10 +94,19 @@ export async function applyAnimeAdaptationArt(
   return items.map((item) => {
     const anime = adaptations.get(item.title);
     if (!anime) return item;
+    // Only swap in anime art when it improves the hero (wide backdrop). A
+    // portrait poster must not replace an AniList banner — that left covers
+    // stranded on a black field.
+    if (anime.backdropUrl) {
+      return {
+        ...item,
+        artUrl: anime.backdropUrl,
+        wideArt: true,
+        logoUrl: anime.logoUrl ?? item.logoUrl,
+      };
+    }
     return {
       ...item,
-      artUrl: anime.backdropUrl ?? anime.posterUrl ?? item.artUrl,
-      wideArt: Boolean(anime.backdropUrl) || item.wideArt,
       logoUrl: anime.logoUrl ?? item.logoUrl,
     };
   });
