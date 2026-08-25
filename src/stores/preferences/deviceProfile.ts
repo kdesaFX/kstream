@@ -19,13 +19,13 @@ export interface DeviceProfileFlags {
 
 export interface DeviceProfileSnapshot extends DeviceProfileFlags {}
 
-/** Matches current app defaults — High build, and Reset when we have no snapshot. */
+/** Full experience — High build, and Reset when we have no snapshot. */
 export const HIGH_DEVICE_PROFILE: DeviceProfileFlags = {
   enableThumbnails: false,
   enableAutoplay: true,
   enableDiscover: true,
-  enableFeatured: false,
-  enableDetailsModal: false,
+  enableFeatured: true,
+  enableDetailsModal: true,
   enableImageLogos: true,
   enablePauseOverlay: false,
   forceCompactEpisodeView: false,
@@ -52,10 +52,11 @@ export const MID_DEVICE_PROFILE: DeviceProfileFlags = {
   posterQuality: "standard",
 };
 
+/** School Chromebooks — Discover off is the main win. */
 export const LOW_DEVICE_PROFILE: DeviceProfileFlags = {
   enableThumbnails: false,
   enableAutoplay: false,
-  enableDiscover: true,
+  enableDiscover: false,
   enableFeatured: false,
   enableDetailsModal: false,
   enableImageLogos: false,
@@ -67,6 +68,9 @@ export const LOW_DEVICE_PROFILE: DeviceProfileFlags = {
   proxyArtwork: true,
   posterQuality: "low",
 };
+
+/** How many Discover carousels Mid / low-perf loads before “Show more”. */
+export const MID_DISCOVER_CAROUSEL_CAP = 4;
 
 const PRESETS: Record<DeviceProfile, DeviceProfileFlags> = {
   low: LOW_DEVICE_PROFILE,
@@ -128,6 +132,8 @@ export function deviceProfileToSettingsPatch(
   enableCarouselView: boolean;
   enableLowPerformanceMode: boolean;
   proxyTmdb: boolean;
+  proxyArtwork: boolean;
+  posterQuality: PosterQuality;
 } {
   return {
     enableThumbnails: s.enableThumbnails,
@@ -141,6 +147,8 @@ export function deviceProfileToSettingsPatch(
     enableCarouselView: s.enableCarouselView,
     enableLowPerformanceMode: s.enableLowPerformanceMode,
     proxyTmdb: s.proxyTmdb,
+    proxyArtwork: s.proxyArtwork,
+    posterQuality: s.posterQuality ?? "standard",
   };
 }
 
@@ -182,6 +190,70 @@ export function lazyRootMarginFor(posterQuality: PosterQuality, lowPerf: boolean
   if (posterQuality === "low") return "80px";
   if (lowPerf) return "200px";
   return "400px";
+}
+
+/** Browser-side guess for which Optimize card to recommend. */
+export function recommendDeviceProfile(
+  nav: {
+    hardwareConcurrency?: number;
+    deviceMemory?: number;
+    connection?: { effectiveType?: string } | null;
+  } = typeof navigator !== "undefined" ? navigator : {},
+): DeviceProfile {
+  const cores = nav.hardwareConcurrency ?? 4;
+  const mem =
+    typeof nav.deviceMemory === "number" && nav.deviceMemory > 0
+      ? nav.deviceMemory
+      : undefined;
+  const effectiveType = nav.connection?.effectiveType ?? "";
+
+  if (
+    cores <= 2 ||
+    (mem !== undefined && mem <= 2) ||
+    effectiveType === "slow-2g" ||
+    effectiveType === "2g"
+  ) {
+    return "low";
+  }
+
+  if (
+    cores <= 4 ||
+    (mem !== undefined && mem <= 4) ||
+    effectiveType === "3g"
+  ) {
+    return "mid";
+  }
+
+  if (mem !== undefined && mem < 8) return "mid";
+  if (cores < 8 && mem === undefined) return "mid";
+
+  return "high";
+}
+
+/** Short bullets for the Optimize “done” screen (i18n keys under settings.optimize). */
+export function deviceProfileSummaryKeys(
+  profile: DeviceProfile,
+): string[] {
+  if (profile === "low") {
+    return [
+      "settings.optimize.summaryDiscoverOff",
+      "settings.optimize.summarySmallPosters",
+      "settings.optimize.summaryFewerAnimations",
+      "settings.optimize.summaryProxyArtwork",
+    ];
+  }
+  if (profile === "mid") {
+    return [
+      "settings.optimize.summaryDiscoverLimited",
+      "settings.optimize.summaryFewerAnimations",
+      "settings.optimize.summaryProxyArtwork",
+    ];
+  }
+  return [
+    "settings.optimize.summaryDiscoverOn",
+    "settings.optimize.summaryFeaturedOn",
+    "settings.optimize.summaryFullQuality",
+  ];
 }
 
 export const DEVICE_PROFILE_APPLY_STEPS: Record<

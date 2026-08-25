@@ -1,5 +1,5 @@
 import classNames from "classnames";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { syncDeviceProfileSettings } from "@/backend/accounts/settings";
@@ -11,7 +11,9 @@ import { useAuthStore } from "@/stores/auth";
 import { usePreferencesStore } from "@/stores/preferences";
 import {
   DEVICE_PROFILE_APPLY_STEPS,
+  deviceProfileSummaryKeys,
   inferDeviceProfile,
+  recommendDeviceProfile,
   type DeviceProfile,
 } from "@/stores/preferences/deviceProfile";
 
@@ -45,10 +47,12 @@ export function DeviceProfileCards({
   selected,
   onSelect,
   disabled,
+  recommended,
 }: {
   selected?: DeviceProfile | "custom" | null;
   onSelect: (profile: DeviceProfile) => void;
   disabled?: boolean;
+  recommended?: DeviceProfile | null;
 }) {
   const { t } = useTranslation();
 
@@ -56,6 +60,7 @@ export function DeviceProfileCards({
     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
       {PROFILES.map((profile) => {
         const active = selected === profile;
+        const isRecommended = recommended === profile;
         return (
           <button
             key={profile}
@@ -66,10 +71,17 @@ export function DeviceProfileCards({
               "rounded-2xl border p-4 text-left transition-colors",
               active
                 ? "border-type-link bg-type-link/15"
-                : "border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/10",
+                : isRecommended
+                  ? "border-type-link/60 bg-type-link/10"
+                  : "border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/10",
               disabled && "cursor-wait opacity-70",
             )}
           >
+            {isRecommended ? (
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-type-link">
+                {t("settings.optimize.recommended")}
+              </p>
+            ) : null}
             <p className="font-bold text-white">{t(profileLabel(profile))}</p>
             <p className="mt-2 text-sm leading-snug text-type-secondary">
               {t(`settings.optimize.${profile}Desc`)}
@@ -91,6 +103,8 @@ export function OptimizeModal() {
   const inferred = usePreferencesStore((s) => inferDeviceProfile(s));
   const backendUrl = useBackendUrl();
   const account = useAuthStore((s) => s.account);
+
+  const recommended = useMemo(() => recommendDeviceProfile(), []);
 
   const [phase, setPhase] = useState<"pick" | "applying" | "done">("pick");
   const [activeProfile, setActiveProfile] = useState<DeviceProfile | null>(
@@ -145,6 +159,9 @@ export function OptimizeModal() {
   const progress =
     steps.length > 0 ? ((stepIndex + 1) / steps.length) * 100 : 0;
   const showReset = Boolean(snapshot) || Boolean(lastApplied);
+  const summaryKeys = activeProfile
+    ? deviceProfileSummaryKeys(activeProfile)
+    : [];
 
   return (
     <FancyModal
@@ -159,20 +176,24 @@ export function OptimizeModal() {
             selected={
               inferred === "custom" ? lastApplied : inferred
             }
+            recommended={recommended}
             onSelect={runApply}
           />
-            {showReset ? (
-              <p className="text-sm text-type-secondary">
-                {t("settings.optimize.resetHint")}{" "}
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="underline decoration-white/20 underline-offset-4 hover:text-white"
-                >
-                  {t("settings.optimize.reset")}
-                </button>
-              </p>
-            ) : null}
+          <Button theme="purple" onClick={() => runApply(recommended)}>
+            {t("settings.optimize.useRecommended")}
+          </Button>
+          {showReset ? (
+            <p className="text-sm text-type-secondary">
+              {t("settings.optimize.resetHint")}{" "}
+              <button
+                type="button"
+                onClick={handleReset}
+                className="underline decoration-white/20 underline-offset-4 hover:text-white"
+              >
+                {t("settings.optimize.reset")}
+              </button>
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -203,6 +224,14 @@ export function OptimizeModal() {
               profile: t(profileLabel(activeProfile)),
             })}
           </p>
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <p className="text-sm font-medium text-type-secondary">
+              {t("settings.optimize.doneSummary")}
+            </p>
+            <p className="mt-1 text-white">
+              {summaryKeys.map((key) => t(key)).join(" · ")}
+            </p>
+          </div>
           <p>{t("settings.optimize.doneBody")}</p>
           <div className="flex flex-wrap items-center gap-3">
             <Button theme="purple" onClick={handleClose}>

@@ -15,7 +15,10 @@ import { Heading1 } from "@/components/utils/Text";
 import { appLanguageOptions } from "@/setup/i18n";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { usePreferencesStore } from "@/stores/preferences";
-import { DeviceProfile } from "@/stores/preferences/deviceProfile";
+import {
+  DeviceProfile,
+  recommendDeviceProfile,
+} from "@/stores/preferences/deviceProfile";
 import { isAutoplayAllowed } from "@/utils/media/autoplay";
 import { getLocaleInfo, sortLangCodes } from "@/utils/locale/language";
 
@@ -134,6 +137,7 @@ export function PreferencesPart(props: {
   const { showModal } = useOverlayStack();
   const navigate = useNavigate();
   const [isSourceListExpanded, setIsSourceListExpanded] = useState(false);
+  const recommendedDeviceProfile = useMemo(() => recommendDeviceProfile(), []);
 
   const enableGamepadControls = usePreferencesStore(
     (s) => s.enableGamepadControls,
@@ -289,6 +293,7 @@ export function PreferencesPart(props: {
                     ? props.lastAppliedDeviceProfile
                     : props.deviceProfile
                 }
+                recommended={recommendedDeviceProfile}
                 onSelect={props.onApplyDeviceProfile}
               />
               {props.hasOptimized ? (

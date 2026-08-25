@@ -7,8 +7,10 @@ import {
   MID_DEVICE_PROFILE,
   applyDeviceProfileFlags,
   captureDeviceProfileSnapshot,
+  deviceProfileToSettingsPatch,
   deviceProfilesMatch,
   inferDeviceProfile,
+  recommendDeviceProfile,
   type DeviceProfileFlags,
 } from "@/stores/preferences/deviceProfile";
 
@@ -17,10 +19,19 @@ function sample(overrides: Partial<DeviceProfileFlags> = {}): DeviceProfileFlags
 }
 
 describe("device profiles", () => {
-  it("keeps discover on for low end", () => {
-    expect(LOW_DEVICE_PROFILE.enableDiscover).toBe(true);
+  it("turns discover off on low end", () => {
+    expect(LOW_DEVICE_PROFILE.enableDiscover).toBe(false);
+    expect(LOW_DEVICE_PROFILE.enableFeatured).toBe(false);
     expect(LOW_DEVICE_PROFILE.posterQuality).toBe("low");
     expect(LOW_DEVICE_PROFILE.proxyArtwork).toBe(true);
+  });
+
+  it("keeps discover on mid and enables featured on high", () => {
+    expect(MID_DEVICE_PROFILE.enableDiscover).toBe(true);
+    expect(MID_DEVICE_PROFILE.enableFeatured).toBe(false);
+    expect(HIGH_DEVICE_PROFILE.enableDiscover).toBe(true);
+    expect(HIGH_DEVICE_PROFILE.enableFeatured).toBe(true);
+    expect(HIGH_DEVICE_PROFILE.enableDetailsModal).toBe(true);
   });
 
   it("applies and infers each preset", () => {
@@ -38,6 +49,7 @@ describe("device profiles", () => {
     const snap = captureDeviceProfileSnapshot(before);
     applyDeviceProfileFlags(before, LOW_DEVICE_PROFILE);
     expect(before.enableImageLogos).toBe(false);
+    expect(before.enableDiscover).toBe(false);
     applyDeviceProfileFlags(before, snap);
     expect(deviceProfilesMatch(before, snap)).toBe(true);
     expect(before.enableFeatured).toBe(true);
@@ -63,6 +75,39 @@ describe("device profiles", () => {
     applyDeviceProfileFlags(s, LOW_DEVICE_PROFILE);
     applyDeviceProfileFlags(s, MID_DEVICE_PROFILE);
     expect(s.enableImageLogos).toBe(true);
+    expect(s.enableDiscover).toBe(true);
     expect(inferDeviceProfile(s)).toBe("mid");
+  });
+
+  it("includes poster and artwork proxy in settings patch", () => {
+    const patch = deviceProfileToSettingsPatch(LOW_DEVICE_PROFILE);
+    expect(patch.posterQuality).toBe("low");
+    expect(patch.proxyArtwork).toBe(true);
+    expect(patch.enableDiscover).toBe(false);
+  });
+
+  it("recommends low for weak hardware or slow networks", () => {
+    expect(
+      recommendDeviceProfile({ hardwareConcurrency: 2, deviceMemory: 2 }),
+    ).toBe("low");
+    expect(
+      recommendDeviceProfile({
+        hardwareConcurrency: 8,
+        connection: { effectiveType: "2g" },
+      }),
+    ).toBe("low");
+  });
+
+  it("recommends mid for everyday laptops", () => {
+    expect(
+      recommendDeviceProfile({ hardwareConcurrency: 4, deviceMemory: 4 }),
+    ).toBe("mid");
+    expect(recommendDeviceProfile({ hardwareConcurrency: 4 })).toBe("mid");
+  });
+
+  it("recommends high for strong machines", () => {
+    expect(
+      recommendDeviceProfile({ hardwareConcurrency: 12, deviceMemory: 16 }),
+    ).toBe("high");
   });
 });
