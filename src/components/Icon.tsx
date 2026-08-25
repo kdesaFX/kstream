@@ -275,9 +275,12 @@ export const Icon = memo((props: IconProps) => {
       ? "rtl:-scale-x-100"
       : "";
 
+  const svg = iconList[props.icon];
+  if (!svg) return null;
+
   return (
     <span
-      dangerouslySetInnerHTML={{ __html: iconList[props.icon] }} // eslint-disable-line react/no-danger
+      dangerouslySetInnerHTML={{ __html: svg }} // eslint-disable-line react/no-danger
       className={classNames(props.className, flipClass)}
     />
   );
