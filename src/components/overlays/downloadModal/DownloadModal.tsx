@@ -48,8 +48,8 @@ export function DownloadModal({ id }: { id: string }) {
       <div className="space-y-5">
         {fromAds ? (
           <p className="text-base leading-relaxed text-type-secondary">
-            Get the Windows app — no Adsterra, no popunders. Same kstream, built
-            for the desktop.
+            Get the Windows app — no ads, and a snappier experience. Same
+            kstream, built for the desktop.
           </p>
         ) : (
           <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3">
