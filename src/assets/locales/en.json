@@ -1851,7 +1851,18 @@
       "chapters": "Chapters",
       "loadingChapters": "Loading chapters…",
       "noDescription": "No synopsis available for this title.",
-      "noChapters": "No readable chapters — this title is only published on official sites."
+      "noChapters": "No readable chapters — this title is only published on official sites.",
+      "authors": "Authors:",
+      "artists": "Artists:",
+      "status": "Status:",
+      "year": "Year:",
+      "score": "Score:",
+      "follows": "Follows:",
+      "contentRating": "Content rating:",
+      "similar": "Similar Manga",
+      "readProgress": "Read {{read}} of {{total}} ({{percentage}}%)",
+      "volume": "Volume {{volume}}",
+      "noVolume": "No volume"
     },
     "reader": {
       "loading": "Loading pages…",
