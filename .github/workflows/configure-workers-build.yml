@@ -122,4 +122,39 @@ jobs:
           curl -sf \
             -H "Authorization: Bearer ${CF_API_TOKEN}" \
             "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/workers/${worker_tag}/builds" \
-            | jq '[.result[:3][] | {build_uuid, status, build_command: .trigger.build_command, created_on}]'
+            | jq '[.result[:3][] | {build_uuid, status, created_on}]'
+
+          build_uuid="$(echo "$body" | jq -r '.result.build_uuid // .result[0].build_uuid // empty')"
+          if [ -z "$build_uuid" ]; then
+            echo "::warning::No build_uuid in trigger response"
+            exit 0
+          fi
+
+          echo "Polling build ${build_uuid}..."
+          for i in $(seq 1 40); do
+            info="$(curl -sf \
+              -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/builds/${build_uuid}")"
+            status="$(echo "$info" | jq -r '.result.status // .result.build_outcome // empty')"
+            echo "  attempt ${i}: status=${status}"
+            case "$status" in
+              success|failed|canceled|cancelled|error)
+                echo "$info" | jq '{status: .result.status, build_command: .result.trigger.build_command, created_on: .result.created_on, stopped_on: .result.stopped_on}'
+                # Pull a short log tail for failures.
+                logs="$(curl -sf \
+                  -H "Authorization: Bearer ${CF_API_TOKEN}" \
+                  "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/builds/${build_uuid}/logs" || true)"
+                echo "$logs" | jq -r '
+                  (.result.lines // .result // [])
+                  | if type=="array" then . else [] end
+                  | .[-40:][]?
+                  | (if type=="object" then (.message // .line // tostring) else tostring end)
+                ' 2>/dev/null || echo "$logs" | tail -c 8000
+                if [ "$status" = "success" ]; then exit 0; fi
+                exit 1
+                ;;
+            esac
+            sleep 15
+          done
+          echo "::error::Timed out waiting for Cloudflare build"
+          exit 1

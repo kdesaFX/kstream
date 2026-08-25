@@ -1,0 +1,48 @@
+name: Poll Cloudflare Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_uuid:
+        description: Cloudflare build UUID
+        required: true
+        type: string
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    env:
+      CF_ACCOUNT_ID: 9ab13b1e93e6b589c918dbe9c340134b
+      CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      BUILD_UUID: ${{ inputs.build_uuid }}
+    steps:
+      - name: Poll build
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 50); do
+            info="$(curl -sf \
+              -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/builds/${BUILD_UUID}")"
+            status="$(echo "$info" | jq -r '.result.status // empty')"
+            echo "attempt ${i}: status=${status}"
+            case "$status" in
+              success|failed|canceled|cancelled|error)
+                echo "$info" | jq '{status: .result.status, created_on: .result.created_on, stopped_on: .result.stopped_on, build_command: .result.trigger.build_command, env_keys: (.result.trigger.environment_variables|keys)}'
+                logs="$(curl -sf \
+                  -H "Authorization: Bearer ${CF_API_TOKEN}" \
+                  "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/builds/${BUILD_UUID}/logs" || true)"
+                echo "----- log tail -----"
+                echo "$logs" | jq -r '
+                  (.result.lines // .result // [])
+                  | if type=="array" then . else [] end
+                  | .[-60:][]?
+                  | (if type=="object" then (.message // .line // .text // tostring) else tostring end)
+                ' 2>/dev/null || echo "$logs" | tail -c 12000
+                if [ "$status" = "success" ]; then exit 0; fi
+                exit 1
+                ;;
+            esac
+            sleep 15
+          done
+          echo "::error::Timed out"
+          exit 1
