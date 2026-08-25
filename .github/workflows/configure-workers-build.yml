@@ -85,8 +85,12 @@ jobs:
               | jq '{success, keys: (.result | keys)}'
           done
 
-          # Prefer the production/"default branch" trigger for a manual rebuild.
-          prod_uuid="$(echo "$triggers" | jq -r '.result[] | select(.trigger_name | test("default|production"; "i")) | .trigger_uuid' | head -n1)"
+          # Prefer "Deploy default branch" — avoid matching "non-production".
+          prod_uuid="$(echo "$triggers" | jq -r '
+            (.result[] | select(.trigger_name | test("default branch"; "i")) | .trigger_uuid),
+            (.result[] | select(.trigger_name | test("non-production"; "i") | not) | .trigger_uuid)
+            | select(. != null)
+          ' | head -n1)"
           if [ -z "$prod_uuid" ] || [ "$prod_uuid" = "null" ]; then
             prod_uuid="$(echo "$triggers" | jq -r '.result[0].trigger_uuid')"
           fi
@@ -98,12 +102,24 @@ jobs:
         run: |
           set -euo pipefail
           uuid="${{ steps.patch.outputs.prod_trigger_uuid }}"
+          worker_tag="${{ steps.patch.outputs.worker_tag }}"
           test -n "$uuid" || { echo "::error::No production trigger UUID"; exit 1; }
           echo "Triggering build for ${uuid}"
-          curl -sf \
+          # Show why curl fails if the POST is rejected.
+          resp="$(curl -sS -w "\n%{http_code}" \
             -X POST \
             -H "Authorization: Bearer ${CF_API_TOKEN}" \
             -H "Content-Type: application/json" \
             "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/triggers/${uuid}/builds" \
-            --data '{}' \
-            | jq .
+            --data '{"branch":"production"}')"
+          body="$(echo "$resp" | head -n -1)"
+          code="$(echo "$resp" | tail -n 1)"
+          echo "HTTP ${code}"
+          echo "$body" | jq . || echo "$body"
+          test "$code" = "200" -o "$code" = "201"
+
+          echo "Latest builds:"
+          curl -sf \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/builds/workers/${worker_tag}/builds" \
+            | jq '[.result[:3][] | {build_uuid, status, build_command: .trigger.build_command, created_on}]'
