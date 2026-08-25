@@ -32,6 +32,7 @@ export function AccountEditPart(props: {
         colorA={props.colorA}
         colorB={props.colorB}
         userIcon={props.userIcon}
+        nickname={props.nickname}
         avatarUrl={props.avatarUrl}
         setAvatarUrl={props.setAvatarUrl}
       />
@@ -44,6 +45,7 @@ export function AccountEditPart(props: {
               icon: props.userIcon,
               avatarUrl: props.avatarUrl,
             }}
+            nickname={props.nickname}
             iconClass="text-5xl"
             sizeClass="w-32 h-32"
             bottom={

@@ -2,20 +2,38 @@ import classNames from "classnames";
 import { useRef } from "react";
 
 import { Icon, Icons } from "@/components/Icon";
-import { UserIcon } from "@/components/UserIcon";
+import { UserIcon, UserIcons } from "@/components/UserIcon";
 import { AccountProfile } from "@/pages/parts/auth/AccountCreatePart";
 import { useAuthStore } from "@/stores/auth";
 import { AVATAR_ACCEPT } from "@/utils/avatarImage";
 
 export interface AvatarProps {
   profile: AccountProfile["profile"];
+  /** Used for the letter fallback when there is no uploaded photo. */
+  nickname?: string;
   sizeClass?: string;
   iconClass?: string;
   bottom?: React.ReactNode;
 }
 
+/** First letter of the nickname (ignore leftover Discord `#0` tags). */
+export function avatarLetterFromNickname(nickname?: string): string | null {
+  if (!nickname?.trim()) return null;
+  const cleaned = nickname.replace(/#\d{1,4}$/, "").trim();
+  const match = /[A-Za-z0-9]/.exec(cleaned);
+  if (match?.[0]) return match[0].toUpperCase();
+  return cleaned[0]?.toUpperCase() ?? null;
+}
+
+function isKnownUserIcon(icon: string): icon is UserIcons {
+  return Object.values(UserIcons).includes(icon as UserIcons);
+}
+
 export function Avatar(props: AvatarProps) {
   const photo = props.profile.avatarUrl;
+  const letter = avatarLetterFromNickname(props.nickname);
+  const knownIcon = isKnownUserIcon(props.profile.icon);
+
   return (
     <div className="relative inline-block">
       <div
@@ -38,11 +56,20 @@ export function Avatar(props: AvatarProps) {
             className="h-full w-full object-cover"
             draggable={false}
           />
+        ) : letter ? (
+          <span
+            aria-hidden
+            className={classNames(
+              props.iconClass,
+              "font-semibold leading-none select-none",
+            )}
+          >
+            {letter}
+          </span>
+        ) : knownIcon ? (
+          <UserIcon className={props.iconClass} icon={knownIcon} />
         ) : (
-          <UserIcon
-            className={props.iconClass}
-            icon={props.profile.icon as any}
-          />
+          <Icon className={props.iconClass} icon={Icons.USER} />
         )}
       </div>
       {props.bottom ? (
@@ -70,6 +97,7 @@ export function UserAvatar(props: {
     <>
       <Avatar
         profile={auth.account.profile}
+        nickname={nickname}
         sizeClass={
           props.sizeClass ?? "w-[1.5rem] h-[1.5rem] ssm:w-[2rem] ssm:h-[2rem]"
         }

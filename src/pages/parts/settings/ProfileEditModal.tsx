@@ -15,6 +15,7 @@ export interface ProfileEditModalProps {
   colorA: string;
   colorB: string;
   userIcon: string;
+  nickname?: string;
   avatarUrl?: string | null;
   setAvatarUrl: (url: string | null) => void;
 }
@@ -76,6 +77,7 @@ export function ProfileEditModal(props: ProfileEditModalProps) {
               icon: props.userIcon,
               avatarUrl: shownUrl,
             }}
+            nickname={props.nickname}
             iconClass="text-5xl"
             sizeClass="w-32 h-32"
           />
