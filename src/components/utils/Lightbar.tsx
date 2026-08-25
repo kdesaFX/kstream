@@ -435,8 +435,10 @@ function ParticlesCanvas() {
 
 export function Lightbar(props: { className?: string; noParticles?: boolean }) {
   return (
-    <div className="absolute inset-0 w-full h-[680px] overflow-hidden pointer-events-none -mt-64">
-      <div className="max-w-screen w-full h-[680px] relative pt-64">
+    // overflow-visible: the conic glow extends past this box; clipping it
+    // leaves only a flat purple strip at the top of the page.
+    <div className="absolute inset-x-0 top-0 w-full h-[680px] overflow-visible pointer-events-none -mt-64">
+      <div className="w-full h-[680px] relative pt-64 overflow-visible">
         <div className={props.className}>
           <div className="lightbar">
             {!props.noParticles && <ParticlesCanvas />}
