@@ -130,6 +130,11 @@ export function MangaReaderView() {
   const lastChapterNumber = useRef<string | null>(null);
   const currentChapter: MangaChapter | undefined =
     chapterIndex >= 0 ? chapters[chapterIndex] : undefined;
+  const chapterNumberHint =
+    currentChapter?.chapter ??
+    (chapterId && details
+      ? details.chapters.find((c) => c.id === chapterId)?.chapter ?? null
+      : null);
   const prevChapter = chapterIndex > 0 ? chapters[chapterIndex - 1] : undefined;
   const nextChapter =
     chapterIndex >= 0 && chapterIndex < chapters.length - 1
@@ -227,7 +232,7 @@ export function MangaReaderView() {
       language: preferredLanguage,
       title: details?.title ?? titleHint,
       alternateTitles: details?.alternateTitles,
-      chapter: currentChapter?.chapter,
+      chapter: chapterNumberHint,
     }),
     [
       details?.id,
@@ -236,7 +241,7 @@ export function MangaReaderView() {
       mangaId,
       preferredLanguage,
       titleHint,
-      currentChapter?.chapter,
+      chapterNumberHint,
     ],
   );
 
@@ -324,6 +329,22 @@ export function MangaReaderView() {
     if (!needsDetailsRetryRef.current) return;
     void loadPages(chapterId, true);
   }, [chapterId, details, detailsReady, loadPages]);
+
+  // Partial MangaDex list often has the chapter number before WC/Comick merge.
+  // Retry page load as soon as we know "82.1" so WeebCentral lookup can run early.
+  useEffect(() => {
+    if (!chapterId || !chapterNumberHint) return;
+    if (pagesLoadedRef.current || detailsReady) return;
+    if (!details?.title && !titleHint) return;
+    void loadPages(chapterId);
+  }, [
+    chapterId,
+    chapterNumberHint,
+    details?.title,
+    titleHint,
+    detailsReady,
+    loadPages,
+  ]);
 
   // Warm adjacent chapters so Next/Prev feels instant.
   useEffect(() => {

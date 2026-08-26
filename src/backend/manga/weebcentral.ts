@@ -570,14 +570,24 @@ export async function resolveWeebCentralChapters(
   title: string,
   alternateTitles: string[] = [],
 ): Promise<MangaChapter[] | null> {
+  const cacheKey = resolvedChaptersKey(title, alternateTitles);
+  const cached = resolvedChaptersCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < RESOLVED_CHAPTERS_TTL_MS) {
+    return cached.chapters;
+  }
+
   const queries = buildFallbackSearchQueries(title, alternateTitles);
+  let result: MangaChapter[] | null = null;
   for (const query of queries) {
     const hit = await loadWeebCentralMatch(query).catch(() => null);
     if (hit && titlesCompatible(title, hit.title, alternateTitles)) {
-      return hit.chapters;
+      result = hit.chapters;
+      break;
     }
   }
-  return null;
+
+  resolvedChaptersCache.set(cacheKey, { at: Date.now(), chapters: result });
+  return result;
 }
 
 function hitToListItem(hit: WeebCentralSearchHit): MangaListItem {
@@ -598,6 +608,18 @@ const searchCache = new Map<
   { at: number; hits: WeebCentralSearchHit[] }
 >();
 const SEARCH_TTL_MS = 5 * 60 * 1000;
+const RESOLVED_CHAPTERS_TTL_MS = 5 * 60 * 1000;
+const resolvedChaptersCache = new Map<
+  string,
+  { at: number; chapters: MangaChapter[] | null }
+>();
+
+function resolvedChaptersKey(title: string, alternateTitles: string[]) {
+  return [
+    normalizeMangaTitle(title),
+    ...alternateTitles.map((alt) => normalizeMangaTitle(alt)).sort(),
+  ].join("|");
+}
 
 async function fetchWeebCentralSearchHits(
   title: string,

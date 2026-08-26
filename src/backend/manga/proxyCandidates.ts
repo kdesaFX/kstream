@@ -1,8 +1,16 @@
 import { getProxyUrls, proxiedDestinationUrl, resolveProxyUrl } from "@/utils/hosting/proxyUrls";
 
 const STORAGE_KEY = "__kstream:mangaProxy";
-const PROXY_ATTEMPT_MS = 8000;
-const DIRECT_ATTEMPT_MS = 20000;
+const PROXY_ATTEMPT_MS = 4500;
+const DIRECT_ATTEMPT_MS = 15000;
+
+/** Hosts that never work as direct browser fetches on the deployed site. */
+const PROXY_ONLY_HOSTS = new Set([
+  "weebcentral.com",
+  "api.comick.dev",
+  "mangasee123.com",
+  "mangasee123.net",
+]);
 
 function hostKey(url: string): string {
   try {
@@ -53,7 +61,10 @@ export function buildMangaProxyCandidates(destinationUrl: string): string[] {
   for (const proxy of getProxyUrls()) {
     add(proxiedDestinationUrl(destinationUrl, [proxy]));
   }
-  add(destinationUrl);
+  const host = hostKey(destinationUrl);
+  if (!PROXY_ONLY_HOSTS.has(host)) {
+    add(destinationUrl);
+  }
   return out;
 }
 
@@ -61,30 +72,49 @@ function attemptTimeoutMs(target: string): number {
   return target.includes("destination=") ? PROXY_ATTEMPT_MS : DIRECT_ATTEMPT_MS;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      const timer =
+        typeof window !== "undefined" ? window.setTimeout : setTimeout;
+      timer(() => reject(new Error("Manga proxy attempt timed out")), ms);
+    }),
+  ]);
+}
+
 export async function fetchViaMangaProxies<T>(
   destinationUrl: string,
   fetcher: (target: string) => Promise<T>,
   isValid?: (result: T) => boolean,
 ): Promise<T> {
+  const candidates = buildMangaProxyCandidates(destinationUrl);
   let lastError: unknown;
-  for (const target of buildMangaProxyCandidates(destinationUrl)) {
-    try {
-      const result = await Promise.race([
+
+  // Race all proxy hops — first valid response wins (avoids 8s × N sequential waits).
+  const raced = await Promise.allSettled(
+    candidates.map(async (target) => {
+      const result = await withTimeout(
         fetcher(target),
-        new Promise<never>((_, reject) => {
-          window.setTimeout(
-            () => reject(new Error("Manga proxy attempt timed out")),
-            attemptTimeoutMs(target),
-          );
-        }),
-      ]);
-      if (isValid && !isValid(result)) continue;
-      if (target !== destinationUrl) rememberGoodProxy(destinationUrl, target);
-      return result;
-    } catch (err) {
-      lastError = err;
+        attemptTimeoutMs(target),
+      );
+      if (isValid && !isValid(result)) {
+        throw new Error("Invalid proxied response");
+      }
+      return { target, result };
+    }),
+  );
+
+  for (const entry of raced) {
+    if (entry.status !== "fulfilled") {
+      lastError = entry.reason;
+      continue;
     }
+    const { target, result } = entry.value;
+    if (target !== destinationUrl) rememberGoodProxy(destinationUrl, target);
+    return result;
   }
+
   throw lastError instanceof Error
     ? lastError
     : new Error("Manga proxied request failed");

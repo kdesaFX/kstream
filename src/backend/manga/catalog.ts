@@ -89,71 +89,94 @@ type ChapterPageFallback = {
   chapter?: string | null;
 };
 
+async function raceFirstPages(
+  tasks: Promise<string[] | null>[],
+): Promise<string[] | null> {
+  if (tasks.length === 0) return null;
+  return new Promise((resolve) => {
+    let remaining = tasks.length;
+    let settled = false;
+    for (const task of tasks) {
+      void task
+        .then((pages) => {
+          if (settled) return;
+          if (pages?.length) {
+            settled = true;
+            resolve(pages);
+            return;
+          }
+          remaining -= 1;
+          if (remaining === 0) resolve(null);
+        })
+        .catch(() => {
+          remaining -= 1;
+          if (!settled && remaining === 0) resolve(null);
+        });
+    }
+  });
+}
+
 export async function getChapterPages(
   chapterId: string,
   fallback?: ChapterPageFallback,
   force?: boolean,
 ): Promise<string[]> {
   mangaMark("pages-start");
-  const ids = [chapterId];
+  const pageContext = {
+    title: fallback?.title,
+    alternateTitles: fallback?.alternateTitles,
+    chapter: fallback?.chapter,
+  };
+
+  const primary = await tryLoadPagesForId(chapterId, pageContext, force);
+  if (primary?.length) {
+    mangaMark("pages-end");
+    mangaMeasure("pages", "pages-start", "pages-end");
+    return primary;
+  }
+
+  const altIds: string[] = [];
   if (fallback?.mangaId && fallback.language) {
     for (const alt of getChapterFallbackIds(
       fallback.mangaId,
       fallback.language,
       chapterId,
     )) {
-      if (!ids.includes(alt)) ids.push(alt);
+      if (alt !== chapterId && !altIds.includes(alt)) altIds.push(alt);
     }
   }
 
-  const attempts = await Promise.all(
-    ids.map(async (id) => ({
-      id,
-      pages: await tryLoadPagesForId(
-        id,
-        {
-          title: fallback?.title,
-          alternateTitles: fallback?.alternateTitles,
-          chapter: fallback?.chapter,
-        },
-        force,
-      ),
-    })),
+  const tasks: Promise<string[] | null>[] = altIds.map((id) =>
+    tryLoadPagesForId(id, pageContext, force),
   );
 
-  const primary = attempts.find((entry) => entry.id === chapterId && entry.pages);
-  if (primary?.pages) {
-    mangaMark("pages-end");
-    mangaMeasure("pages", "pages-start", "pages-end");
-    return primary.pages;
-  }
-
-  for (const entry of attempts) {
-    if (entry.pages) {
-      mangaMark("pages-end");
-      mangaMeasure("pages", "pages-start", "pages-end");
-      return entry.pages;
-    }
-  }
-
   if (fallback?.title && fallback.chapter?.trim()) {
-    const wcPages = await getWeebCentralPagesForChapterNumber(
-      fallback.title,
-      fallback.alternateTitles ?? [],
-      fallback.chapter.trim(),
-    );
-    if (
-      wcPages.length > 0 &&
-      pagesBelongToTitle(
-        wcPages,
+    tasks.push(
+      getWeebCentralPagesForChapterNumber(
         fallback.title,
         fallback.alternateTitles ?? [],
-      )
-    ) {
-      mangaMark("pages-end");
-      mangaMeasure("pages", "pages-start", "pages-end");
-      return wcPages;
-    }
+        fallback.chapter.trim(),
+      ).then((pages) => {
+        if (
+          pages.length > 0 &&
+          pagesBelongToTitle(
+            pages,
+            fallback.title!,
+            fallback.alternateTitles ?? [],
+          )
+        ) {
+          return pages;
+        }
+        return null;
+      }),
+    );
+  }
+
+  const raced = await raceFirstPages(tasks);
+  if (raced?.length) {
+    mangaMark("pages-end");
+    mangaMeasure("pages", "pages-start", "pages-end");
+    return raced;
   }
 
   mangaMark("pages-end");

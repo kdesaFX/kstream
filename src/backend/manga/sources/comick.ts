@@ -92,6 +92,18 @@ function chapterScore(row: ComickChapterRow): number {
 }
 
 const comickAlternateHids = new Map<string, string[]>();
+const RESOLVED_CHAPTERS_TTL_MS = 5 * 60 * 1000;
+const resolvedComickCache = new Map<
+  string,
+  { at: number; chapters: MangaChapter[] | null }
+>();
+
+function resolvedComickKey(title: string, alternateTitles: string[]) {
+  return [
+    title.trim().toLowerCase(),
+    ...alternateTitles.map((alt) => alt.trim().toLowerCase()).sort(),
+  ].join("|");
+}
 
 function dedupeComickChapters(rows: ComickChapterRow[]): ComickChapterRow[] {
   const byNum = new Map<string, { primary: ComickChapterRow; alts: string[] }>();
@@ -192,14 +204,24 @@ export async function resolveComickChapters(
   title: string,
   alternateTitles: string[] = [],
 ): Promise<MangaChapter[] | null> {
+  const cacheKey = resolvedComickKey(title, alternateTitles);
+  const cached = resolvedComickCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < RESOLVED_CHAPTERS_TTL_MS) {
+    return cached.chapters;
+  }
+
   const queries = buildFallbackSearchQueries(title, alternateTitles);
+  let result: MangaChapter[] | null = null;
   for (const query of queries) {
     const hit = await loadComickMatch(query).catch(() => null);
     if (hit && titlesCompatible(title, hit.title, alternateTitles)) {
-      return hit.chapters;
+      result = hit.chapters;
+      break;
     }
   }
-  return null;
+
+  resolvedComickCache.set(cacheKey, { at: Date.now(), chapters: result });
+  return result;
 }
 
 function mangaseeSlugFromDetail(detail: ComickChapterDetail | undefined): string | null {
