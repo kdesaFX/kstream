@@ -138,6 +138,25 @@ export function buildNm3u8Command(
   return parts.join(" ");
 }
 
+/**
+ * Build a ready-to-paste ffmpeg command for an HLS / file URL.
+ * Uses CRLF-separated -headers so Referer/Origin are honored by most CDNs.
+ */
+export function buildFfmpegCommand(
+  url: string,
+  headers: Record<string, string> = {},
+): string {
+  const parts = ["ffmpeg"];
+  const headerLines = Object.entries(headers)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join("\r\n");
+  if (headerLines) {
+    parts.push("-headers", JSON.stringify(`${headerLines}\r\n`));
+  }
+  parts.push("-i", JSON.stringify(url), "-c", "copy", "output.mp4");
+  return parts.join(" ");
+}
+
 /** Public GUI HLS downloader used by Stream Link. */
 export const HLS_DOWNLOADER_URL = "https://hlsdownloader.thetuhin.com/";
 

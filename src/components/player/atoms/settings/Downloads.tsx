@@ -10,6 +10,7 @@ import { OverlayPage } from "@/components/overlays/OverlayPage";
 import { Menu } from "@/components/player/internals/ContextMenu";
 import { convertSubtitlesToSrtDataurl } from "@/components/player/utils/captions";
 import {
+  buildFfmpegCommand,
   buildHlsDownloaderUrl,
   buildNm3u8Command,
   buildYtDlpCommand,
@@ -218,7 +219,7 @@ function OriginalFileView({ id }: { id: string }) {
   );
 }
 
-type CopyKind = "url" | "ytdlp" | "nm3u8" | null;
+type CopyKind = "url" | "ytdlp" | "nm3u8" | "ffmpeg" | null;
 
 function StreamLinkView({ id }: { id: string }) {
   const router = useOverlayRouter(id);
@@ -234,6 +235,10 @@ function StreamLinkView({ id }: { id: string }) {
   );
   const nm3u8Command = useMemo(
     () => (downloadUrl ? buildNm3u8Command(downloadUrl, headers) : ""),
+    [downloadUrl, headers],
+  );
+  const ffmpegCommand = useMemo(
+    () => (downloadUrl ? buildFfmpegCommand(downloadUrl, headers) : ""),
     [downloadUrl, headers],
   );
   const hlsDownloaderHref = useMemo(
@@ -331,6 +336,19 @@ function StreamLinkView({ id }: { id: string }) {
               {copied === "nm3u8"
                 ? t("player.menus.downloads.copied")
                 : t("player.menus.downloads.copyNm3u8")}
+            </Button>
+            <Button
+              className="w-full mt-2"
+              theme="secondary"
+              disabled={!downloadUrl}
+              onClick={(event) => {
+                event.preventDefault();
+                copyText(ffmpegCommand, "ffmpeg");
+              }}
+            >
+              {copied === "ffmpeg"
+                ? t("player.menus.downloads.copied")
+                : t("player.menus.downloads.copyFfmpeg")}
             </Button>
           </>
         )}
@@ -545,7 +563,7 @@ export function DownloadRoutes({ id }: { id: string }) {
           <OriginalFileView id={id} />
         </Menu.CardWithScrollable>
       </OverlayPage>
-      <OverlayPage id={id} path="/download/stream" width={343} height={560}>
+      <OverlayPage id={id} path="/download/stream" width={343} height={620}>
         <Menu.CardWithScrollable>
           <StreamLinkView id={id} />
         </Menu.CardWithScrollable>

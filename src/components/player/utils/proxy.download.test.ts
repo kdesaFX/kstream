@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildFfmpegCommand,
   buildHlsDownloaderUrl,
   buildNm3u8Command,
   buildYtDlpCommand,
@@ -58,6 +59,16 @@ describe("download command builders", () => {
       }),
     ).toBe(
       'N_m3u8DL-RE "https://cdn.example.com/a.m3u8" --header "Origin: https://watch.example.com"',
+    );
+  });
+
+  it("builds ffmpeg with headers", () => {
+    expect(
+      buildFfmpegCommand("https://cdn.example.com/a.m3u8", {
+        Referer: "https://watch.example.com/",
+      }),
+    ).toBe(
+      'ffmpeg -headers "Referer: https://watch.example.com/\\r\\n" -i "https://cdn.example.com/a.m3u8" -c copy output.mp4',
     );
   });
 
