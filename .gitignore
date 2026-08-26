@@ -29,9 +29,12 @@ package-lock.json
 
 # config
 .env
+discord-bot/.env
 sync-fork.bat
 
 .cursor/
 
 scripts/goon-test-results.json
 scripts/source-hit-bench-results.json
+discord-bot/scripts/deploy-payload.json
+supabase/.temp/
