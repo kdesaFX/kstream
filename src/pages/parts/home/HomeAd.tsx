@@ -52,13 +52,6 @@ function mrecSlot(
   return { key: zoneId, width: 300, height: 250 };
 }
 
-function cornerBannerSlot(
-  zoneId: string | null | undefined,
-): SlotConfig | null {
-  if (!zoneId) return null;
-  return { key: zoneId, width: 468, height: 60 };
-}
-
 function adScriptSrc(key: string): string {
   const base =
     conf().ADSTERRA_SCRIPT_HOST?.replace(/\/$/, "") || DEFAULT_ADSTERRA_HOST;
@@ -343,8 +336,8 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
 }
 
 /**
- * Home hero ad block: GIF + leaderboard in the left column, MREC on the right.
- * The second leaderboard sits under the GIF (not centered below the row).
+ * Home hero ads: leaderboard (top-left) + MREC (top-right).
+ * Corner / former-footer slot and the GIF are intentionally not shown here.
  */
 export function HomeTopAds() {
   const cfg = conf();
@@ -372,34 +365,19 @@ export function HomeTopAds() {
     [cfg.ENABLE_SECONDARY_AD, cfg.SECONDARY_AD_ZONE_ID],
   );
 
-  const cornerSlot = useMemo(
-    () => cornerBannerSlot(cfg.FOOTER_AD_ZONE_ID),
-    [cfg.FOOTER_AD_ZONE_ID],
-  );
-
-  const gifUrl =
-    cfg.ENABLE_PRIMARY_BANNER_GIF && cfg.PRIMARY_BANNER_GIF_URL
-      ? cfg.PRIMARY_BANNER_GIF_URL
-      : null;
-
   if (areAdsBlocked(adsDisabled)) return null;
-  if (!gifUrl && !primarySlot && !secondarySlot && !cornerSlot) return null;
+  if (!primarySlot && !secondarySlot) return null;
 
   if (isMobile) {
     return (
       <div className="flex w-full flex-col items-center gap-4 px-4">
-        {gifUrl && (
-          <PrimaryGifBanner img={PRIMARY_BANNER_GIF_SRC} href={gifUrl} />
-        )}
         {primarySlot && <AdSlotInner cfg={primarySlot} />}
         {secondarySlot && <AdSlotInner cfg={secondarySlot} />}
-        {cornerSlot && <AdSlotInner cfg={cornerSlot} />}
       </div>
     );
   }
 
-  const useTwoColGrid =
-    secondarySlot && (gifUrl || primarySlot || cornerSlot);
+  const useTwoColGrid = Boolean(primarySlot && secondarySlot);
 
   return (
     <div className="flex w-full justify-center px-4">
@@ -410,33 +388,15 @@ export function HomeTopAds() {
             : "flex max-w-full flex-col items-center gap-4"
         }
       >
-        {gifUrl ? (
+        {primarySlot ? (
           <div className="w-full max-w-[728px] min-[1060px]:col-start-1 min-[1060px]:row-start-1 min-[1060px]:justify-self-stretch">
-            <PrimaryGifBanner img={PRIMARY_BANNER_GIF_SRC} href={gifUrl} />
+            <AdSlotInner cfg={primarySlot} />
           </div>
         ) : null}
 
         {secondarySlot ? (
           <div className="min-[1060px]:col-start-2 min-[1060px]:row-start-1">
             <AdSlotInner cfg={secondarySlot} />
-          </div>
-        ) : null}
-
-        {primarySlot ? (
-          <div
-            className={
-              gifUrl
-                ? "w-full max-w-[728px] min-[1060px]:col-start-1 min-[1060px]:row-start-2 min-[1060px]:justify-self-stretch"
-                : "min-[1060px]:col-start-1 min-[1060px]:row-start-1"
-            }
-          >
-            <AdSlotInner cfg={primarySlot} />
-          </div>
-        ) : null}
-
-        {cornerSlot ? (
-          <div className="w-full max-w-[300px] min-[1060px]:col-start-2 min-[1060px]:row-start-2 min-[1060px]:justify-self-center">
-            <AdSlotInner cfg={cornerSlot} />
           </div>
         ) : null}
       </div>
