@@ -186,7 +186,6 @@ function App() {
   useGlobalKeyboardEvents();
   useClearModalsOnNavigation();
   const location = useLocation();
-  const isWatchPage = location.pathname.startsWith("/media/");
   const maintenance = false; // Shows maintance page
   const [showDowntime, setShowDowntime] = useState(maintenance);
 
