@@ -5,6 +5,7 @@
 import proxyHandler from "../api/proxy";
 import m3u8ProxyHandler from "../api/m3u8-proxy";
 import tsProxyHandler from "../api/ts-proxy";
+import mangaPagesHandler from "../api/manga-pages";
 
 export interface Env {
   ASSETS: Fetcher;
@@ -38,6 +39,9 @@ export default {
     }
     if (pathname === "/api/ts-proxy") {
       return withSecurityHeaders(await tsProxyHandler(request));
+    }
+    if (pathname === "/api/manga/pages" || pathname === "/api/manga/pages/") {
+      return withSecurityHeaders(await mangaPagesHandler(request));
     }
 
     // Explicit security.txt in case static asset headers are stripped.

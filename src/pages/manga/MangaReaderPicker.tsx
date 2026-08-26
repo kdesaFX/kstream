@@ -35,6 +35,7 @@ export function MangaReaderPicker({
   emptyLabel,
   emptyTriggerLabel,
   onSelect,
+  onItemHover,
 }: {
   items: MangaReaderPickerItem[];
   selectedId?: string;
@@ -42,6 +43,7 @@ export function MangaReaderPicker({
   emptyLabel: string;
   emptyTriggerLabel?: string;
   onSelect: (id: string) => void;
+  onItemHover?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
@@ -195,6 +197,7 @@ export function MangaReaderPicker({
                           : "text-white/65 hover:bg-white/10 hover:text-white",
                       )}
                       onClick={() => pick(item.id)}
+                      onMouseEnter={() => onItemHover?.(item.id)}
                     >
                       {item.label}
                     </button>

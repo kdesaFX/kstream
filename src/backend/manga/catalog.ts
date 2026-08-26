@@ -1,6 +1,10 @@
 import { isWeebCentralId } from "@/backend/manga/ids";
 import { mangaMark, mangaMeasure } from "@/backend/manga/mangaTiming";
 import {
+  readPersistedPageCache,
+  writePersistedPageCache,
+} from "@/backend/manga/pageCache";
+import {
   getChapterFallbackIds,
   resolveReadableChapters,
 } from "@/backend/manga/sources/resolve";
@@ -81,39 +85,52 @@ export async function getMangaDetails(
   }
 }
 
-type ChapterPageFallback = {
+export type ChapterPageFallback = {
   mangaId?: string;
   language?: string;
   title?: string;
   alternateTitles?: string[];
   chapter?: string | null;
+  /** Licensed MangaDex stub — skip slow at-home attempt. */
+  mangadexStub?: boolean;
 };
 
 async function raceFirstPages(
   tasks: Promise<string[] | null>[],
 ): Promise<string[] | null> {
   if (tasks.length === 0) return null;
-  return new Promise((resolve) => {
-    let remaining = tasks.length;
-    let settled = false;
-    for (const task of tasks) {
-      void task
-        .then((pages) => {
-          if (settled) return;
-          if (pages?.length) {
-            settled = true;
-            resolve(pages);
-            return;
-          }
-          remaining -= 1;
-          if (remaining === 0) resolve(null);
-        })
-        .catch(() => {
-          remaining -= 1;
-          if (!settled && remaining === 0) resolve(null);
-        });
-    }
-  });
+  try {
+    return await Promise.any(
+      tasks.map((task) =>
+        task.then((pages) => {
+          if (pages?.length) return pages;
+          throw new Error("empty chapter pages");
+        }),
+      ),
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function fetchPagesViaApi(chapterId: string): Promise<string[] | null> {
+  if (typeof fetch === "undefined") return null;
+  try {
+    const res = await fetch(
+      `/api/manga/pages?chapterId=${encodeURIComponent(chapterId)}`,
+      { signal: AbortSignal.timeout(9000) },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { pages?: string[] };
+    return data.pages?.length ? data.pages : null;
+  } catch {
+    return null;
+  }
+}
+
+function cachePages(chapterId: string, pages: string[]): void {
+  pageListCache.set(chapterId, { at: Date.now(), pages });
+  writePersistedPageCache(chapterId, pages);
 }
 
 export async function getChapterPages(
@@ -122,18 +139,31 @@ export async function getChapterPages(
   force?: boolean,
 ): Promise<string[]> {
   mangaMark("pages-start");
+
+  if (!force) {
+    const persisted = readPersistedPageCache(chapterId);
+    if (persisted?.length) {
+      pageListCache.set(chapterId, { at: Date.now(), pages: persisted });
+      mangaMark("pages-end");
+      mangaMeasure("pages", "pages-start", "pages-end");
+      return persisted;
+    }
+    const cached = pageListCache.get(chapterId);
+    if (cached && Date.now() - cached.at < PAGE_LIST_TTL_MS) {
+      mangaMark("pages-end");
+      mangaMeasure("pages", "pages-start", "pages-end");
+      return cached.pages;
+    }
+  } else {
+    pageListCache.delete(chapterId);
+  }
+
   const pageContext = {
     title: fallback?.title,
     alternateTitles: fallback?.alternateTitles,
     chapter: fallback?.chapter,
   };
-
-  const primary = await tryLoadPagesForId(chapterId, pageContext, force);
-  if (primary?.length) {
-    mangaMark("pages-end");
-    mangaMeasure("pages", "pages-start", "pages-end");
-    return primary;
-  }
+  const stub = fallback?.mangadexStub === true;
 
   const altIds: string[] = [];
   if (fallback?.mangaId && fallback.language) {
@@ -146,12 +176,27 @@ export async function getChapterPages(
     }
   }
 
-  const tasks: Promise<string[] | null>[] = altIds.map((id) =>
-    tryLoadPagesForId(id, pageContext, force),
-  );
+  const apiTasks: Promise<string[] | null>[] = [];
+  if (!stub) apiTasks.push(fetchPagesViaApi(chapterId));
+  for (const alt of altIds) apiTasks.push(fetchPagesViaApi(alt));
 
+  const apiHit = await raceFirstPages(apiTasks);
+  if (apiHit?.length) {
+    cachePages(chapterId, apiHit);
+    mangaMark("pages-end");
+    mangaMeasure("pages", "pages-start", "pages-end");
+    return apiHit;
+  }
+
+  const clientTasks: Promise<string[] | null>[] = [];
+  if (!stub) {
+    clientTasks.push(tryLoadPagesForId(chapterId, pageContext, force));
+  }
+  for (const alt of altIds) {
+    clientTasks.push(tryLoadPagesForId(alt, pageContext, force));
+  }
   if (fallback?.title && fallback.chapter?.trim()) {
-    tasks.push(
+    clientTasks.push(
       getWeebCentralPagesForChapterNumber(
         fallback.title,
         fallback.alternateTitles ?? [],
@@ -172,11 +217,12 @@ export async function getChapterPages(
     );
   }
 
-  const raced = await raceFirstPages(tasks);
-  if (raced?.length) {
+  const clientHit = await raceFirstPages(clientTasks);
+  if (clientHit?.length) {
+    cachePages(chapterId, clientHit);
     mangaMark("pages-end");
     mangaMeasure("pages", "pages-start", "pages-end");
-    return raced;
+    return clientHit;
   }
 
   mangaMark("pages-end");

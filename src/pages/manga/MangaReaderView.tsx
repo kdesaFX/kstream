@@ -14,6 +14,7 @@ import {
   slugToTitleHint,
 } from "@/backend/manga/ids";
 import { mangaMark, mangaMeasure } from "@/backend/manga/mangaTiming";
+import { readPersistedPageCache } from "@/backend/manga/pageCache";
 import { isComickChapterId } from "@/backend/manga/sources/comick";
 import {
   chapterLabel,
@@ -135,6 +136,11 @@ export function MangaReaderView() {
     (chapterId && details
       ? details.chapters.find((c) => c.id === chapterId)?.chapter ?? null
       : null);
+  const chapterMeta =
+    currentChapter ??
+    (chapterId && details
+      ? details.chapters.find((c) => c.id === chapterId)
+      : undefined);
   const prevChapter = chapterIndex > 0 ? chapters[chapterIndex - 1] : undefined;
   const nextChapter =
     chapterIndex >= 0 && chapterIndex < chapters.length - 1
@@ -233,6 +239,9 @@ export function MangaReaderView() {
       title: details?.title ?? titleHint,
       alternateTitles: details?.alternateTitles,
       chapter: chapterNumberHint,
+      mangadexStub:
+        (chapterMeta?.source ?? "mangadex") === "mangadex" &&
+        (chapterMeta?.pages ?? 0) === 0,
     }),
     [
       details?.id,
@@ -242,13 +251,39 @@ export function MangaReaderView() {
       preferredLanguage,
       titleHint,
       chapterNumberHint,
+      chapterMeta?.source,
+      chapterMeta?.pages,
+    ],
+  );
+
+  const prefetchChapter = useCallback(
+    (ch: MangaChapter) => {
+      prefetchChapterPages(ch.id, {
+        mangaId: details?.id ?? mangaId,
+        language: preferredLanguage,
+        title: details?.title ?? titleHint,
+        alternateTitles: details?.alternateTitles,
+        chapter: ch.chapter,
+        mangadexStub:
+          (ch.source ?? "mangadex") === "mangadex" && (ch.pages ?? 0) === 0,
+      });
+    },
+    [
+      details?.id,
+      details?.title,
+      details?.alternateTitles,
+      mangaId,
+      preferredLanguage,
+      titleHint,
     ],
   );
 
   const loadPages = useCallback(
-    async (id: string, force = false) => {
-      setLoading(true);
-      setError(null);
+    async (id: string, force = false, silent = false) => {
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
       if (force) {
         retried.current = false;
         skippedEmptyRef.current.delete(id);
@@ -257,41 +292,45 @@ export function MangaReaderView() {
         mangaMark("reader-pages-start");
         const urls = await getChapterPages(id, pageFallback(), force);
         if (urls.length === 0) {
-          needsDetailsRetryRef.current = !detailsReady;
-          skippedEmptyRef.current.add(id);
-          const idx = chapters.findIndex((c) => c.id === id);
-          const nextReadable =
-            idx >= 0
-              ? chapters
-                  .slice(idx + 1)
-                  .find((c) => !skippedEmptyRef.current.has(c.id))
-              : undefined;
-          if (nextReadable && details) {
-            skipChapterResumeRef.current = true;
-            navigate(
-              mangaChapterLink(details.id, details.title, nextReadable.id),
-              { replace: true },
-            );
-            return;
+          if (!silent) {
+            needsDetailsRetryRef.current = !detailsReady;
+            skippedEmptyRef.current.add(id);
+            const idx = chapters.findIndex((c) => c.id === id);
+            const nextReadable =
+              idx >= 0
+                ? chapters
+                    .slice(idx + 1)
+                    .find((c) => !skippedEmptyRef.current.has(c.id))
+                : undefined;
+            if (nextReadable && details) {
+              skipChapterResumeRef.current = true;
+              navigate(
+                mangaChapterLink(details.id, details.title, nextReadable.id),
+                { replace: true },
+              );
+              return;
+            }
+            setError(t("manga.reader.emptyChapter"));
+            setPages([]);
+            pagesLoadedRef.current = false;
           }
-          setError(t("manga.reader.emptyChapter"));
-          setPages([]);
-          pagesLoadedRef.current = false;
           return;
         }
         pagesLoadedRef.current = true;
         needsDetailsRetryRef.current = false;
         setPages(urls);
-        setPageIndex(0);
+        if (!silent) setPageIndex(0);
         mangaMark("reader-pages-end");
         mangaMeasure("reader-pages", "reader-pages-start", "reader-pages-end");
       } catch (e) {
-        needsDetailsRetryRef.current = !detailsReady;
-        pagesLoadedRef.current = false;
-        setError(e instanceof Error ? e.message : "Failed to load pages");
-        setPages([]);
+        if (!silent) {
+          needsDetailsRetryRef.current = !detailsReady;
+          pagesLoadedRef.current = false;
+          setError(e instanceof Error ? e.message : "Failed to load pages");
+          setPages([]);
+        }
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     },
     [
@@ -309,7 +348,18 @@ export function MangaReaderView() {
     pagesLoadedRef.current = false;
     needsDetailsRetryRef.current = false;
     retried.current = false;
-  }, [chapterId]);
+
+    const cached = readPersistedPageCache(chapterId);
+    if (cached?.length) {
+      setPages(cached);
+      setPageIndex(0);
+      setLoading(false);
+      pagesLoadedRef.current = true;
+      void loadPages(chapterId, true, true);
+      return;
+    }
+    setPages([]);
+  }, [chapterId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!chapterId) return;
@@ -346,41 +396,30 @@ export function MangaReaderView() {
     loadPages,
   ]);
 
-  // Warm adjacent chapters so Next/Prev feels instant.
+  // Warm nearby chapters so random picks from the list feel faster.
   useEffect(() => {
-    if (pages.length === 0) return undefined;
+    if (pages.length === 0 || chapterIndex < 0) return undefined;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       if (cancelled) return;
-      const fallback = {
-        mangaId: details?.id,
-        language: preferredLanguage,
-        title: details?.title ?? titleHint,
-        alternateTitles: details?.alternateTitles,
-      };
-      for (const ch of [prevChapter, nextChapter]) {
-        if (!ch?.id) continue;
-        prefetchChapterPages(ch.id, {
-          ...fallback,
-          chapter: ch.chapter,
-        });
+      const nearby = chapters.slice(
+        Math.max(0, chapterIndex - 3),
+        Math.min(chapters.length, chapterIndex + 4),
+      );
+      for (const ch of nearby) {
+        if (ch.id !== chapterId) prefetchChapter(ch);
       }
-    }, 200);
+    }, 100);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
   }, [
     pages.length,
-    prevChapter?.id,
-    prevChapter?.chapter,
-    nextChapter?.id,
-    nextChapter?.chapter,
-    details?.id,
-    details?.title,
-    details?.alternateTitles,
-    preferredLanguage,
-    titleHint,
+    chapterId,
+    chapterIndex,
+    chapters,
+    prefetchChapter,
   ]);
 
   const resetVerticalScroll = useCallback((top = 0) => {
@@ -578,6 +617,7 @@ export function MangaReaderView() {
                 chapters={chapters}
                 currentChapterId={chapterId}
                 onSelect={(ch) => goChapter(ch)}
+                onPrefetch={prefetchChapter}
               />
               <MangaLanguagePicker
                 languages={
