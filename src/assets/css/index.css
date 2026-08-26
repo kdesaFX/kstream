@@ -4,7 +4,7 @@
 
 html,
 body {
-  font-family: "Lato", sans-serif !important;
+  font-family: "Onest", sans-serif !important;
   @apply bg-background-main !important;
   @apply font-main text-type-text;
   min-height: 100vh;

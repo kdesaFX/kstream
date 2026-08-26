@@ -20,7 +20,7 @@ const config: Config = {
 
       /* fonts */
       fontFamily: {
-        main: "'Lato', sans-serif",
+        main: "'Onest', sans-serif",
       },
 
       /* animations */
