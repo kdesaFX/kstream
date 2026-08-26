@@ -289,9 +289,11 @@ function StreamLinkView({ id }: { id: string }) {
         >
           {copied === "url"
             ? t("player.menus.downloads.copied")
-            : isHls
-              ? t("player.menus.downloads.copyHlsPlaylist")
-              : t("player.menus.downloads.copyFileLink")}
+            : t(
+                isHls
+                  ? "player.menus.downloads.copyHlsPlaylist"
+                  : "player.menus.downloads.copyFileLink",
+              )}
         </Button>
 
         {isHls && (
