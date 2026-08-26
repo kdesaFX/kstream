@@ -40,8 +40,9 @@ window.__CONFIG__ = {
   // raise frequency in the Adsterra dashboard instead.
   VITE_ADSTERRA_SCRIPT_HOST: "https://www.highrevenueformat.com",
   VITE_ENABLE_POPUNDER: "true",
-  VITE_POPUNDER_ZONE_ID: "", // e.g. 1234567 from data-zone="..."
-  VITE_POPUNDER_SCRIPT_URL: "", // e.g. https://….highperformanceformat.com/…/….js
+  VITE_POPUNDER_ZONE_ID: "", // optional; this Soft Popunder code is script-src only
+  VITE_POPUNDER_SCRIPT_URL:
+    "https://pl31038617.profitableratecpmnetwork.com/a9/66/ff/a966ff8f4c8db6ee5f7c46e6b12525e8.js",
 
   // Banner board — all off (kept for easy flip-back)
   VITE_ENABLE_HOME_AD: "false",
