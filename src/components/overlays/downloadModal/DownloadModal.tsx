@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Icon, Icons } from "@/components/Icon";
 import { FancyModal } from "@/components/overlays/Modal";
@@ -91,8 +91,14 @@ function InstallGuideSteps() {
 
 export function DownloadModal({ id }: { id: string }) {
   const intent = useOverlayStack((s) => s.getModalData(id)?.intent);
+  const isOpen = useOverlayStack((s) => s.isModalVisible(id));
   const fromAds = intent === "ads";
   const [showGuide, setShowGuide] = useState(false);
+
+  // Modal stays mounted in App — reset to the download card when closed.
+  useEffect(() => {
+    if (!isOpen) setShowGuide(false);
+  }, [isOpen]);
 
   const handleDownload = () => {
     downloadWindowsApp();
