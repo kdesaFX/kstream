@@ -198,7 +198,8 @@ function AuthWrapper() {
 
   const isCustomUrl = backendUrl !== userBackendUrl;
 
-  if (status.loading) return <LoadingScreen type="user" />;
+  if (status.loading)
+    return <LoadingScreen type={status.hasAccount ? "user" : "lazy"} />;
   if (status.error)
     return (
       <ErrorScreen

@@ -6,81 +6,35 @@ import { useWindowSize } from "react-use";
 
 import { mangaMediaLink } from "@/backend/manga/ids";
 import { getMangaAdaptationLogo } from "@/backend/manga/mangaLogo";
-import type { MangaStatus } from "@/backend/manga/types";
 import { mangaStatusKey } from "@/backend/manga/types";
+import { getMediaLogo } from "@/backend/metadata/tmdb";
 import {
-  get,
-  getMediaLogo,
-  getAllTimeBestMovies,
-  getAllTimeBestShows,
-} from "@/backend/metadata/tmdb";
-import {
-  getDiscoverContent,
   getReleaseDetails,
   isTraktEnabled,
 } from "@/backend/metadata/traktApi";
 import { TMDBContentTypes } from "@/backend/metadata/types/tmdb";
 import type { TraktReleaseResponse } from "@/backend/metadata/types/trakt";
 import { Icon, Icons } from "@/components/Icon";
-import { Movie, TVShow } from "@/pages/discover/common";
 import {
-  getHistorySources,
-  hasFeaturedAlgorithmSignal,
-} from "@/pages/discover/hooks/usePersonalRecommendations";
-import {
-  type FeaturedMangaItem,
-  fetchFeaturedManga,
-} from "@/pages/discover/lib/featuredManga";
-import {
-  type ProgressSource,
-  type RatingSource,
-  fetchPersonalRecommendations,
-} from "@/pages/discover/lib/personalRecommendations";
-import { hydrateMissingCompletedGenres } from "@/pages/discover/lib/watchHistoryGenres";
+  type FeaturedMedia,
+  fetchFeaturedHeroMedia,
+} from "@/pages/discover/lib/featuredHero";
+import { consumeHomeWarmup } from "@/setup/homeWarmup";
 import { preloadPlayerView } from "@/setup/routePreload";
 import { useDiscoverStore } from "@/stores/discover";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
-import { progressMediaIsHighPercentage } from "@/stores/progress/utils";
 import { useRatingsStore } from "@/stores/ratings";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
 import { fetchImdbRating } from "@/utils/services/imdbRating";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
-import { shouldAllowMatureTitles } from "@/utils/media/mature";
 import { resolveCardArtworkUrl } from "@/utils/media/artwork";
 
 import { RandomMovieButton } from "./RandomMovieButton";
 
-export interface FeaturedMedia extends Partial<Omit<Movie & TVShow, "id">> {
-  children?: ReactNode;
-  /** TMDB numeric id, or a MangaDex UUID for manga. */
-  id: number | string;
-  backdrop_path?: string;
-  overview: string;
-  title?: string;
-  name?: string;
-  type: "movie" | "show" | "manga";
-  vote_average?: number;
-  vote_count?: number;
-  number_of_seasons?: number;
-  imdb_rating?: number;
-  imdb_votes?: number;
-  external_ids?: {
-    imdb_id?: string;
-  };
-  /** Absolute art URL for sources without TMDB backdrops (manga). */
-  artUrl?: string;
-  /** False when the art is a portrait cover rather than a wide banner. */
-  wideArt?: boolean;
-  /** Pre-resolved clear logo (manga anime adaptations). */
-  logoUrl?: string;
-  /** MangaDex rating, 0-10. */
-  mangaRating?: number;
-  mangaStatus?: MangaStatus;
-  mangaLastChapter?: string;
-  year?: number;
-}
+export type { FeaturedMedia } from "@/pages/discover/lib/featuredHero";
+export { mangaToFeatured } from "@/pages/discover/lib/featuredHero";
 
 interface FeaturedCarouselProps {
   onShowDetails: (media: FeaturedMedia) => void;
@@ -94,67 +48,7 @@ interface IMDbRatingData {
   votes: number;
 }
 
-const SLIDE_QUANTITY = 12;
 const SLIDE_DURATION = 8000;
-const FEATURED_RECENT_KEY = "kstream::featured-recent-ids";
-const FEATURED_RECENT_MAX = 48;
-
-function shuffleList<T>(items: T[]): T[] {
-  const arr = [...items];
-  for (let i = arr.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j]!, arr[i]!];
-  }
-  return arr;
-}
-
-function readRecentFeaturedIds(): number[] {
-  try {
-    const raw = localStorage.getItem(FEATURED_RECENT_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((id) => Number(id))
-      .filter((id) => Number.isFinite(id) && id > 0);
-  } catch {
-    return [];
-  }
-}
-
-function writeRecentFeaturedIds(ids: number[]) {
-  try {
-    const unique: number[] = [];
-    const seen = new Set<number>();
-    for (const id of ids) {
-      if (seen.has(id)) continue;
-      seen.add(id);
-      unique.push(id);
-      if (unique.length >= FEATURED_RECENT_MAX) break;
-    }
-    localStorage.setItem(FEATURED_RECENT_KEY, JSON.stringify(unique));
-  } catch {
-    // ignore quota / private mode
-  }
-}
-
-/** Prefer titles the user hasn't seen in the hero lately; fill with the rest. */
-function pickAvoidingRecent(ids: number[], count: number): number[] {
-  const recent = new Set(readRecentFeaturedIds());
-  const shuffled = shuffleList(ids);
-  const fresh = shuffled.filter((id) => !recent.has(id));
-  const reused = shuffled.filter((id) => recent.has(id));
-  const picked = [...fresh, ...reused].slice(0, count);
-  writeRecentFeaturedIds([...picked, ...readRecentFeaturedIds()]);
-  return picked;
-}
-
-function isFeatureWorthy(item: {
-  backdrop_path?: string | null;
-  overview?: string | null;
-}) {
-  return Boolean(item?.backdrop_path && item?.overview?.trim());
-}
 
 /**
  * MangaDex and AniList swap in promo images for foreign referrers, so art goes
@@ -223,22 +117,6 @@ function MangaSlideArt({
       {readOverlay}
     </>
   );
-}
-
-export function mangaToFeatured(item: FeaturedMangaItem): FeaturedMedia {
-  return {
-    id: item.id,
-    title: item.title,
-    overview: item.overview,
-    type: "manga",
-    artUrl: item.artUrl,
-    wideArt: item.wideArt,
-    logoUrl: item.logoUrl,
-    mangaRating: item.rating,
-    mangaStatus: item.status,
-    mangaLastChapter: item.lastChapter,
-    year: item.year,
-  };
 }
 
 function FeaturedCarouselSkeleton({
@@ -446,208 +324,56 @@ export function FeaturedCarousel({
   }, [currentMedia, enrichmentReady]);
 
   useEffect(() => {
-    const mediaKind = effectiveCategory === "movies" ? "movie" : "tv";
-    const mediaType = effectiveCategory === "movies" ? "movie" : "show";
+    let cancelled = false;
 
-    const fetchDetailsForIds = async (ids: number[]) => {
-      const details = await Promise.all(
-        ids.map((id) =>
-          get<any>(`/${mediaKind}/${id}`, {
-            language: formattedLanguage,
-            append_to_response: "external_ids",
-          }).catch(() => null),
-        ),
-      );
-      return details
-        .filter((item): item is NonNullable<typeof item> => Boolean(item))
-        .filter(isFeatureWorthy)
-        .filter((item) => shouldAllowMatureTitles() || item.adult !== true)
-        .map((item) => ({
-          ...item,
-          type: mediaType as "movie" | "show",
-          adult: item.adult === true,
-        }));
-    };
-
-    const fetchTmdbPoolIds = async (limit: number) => {
-      const pool =
-        effectiveCategory === "movies"
-          ? await getAllTimeBestMovies(limit)
-          : await getAllTimeBestShows(limit);
-      return pool.map((item) => item.id).filter((id) => Number.isFinite(id));
+    const applyMedia = (items: FeaturedMedia[]) => {
+      if (cancelled) return;
+      setMedia(items);
+      setIsLoading(false);
     };
 
     const fetchFeaturedMedia = async () => {
+      // Prefer boot-warmup cache on first paint for this category/language.
+      const warmed = consumeHomeWarmup(effectiveCategory, formattedLanguage);
+      if (warmed && warmed.length > 0) {
+        setLogoUrl(undefined);
+        setImdbRatings({});
+        setReleaseInfo(null);
+        setCurrentIndex(0);
+        setContentOpacity(1);
+        applyMedia(warmed);
+        return;
+      }
+
       setIsLoading(true);
-      // Clear all previous data when transitioning
       setLogoUrl(undefined);
       setImdbRatings({});
       setReleaseInfo(null);
       setCurrentIndex(0);
       setContentOpacity(1);
       if (logoFetchController.current) {
-        logoFetchController.current.abort(); // Cancel any in-progress logo fetches
+        logoFetchController.current.abort();
       }
       try {
-        if (effectiveCategory === "manga") {
-          try {
-            const mangaItems = await fetchFeaturedManga(SLIDE_QUANTITY);
-            setMedia(mangaItems.map(mangaToFeatured));
-          } catch (mangaError) {
-            console.error("Error fetching featured manga:", mangaError);
-            // Anything left over would be the movie/TV hero, which has nothing
-            // to do with the tab the viewer is on.
-            setMedia([]);
-          }
-          return;
-        }
-
-        if (effectiveCategory !== "movies" && effectiveCategory !== "tvshows") {
-          setMedia([]);
-          return;
-        }
-
-        let candidateIds: number[] = [];
-        let personalSeedCount = 0;
-        const isTVShow = effectiveCategory === "tvshows";
-
-        // Personalized hero when the user has an algorithm (wizard / likes)
-        // or high-% watches. Fresh accounts keep the normal discover pool.
-        if (hasFeaturedAlgorithmSignal(isTVShow)) {
-          try {
-            await hydrateMissingCompletedGenres(15);
-            const history = getHistorySources(
-              useWatchHistoryStore.getState().items,
-            );
-            const progressItems = useProgressStore.getState().items;
-            const progress: ProgressSource[] = Object.entries(progressItems)
-              .filter(([, item]) => progressMediaIsHighPercentage(item))
-              .map(([tmdbId, item]) => ({ tmdbId, type: item.type }));
-            const ratingItems = useRatingsStore.getState().ratings;
-            const ratings: RatingSource[] = Object.entries(ratingItems).map(
-              ([tmdbId, item]) => ({
-                tmdbId,
-                type: item.type,
-                rating: item.rating,
-                genreIds: item.genreIds,
-                ratedAt: item.ratedAt,
-              }),
-            );
-            const preferences = useRatingsStore.getState().preferences;
-            const excludeIds = new Set<string>();
-            for (const key of Object.keys(
-              useWatchHistoryStore.getState().items,
-            )) {
-              excludeIds.add(key.includes("-") ? key.split("-")[0]! : key);
-            }
-            for (const id of Object.keys(progressItems)) excludeIds.add(id);
-
-            const personal = await fetchPersonalRecommendations(
-              isTVShow,
-              history,
-              progress,
-              excludeIds,
-              ratings,
-              preferences,
-            );
-            candidateIds = personal
-              .map((item) => Number(item.id))
-              .filter((id) => Number.isFinite(id) && id > 0);
-            personalSeedCount = candidateIds.length;
-          } catch (personalError) {
-            console.error(
-              "Featured carousel personalization failed:",
-              personalError,
-            );
-          }
-        }
-
-        // Trakt discover is a good seed, but it used to always take the same
-        // first N ids. Shuffle + recent-avoidance, then top up from TMDB.
-        try {
-          if (!isTraktEnabled()) throw new Error("TRAKT_DISABLED");
-          const discoverData = await getDiscoverContent();
-          const traktIds =
-            effectiveCategory === "movies"
-              ? discoverData.movie_tmdb_ids || []
-              : discoverData.tv_tmdb_ids || [];
-          const seen = new Set(candidateIds);
-          for (const id of traktIds) {
-            if (seen.has(id)) continue;
-            seen.add(id);
-            candidateIds.push(id);
-          }
-        } catch (traktError) {
-          if (
-            !(traktError instanceof Error) ||
-            traktError.message !== "TRAKT_DISABLED"
-          ) {
-            console.error("Error fetching from Trakt discover:", traktError);
-          }
-        }
-
-        if (candidateIds.length < SLIDE_QUANTITY * 3) {
-          const tmdbIds = await fetchTmdbPoolIds(60);
-          const seen = new Set(candidateIds);
-          for (const id of tmdbIds) {
-            if (seen.has(id)) continue;
-            seen.add(id);
-            candidateIds.push(id);
-          }
-        }
-
-        // Prefer personalized seeds when present; fill gaps from discover pool.
-        const personalPool = candidateIds.slice(0, personalSeedCount);
-        const discoverPool = candidateIds.slice(personalSeedCount);
-        const primaryPool =
-          personalPool.length > 0 ? personalPool : discoverPool;
-        const backupPool = personalPool.length > 0 ? discoverPool : [];
-
-        const pickedIds = pickAvoidingRecent(
-          primaryPool,
-          Math.min(SLIDE_QUANTITY, primaryPool.length),
-        );
-        let mediaItems = await fetchDetailsForIds(pickedIds);
-
-        if (mediaItems.length < SLIDE_QUANTITY && backupPool.length > 0) {
-          const have = new Set(mediaItems.map((item) => item.id));
-          const more = pickAvoidingRecent(
-            backupPool.filter((id) => !have.has(id)),
-            SLIDE_QUANTITY,
-          );
-          const extras = await fetchDetailsForIds(more);
-          mediaItems = [...mediaItems, ...extras];
-        }
-
-        if (mediaItems.length < SLIDE_QUANTITY) {
-          const extraIds = await fetchTmdbPoolIds(40);
-          const have = new Set(mediaItems.map((item) => item.id));
-          const more = pickAvoidingRecent(
-            extraIds.filter((id) => !have.has(id)),
-            SLIDE_QUANTITY,
-          );
-          const extras = await fetchDetailsForIds(more);
-          mediaItems = [...mediaItems, ...extras];
-        }
-
-        const unique: FeaturedMedia[] = [];
-        const seenMedia = new Set<number>();
-        for (const item of mediaItems) {
-          const id = Number(item.id);
-          if (!Number.isFinite(id) || seenMedia.has(id)) continue;
-          seenMedia.add(id);
-          unique.push(item as FeaturedMedia);
-          if (unique.length >= SLIDE_QUANTITY) break;
-        }
-        setMedia(unique);
+        const items = await fetchFeaturedHeroMedia({
+          category: effectiveCategory,
+          language: formattedLanguage,
+          includePersonalization: true,
+        });
+        applyMedia(items);
       } catch (error) {
         console.error("Error fetching featured media:", error);
-      } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setMedia([]);
+          setIsLoading(false);
+        }
       }
     };
 
-    fetchFeaturedMedia();
+    void fetchFeaturedMedia();
+    return () => {
+      cancelled = true;
+    };
   }, [
     formattedLanguage,
     effectiveCategory,

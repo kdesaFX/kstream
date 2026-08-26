@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { isSupabaseConfigured } from "@/backend/supabase/client";
 import { accountFromSession } from "@/backend/supabase/data";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useAuthStore } from "@/stores/auth";
+import { runBootWarmup } from "@/setup/homeWarmup";
 
 export function useAuthRestore() {
   const { account } = useAuthStore();
@@ -15,6 +16,8 @@ export function useAuthRestore() {
   } = useAuth();
   const hasRestored = useRef(false);
   const importingGuest = useRef(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>(undefined);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return undefined;
@@ -81,15 +84,34 @@ export function useAuthRestore() {
   useEffect(() => {
     if (hasRestored.current) return;
     hasRestored.current = true;
+
+    const accountAtBoot = useAuthStore.getState().account;
+
     (async () => {
-      if (!isSupabaseConfigured()) return;
-      if (account) {
-        await restore(account);
-        return;
+      try {
+        await runBootWarmup({
+          authWork: async () => {
+            if (!isSupabaseConfigured()) return;
+            if (accountAtBoot) {
+              await restore(accountAtBoot);
+              return;
+            }
+            await restoreFromSession();
+          },
+        });
+      } catch (err) {
+        console.error("Boot warmup failed:", err);
+        setError(err);
+      } finally {
+        setLoading(false);
       }
-      await restoreFromSession();
-    })().catch(console.error);
+    })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { loading: false, error: undefined };
+  return {
+    loading,
+    error,
+    /** Prefer "Loading your profile" when an account was already persisted. */
+    hasAccount: Boolean(account),
+  };
 }
