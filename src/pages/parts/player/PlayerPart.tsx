@@ -143,7 +143,7 @@ export function PlayerPart(props: PlayerPartProps) {
           <div className="flex items-center gap-x-3 min-w-0 overflow-hidden">
             <Player.BackLink url={props.backUrl} />
             <span className="text-type-secondary shrink-0">/</span>
-            <div className="min-w-0 flex-1 overflow-hidden">
+            <div className="min-w-0 max-w-[min(50vw,28rem)] overflow-hidden shrink">
               <Player.Title />
             </div>
 
