@@ -22,11 +22,17 @@ import { SearchListPart } from "@/pages/parts/search/SearchListPart";
 import { SearchLoadingPart } from "@/pages/parts/search/SearchLoadingPart";
 import { conf } from "@/setup/config";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
+import {
+  shouldShowMangaProgress,
+  useMangaProgressStore,
+} from "@/stores/mangaProgress";
 import { usePreferencesStore } from "@/stores/preferences";
+import { useProgressStore } from "@/stores/progress";
+import { shouldShowProgress } from "@/stores/progress/utils";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 import { AdsPart } from "./parts/home/AdsPart";
-import { HomeAd } from "./parts/home/HomeAd";
+import { HomeAd, HomeTopAds } from "./parts/home/HomeAd";
 import { SupportBar } from "./parts/home/SupportBar";
 
 function useSearch(search: string) {
@@ -83,6 +89,14 @@ export function HomePage() {
     (state) => state.homeSectionOrder,
   );
 
+  const hasContinueWatching = useProgressStore((state) =>
+    Object.values(state.items).some((item) => shouldShowProgress(item).show),
+  );
+  const hasContinueReading = useMangaProgressStore((state) =>
+    Object.values(state.items).some((item) => shouldShowMangaProgress(item)),
+  );
+  const hasContinueRows = hasContinueWatching || hasContinueReading;
+
   const [carouselContainerRef, enableCarouselAnimate] =
     useAutoAnimate<HTMLDivElement>();
   const [listContainerRef, enableListAnimate] = useAutoAnimate<HTMLDivElement>();
@@ -120,10 +134,17 @@ export function HomePage() {
       order.splice(watchingIdx >= 0 ? watchingIdx + 1 : 0, 0, "reading");
     }
 
-    // Ads sit in a horizontal strip after carousels / discover (preFooter),
-    // not mid-page between home rows.
+    // Ads sit under Continue Watching / Reading when those rows exist.
+    // If both are empty, park ads after the rest of the home sections so they
+    // don't sit directly under the hero.
+    const lastContinueIdx = Math.max(
+      order.indexOf("watching"),
+      order.indexOf("reading"),
+    );
+    const homeAds = <HomeTopAds key="home-ads" />;
+
     const sections: ReactNode[] = [];
-    order.forEach((section) => {
+    order.forEach((section, index) => {
       switch (section) {
         case "watching":
           sections.push(
@@ -179,7 +200,19 @@ export function HomePage() {
         default:
           break;
       }
+
+      if (
+        hasContinueRows &&
+        index === lastContinueIdx &&
+        lastContinueIdx >= 0
+      ) {
+        sections.push(homeAds);
+      }
     });
+
+    if (!hasContinueRows) {
+      sections.push(homeAds);
+    }
 
     if (enableCarouselView) {
       return (
@@ -258,23 +291,12 @@ export function HomePage() {
         {/* Breathing room between the last home row and the discover tabs. */}
         {enableDiscover && !search ? (
           <>
+            <HomeAd slot="discoverSeam" />
             <div className="pb-6" />
             <DiscoverContent />
           </>
         ) : null}
-
-        {/* Horizontal ad row after carousels / discover, before footer */}
-        {!search ? <HomeAd slot="preFooter" /> : null}
       </WideContainer>
-
-      {/* Ultra-wide skyscraper rail — Tier A #2, ≥1536px only */}
-      {!search ? (
-        <div className="pointer-events-none fixed right-3 top-28 z-[40] hidden min-[1536px]:block">
-          <div className="pointer-events-auto">
-            <HomeAd slot="secondaryRail" />
-          </div>
-        </div>
-      ) : null}
     </HomeLayout>
   );
 }
