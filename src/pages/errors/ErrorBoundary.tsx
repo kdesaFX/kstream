@@ -1,6 +1,10 @@
 import { Component } from "react";
 
 import { ErrorPart } from "@/pages/parts/errors/ErrorPart";
+import {
+  isStaleChunkError,
+  reloadOnceForStaleChunk,
+} from "@/utils/staleChunkReload";
 
 interface ErrorBoundaryState {
   error?: {
@@ -22,6 +26,9 @@ export class ErrorBoundary extends Component<
 
   componentDidCatch(error: any, errorInfo: any) {
     console.error("Render error caught", error, errorInfo);
+    if (isStaleChunkError(error) && reloadOnceForStaleChunk()) {
+      return;
+    }
     this.setState((s) => ({
       ...s,
       error: {

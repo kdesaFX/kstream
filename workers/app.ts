@@ -10,6 +10,15 @@ export interface Env {
   ASSETS: Fetcher;
 }
 
+function isHashedAssetPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/assets/") ||
+    /\.(?:js|css|map|woff2?|ttf|eot|png|jpe?g|gif|webp|svg|ico|wasm)(?:$|\?)/i.test(
+      pathname,
+    )
+  );
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -37,8 +46,27 @@ export default {
       return withSecurityHeaders(asset);
     }
 
-    // Non-API (or unknown /api) — static assets / SPA fallback.
-    return withSecurityHeaders(await env.ASSETS.fetch(request));
+    const asset = await env.ASSETS.fetch(request);
+
+    // SPA not_found_handling serves index.html for missing /assets/*.js.
+    // Browsers then fail dynamic imports with a confusing TypeError — return
+    // a real 404 so clients can detect a stale deploy and reload.
+    if (
+      isHashedAssetPath(pathname) &&
+      (asset.status === 404 ||
+        (asset.headers.get("content-type") || "")
+          .toLowerCase()
+          .includes("text/html"))
+    ) {
+      return withSecurityHeaders(
+        new Response("Not Found", {
+          status: 404,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        }),
+      );
+    }
+
+    return withSecurityHeaders(asset);
   },
 };
 

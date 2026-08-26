@@ -39,6 +39,10 @@ import { SimklHistorySyncer } from "@/stores/simkl/SimklHistorySyncer";
 import { TraktScrobbler } from "@/stores/trakt/TraktScrobbler";
 import { WatchHistorySyncer } from "@/stores/watchHistory/WatchHistorySyncer";
 import { detectRegion, useRegionStore } from "@/utils/locale/detectRegion";
+import {
+  clearStaleChunkReloadGuard,
+  reloadOnceForStaleChunk,
+} from "@/utils/staleChunkReload";
 
 import {
   extensionInfo,
@@ -46,6 +50,13 @@ import {
 } from "./backend/extension/messaging";
 import { initializeImageFadeIn } from "./setup/imageFadeIn";
 import { initializeOldStores } from "./stores/__old/migrations";
+
+// After a deploy, old entrypoints try to import deleted hashed chunks.
+window.addEventListener("vite:preloadError", (event) => {
+  event.preventDefault();
+  reloadOnceForStaleChunk();
+});
+clearStaleChunkReloadGuard();
 
 
 
