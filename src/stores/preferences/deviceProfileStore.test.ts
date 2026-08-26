@@ -53,7 +53,7 @@ describe("device profile store", () => {
     expect(after.enableLowPerformanceMode).toBe(false);
     expect(after.posterQuality).toBe("standard");
     expect(after.proxyArtwork).toBe(false);
-    expect(after.lastAppliedDeviceProfile).toBeNull();
+    expect(after.lastAppliedDeviceProfile).toBe("high");
     expect(after.deviceProfileSnapshot).toBeNull();
   });
 });

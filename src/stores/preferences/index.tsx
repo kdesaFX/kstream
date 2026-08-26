@@ -177,8 +177,8 @@ export const usePreferencesStore = create(
       mangaReaderMode: "vertical",
       mangaPreferredLanguage: "en",
       enableMatureTitles: false,
-      enableFeatured: false,
-      enableDetailsModal: false,
+      enableFeatured: true,
+      enableDetailsModal: true,
       enableImageLogos: true,
       enableCarouselView: false,
       enableMinimalCards: false,
@@ -202,7 +202,7 @@ export const usePreferencesStore = create(
       lowPerformanceSnapshot: null,
       proxyArtwork: false,
       posterQuality: "standard",
-      lastAppliedDeviceProfile: null,
+      lastAppliedDeviceProfile: "high",
       deviceProfileSnapshot: null,
       enableNativeSubtitles: false,
       enableAutoSubtitleSync: false,
@@ -570,8 +570,8 @@ export const usePreferencesStore = create(
           s.enableAutoSkipSegments = false;
           s.enableDiscover = true;
           s.enableMatureTitles = false;
-          s.enableFeatured = false;
-          s.enableDetailsModal = false;
+          s.enableFeatured = true;
+          s.enableDetailsModal = true;
           s.enableImageLogos = true;
           s.enableCarouselView = false;
           s.enableMinimalCards = false;
@@ -581,7 +581,7 @@ export const usePreferencesStore = create(
           s.proxyTmdb = false;
           s.proxyArtwork = false;
           s.posterQuality = "standard";
-          s.lastAppliedDeviceProfile = null;
+          s.lastAppliedDeviceProfile = "high";
           s.deviceProfileSnapshot = null;
           s.enablePauseOverlay = false;
           s.enableNativeSubtitles = false;
