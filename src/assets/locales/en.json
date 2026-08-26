@@ -878,6 +878,7 @@
         "desktopDisclaimer": "HLS is a playlist, not a single file. Copy the unwrapped link below, or use yt-dlp / N_m3u8DL-RE / ffmpeg / an HLS downloader. Links expire — download soon.",
         "fileDisclaimer": "Copy the direct file URL. Some sources still need headers or an external downloader if the browser blocks the save.",
         "headersHint": "Required Referer/Origin headers are included in the copied commands when available.",
+        "unable": "No playable source is loaded yet. Start playback, then open Download again to copy the stream link or file URL.",
         "offlineButton": "Download for Offline Use",
         "or": "or",
         "original": {

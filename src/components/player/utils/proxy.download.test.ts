@@ -6,6 +6,7 @@ import {
   buildHlsDownloaderUrl,
   buildNm3u8Command,
   buildYtDlpCommand,
+  isOriginalFileHost,
   unwrapProxiedMediaUrl,
 } from "@/components/player/utils/proxy";
 
@@ -76,5 +77,31 @@ describe("download command builders", () => {
     expect(buildHlsDownloaderUrl("https://cdn.example.com/a.m3u8")).toBe(
       "https://hlsdownloader.thetuhin.com/?url=https%3A%2F%2Fcdn.example.com%2Fa.m3u8",
     );
+  });
+
+  it("builds commands without headers", () => {
+    expect(buildYtDlpCommand("https://cdn.example.com/a.m3u8")).toBe(
+      'yt-dlp "https://cdn.example.com/a.m3u8" -o "%(title)s.%(ext)s"',
+    );
+    expect(buildNm3u8Command("https://cdn.example.com/a.m3u8")).toBe(
+      'N_m3u8DL-RE "https://cdn.example.com/a.m3u8"',
+    );
+    expect(buildFfmpegCommand("https://cdn.example.com/a.m3u8")).toBe(
+      'ffmpeg -i "https://cdn.example.com/a.m3u8" -c copy output.mp4',
+    );
+  });
+});
+
+describe("isOriginalFileHost", () => {
+  it("allows only zstream.mov hosts", () => {
+    expect(isOriginalFileHost("zstream.mov")).toBe(true);
+    expect(isOriginalFileHost("www.zstream.mov")).toBe(true);
+    expect(isOriginalFileHost("ZSTREAM.MOV")).toBe(true);
+  });
+
+  it("rejects kstream and other hosts", () => {
+    expect(isOriginalFileHost("kdesa.stream")).toBe(false);
+    expect(isOriginalFileHost("localhost")).toBe(false);
+    expect(isOriginalFileHost("")).toBe(false);
   });
 });

@@ -165,6 +165,19 @@ export function buildHlsDownloaderUrl(playlistUrl: string): string {
 }
 
 /**
+ * Original File (grid downloads) is only available on the zstream.mov host.
+ * kstream / self-hosted builds skip that card and open Stream Link directly.
+ */
+export function isOriginalFileHost(
+  hostname: string = typeof window !== "undefined"
+    ? window.location.hostname
+    : "",
+): boolean {
+  const host = hostname.toLowerCase();
+  return host === "zstream.mov" || host === "www.zstream.mov";
+}
+
+/**
  * Checks if a URL is already using one of the configured M3U8 proxy services
  * @param url - The URL to check
  * @returns True if the URL is already proxied, false otherwise
