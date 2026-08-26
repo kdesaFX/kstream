@@ -15,7 +15,7 @@ import {
 import { MediaItem } from "@/utils/media/mediaTypes";
 import { tmdbIncludeAdult, filterOutMatureMedia } from "@/utils/media/mature";
 import { tmdbPosterSize, resolveCardArtworkUrl } from "@/utils/media/artwork";
-import { getProxyUrls } from "@/utils/hosting/proxyUrls";
+import { getProxyUrls, proxiedDestinationUrl } from "@/utils/hosting/proxyUrls";
 
 import { MWMediaMeta, MWMediaType, MWSeasonMeta } from "./types/mw";
 import { getImdbEpisodes } from "./imdbMetadataProvider";
@@ -344,14 +344,18 @@ export async function get<T>(url: string, params?: object): Promise<T> {
   try {
     if (proxy && shouldProxyTmdb) {
       try {
-        result = await mwFetch<T>(
-          `/?destination=${encodeURIComponent(fullUrl.toString())}`,
-          {
+        const proxiedUrl = proxiedDestinationUrl(fullUrl.toString(), [proxy]);
+        if (proxiedUrl) {
+          const proxied = await mwFetch<T>(proxiedUrl, {
             headers: tmdbHeaders,
-            baseURL: proxy,
             signal: abortOnTimeout(5000),
-          },
-        );
+          });
+          // A mistyped `/api/proxy/?…` returns SPA HTML; ofetch yields a string
+          // and would skip the direct fallback if we treated it as success.
+          if (proxied && typeof proxied === "object") {
+            result = proxied;
+          }
+        }
       } catch (err) {
         console.error(err);
         // Fall through to try direct connection
@@ -580,9 +584,9 @@ export function getMediaBackdrop(
   const shouldProxyTmdb = usePreferencesStore.getState().proxyTmdb;
   // w780 is enough for details/hero UIs and ~40% lighter than w1280 for LCP.
   const imgUrl = `https://image.tmdb.org/t/p/w780${backdropPath}`;
-  const proxyUrl = getProxyUrls()[0];
-  if (proxyUrl && shouldProxyTmdb) {
-    return `${proxyUrl}/?destination=${imgUrl}`;
+  if (shouldProxyTmdb) {
+    const proxied = proxiedDestinationUrl(imgUrl, getProxyUrls());
+    if (proxied) return proxied;
   }
   if (backdropPath) return imgUrl;
 }
@@ -1073,11 +1077,8 @@ export function getPersonProfileImage(
   const imgUrl = `https://image.tmdb.org/t/p/w185/${profilePath}`;
 
   if (shouldProxyTmdb) {
-    const proxyUrls = getProxyUrls();
-    const proxy = getNextProxy(proxyUrls);
-    if (proxy) {
-      return `${proxy}/?destination=${imgUrl}`;
-    }
+    const proxied = proxiedDestinationUrl(imgUrl, getProxyUrls());
+    if (proxied) return proxied;
   }
 
   if (profilePath) return imgUrl;

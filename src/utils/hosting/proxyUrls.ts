@@ -94,6 +94,21 @@ export function getProxyUrls() {
   return urls;
 }
 
+/**
+ * Wrap a destination URL for our CORS proxy.
+ * Never use `/api/proxy/?…` — a trailing slash misses the Worker route and
+ * returns the SPA HTML (ofetch then treats the string as a successful body).
+ */
+export function proxiedDestinationUrl(
+  url: string,
+  proxies: string[],
+): string | undefined {
+  const proxy = proxies[0];
+  if (!proxy) return undefined;
+  const separator = proxy.includes("?") ? "&" : "?";
+  return `${proxy}${separator}destination=${encodeURIComponent(url)}`;
+}
+
 export function getM3U8ProxyUrls(): string[] {
   return conf()
     .M3U8_PROXY_URLS.map(resolveProxyUrl)

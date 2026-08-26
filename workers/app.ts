@@ -21,7 +21,7 @@ export default {
       return Response.redirect(url.toString(), 301);
     }
 
-    if (pathname === "/api/proxy") {
+    if (pathname === "/api/proxy" || pathname === "/api/proxy/") {
       return withSecurityHeaders(await proxyHandler(request));
     }
     if (pathname === "/api/m3u8-proxy") {

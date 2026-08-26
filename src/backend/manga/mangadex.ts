@@ -14,7 +14,7 @@ import {
   MangaTag,
   isMatureMangaRating,
 } from "@/backend/manga/types";
-import { getProxyUrls } from "@/utils/hosting/proxyUrls";
+import { getProxyUrls, proxiedDestinationUrl } from "@/utils/hosting/proxyUrls";
 import { filterOutMatureMedia } from "@/utils/media/mature";
 
 const API = "https://api.mangadex.org";
@@ -131,16 +131,12 @@ const mdFetch = ofetch.create({
  */
 let proxyRequired = false;
 
+/** @deprecated Prefer proxiedDestinationUrl — kept for existing manga call sites. */
 export function proxiedMangaUrl(
   url: string,
   proxies: string[],
 ): string | undefined {
-  const proxy = proxies[0];
-  if (!proxy) return undefined;
-  // No slash before the query: our own /api/proxy route doesn't match with a
-  // trailing slash and the request lands on the SPA's index.html instead.
-  const separator = proxy.includes("?") ? "&" : "?";
-  return `${proxy}${separator}destination=${encodeURIComponent(url)}`;
+  return proxiedDestinationUrl(url, proxies);
 }
 
 /** ofetch only attaches `response` to HTTP errors; without one the request never landed. */
