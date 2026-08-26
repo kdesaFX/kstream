@@ -258,6 +258,8 @@
     </noscript>
 
     <script src="/config.js"></script>
+    <!-- Popunder: Adsterra requires this in <head>, not <body> (see public/inject-popunder.js). -->
+    <script src="/inject-popunder.js"></script>
 
     {{#if env.VITE_TRACK_SCRIPT }} {{{ env.VITE_TRACK_SCRIPT }}} {{/if}}
 

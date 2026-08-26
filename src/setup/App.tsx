@@ -36,7 +36,6 @@ import { LoginPage } from "@/pages/Login";
 import { RegisterPage } from "@/pages/Register";
 import { AllBookmarks } from "@/pages/bookmarks/AllBookmarks";
 import { Layout } from "@/setup/Layout";
-import { useAdsStore, areAdsBlocked } from "@/stores/ads";
 import { useHistoryListener } from "@/stores/history";
 import { useClearModalsOnNavigation } from "@/stores/interface/overlayStack";
 import { LanguageProvider } from "@/stores/language";
@@ -190,7 +189,6 @@ function App() {
   const isWatchPage = location.pathname.startsWith("/media/");
   const maintenance = false; // Shows maintance page
   const [showDowntime, setShowDowntime] = useState(maintenance);
-  const adsDisabled = useAdsStore((s) => s.adsDisabled);
 
   // Footer/nav Link navigations keep the previous scroll offset otherwise.
   useScrollRestoration();
@@ -214,38 +212,6 @@ function App() {
     s.dataset.rybbit = "1";
     document.head.appendChild(s);
   }, []);
-
-  useEffect(() => {
-    // One Soft Popunder on the home surface only — not player / settings / etc.
-    const path = location.pathname;
-    const isHome =
-      path === "/" || path === "/browse" || path.startsWith("/browse/");
-    if (!isHome || isWatchPage) return;
-    if (areAdsBlocked(adsDisabled)) return;
-    const cfg = conf();
-    if (!cfg.ENABLE_POPUNDER || !cfg.POPUNDER_SCRIPT_URL) return;
-    if (typeof document === "undefined") return;
-
-    const zone = cfg.POPUNDER_ZONE_ID;
-    if (zone && document.querySelector(`script[data-zone="${zone}"]`)) return;
-    if (
-      !zone &&
-      document.querySelector('script[data-kstream-popunder="1"]')
-    ) {
-      return;
-    }
-
-    const target = [document.documentElement, document.body]
-      .filter(Boolean)
-      .pop();
-    if (!target) return;
-
-    const s = target.appendChild(document.createElement("script"));
-    s.dataset.kstreamPopunder = "1";
-    if (zone) s.dataset.zone = zone;
-    s.async = true;
-    s.src = cfg.POPUNDER_SCRIPT_URL;
-  }, [adsDisabled, isWatchPage, location.pathname]);
 
   const handleButtonClick = () => {
     setShowDowntime(false);
