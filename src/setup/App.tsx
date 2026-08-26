@@ -199,6 +199,10 @@ function App() {
   }, [location.pathname]);
 
   useEffect(() => {
+    window.__kstreamLoadPopunder?.();
+  }, [location.pathname]);
+
+  useEffect(() => {
     const cfg = conf();
     if (!cfg.ENABLE_RYBBIT || !cfg.RYBBIT_SCRIPT_URL || !cfg.RYBBIT_SITE_ID)
       return;
