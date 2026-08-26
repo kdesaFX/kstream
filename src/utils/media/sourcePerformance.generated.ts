@@ -32,7 +32,7 @@ export type SourceScoreMatrix = {
 };
 
 export const SOURCE_SCORE_MATRIX: SourceScoreMatrix = {
-  "updatedAt": "2026-08-16T06:44:12.579Z",
+  "updatedAt": "2026-08-26T04:27:03.321Z",
   "animeOnly": [
     "tqq",
     "myanime",
@@ -78,36 +78,36 @@ export const SOURCE_SCORE_MATRIX: SourceScoreMatrix = {
     "oneembed": {
       "browser": {
         "movie": {
-          "hit": 68.4,
-          "hitMs": 6548,
-          "score": 132
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
         },
         "anime": {
-          "hit": 100,
-          "hitMs": 3481,
-          "score": 287
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
         },
         "show": {
-          "hit": 66.7,
-          "hitMs": 3701,
-          "score": 171
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
         }
       },
       "extension": {
         "movie": {
-          "hit": 63.2,
-          "hitMs": 3656,
-          "score": 249
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
         },
         "anime": {
-          "hit": 100,
-          "hitMs": 1809,
-          "score": 553
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
         },
         "show": {
-          "hit": 66.7,
-          "hitMs": 1786,
-          "score": 489
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
         }
       }
     },
@@ -115,30 +115,66 @@ export const SOURCE_SCORE_MATRIX: SourceScoreMatrix = {
       "browser": {
         "movie": {
           "hit": 89.5,
-          "hitMs": 2491,
-          "score": 394
+          "hitMs": 2682,
+          "score": 362
         },
         "anime": {
           "hit": 45.5,
-          "hitMs": 2489,
-          "score": 350
+          "hitMs": 2694,
+          "score": 296
         },
         "show": {
           "hit": 100,
-          "hitMs": 2490,
-          "score": 402
+          "hitMs": 2819,
+          "score": 355
         }
       },
       "extension": {
         "movie": {
           "hit": 89.5,
-          "hitMs": 2481,
-          "score": 397
+          "hitMs": 2537,
+          "score": 382
         },
         "anime": {
           "hit": 45.5,
-          "hitMs": 2486,
-          "score": 350
+          "hitMs": 2535,
+          "score": 307
+        },
+        "show": {
+          "hit": 100,
+          "hitMs": 2835,
+          "score": 353
+        }
+      }
+    },
+    "cornclick": {
+      "browser": {
+        "movie": {
+          "hit": 100,
+          "hitMs": 3809,
+          "score": 263
+        },
+        "anime": {
+          "hit": 100,
+          "hitMs": 3575,
+          "score": 280
+        },
+        "show": {
+          "hit": 100,
+          "hitMs": 2281,
+          "score": 438
+        }
+      },
+      "extension": {
+        "movie": {
+          "hit": 100,
+          "hitMs": 4190,
+          "score": 239
+        },
+        "anime": {
+          "hit": 100,
+          "hitMs": 2021,
+          "score": 495
         },
         "show": {
           "hit": 100,
@@ -150,76 +186,260 @@ export const SOURCE_SCORE_MATRIX: SourceScoreMatrix = {
     "sevenmovies": {
       "browser": {
         "movie": {
-          "hit": 89.5,
-          "hitMs": 3118,
-          "score": 216
+          "hit": 100,
+          "hitMs": 5292,
+          "score": 189
         },
         "anime": {
           "hit": 45.5,
-          "hitMs": 2708,
-          "score": 344
+          "hitMs": 4304,
+          "score": 222
         },
         "show": {
-          "hit": 41.7,
-          "hitMs": 1882,
-          "score": 466
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
         }
       },
       "extension": {
         "movie": {
-          "hit": 94.7,
-          "hitMs": 2105,
-          "score": 339
+          "hit": 100,
+          "hitMs": 3700,
+          "score": 270
         },
         "anime": {
-          "hit": 45.5,
-          "hitMs": 2547,
-          "score": 359
+          "hit": 54.5,
+          "hitMs": 2706,
+          "score": 233
         },
         "show": {
-          "hit": 41.7,
-          "hitMs": 1816,
-          "score": 476
+          "hit": 100,
+          "hitMs": 4720,
+          "score": 212
         }
       }
     },
-    "reyna": {
+    "nova": {
       "browser": {
         "movie": {
-          "hit": 89.5,
-          "hitMs": 1514,
-          "score": 613
+          "hit": 63.2,
+          "hitMs": 1184,
+          "score": 833
         },
         "anime": {
-          "hit": 90.9,
-          "hitMs": 1647,
-          "score": 562
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
         },
         "show": {
-          "hit": 91.7,
-          "hitMs": 1620,
-          "score": 589
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
         }
       },
       "extension": {
         "movie": {
-          "hit": 89.5,
-          "hitMs": 1430,
-          "score": 664
+          "hit": 63.2,
+          "hitMs": 718,
+          "score": 1363
         },
         "anime": {
-          "hit": 90.9,
-          "hitMs": 1276,
-          "score": 736
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
         },
         "show": {
-          "hit": 91.7,
-          "hitMs": 1907,
-          "score": 498
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        }
+      }
+    },
+    "animeflv": {
+      "browser": {
+        "movie": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "anime": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "show": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        }
+      },
+      "extension": {
+        "movie": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "anime": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "show": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        }
+      }
+    },
+    "cuevana3": {
+      "browser": {
+        "movie": {
+          "hit": 36.8,
+          "hitMs": 4973,
+          "score": 158
+        },
+        "anime": {
+          "hit": 63.6,
+          "hitMs": 3699,
+          "score": 244
+        },
+        "show": {
+          "hit": 83.3,
+          "hitMs": 3354,
+          "score": 274
+        }
+      },
+      "extension": {
+        "movie": {
+          "hit": 36.8,
+          "hitMs": 2751,
+          "score": 289
+        },
+        "anime": {
+          "hit": 63.6,
+          "hitMs": 2635,
+          "score": 350
+        },
+        "show": {
+          "hit": 83.3,
+          "hitMs": 2419,
+          "score": 404
+        }
+      }
+    },
+    "vixsrc": {
+      "browser": {
+        "movie": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "anime": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "show": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        }
+      },
+      "extension": {
+        "movie": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "anime": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "show": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        }
+      }
+    },
+    "vidlink": {
+      "extension": {
+        "movie": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "anime": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "show": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
         }
       }
     },
     "anidap": {
+      "extension": {
+        "movie": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "anime": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "show": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        }
+      }
+    },
+    "ridomovies": {
+      "extension": {
+        "movie": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "anime": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "show": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        }
+      }
+    },
+    "watchanimeworld": {
+      "extension": {
+        "movie": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "anime": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        },
+        "show": {
+          "hit": 0,
+          "hitMs": 0,
+          "score": 0
+        }
+      }
+    },
+    "cinehdplus": {
       "extension": {
         "movie": {
           "hit": 0,
