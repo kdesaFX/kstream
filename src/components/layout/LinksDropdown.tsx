@@ -265,17 +265,10 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
         tabIndex={0}
         onClick={toggleOpen}
         onKeyUp={(evt) => evt.key === "Enter" && toggleOpen()}
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         {props.children}
-        {!isMobile ? (
-          <Icon
-            className={classNames(
-              "inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none transition-transform duration-100 [&>svg]:block [&>svg]:h-5 [&>svg]:w-5",
-              open ? "rotate-180" : "",
-            )}
-            icon={Icons.CHEVRON_DOWN}
-          />
-        ) : null}
       </div>
       <Transition animation="slide-down" show={open}>
         <div className="rounded-xl absolute w-64 bg-dropdown-altBackground top-full mt-3 right-0">
@@ -291,17 +284,7 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
               </DropdownLink>
               <Divider />
             </>
-          ) : (
-            <>
-              <DropdownLink href="/login" icon={Icons.UNLOCK}>
-                {t("navigation.menu.login")}
-              </DropdownLink>
-              <DropdownLink href="/register" icon={Icons.USER} highlight>
-                {t("navigation.menu.register")}
-              </DropdownLink>
-              <Divider />
-            </>
-          )}
+          ) : null}
           <DropdownLink
             href="/settings"
             icon={Icons.SETTINGS}

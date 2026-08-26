@@ -174,6 +174,7 @@ export interface NavigationProps {
 }
 
 export function Navigation(props: NavigationProps) {
+  const { t } = useTranslation();
   const bannerHeight = useBannerSize();
   const { loggedIn } = useAuth();
   const { isMobile } = useIsMobile();
@@ -381,6 +382,31 @@ export function Navigation(props: NavigationProps) {
                 <HomeOptimizeToggle />
                 <HomeLayoutCustomizerToggle />
               </div>
+              {!loggedIn ? (
+                <Link
+                  to="/login"
+                  className="tabbable rounded-full text-base shrink-0"
+                  title={t("navigation.menu.login")}
+                  aria-label={t("navigation.menu.login")}
+                >
+                  <div
+                    className={classNames(
+                      "flex h-10 md:h-[2.67rem] items-center gap-2 rounded-full text-white shrink-0",
+                      "px-2.5 xl:px-3.5",
+                      navControlSurface,
+                      navControlHover,
+                    )}
+                  >
+                    <Icon
+                      icon={Icons.USER}
+                      className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none [&>svg]:block [&>svg]:h-5 [&>svg]:w-5"
+                    />
+                    <span className="hidden ssm:inline font-semibold text-base whitespace-nowrap">
+                      {t("navigation.menu.login")}
+                    </span>
+                  </div>
+                </Link>
+              ) : null}
               <LinksDropdown>
                 {loggedIn ? (
                   <UserAvatar

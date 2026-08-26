@@ -171,7 +171,7 @@
     }
   },
   "auth": {
-    "createAccount": "Don't have an account yet? <0>Create an account.</0>",
+    "createAccount": "New to the site? <0>Sign up</0>",
     "deviceNameLabel": "Device name",
     "deviceNamePlaceholder": "Personal phone",
     "emailLabel": "Email",

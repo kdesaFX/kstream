@@ -118,7 +118,7 @@ export function NoUserAvatar(props: { iconClass?: string }) {
     <div className="relative inline-flex items-center justify-center text-white">
       <Icon
         className={props.iconClass ?? "text-base ssm:text-xl"}
-        icon={Icons.MENU}
+        icon={Icons.MORE_VERTICAL}
       />
     </div>
   );
