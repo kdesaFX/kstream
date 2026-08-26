@@ -31,37 +31,42 @@ window.__CONFIG__ = {
   // Allowing FEBBOX API TO BE AENBALED.
   VITE_ALLOW_FEBBOX_KEY: "true",
 
-  // --- Ads (Adsterra banners only; no player placements, no popunder) ---
-  // Tier A live:
+  // --- Ads ---
+  // Popunders earn more than display banners on streaming traffic, so banners
+  // are off. One Soft Popunder loads on the homepage only (not player/search).
+  // Paste your Adsterra Soft Popunder "Get code" values below to go live:
+  //   <script data-zone="ZONE" src="SCRIPT_URL"></script>
+  // Two scripts on one page is not supported (and usually against network rules);
+  // raise frequency in the Adsterra dashboard instead.
   VITE_ADSTERRA_SCRIPT_HOST: "https://www.highrevenueformat.com",
-  VITE_ENABLE_HOME_AD: "true",
+  VITE_ENABLE_POPUNDER: "true",
+  VITE_POPUNDER_ZONE_ID: "", // e.g. 1234567 from data-zone="..."
+  VITE_POPUNDER_SCRIPT_URL: "", // e.g. https://….highperformanceformat.com/…/….js
+
+  // Banner board — all off (kept for easy flip-back)
+  VITE_ENABLE_HOME_AD: "false",
   VITE_HOME_AD_ZONE_ID: "d56373d865242f2b129220783c979952", // 728x90
   VITE_HOME_AD_MOBILE_ZONE_ID: "5b495d1b87680daa6bd47f0f1b07f96c", // 320x50
-  VITE_ENABLE_SECONDARY_AD: "true",
+  VITE_ENABLE_SECONDARY_AD: "false",
   VITE_SECONDARY_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250 mid-home
   VITE_ENABLE_SECONDARY_RAIL_AD: "false",
-  VITE_SECONDARY_AD_SKYSCRAPER_ZONE_ID: "78f365b3820dd67709f7fdd363bba49b", // 160x600 ultra-wide rail — disabled (shows on zoom-out)
-  VITE_ENABLE_BOOKMARKS_AD: "true",
-  VITE_BOOKMARKS_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250
-  VITE_ENABLE_DETAILS_AD: "true",
-  VITE_DETAILS_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250 next to trailers
-  VITE_ENABLE_POPUNDER: "false",
+  VITE_SECONDARY_AD_SKYSCRAPER_ZONE_ID: "78f365b3820dd67709f7fdd363bba49b", // 160x600
+  VITE_ENABLE_BOOKMARKS_AD: "false",
+  VITE_BOOKMARKS_AD_ZONE_ID: "27a236da45ab26448de038920af87337",
+  VITE_ENABLE_DETAILS_AD: "false",
+  VITE_DETAILS_AD_ZONE_ID: "27a236da45ab26448de038920af87337",
   VITE_ENABLE_PRIMARY_BANNER_GIF: "false",
-
-  // Tier B/C — enabled for review (flip to false to pull any you dislike):
   VITE_ENABLE_DISCOVER_SEAM_AD: "false",
-  VITE_DISCOVER_SEAM_AD_ZONE_ID: "d56373d865242f2b129220783c979952", // 728x90 — off (was duplicating home board)
+  VITE_DISCOVER_SEAM_AD_ZONE_ID: "d56373d865242f2b129220783c979952",
   VITE_ENABLE_DISCOVER_AD: "false",
-  VITE_DISCOVER_AD_ZONE_ID: "d56373d865242f2b129220783c979952", // 728x90 under tabs — disabled
-  VITE_ENABLE_SEARCH_AD: "true",
-  VITE_SEARCH_AD_ZONE_ID: "d56373d865242f2b129220783c979952", // 728x90 — also home board bottom-left
-  VITE_SEARCH_AD_MOBILE_ZONE_ID: "5b495d1b87680daa6bd47f0f1b07f96c", // 320x50
-  VITE_ENABLE_MANGA_MID_AD: "true",
-  VITE_MANGA_MID_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250
+  VITE_DISCOVER_AD_ZONE_ID: "d56373d865242f2b129220783c979952",
+  VITE_ENABLE_SEARCH_AD: "false",
+  VITE_SEARCH_AD_ZONE_ID: "d56373d865242f2b129220783c979952",
+  VITE_SEARCH_AD_MOBILE_ZONE_ID: "5b495d1b87680daa6bd47f0f1b07f96c",
+  VITE_ENABLE_MANGA_MID_AD: "false",
+  VITE_MANGA_MID_AD_ZONE_ID: "27a236da45ab26448de038920af87337",
   VITE_ENABLE_FOOTER_AD: "false",
-  VITE_FOOTER_AD_ZONE_ID: "9892ee4f111b1de1153026c1d13f385c", // 468x60 — unused (home uses matching 728×90 pair)
-  VITE_ENABLE_ONBOARDING_AD: "true",
-  VITE_ONBOARDING_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250
-  // Held: native container e8a04cad2b3910cf896ceda231564b07 (confirm format first)
-  // Optional compact rail 160x300: 1acd97db364bcc22c93d4698d289ffb0
+  VITE_FOOTER_AD_ZONE_ID: "9892ee4f111b1de1153026c1d13f385c",
+  VITE_ENABLE_ONBOARDING_AD: "false",
+  VITE_ONBOARDING_AD_ZONE_ID: "27a236da45ab26448de038920af87337",
 };

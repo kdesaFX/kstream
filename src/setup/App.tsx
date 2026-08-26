@@ -216,18 +216,22 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (isWatchPage) return;
+    // One Soft Popunder on the home surface only — not player / settings / etc.
+    const path = location.pathname;
+    const isHome =
+      path === "/" || path === "/browse" || path.startsWith("/browse/");
+    if (!isHome || isWatchPage) return;
     if (areAdsBlocked(adsDisabled)) return;
     const cfg = conf();
-    if (
-      !cfg.ENABLE_POPUNDER ||
-      !cfg.POPUNDER_SCRIPT_URL ||
-      !cfg.POPUNDER_ZONE_ID
-    )
-      return;
+    if (!cfg.ENABLE_POPUNDER || !cfg.POPUNDER_SCRIPT_URL) return;
     if (typeof document === "undefined") return;
 
-    if (document.querySelector(`script[data-zone="${cfg.POPUNDER_ZONE_ID}"]`)) {
+    const zone = cfg.POPUNDER_ZONE_ID;
+    if (zone && document.querySelector(`script[data-zone="${zone}"]`)) return;
+    if (
+      !zone &&
+      document.querySelector('script[data-kstream-popunder="1"]')
+    ) {
       return;
     }
 
@@ -237,9 +241,11 @@ function App() {
     if (!target) return;
 
     const s = target.appendChild(document.createElement("script"));
-    s.dataset.zone = cfg.POPUNDER_ZONE_ID;
+    s.dataset.kstreamPopunder = "1";
+    if (zone) s.dataset.zone = zone;
+    s.async = true;
     s.src = cfg.POPUNDER_SCRIPT_URL;
-  }, [adsDisabled, isWatchPage]);
+  }, [adsDisabled, isWatchPage, location.pathname]);
 
   const handleButtonClick = () => {
     setShowDowntime(false);
