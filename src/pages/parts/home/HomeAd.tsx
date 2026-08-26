@@ -52,6 +52,96 @@ function mrecSlot(
   return { key: zoneId, width: 300, height: 250 };
 }
 
+function banner468Slot(
+  zoneId: string | null | undefined,
+): SlotConfig | null {
+  if (!zoneId) return null;
+  return { key: zoneId, width: 468, height: 60 };
+}
+
+/**
+ * Pack horizontal inventory into a full-width row instead of a lonely centered
+ * MREC with empty gutters. Uses distinct zone sizes so the row actually fills.
+ */
+function AdFillRow({ enabled }: { enabled: boolean }) {
+  const cfg = conf();
+  const { isMobile } = useIsMobile();
+  const [wide, setWide] = useState(false);
+  const [ultra, setUltra] = useState(false);
+
+  useEffect(() => {
+    const sync = () => {
+      const w = window.innerWidth;
+      setWide(w >= 1060);
+      setUltra(w >= 1400);
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    return () => window.removeEventListener("resize", sync);
+  }, []);
+
+  const slots = useMemo(() => {
+    if (!enabled) return [] as SlotConfig[];
+
+    if (isMobile) {
+      const mobile = leaderboardSlot(
+        true,
+        null,
+        cfg.HOME_AD_MOBILE_ZONE_ID || cfg.SEARCH_AD_MOBILE_ZONE_ID,
+        true,
+      );
+      if (mobile) return [mobile];
+      const mrec = mrecSlot(true, cfg.BOOKMARKS_AD_ZONE_ID);
+      return mrec ? [mrec] : [];
+    }
+
+    const out: SlotConfig[] = [];
+    const leaderboard = leaderboardSlot(
+      true,
+      cfg.HOME_AD_ZONE_ID,
+      null,
+      false,
+    );
+    const mrec = mrecSlot(true, cfg.BOOKMARKS_AD_ZONE_ID);
+    const banner = banner468Slot(cfg.FOOTER_AD_ZONE_ID);
+
+    // Pack left→right to eat the empty gutters on history/bookmarks pages.
+    if (ultra && mrec && leaderboard && banner) {
+      out.push(mrec, leaderboard, banner);
+    } else if (wide && leaderboard && mrec) {
+      out.push(leaderboard, mrec);
+    } else if (leaderboard) {
+      out.push(leaderboard);
+      if (banner) out.push(banner);
+    } else if (mrec) {
+      out.push(mrec);
+      if (banner) out.push(banner);
+    }
+
+    return out;
+  }, [
+    enabled,
+    isMobile,
+    wide,
+    ultra,
+    cfg.HOME_AD_MOBILE_ZONE_ID,
+    cfg.SEARCH_AD_MOBILE_ZONE_ID,
+    cfg.BOOKMARKS_AD_ZONE_ID,
+    cfg.HOME_AD_ZONE_ID,
+    cfg.FOOTER_AD_ZONE_ID,
+  ]);
+
+  if (slots.length === 0) return null;
+
+  return (
+    <div className="flex w-full flex-wrap items-center justify-center gap-4">
+      {slots.map((slot, i) => (
+        <AdSlotInner key={`${slot.key}-${slot.width}x${slot.height}-${i}`} cfg={slot} />
+      ))}
+    </div>
+  );
+}
+
 function adScriptSrc(key: string): string {
   const base =
     conf().ADSTERRA_SCRIPT_HOST?.replace(/\/$/, "") || DEFAULT_ADSTERRA_HOST;
@@ -444,8 +534,7 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
   }
 
   if (slot === "bookmarks" || slot === "history") {
-    const mrec = mrecSlot(cfg.ENABLE_BOOKMARKS_AD, cfg.BOOKMARKS_AD_ZONE_ID);
-    return mrec ? <AdSlotInner cfg={mrec} /> : null;
+    return <AdFillRow enabled={cfg.ENABLE_BOOKMARKS_AD} />;
   }
 
   if (slot === "details") {
@@ -454,6 +543,7 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
   }
 
   if (slot === "mangaMid") {
+    // Modal column is narrow — keep a single MREC here.
     const mrec = mrecSlot(cfg.ENABLE_MANGA_MID_AD, cfg.MANGA_MID_AD_ZONE_ID);
     return mrec ? (
       <div className="flex w-full justify-center py-4">
@@ -463,15 +553,11 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
   }
 
   if (slot === "onboarding") {
-    const mrec = mrecSlot(
-      cfg.ENABLE_ONBOARDING_AD,
-      cfg.ONBOARDING_AD_ZONE_ID,
-    );
-    return mrec ? (
+    return (
       <div className="flex w-full justify-center pt-4">
-        <AdSlotInner cfg={mrec} />
+        <AdFillRow enabled={cfg.ENABLE_ONBOARDING_AD} />
       </div>
-    ) : null;
+    );
   }
 
   if (slot === "secondaryRail") {
@@ -522,34 +608,29 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
     );
   }
 
-  const banner =
-    slot === "discoverSeam"
-      ? leaderboardSlot(
-          cfg.ENABLE_DISCOVER_SEAM_AD,
-          cfg.DISCOVER_SEAM_AD_ZONE_ID,
-          cfg.HOME_AD_MOBILE_ZONE_ID,
-          isMobile,
-        )
-      : slot === "discover"
-        ? leaderboardSlot(
-            cfg.ENABLE_DISCOVER_AD,
-            cfg.DISCOVER_AD_ZONE_ID,
-            cfg.HOME_AD_MOBILE_ZONE_ID,
-            isMobile,
-          )
-        : slot === "search"
-          ? leaderboardSlot(
-              cfg.ENABLE_SEARCH_AD,
-              cfg.SEARCH_AD_ZONE_ID,
-              cfg.SEARCH_AD_MOBILE_ZONE_ID,
-              isMobile,
-            )
-          : null;
+  if (slot === "discoverSeam") {
+    return (
+      <div className="flex w-full justify-center px-4 py-4">
+        <AdFillRow enabled={cfg.ENABLE_DISCOVER_SEAM_AD} />
+      </div>
+    );
+  }
 
-  if (!banner) return null;
-  return (
-    <div className="flex w-full justify-center px-4 py-4">
-      <AdSlotInner cfg={banner} />
-    </div>
-  );
+  if (slot === "discover") {
+    return (
+      <div className="flex w-full justify-center px-4 py-4">
+        <AdFillRow enabled={cfg.ENABLE_DISCOVER_AD} />
+      </div>
+    );
+  }
+
+  if (slot === "search") {
+    return (
+      <div className="flex w-full justify-center px-4 py-4">
+        <AdFillRow enabled={cfg.ENABLE_SEARCH_AD} />
+      </div>
+    );
+  }
+
+  return null;
 }
