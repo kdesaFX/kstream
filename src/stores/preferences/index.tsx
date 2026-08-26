@@ -632,6 +632,16 @@ export const usePreferencesStore = create(
           merged.proxyArtwork = false;
         }
 
+        // Mid used to proxy TMDB API calls (not just artwork), which emptied
+        // Discover under Optimize. Align saved Mid prefs with the new preset.
+        if (
+          merged.lastAppliedDeviceProfile === "mid" &&
+          merged.proxyTmdb === true &&
+          merged.proxyArtwork === true
+        ) {
+          merged.proxyTmdb = false;
+        }
+
         // Goated was renamed to Reyna — rewrite saved prefs so scrapes still hit it.
         const renameSourceId = (id: string) => (id === "goated" ? "reyna" : id);
         if (Array.isArray(merged.sourceOrder)) {

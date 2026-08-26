@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 
 const DISMISSED_KEY = "zstream::update-dismissed-version";
-const CHECK_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+const CHECK_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes — catch deploys sooner
+const FIRST_CHECK_MS = 15_000; // don't compete with first paint
 
 async function fetchLatestVersion(): Promise<string | null> {
   try {
@@ -29,6 +30,9 @@ export function useAppUpdateCheck() {
     let cancelled = false;
 
     const check = async () => {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        return;
+      }
       const latest = await fetchLatestVersion();
       if (cancelled || !latest || latest === __BUILD_ID__) return;
       let dismissed = "";
@@ -41,17 +45,27 @@ export function useAppUpdateCheck() {
       setNewVersion(latest);
     };
 
-    check();
-    const interval = setInterval(check, CHECK_INTERVAL_MS);
+    const first = window.setTimeout(check, FIRST_CHECK_MS);
+    const interval = window.setInterval(check, CHECK_INTERVAL_MS);
     const onVisible = () => {
       if (document.visibilityState === "visible") check();
     };
+    const onOnline = () => check();
+    const onPageShow = (event: PageTransitionEvent) => {
+      // bfcache restore after deploy — re-check immediately.
+      if (event.persisted) check();
+    };
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("pageshow", onPageShow);
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      window.clearTimeout(first);
+      window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("pageshow", onPageShow);
     };
   }, [isDesktop]);
 

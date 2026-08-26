@@ -47,7 +47,8 @@ export const MID_DEVICE_PROFILE: DeviceProfileFlags = {
   forceCompactEpisodeView: false,
   enableCarouselView: false,
   enableLowPerformanceMode: true,
-  proxyTmdb: true,
+  // Artwork only — proxying TMDB list JSON emptied Mid Discover after deploys.
+  proxyTmdb: false,
   proxyArtwork: true,
   posterQuality: "standard",
 };

@@ -5,6 +5,7 @@ import { useLocation } from "react-router-dom";
 import { Icon, Icons } from "@/components/Icon";
 import { useAppUpdateCheck } from "@/hooks/useAppUpdateCheck";
 import { useBannerSize } from "@/stores/banner";
+import { clearStaleChunkReloadGuard } from "@/utils/staleChunkReload";
 
 export function UpdateNotice() {
   const { t } = useTranslation();
@@ -33,6 +34,7 @@ export function UpdateNotice() {
   };
 
   const refresh = () => {
+    clearStaleChunkReloadGuard();
     const url = new URL(window.location.href);
     url.searchParams.set("_v", Date.now().toString());
     window.location.href = url.toString();

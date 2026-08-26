@@ -29,9 +29,17 @@ describe("device profiles", () => {
   it("keeps discover on mid and enables featured on high", () => {
     expect(MID_DEVICE_PROFILE.enableDiscover).toBe(true);
     expect(MID_DEVICE_PROFILE.enableFeatured).toBe(false);
+    expect(MID_DEVICE_PROFILE.proxyTmdb).toBe(false);
+    expect(MID_DEVICE_PROFILE.proxyArtwork).toBe(true);
     expect(HIGH_DEVICE_PROFILE.enableDiscover).toBe(true);
     expect(HIGH_DEVICE_PROFILE.enableFeatured).toBe(true);
     expect(HIGH_DEVICE_PROFILE.enableDetailsModal).toBe(true);
+  });
+
+  it("keeps TMDB API direct on mid while still proxying artwork", () => {
+    expect(LOW_DEVICE_PROFILE.proxyTmdb).toBe(true);
+    expect(MID_DEVICE_PROFILE.proxyTmdb).toBe(false);
+    expect(MID_DEVICE_PROFILE.proxyArtwork).toBe(true);
   });
 
   it("applies and infers each preset", () => {
