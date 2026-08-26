@@ -37,4 +37,7 @@ sync-fork.bat
 scripts/goon-test-results.json
 scripts/source-hit-bench-results.json
 discord-bot/scripts/deploy-payload.json
+discord-bot/scripts/.mcp-*
+discord-bot/scripts/.deploy-*
+discord-bot/scripts/deploy-args.min.json
 supabase/.temp/
