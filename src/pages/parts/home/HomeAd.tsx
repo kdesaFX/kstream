@@ -60,85 +60,90 @@ function banner468Slot(
 }
 
 /**
- * Pack horizontal inventory into a full-width row instead of a lonely centered
- * MREC with empty gutters. Uses distinct zone sizes so the row actually fills.
+ * Zoom-stable ad board:
+ *   [ leaderboard 728×90 ] [ MREC 300×250 ]
+ *   [ under-gap banner   ] [              ]
+ *
+ * Left column stacks so the second banner fills the empty pocket under the
+ * leaderboard instead of centering on a new full-width row. Flex + w-fit
+ * (no fixed px media-query grids) so browser zoom doesn't shatter the layout.
  */
+function AdBoard({
+  leaderboard,
+  underGap,
+  mrec,
+}: {
+  leaderboard: SlotConfig | null;
+  underGap: SlotConfig | null;
+  mrec: SlotConfig | null;
+}) {
+  if (!leaderboard && !underGap && !mrec) return null;
+
+  const left = [leaderboard, underGap].filter(Boolean) as SlotConfig[];
+
+  return (
+    <div className="mx-auto flex w-fit max-w-full flex-wrap items-start justify-center gap-4 px-4">
+      {left.length > 0 ? (
+        <div className="flex w-[min(100%,728px)] flex-col items-start gap-4">
+          {left.map((slot, i) => (
+            <div key={`${slot.key}-${slot.width}x${slot.height}-L${i}`} className="max-w-full">
+              <AdSlotInner cfg={slot} />
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {mrec ? (
+        <div className="shrink-0 max-w-full">
+          <AdSlotInner cfg={mrec} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function AdFillRow({ enabled }: { enabled: boolean }) {
   const cfg = conf();
   const { isMobile } = useIsMobile();
-  const [wide, setWide] = useState(false);
-  const [ultra, setUltra] = useState(false);
 
-  useEffect(() => {
-    const sync = () => {
-      const w = window.innerWidth;
-      setWide(w >= 1060);
-      setUltra(w >= 1400);
-    };
-    sync();
-    window.addEventListener("resize", sync);
-    return () => window.removeEventListener("resize", sync);
-  }, []);
-
-  const slots = useMemo(() => {
-    if (!enabled) return [] as SlotConfig[];
-
-    if (isMobile) {
-      const mobile = leaderboardSlot(
-        true,
-        null,
+  const leaderboard = useMemo(
+    () =>
+      leaderboardSlot(
+        enabled,
+        cfg.HOME_AD_ZONE_ID,
         cfg.HOME_AD_MOBILE_ZONE_ID || cfg.SEARCH_AD_MOBILE_ZONE_ID,
-        true,
-      );
-      if (mobile) return [mobile];
-      const mrec = mrecSlot(true, cfg.BOOKMARKS_AD_ZONE_ID);
-      return mrec ? [mrec] : [];
-    }
-
-    const out: SlotConfig[] = [];
-    const leaderboard = leaderboardSlot(
-      true,
+        isMobile,
+      ),
+    [
+      enabled,
       cfg.HOME_AD_ZONE_ID,
-      null,
-      false,
-    );
-    const mrec = mrecSlot(true, cfg.BOOKMARKS_AD_ZONE_ID);
-    const banner = banner468Slot(cfg.FOOTER_AD_ZONE_ID);
+      cfg.HOME_AD_MOBILE_ZONE_ID,
+      cfg.SEARCH_AD_MOBILE_ZONE_ID,
+      isMobile,
+    ],
+  );
 
-    // Pack left→right to eat the empty gutters on history/bookmarks pages.
-    if (ultra && mrec && leaderboard && banner) {
-      out.push(mrec, leaderboard, banner);
-    } else if (wide && leaderboard && mrec) {
-      out.push(leaderboard, mrec);
-    } else if (leaderboard) {
-      out.push(leaderboard);
-      if (banner) out.push(banner);
-    } else if (mrec) {
-      out.push(mrec);
-      if (banner) out.push(banner);
-    }
+  const underGap = useMemo(
+    () => (isMobile || !enabled ? null : banner468Slot(cfg.FOOTER_AD_ZONE_ID)),
+    [enabled, isMobile, cfg.FOOTER_AD_ZONE_ID],
+  );
 
-    return out;
-  }, [
-    enabled,
-    isMobile,
-    wide,
-    ultra,
-    cfg.HOME_AD_MOBILE_ZONE_ID,
-    cfg.SEARCH_AD_MOBILE_ZONE_ID,
-    cfg.BOOKMARKS_AD_ZONE_ID,
-    cfg.HOME_AD_ZONE_ID,
-    cfg.FOOTER_AD_ZONE_ID,
-  ]);
+  const mrec = useMemo(
+    () => (isMobile || !enabled ? null : mrecSlot(true, cfg.BOOKMARKS_AD_ZONE_ID)),
+    [enabled, isMobile, cfg.BOOKMARKS_AD_ZONE_ID],
+  );
 
-  if (slots.length === 0) return null;
+  if (!enabled) return null;
+
+  if (isMobile) {
+    return leaderboard ? (
+      <div className="flex w-full justify-center px-4">
+        <AdSlotInner cfg={leaderboard} />
+      </div>
+    ) : null;
+  }
 
   return (
-    <div className="flex w-full flex-wrap items-center justify-center gap-4">
-      {slots.map((slot, i) => (
-        <AdSlotInner key={`${slot.key}-${slot.width}x${slot.height}-${i}`} cfg={slot} />
-      ))}
-    </div>
+    <AdBoard leaderboard={leaderboard} underGap={underGap} mrec={mrec} />
   );
 }
 
@@ -426,8 +431,8 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
 }
 
 /**
- * Home hero ads: leaderboard (top-left) + MREC (top-right).
- * Corner / former-footer slot and the GIF are intentionally not shown here.
+ * Home hero ads — left column stacks under the leaderboard (fills the gap),
+ * MREC sits on the right. Same board used by history/bookmarks fill rows.
  */
 export function HomeTopAds() {
   const cfg = conf();
@@ -450,13 +455,21 @@ export function HomeTopAds() {
     ],
   );
 
+  const underGapSlot = useMemo(
+    () =>
+      isMobile || !cfg.ENABLE_HOME_AD
+        ? null
+        : banner468Slot(cfg.FOOTER_AD_ZONE_ID),
+    [isMobile, cfg.ENABLE_HOME_AD, cfg.FOOTER_AD_ZONE_ID],
+  );
+
   const secondarySlot = useMemo(
     () => mrecSlot(cfg.ENABLE_SECONDARY_AD, cfg.SECONDARY_AD_ZONE_ID),
     [cfg.ENABLE_SECONDARY_AD, cfg.SECONDARY_AD_ZONE_ID],
   );
 
   if (areAdsBlocked(adsDisabled)) return null;
-  if (!primarySlot && !secondarySlot) return null;
+  if (!primarySlot && !underGapSlot && !secondarySlot) return null;
 
   if (isMobile) {
     return (
@@ -467,30 +480,12 @@ export function HomeTopAds() {
     );
   }
 
-  const useTwoColGrid = Boolean(primarySlot && secondarySlot);
-
   return (
-    <div className="flex w-full justify-center px-4">
-      <div
-        className={
-          useTwoColGrid
-            ? "grid max-w-full items-start justify-items-center gap-4 grid-cols-1 min-[1060px]:grid-cols-[728px_300px]"
-            : "flex max-w-full flex-col items-center gap-4"
-        }
-      >
-        {primarySlot ? (
-          <div className="w-full max-w-[728px] min-[1060px]:col-start-1 min-[1060px]:row-start-1 min-[1060px]:justify-self-stretch">
-            <AdSlotInner cfg={primarySlot} />
-          </div>
-        ) : null}
-
-        {secondarySlot ? (
-          <div className="min-[1060px]:col-start-2 min-[1060px]:row-start-1">
-            <AdSlotInner cfg={secondarySlot} />
-          </div>
-        ) : null}
-      </div>
-    </div>
+    <AdBoard
+      leaderboard={primarySlot}
+      underGap={underGapSlot}
+      mrec={secondarySlot}
+    />
   );
 }
 

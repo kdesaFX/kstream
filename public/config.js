@@ -59,7 +59,7 @@ window.__CONFIG__ = {
   VITE_ENABLE_MANGA_MID_AD: "true",
   VITE_MANGA_MID_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250
   VITE_ENABLE_FOOTER_AD: "false",
-  VITE_FOOTER_AD_ZONE_ID: "9892ee4f111b1de1153026c1d13f385c", // 468x60 — used in AdFillRow on wide screens
+  VITE_FOOTER_AD_ZONE_ID: "9892ee4f111b1de1153026c1d13f385c", // 468x60 — under-gap in AdBoard (home + fill rows)
   VITE_ENABLE_ONBOARDING_AD: "true",
   VITE_ONBOARDING_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250
   // Held: native container e8a04cad2b3910cf896ceda231564b07 (confirm format first)
