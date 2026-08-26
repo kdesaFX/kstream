@@ -868,8 +868,15 @@
     "menus": {
       "downloads": {
         "copyHlsPlaylist": "Copy HLS playlist link",
+        "copyFileLink": "Copy file link",
+        "copyYtDlp": "Copy yt-dlp command",
+        "copyNm3u8": "Copy N_m3u8DL-RE command",
+        "copied": "Copied!",
+        "openHlsDownloader": "Open HLS downloader",
         "downloadSubtitle": "Download current subtitle",
-        "desktopDisclaimer": "Get the HLS playlist link to use with external tools.",
+        "desktopDisclaimer": "HLS is a playlist, not a single file. Copy the unwrapped link below, or use yt-dlp / N_m3u8DL-RE / an HLS downloader. Links expire — download soon.",
+        "fileDisclaimer": "Copy the direct file URL. Some sources still need headers or an external downloader if the browser blocks the save.",
+        "headersHint": "Required Referer/Origin headers are included in the copied commands when available.",
         "offlineButton": "Download for Offline Use",
         "or": "or",
         "original": {
@@ -885,20 +892,20 @@
         "stream": {
           "cardTitle": "Stream Link",
           "cardDesc": "Copy the HLS playlist URL",
-          "description": "Copy the streaming link (HLS playlist) for use with external tools. This is a temporary link from the current stream source and may expire."
+          "description": "Copy the unwrapped streaming link (HLS playlist) for external tools like yt-dlp, N_m3u8DL-RE, or an HLS downloader. This is a temporary link from the current stream source and may expire."
         },
         "onAndroid": {
-          "1": "To download on Android, click the download button then, on the new page, <bold>tap and hold</bold> on the video, then select <bold>save</bold>.",
+          "1": "Copy the playlist link, then paste it into an HLS-capable app (e.g. 1DM+, Video Downloader). Or open <bold>Open HLS downloader</bold> from Stream Link and download there. Direct “save video” rarely works for HLS.",
           "shortTitle": "Download / Android",
           "title": "Downloading on Android"
         },
         "onIos": {
-          "1": "To download on iOS, click the download button then, on the new page, click <bold><ios_share /></bold>, then <bold>Save to Files <ios_files /></bold>.",
+          "1": "Copy the playlist, then use Documents / Documents by Readdle, VLC, or another HLS downloader app to paste the URL. Safari’s Share → Save to Files only works for progressive file sources, not most HLS streams.",
           "shortTitle": "Download / iOS",
           "title": "Downloading on iOS"
         },
         "onPc": {
-          "1": "On PC, click the download button then, on the new page, right click the video and select <bold>Save video as</bold>",
+          "1": "Best options: paste the copied playlist into <bold>yt-dlp</bold>, <bold>N_m3u8DL-RE</bold>, or <bold>ffmpeg</bold> (use the copy-command buttons), or open the GUI HLS downloader. Example: <code>yt-dlp \"URL\" -o video.%(ext)s</code>. Right-click → Save only works for direct MP4 file sources.",
           "shortTitle": "Download / PC",
           "title": "Downloading on PC"
         },

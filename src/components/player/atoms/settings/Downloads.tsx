@@ -9,6 +9,12 @@ import { Icon, Icons } from "@/components/Icon";
 import { OverlayPage } from "@/components/overlays/OverlayPage";
 import { Menu } from "@/components/player/internals/ContextMenu";
 import { convertSubtitlesToSrtDataurl } from "@/components/player/utils/captions";
+import {
+  buildHlsDownloaderUrl,
+  buildNm3u8Command,
+  buildYtDlpCommand,
+  unwrapProxiedMediaUrl,
+} from "@/components/player/utils/proxy";
 import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { usePlayerStore } from "@/stores/player/store";
@@ -16,22 +22,63 @@ import { usePlayerStore } from "@/stores/player/store";
 
 // If any of you abuse my api I swear to god I'll turn it down and never make shit again so please don't. Y'all arent supposed to use this.
 
+function mergeDownloadHeaders(
+  sourceHeaders?: Record<string, string>,
+  preferredHeaders?: Record<string, string>,
+  proxyHeaders?: Record<string, string>,
+): Record<string, string> {
+  return {
+    ...(preferredHeaders ?? {}),
+    ...(sourceHeaders ?? {}),
+    ...(proxyHeaders ?? {}),
+  };
+}
+
+/**
+ * Raw player source URL (may still be proxied). Prefer `useDownloadSource`
+ * when handing links to external tools.
+ */
 export function useDownloadLink() {
+  const { url } = useDownloadSource();
+  return url;
+}
+
+export function useDownloadSource() {
   const source = usePlayerStore((s) => s.source);
   const currentQuality = usePlayerStore((s) => s.currentQuality);
-  const url = useMemo(() => {
+
+  return useMemo(() => {
+    let raw: string | undefined;
     if (source?.type === "file") {
       const quality = currentQuality
         ? source.qualities[currentQuality]
         : undefined;
-      if (quality) return quality.url;
-      const firstQuality = Object.values(source.qualities)[0];
-      return firstQuality?.url;
+      raw = quality?.url ?? Object.values(source.qualities)[0]?.url;
+    } else if (source?.type === "hls") {
+      raw = source.url;
     }
-    if (source?.type === "hls") return source.url;
-    return undefined;
+
+    if (!raw) {
+      return {
+        url: undefined as string | undefined,
+        headers: {} as Record<string, string>,
+        sourceType: source?.type,
+        rawUrl: undefined as string | undefined,
+      };
+    }
+
+    const unwrapped = unwrapProxiedMediaUrl(raw);
+    return {
+      url: unwrapped.url,
+      rawUrl: raw,
+      headers: mergeDownloadHeaders(
+        source?.headers,
+        source?.preferredHeaders,
+        unwrapped.headers,
+      ),
+      sourceType: source?.type,
+    };
   }, [source, currentQuality]);
-  return url;
 }
 
 function StyleTrans(props: { k: string }) {
@@ -46,6 +93,15 @@ function StyleTrans(props: { k: string }) {
         ),
         ios_files: (
           <Icon icon={Icons.IOS_FILES} className="inline-block text-xl -mb-1" />
+        ),
+        code: <code className="text-xs break-all text-video-context-type-accent" />,
+        a: (
+          // eslint-disable-next-line jsx-a11y/anchor-has-content
+          <a
+            className="text-video-context-type-accent underline"
+            target="_blank"
+            rel="noreferrer"
+          />
         ),
       }}
     />
@@ -162,12 +218,38 @@ function OriginalFileView({ id }: { id: string }) {
   );
 }
 
+type CopyKind = "url" | "ytdlp" | "nm3u8" | null;
+
 function StreamLinkView({ id }: { id: string }) {
   const router = useOverlayRouter(id);
   const { t } = useTranslation();
-  const downloadUrl = useDownloadLink();
+  const { url: downloadUrl, headers, sourceType } = useDownloadSource();
   const [, copyToClipboard] = useCopyToClipboard();
   const selectedCaption = usePlayerStore((s) => s.caption?.selected);
+  const [copied, setCopied] = useState<CopyKind>(null);
+
+  const ytDlpCommand = useMemo(
+    () => (downloadUrl ? buildYtDlpCommand(downloadUrl, headers) : ""),
+    [downloadUrl, headers],
+  );
+  const nm3u8Command = useMemo(
+    () => (downloadUrl ? buildNm3u8Command(downloadUrl, headers) : ""),
+    [downloadUrl, headers],
+  );
+  const hlsDownloaderHref = useMemo(
+    () => (downloadUrl ? buildHlsDownloaderUrl(downloadUrl) : undefined),
+    [downloadUrl],
+  );
+
+  const copyText = useCallback(
+    (text: string, kind: Exclude<CopyKind, null>) => {
+      if (!text) return;
+      copyToClipboard(text);
+      setCopied(kind);
+      window.setTimeout(() => setCopied(null), 1800);
+    },
+    [copyToClipboard],
+  );
 
   const openSubtitleDownload = useCallback(() => {
     const dataUrl = selectedCaption
@@ -177,6 +259,9 @@ function StreamLinkView({ id }: { id: string }) {
     window.open(dataUrl);
   }, [selectedCaption]);
 
+  const isHls = sourceType === "hls";
+  const hasHeaders = Object.keys(headers).length > 0;
+
   return (
     <>
       <Menu.BackLink onClick={() => router.navigate("/download")}>
@@ -184,18 +269,76 @@ function StreamLinkView({ id }: { id: string }) {
       </Menu.BackLink>
       <Menu.Section>
         <Menu.Paragraph marginClass="mb-4">
-          <Trans i18nKey="player.menus.downloads.desktopDisclaimer" />
+          <Trans
+            i18nKey={
+              isHls
+                ? "player.menus.downloads.desktopDisclaimer"
+                : "player.menus.downloads.fileDisclaimer"
+            }
+          />
         </Menu.Paragraph>
+
         <Button
           className="w-full"
           theme="purple"
+          disabled={!downloadUrl}
           onClick={(event) => {
             event.preventDefault();
-            copyToClipboard(downloadUrl ?? "");
+            copyText(downloadUrl ?? "", "url");
           }}
         >
-          {t("player.menus.downloads.copyHlsPlaylist")}
+          {copied === "url"
+            ? t("player.menus.downloads.copied")
+            : isHls
+              ? t("player.menus.downloads.copyHlsPlaylist")
+              : t("player.menus.downloads.copyFileLink")}
         </Button>
+
+        {isHls && (
+          <>
+            <Button
+              className="w-full mt-2"
+              theme="secondary"
+              disabled={!downloadUrl}
+              href={hlsDownloaderHref}
+            >
+              {t("player.menus.downloads.openHlsDownloader")}
+            </Button>
+            <Button
+              className="w-full mt-2"
+              theme="secondary"
+              disabled={!downloadUrl}
+              onClick={(event) => {
+                event.preventDefault();
+                copyText(ytDlpCommand, "ytdlp");
+              }}
+            >
+              {copied === "ytdlp"
+                ? t("player.menus.downloads.copied")
+                : t("player.menus.downloads.copyYtDlp")}
+            </Button>
+            <Button
+              className="w-full mt-2"
+              theme="secondary"
+              disabled={!downloadUrl}
+              onClick={(event) => {
+                event.preventDefault();
+                copyText(nm3u8Command, "nm3u8");
+              }}
+            >
+              {copied === "nm3u8"
+                ? t("player.menus.downloads.copied")
+                : t("player.menus.downloads.copyNm3u8")}
+            </Button>
+          </>
+        )}
+
+        {hasHeaders && (
+          <Menu.Paragraph marginClass="mt-3 mb-0">
+            {t("player.menus.downloads.headersHint")}
+          </Menu.Paragraph>
+        )}
+
         <Button
           className="w-full mt-2"
           onClick={openSubtitleDownload}
@@ -400,7 +543,7 @@ export function DownloadRoutes({ id }: { id: string }) {
           <OriginalFileView id={id} />
         </Menu.CardWithScrollable>
       </OverlayPage>
-      <OverlayPage id={id} path="/download/stream" width={343} height={480}>
+      <OverlayPage id={id} path="/download/stream" width={343} height={560}>
         <Menu.CardWithScrollable>
           <StreamLinkView id={id} />
         </Menu.CardWithScrollable>
@@ -415,7 +558,7 @@ export function DownloadRoutes({ id }: { id: string }) {
           <AndroidExplanationView id={id} />
         </Menu.CardWithScrollable>
       </OverlayPage>
-      <OverlayPage id={id} path="/download/pc" width={343} height={440}>
+      <OverlayPage id={id} path="/download/pc" width={343} height={480}>
         <Menu.CardWithScrollable>
           <PCExplanationView id={id} />
         </Menu.CardWithScrollable>
