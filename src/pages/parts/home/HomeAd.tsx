@@ -27,7 +27,6 @@ export type AdSlot =
   | "search"
   | "mangaMid"
   | "footer"
-  | "preFooter"
   | "onboarding";
 
 type SlotConfig = { key: string; width: number; height: number };
@@ -53,67 +52,108 @@ function mrecSlot(
   return { key: zoneId, width: 300, height: 250 };
 }
 
-function banner468Slot(
-  zoneId: string | null | undefined,
-): SlotConfig | null {
-  if (!zoneId) return null;
-  return { key: zoneId, width: 468, height: 60 };
-}
+/**
+ * Zoom-stable ad board — clean 2×2 rectangle pocket:
+ *   [ 728×90 ] [ 300×250 ]
+ *   [ 728×90 ] [         ]
+ *
+ * Both left banners are the same size. Flex + w-fit (no fixed px media-query
+ * grids) so browser zoom doesn't shatter the layout.
+ */
+function AdBoard({
+  topLeft,
+  bottomLeft,
+  mrec,
+}: {
+  topLeft: SlotConfig | null;
+  bottomLeft: SlotConfig | null;
+  mrec: SlotConfig | null;
+}) {
+  if (!topLeft && !bottomLeft && !mrec) return null;
 
-/** One horizontal row of ads — side by side, no stacked columns / dead gutters. */
-function AdRow({ slots }: { slots: SlotConfig[] }) {
-  if (slots.length === 0) return null;
+  const left = [topLeft, bottomLeft].filter(Boolean) as SlotConfig[];
+
   return (
-    <div className="mx-auto flex w-full max-w-full flex-wrap items-center justify-center gap-3 px-4">
-      {slots.map((slot, i) => (
-        <div
-          key={`${slot.key}-${slot.width}x${slot.height}-${i}`}
-          className="max-w-full shrink-0"
-        >
-          <AdSlotInner cfg={slot} />
+    <div className="mx-auto flex w-fit max-w-full flex-wrap items-start justify-center gap-4 px-4">
+      {left.length > 0 ? (
+        <div className="flex w-[min(100%,728px)] flex-col items-stretch gap-4">
+          {left.map((slot, i) => (
+            <div
+              key={`${slot.key}-${slot.width}x${slot.height}-L${i}`}
+              className="max-w-full"
+            >
+              <AdSlotInner cfg={slot} />
+            </div>
+          ))}
         </div>
-      ))}
+      ) : null}
+      {mrec ? (
+        <div className="shrink-0 max-w-full">
+          <AdSlotInner cfg={mrec} />
+        </div>
+      ) : null}
     </div>
   );
 }
 
-/** Pack leaderboard + MREC + 468 banner into one horizontal strip. */
+/** Exactly 3 ads: two matching 728×90s + one 300×250 MREC. */
 function AdFillRow({ enabled }: { enabled: boolean }) {
   const cfg = conf();
   const { isMobile } = useIsMobile();
 
-  const slots = useMemo(() => {
-    if (!enabled) return [] as SlotConfig[];
-
-    if (isMobile) {
-      const mobile = leaderboardSlot(
-        true,
-        null,
+  const topLeft = useMemo(
+    () =>
+      leaderboardSlot(
+        enabled,
+        cfg.HOME_AD_ZONE_ID,
         cfg.HOME_AD_MOBILE_ZONE_ID || cfg.SEARCH_AD_MOBILE_ZONE_ID,
-        true,
-      );
-      return mobile ? [mobile] : [];
-    }
+        isMobile,
+      ),
+    [
+      enabled,
+      cfg.HOME_AD_ZONE_ID,
+      cfg.HOME_AD_MOBILE_ZONE_ID,
+      cfg.SEARCH_AD_MOBILE_ZONE_ID,
+      isMobile,
+    ],
+  );
 
-    const out: SlotConfig[] = [];
-    const leaderboard = leaderboardSlot(true, cfg.HOME_AD_ZONE_ID, null, false);
-    const mrec = mrecSlot(true, cfg.BOOKMARKS_AD_ZONE_ID);
-    const banner = banner468Slot(cfg.FOOTER_AD_ZONE_ID);
-    if (leaderboard) out.push(leaderboard);
-    if (mrec) out.push(mrec);
-    if (banner) out.push(banner);
-    return out;
+  // Same size as top-left (728×90). Reuse search/discover leaderboard zone so
+  // both banners match; Adsterra still serves separate creatives per invoke.
+  const bottomLeft = useMemo(() => {
+    if (!enabled || isMobile) return null;
+    const zone =
+      cfg.SEARCH_AD_ZONE_ID ||
+      cfg.DISCOVER_SEAM_AD_ZONE_ID ||
+      cfg.HOME_AD_ZONE_ID;
+    return leaderboardSlot(true, zone, null, false);
   }, [
     enabled,
     isMobile,
-    cfg.HOME_AD_MOBILE_ZONE_ID,
-    cfg.SEARCH_AD_MOBILE_ZONE_ID,
+    cfg.SEARCH_AD_ZONE_ID,
+    cfg.DISCOVER_SEAM_AD_ZONE_ID,
     cfg.HOME_AD_ZONE_ID,
-    cfg.BOOKMARKS_AD_ZONE_ID,
-    cfg.FOOTER_AD_ZONE_ID,
   ]);
 
-  return <AdRow slots={slots} />;
+  const mrec = useMemo(
+    () =>
+      isMobile || !enabled
+        ? null
+        : mrecSlot(true, cfg.BOOKMARKS_AD_ZONE_ID || cfg.SECONDARY_AD_ZONE_ID),
+    [enabled, isMobile, cfg.BOOKMARKS_AD_ZONE_ID, cfg.SECONDARY_AD_ZONE_ID],
+  );
+
+  if (!enabled) return null;
+
+  if (isMobile) {
+    return topLeft ? (
+      <div className="flex w-full justify-center px-4">
+        <AdSlotInner cfg={topLeft} />
+      </div>
+    ) : null;
+  }
+
+  return <AdBoard topLeft={topLeft} bottomLeft={bottomLeft} mrec={mrec} />;
 }
 
 function adScriptSrc(key: string): string {
@@ -400,36 +440,66 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
 }
 
 /**
- * Home hero ads: one horizontal row — leaderboard + MREC side by side.
+ * Home hero — exactly 3 ads in a clean rectangle:
+ *   [ 728×90 ] [ 300×250 ]
+ *   [ 728×90 ] [         ]
  */
 export function HomeTopAds() {
   const cfg = conf();
   const adsDisabled = useAdsStore((s) => s.adsDisabled);
   const { isMobile } = useIsMobile();
 
-  const slots = useMemo(() => {
-    const out: SlotConfig[] = [];
-    const primary = leaderboardSlot(
+  const topLeft = useMemo(
+    () =>
+      leaderboardSlot(
+        cfg.ENABLE_HOME_AD,
+        cfg.HOME_AD_ZONE_ID,
+        cfg.HOME_AD_MOBILE_ZONE_ID,
+        isMobile,
+      ),
+    [
       cfg.ENABLE_HOME_AD,
-      cfg.HOME_AD_ZONE_ID,
       cfg.HOME_AD_MOBILE_ZONE_ID,
+      cfg.HOME_AD_ZONE_ID,
       isMobile,
-    );
-    const secondary = mrecSlot(cfg.ENABLE_SECONDARY_AD, cfg.SECONDARY_AD_ZONE_ID);
-    if (primary) out.push(primary);
-    if (!isMobile && secondary) out.push(secondary);
-    return out;
+    ],
+  );
+
+  const bottomLeft = useMemo(() => {
+    if (isMobile || !cfg.ENABLE_HOME_AD) return null;
+    const zone =
+      cfg.SEARCH_AD_ZONE_ID ||
+      cfg.DISCOVER_SEAM_AD_ZONE_ID ||
+      cfg.HOME_AD_ZONE_ID;
+    return leaderboardSlot(true, zone, null, false);
   }, [
-    cfg.ENABLE_HOME_AD,
-    cfg.HOME_AD_ZONE_ID,
-    cfg.HOME_AD_MOBILE_ZONE_ID,
-    cfg.ENABLE_SECONDARY_AD,
-    cfg.SECONDARY_AD_ZONE_ID,
     isMobile,
+    cfg.ENABLE_HOME_AD,
+    cfg.SEARCH_AD_ZONE_ID,
+    cfg.DISCOVER_SEAM_AD_ZONE_ID,
+    cfg.HOME_AD_ZONE_ID,
   ]);
 
+  const secondarySlot = useMemo(
+    () => mrecSlot(cfg.ENABLE_SECONDARY_AD, cfg.SECONDARY_AD_ZONE_ID),
+    [cfg.ENABLE_SECONDARY_AD, cfg.SECONDARY_AD_ZONE_ID],
+  );
+
   if (areAdsBlocked(adsDisabled)) return null;
-  return <AdRow slots={slots} />;
+  if (!topLeft && !bottomLeft && !secondarySlot) return null;
+
+  if (isMobile) {
+    return (
+      <div className="flex w-full flex-col items-center gap-4 px-4">
+        {topLeft && <AdSlotInner cfg={topLeft} />}
+        {secondarySlot && <AdSlotInner cfg={secondarySlot} />}
+      </div>
+    );
+  }
+
+  return (
+    <AdBoard topLeft={topLeft} bottomLeft={bottomLeft} mrec={secondarySlot} />
+  );
 }
 
 export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
@@ -531,11 +601,17 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
     );
   }
 
-  if (slot === "footer" || slot === "preFooter") {
-    // Horizontal strip before the footer (and any legacy footer slot).
+  if (slot === "footer") {
+    if (!cfg.ENABLE_FOOTER_AD || !cfg.FOOTER_AD_ZONE_ID) return null;
     return (
-      <div className="flex w-full justify-center px-4 py-8">
-        <AdFillRow enabled={cfg.ENABLE_HOME_AD || cfg.ENABLE_BOOKMARKS_AD} />
+      <div className="flex w-full justify-center px-4 pb-6">
+        <AdSlotInner
+          cfg={{
+            key: cfg.FOOTER_AD_ZONE_ID,
+            width: 468,
+            height: 60,
+          }}
+        />
       </div>
     );
   }

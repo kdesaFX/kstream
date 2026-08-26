@@ -50,16 +50,16 @@ window.__CONFIG__ = {
 
   // Tier B/C — enabled for review (flip to false to pull any you dislike):
   VITE_ENABLE_DISCOVER_SEAM_AD: "false",
-  VITE_DISCOVER_SEAM_AD_ZONE_ID: "d56373d865242f2b129220783c979952", // 728x90 — disabled (use preFooter row)
+  VITE_DISCOVER_SEAM_AD_ZONE_ID: "d56373d865242f2b129220783c979952", // 728x90 — off (was duplicating home board)
   VITE_ENABLE_DISCOVER_AD: "false",
   VITE_DISCOVER_AD_ZONE_ID: "d56373d865242f2b129220783c979952", // 728x90 under tabs — disabled
   VITE_ENABLE_SEARCH_AD: "true",
-  VITE_SEARCH_AD_ZONE_ID: "d56373d865242f2b129220783c979952", // 728x90
+  VITE_SEARCH_AD_ZONE_ID: "d56373d865242f2b129220783c979952", // 728x90 — also home board bottom-left
   VITE_SEARCH_AD_MOBILE_ZONE_ID: "5b495d1b87680daa6bd47f0f1b07f96c", // 320x50
   VITE_ENABLE_MANGA_MID_AD: "true",
   VITE_MANGA_MID_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250
   VITE_ENABLE_FOOTER_AD: "false",
-  VITE_FOOTER_AD_ZONE_ID: "9892ee4f111b1de1153026c1d13f385c", // 468x60 — packed into pre-footer / fill rows
+  VITE_FOOTER_AD_ZONE_ID: "9892ee4f111b1de1153026c1d13f385c", // 468x60 — unused (home uses matching 728×90 pair)
   VITE_ENABLE_ONBOARDING_AD: "true",
   VITE_ONBOARDING_AD_ZONE_ID: "27a236da45ab26448de038920af87337", // 300x250
   // Held: native container e8a04cad2b3910cf896ceda231564b07 (confirm format first)
