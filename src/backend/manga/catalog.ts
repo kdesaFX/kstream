@@ -1,4 +1,5 @@
 import { isWeebCentralId } from "@/backend/manga/ids";
+import { mangaMark, mangaMeasure } from "@/backend/manga/mangaTiming";
 import {
   getChapterFallbackIds,
   resolveReadableChapters,
@@ -24,6 +25,8 @@ import {
   searchWeebCentral,
 } from "@/backend/manga/weebcentral";
 
+const detailsInFlight = new Map<string, Promise<MangaDetails>>();
+
 /**
  * MangaDex first; WeebCentral fills titles it doesn't have, and supplies
  * chapters when MangaDex is only allowed to point at official sites.
@@ -47,68 +50,90 @@ export async function getMangaDetails(
   onPartial?: (details: MangaDetails) => void,
 ): Promise<MangaDetails> {
   const language = preferredLanguage || "en";
-  if (isWeebCentralId(mangaId)) return getWeebCentralDetails(mangaId);
+  const key = `${mangaId}:${language}`;
+  const existing = detailsInFlight.get(key);
+  if (existing) {
+    if (onPartial) void existing.then(onPartial).catch(() => undefined);
+    return existing;
+  }
 
-  // Return MangaDex chapters as soon as they're ready; fill WC/Comick gaps after.
-  const base = await getMangaDexDetails(mangaId, language);
-  onPartial?.(base);
+  const promise = (async () => {
+    if (isWeebCentralId(mangaId)) return getWeebCentralDetails(mangaId);
 
-  const resolved = await resolveReadableChapters(base, language);
-  return { ...base, ...resolved };
+    mangaMark("details-md-start");
+    const base = await getMangaDexDetails(mangaId, language);
+    mangaMark("details-md-end");
+    mangaMeasure("details-md", "details-md-start", "details-md-end");
+    onPartial?.(base);
+
+    mangaMark("details-resolve-start");
+    const resolved = await resolveReadableChapters(base, language);
+    mangaMark("details-resolve-end");
+    mangaMeasure("details-resolve", "details-resolve-start", "details-resolve-end");
+    return { ...base, ...resolved };
+  })();
+
+  detailsInFlight.set(key, promise);
+  try {
+    return await promise;
+  } finally {
+    detailsInFlight.delete(key);
+  }
 }
+
+type ChapterPageFallback = {
+  mangaId?: string;
+  language?: string;
+  title?: string;
+  alternateTitles?: string[];
+  chapter?: string | null;
+};
 
 export async function getChapterPages(
   chapterId: string,
-  fallback?: {
-    mangaId?: string;
-    language?: string;
-    title?: string;
-    alternateTitles?: string[];
-    chapter?: string | null;
-  },
+  fallback?: ChapterPageFallback,
   force?: boolean,
 ): Promise<string[]> {
-  const tried = new Set<string>();
-  const queue = [chapterId];
-
+  mangaMark("pages-start");
+  const ids = [chapterId];
   if (fallback?.mangaId && fallback.language) {
     for (const alt of getChapterFallbackIds(
       fallback.mangaId,
       fallback.language,
       chapterId,
     )) {
-      if (!queue.includes(alt)) queue.push(alt);
+      if (!ids.includes(alt)) ids.push(alt);
     }
   }
 
-  while (queue.length > 0) {
-    const id = queue.shift();
-    if (!id || tried.has(id)) continue;
-    tried.add(id);
-
-    const pages = await loadPagesForId(
+  const attempts = await Promise.all(
+    ids.map(async (id) => ({
       id,
-      {
-        title: fallback?.title,
-        alternateTitles: fallback?.alternateTitles,
-        chapter: fallback?.chapter,
-      },
-      force,
-    );
-    if (pages.length === 0) continue;
-    // Drop wrong-series mirrors (e.g. shared-word WeebCentral hits). Catalog
-    // chapter ids are usually fine; this guards number-based contamination.
-    if (
-      fallback?.title &&
-      !pagesBelongToTitle(
-        pages,
-        fallback.title,
-        fallback.alternateTitles ?? [],
-      )
-    ) {
-      continue;
+      pages: await tryLoadPagesForId(
+        id,
+        {
+          title: fallback?.title,
+          alternateTitles: fallback?.alternateTitles,
+          chapter: fallback?.chapter,
+        },
+        force,
+      ),
+    })),
+  );
+
+  const primary = attempts.find((entry) => entry.id === chapterId && entry.pages);
+  if (primary?.pages) {
+    mangaMark("pages-end");
+    mangaMeasure("pages", "pages-start", "pages-end");
+    return primary.pages;
+  }
+
+  for (const entry of attempts) {
+    if (entry.pages) {
+      mangaMark("pages-end");
+      mangaMeasure("pages", "pages-start", "pages-end");
+      return entry.pages;
     }
-    return pages;
   }
 
   if (fallback?.title && fallback.chapter?.trim()) {
@@ -125,15 +150,43 @@ export async function getChapterPages(
         fallback.alternateTitles ?? [],
       )
     ) {
+      mangaMark("pages-end");
+      mangaMeasure("pages", "pages-start", "pages-end");
       return wcPages;
     }
   }
 
+  mangaMark("pages-end");
+  mangaMeasure("pages", "pages-start", "pages-end");
   return [];
 }
 
 const PAGE_LIST_TTL_MS = 10 * 60 * 1000;
 const pageListCache = new Map<string, { at: number; pages: string[] }>();
+
+async function tryLoadPagesForId(
+  chapterId: string,
+  fallback?: {
+    title?: string;
+    alternateTitles?: string[];
+    chapter?: string | null;
+  },
+  force?: boolean,
+): Promise<string[] | null> {
+  const pages = await loadPagesForId(chapterId, fallback, force);
+  if (pages.length === 0) return null;
+  if (
+    fallback?.title &&
+    !pagesBelongToTitle(
+      pages,
+      fallback.title,
+      fallback.alternateTitles ?? [],
+    )
+  ) {
+    return null;
+  }
+  return pages;
+}
 
 async function loadPagesForId(
   chapterId: string,
@@ -179,13 +232,7 @@ async function loadPagesForId(
 /** Warm chapter page URL list and kick off the first few image downloads. */
 export function prefetchChapterPages(
   chapterId: string,
-  fallback?: {
-    mangaId?: string;
-    language?: string;
-    title?: string;
-    alternateTitles?: string[];
-    chapter?: string | null;
-  },
+  fallback?: ChapterPageFallback,
   imageCount = 3,
 ): void {
   void getChapterPages(chapterId, fallback)

@@ -1,7 +1,7 @@
 import { ofetch } from "ofetch";
 
 import { isWeebCentralId } from "@/backend/manga/ids";
-import { proxiedMangaUrl } from "@/backend/manga/mangadex";
+import { fetchViaMangaProxies } from "@/backend/manga/proxyCandidates";
 import type {
   MangaChapter,
   MangaChapterGroup,
@@ -10,7 +10,6 @@ import type {
   MangaReadingDirection,
   MangaStatus,
 } from "@/backend/manga/types";
-import { getProxyUrls, resolveProxyUrl } from "@/utils/hosting/proxyUrls";
 import {
   shouldAllowMatureTitles,
 } from "@/utils/media/mature";
@@ -55,39 +54,13 @@ function wcHeaders(htmx: boolean): Record<string, string> {
   return headers;
 }
 
-function candidateUrls(url: string): string[] {
-  const out: string[] = [];
-  const add = (value?: string) => {
-    if (value && !out.includes(value)) out.push(value);
-  };
-  // Same-origin proxy first. Direct WeebCentral is CORS-blocked on the
-  // deployed site, and a configured worker is often the wrong first hop.
-  if (typeof window !== "undefined") {
-    add(proxiedMangaUrl(url, [resolveProxyUrl("/api/proxy")]));
-  }
-  for (const proxy of getProxyUrls()) {
-    add(proxiedMangaUrl(url, [proxy]));
-  }
-  add(url);
-  return out;
-}
-
 async function wcGet(url: string, htmx = false): Promise<string> {
   const headers = wcHeaders(htmx);
-  let lastError: unknown;
-  for (const target of candidateUrls(url)) {
-    try {
-      const html = await wcFetch<string>(target, { headers });
-      if (typeof html === "string" && isUsableWeebCentralHtml(html)) {
-        return html;
-      }
-    } catch (err) {
-      lastError = err;
-    }
-  }
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("WeebCentral request failed");
+  return fetchViaMangaProxies(
+    url,
+    async (target) => wcFetch<string>(target, { headers }),
+    (html) => typeof html === "string" && isUsableWeebCentralHtml(html),
+  );
 }
 
 export function decodeHtmlEntities(value: string): string {
@@ -503,7 +476,7 @@ function isRomajiLikeTitle(value: string): boolean {
   );
 }
 
-const MAX_FALLBACK_QUERIES = 10;
+const MAX_FALLBACK_QUERIES = 4;
 
 export function buildFallbackSearchQueries(
   title: string,
@@ -598,28 +571,13 @@ export async function resolveWeebCentralChapters(
   alternateTitles: string[] = [],
 ): Promise<MangaChapter[] | null> {
   const queries = buildFallbackSearchQueries(title, alternateTitles);
-  const results = await Promise.all(
-    queries.map((query) => loadWeebCentralMatch(query).catch(() => null)),
-  );
-  const hits = results.filter((hit): hit is ResolvedWeebCentralSeries =>
-    Boolean(hit && titlesCompatible(title, hit.title, alternateTitles)),
-  );
-  if (hits.length === 0) return null;
-
-  const wanted = normalizeMangaTitle(title);
-  hits.sort((a, b) => {
-    const rank = (raw: string) => {
-      const n = normalizeMangaTitle(raw);
-      if (n === wanted) return 0;
-      if (alternateTitles.some((alt) => normalizeMangaTitle(alt) === n)) {
-        return 1;
-      }
-      if (n.includes(wanted)) return 2;
-      return 10 + spinoffPenalty(raw);
-    };
-    return rank(a.title) - rank(b.title);
-  });
-  return hits[0]?.chapters ?? null;
+  for (const query of queries) {
+    const hit = await loadWeebCentralMatch(query).catch(() => null);
+    if (hit && titlesCompatible(title, hit.title, alternateTitles)) {
+      return hit.chapters;
+    }
+  }
+  return null;
 }
 
 function hitToListItem(hit: WeebCentralSearchHit): MangaListItem {

@@ -40,7 +40,7 @@ import { useHistoryListener } from "@/stores/history";
 import { useClearModalsOnNavigation } from "@/stores/interface/overlayStack";
 import { LanguageProvider } from "@/stores/language";
 import { conf } from "@/setup/config";
-import { PlayerView, SettingsPage, preloadPlayerView, preloadSettingsPage } from "@/setup/routePreload";
+import { PlayerView, SettingsPage, MangaReaderView, preloadPlayerView, preloadSettingsPage } from "@/setup/routePreload";
 
 const AboutPage = lazy(() =>
   import("@/pages/About").then((m) => ({ default: m.AboutPage })),
@@ -50,11 +50,6 @@ const AppsPage = lazy(() =>
 );
 const AdminPage = lazy(() =>
   import("@/pages/admin/AdminPage").then((m) => ({ default: m.AdminPage })),
-);
-const MangaReaderView = lazy(() =>
-  import("@/pages/manga/MangaReaderView").then((m) => ({
-    default: m.MangaReaderView,
-  })),
 );
 const PersonView = lazy(() =>
   import("@/pages/PersonView").then((m) => ({ default: m.PersonView })),

@@ -1,7 +1,7 @@
 import { ofetch } from "ofetch";
 
 import { proxiedMangaUrl } from "@/backend/manga/mangadex";
-import type { MangaChapter } from "@/backend/manga/types";
+import { fetchViaMangaProxies } from "@/backend/manga/proxyCandidates";
 import {
   buildFallbackSearchQueries,
   pickBestSeriesHit,
@@ -11,7 +11,9 @@ import {
   getMangaSeeChapterPages,
   resolveMangaSeeSlug,
 } from "@/backend/manga/sources/mangasee";
-import { getProxyUrls, resolveProxyUrl } from "@/utils/hosting/proxyUrls";
+import { getProxyUrls } from "@/utils/hosting/proxyUrls";
+
+import type { MangaChapter } from "@/backend/manga/types";
 
 const API = "https://api.comick.dev";
 const IMAGE_CDN = "https://meo.comick.pictures";
@@ -62,34 +64,9 @@ const ckFetch = ofetch.create({
   },
 });
 
-function candidateUrls(url: string): string[] {
-  const out: string[] = [];
-  const add = (value?: string) => {
-    if (value && !out.includes(value)) out.push(value);
-  };
-  if (typeof window !== "undefined") {
-    add(proxiedMangaUrl(url, [resolveProxyUrl("/api/proxy")]));
-  }
-  for (const proxy of getProxyUrls()) {
-    add(proxiedMangaUrl(url, [proxy]));
-  }
-  add(url);
-  return out;
-}
-
 async function ckGet<T>(path: string): Promise<T> {
   const url = `${API}${path}`;
-  let lastError: unknown;
-  for (const target of candidateUrls(url)) {
-    try {
-      return await ckFetch<T>(target);
-    } catch (err) {
-      lastError = err;
-    }
-  }
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("Comick request failed");
+  return fetchViaMangaProxies(url, async (target) => ckFetch<T>(target));
 }
 
 export function comickChapterId(hid: string): string {
@@ -216,18 +193,13 @@ export async function resolveComickChapters(
   alternateTitles: string[] = [],
 ): Promise<MangaChapter[] | null> {
   const queries = buildFallbackSearchQueries(title, alternateTitles);
-  const results = await Promise.all(
-    queries.map((query) => loadComickMatch(query).catch(() => null)),
-  );
-  const hits = results.filter(
-    (
-      hit,
-    ): hit is { hid: string; title: string; chapters: MangaChapter[] } =>
-      Boolean(hit && titlesCompatible(title, hit.title, alternateTitles)),
-  );
-  if (hits.length === 0) return null;
-  hits.sort((a, b) => b.chapters.length - a.chapters.length);
-  return hits[0]?.chapters ?? null;
+  for (const query of queries) {
+    const hit = await loadComickMatch(query).catch(() => null);
+    if (hit && titlesCompatible(title, hit.title, alternateTitles)) {
+      return hit.chapters;
+    }
+  }
+  return null;
 }
 
 function mangaseeSlugFromDetail(detail: ComickChapterDetail | undefined): string | null {
@@ -274,14 +246,16 @@ export async function getComickChapterPages(
   const altHids = [
     ...(detail?.dupGroupChapters?.map((row) => row.hid) ?? []),
     ...getComickAlternateHids(hid),
-  ];
-  const tried = new Set<string>([hid]);
-  for (const altHid of altHids) {
-    if (!altHid || tried.has(altHid)) continue;
-    tried.add(altHid);
-    const altDetail = await fetchComickChapterDetail(altHid);
-    const altPages = pagesFromDetail(altDetail);
-    if (altPages.length > 0) return altPages;
+  ].filter((altHid) => altHid && altHid !== hid);
+
+  const altPages = await Promise.all(
+    altHids.map(async (altHid) => {
+      const altDetail = await fetchComickChapterDetail(altHid);
+      return pagesFromDetail(altDetail);
+    }),
+  );
+  for (const pages of altPages) {
+    if (pages.length > 0) return pages;
   }
 
   const chapterNum = fallback?.chapter?.trim() || detail?.chap?.trim();

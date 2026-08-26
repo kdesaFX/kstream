@@ -149,11 +149,11 @@ describe("weebcentral parsers", () => {
       "Don't Toy With Me, Miss Nagatoro!",
       ["Ijiranaide, Nagatoro-san"],
     );
+    expect(queries.length).toBeLessThanOrEqual(4);
     expect(queries[0]).toBe("Don't Toy With Me, Miss Nagatoro!");
     expect(
       queries.some((q) => normalizeMangaTitle(q).includes("ijiranaide")),
     ).toBe(true);
-    expect(queries).toContain("Nagatoro");
   });
 
   it("searches shortened romaji when MangaDex particle spelling misses WeebCentral", () => {

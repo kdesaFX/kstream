@@ -13,6 +13,7 @@ import {
 } from "@/backend/manga/mangaLogo";
 import { chapterLabel } from "@/backend/manga/mangadex";
 import type { MangaChapter, MangaDetails } from "@/backend/manga/types";
+import { preloadMangaReaderView } from "@/setup/routePreload";
 import { mangaStatusKey } from "@/backend/manga/types";
 import { Button } from "@/components/buttons/Button";
 import { IconPatch } from "@/components/buttons/IconPatch";
@@ -153,6 +154,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
 
   useEffect(() => {
     if (!shouldShow || !mangaId) return undefined;
+    preloadMangaReaderView();
     let cancelled = false;
     setChaptersPending(true);
     getMangaDetails(mangaId, preferredLanguage, (partial) => {

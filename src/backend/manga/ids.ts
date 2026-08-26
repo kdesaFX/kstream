@@ -14,6 +14,17 @@ export function isMangaDexId(id: string): boolean {
   );
 }
 
+/** Chapter ids we can page-fetch before merged manga details arrive. */
+export function isDirectLoadableChapterId(id: string): boolean {
+  return isMangaDexId(id) || isWeebCentralId(id) || id.startsWith("comick-");
+}
+
+export function slugToTitleHint(slug?: string): string | undefined {
+  if (!slug?.trim()) return undefined;
+  const title = slug.replace(/-/g, " ").trim();
+  return title || undefined;
+}
+
 /** Encode a manga id + title into a URL segment. */
 export function mangaIdToUrlId(mangaId: string, title: string): string {
   const prefix = isWeebCentralId(mangaId) ? WEEBCENTRAL : MANGADEX;
