@@ -205,7 +205,11 @@ function WatchPartyInputLink() {
   );
 }
 
-export function LinksDropdown(props: { children: React.ReactNode }) {
+export function LinksDropdown(props: {
+  children: React.ReactNode;
+  /** Icon-only trigger (⋮ / avatar) — match notification circle sizing. */
+  circle?: boolean;
+}) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const deviceName = useAuthStore((s) => s.account?.deviceName);
@@ -250,16 +254,20 @@ export function LinksDropdown(props: { children: React.ReactNode }) {
     (s) => Object.keys(s.bookmarks).length > 0,
   );
 
+  const circle = props.circle ?? true;
+
   return (
     <div className="relative is-dropdown">
       <div
         className={classNames(
-          "cursor-pointer tabbable rounded-full flex text-white items-center overflow-hidden transition-all duration-100 hover:scale-105",
+          "cursor-pointer tabbable rounded-full flex text-white items-center justify-center overflow-hidden transition-all duration-100 hover:scale-105",
           navControlSurface,
           "hover:bg-pill-backgroundHover/80",
-          isMobile
-            ? "h-10 min-w-[2.75rem] justify-center gap-0 px-3"
-            : "h-[2.67rem] min-w-[3.25rem] gap-1.5 px-3.5",
+          circle
+            ? "h-10 w-10 md:h-[2.67rem] md:w-[2.67rem] shrink-0 px-0"
+            : isMobile
+              ? "h-10 min-w-[2.75rem] gap-0 px-3"
+              : "h-[2.67rem] min-w-[3.25rem] gap-1.5 px-3.5",
           open ? "bg-pill-backgroundHover/80" : "",
         )}
         tabIndex={0}

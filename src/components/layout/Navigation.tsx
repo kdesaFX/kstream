@@ -407,7 +407,7 @@ export function Navigation(props: NavigationProps) {
                   </div>
                 </Link>
               ) : null}
-              <LinksDropdown>
+              <LinksDropdown circle={!loggedIn || isMobile}>
                 {loggedIn ? (
                   <UserAvatar
                     withName={!isMobile}
