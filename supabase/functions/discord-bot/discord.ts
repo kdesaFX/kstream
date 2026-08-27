@@ -1,3 +1,5 @@
+import nacl from "npm:tweetnacl@1.0.3";
+
 const DISCORD_API = "https://discord.com/api/v10";
 
 export function hexToBytes(hex: string): Uint8Array {
@@ -24,15 +26,7 @@ export async function verifyDiscordRequest(
   const sig = hexToBytes(signature);
   const key = hexToBytes(publicKeyHex);
 
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    key,
-    { name: "Ed25519", namedCurve: "Ed25519" },
-    false,
-    ["verify"],
-  );
-
-  const valid = await crypto.subtle.verify("Ed25519", cryptoKey, sig, message);
+  const valid = nacl.sign.detached.verify(message, sig, key);
   return { valid, body };
 }
 
