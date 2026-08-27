@@ -1,5 +1,6 @@
 /**
  * Set bot profile banner + bio, then refresh channel embeds.
+ * Banner is attached to each message (attachment://) so Discord always loads it.
  *
  *   node discord-bot/scripts/refresh-embeds.mjs YOUR_BOT_TOKEN
  */
@@ -14,10 +15,16 @@ const BIO =
   "Official kdesa.stream bot — tickets, updates, and server info. Watch movies, TV & manga at https://kdesa.stream";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const bannerPath = path.join(__dirname, "../../public/discord-banner.png");
+const bannerPath = path.join(__dirname, "../../public/discord-banner.jpg");
+const BANNER_NAME = "discord-banner.jpg";
 
 if (!token) {
   console.error("Need bot token");
+  process.exit(1);
+}
+
+if (!fs.existsSync(bannerPath)) {
+  console.error("Missing", bannerPath);
   process.exit(1);
 }
 
@@ -42,15 +49,12 @@ function sleep(ms) {
 
 async function setBotProfile() {
   const buf = fs.readFileSync(bannerPath);
-  const b64 = buf.toString("base64");
-  const dataUri = `data:image/png;base64,${b64}`;
+  const dataUri = `data:image/jpeg;base64,${buf.toString("base64")}`;
 
   try {
     await api(`/applications/${APP_ID}`, {
       method: "PATCH",
-      body: JSON.stringify({
-        description: BIO,
-      }),
+      body: JSON.stringify({ description: BIO }),
     });
     console.log("Set application description (bio)");
   } catch (err) {
@@ -60,15 +64,11 @@ async function setBotProfile() {
   try {
     await api("/users/@me", {
       method: "PATCH",
-      body: JSON.stringify({
-        banner: dataUri,
-        bio: BIO,
-      }),
+      body: JSON.stringify({ banner: dataUri, bio: BIO }),
     });
     console.log("Set bot user banner + bio");
   } catch (err) {
     console.warn("Bot user profile:", err.message);
-    // Fallback: banner only
     try {
       await api("/users/@me", {
         method: "PATCH",
@@ -96,16 +96,40 @@ async function purgeBotMessages(channelId, botId) {
 const BRAND = {
   color: 0x111214,
   site: "https://kdesa.stream",
-  banner: "https://kdesa.stream/discord-banner.png?v=2",
 };
 
-function banner() {
-  return { color: BRAND.color, image: { url: BRAND.banner } };
+/** Banner via message attachment — reliable; external URLs often break in embeds. */
+function bannerEmbed() {
+  return {
+    color: BRAND.color,
+    image: { url: `attachment://${BANNER_NAME}` },
+  };
+}
+
+async function postWithBanner(channelId, payload) {
+  const form = new FormData();
+  form.append("payload_json", JSON.stringify(payload));
+  form.append(
+    "files[0]",
+    new Blob([fs.readFileSync(bannerPath)], { type: "image/jpeg" }),
+    BANNER_NAME,
+  );
+  const res = await fetch(
+    `https://discord.com/api/v10/channels/${channelId}/messages`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bot ${token}` },
+      body: form,
+    },
+  );
+  const text = await res.text();
+  if (!res.ok) throw new Error(`post ${channelId} ${res.status}: ${text}`);
+  return JSON.parse(text);
 }
 
 function welcomeEmbeds(ids) {
   return [
-    banner(),
+    bannerEmbed(),
     {
       title: "Welcome to kdesa.stream!",
       description: [
@@ -149,7 +173,7 @@ function welcomeEmbeds(ids) {
 
 function rulesEmbeds() {
   return [
-    banner(),
+    bannerEmbed(),
     {
       title: "kdesa.stream Rules",
       description: [
@@ -186,10 +210,10 @@ function rulesEmbeds() {
   ];
 }
 
-function supportPanel(ids) {
+function supportPayload(ids) {
   return {
     embeds: [
-      banner(),
+      bannerEmbed(),
       {
         title: "Contact Support",
         description: [
@@ -267,80 +291,35 @@ async function main() {
     support: support.id,
   };
 
-  // Prefer Discord CDN from local file so embeds update immediately (site deploy can lag).
-  // Permanent site URL is still used in code for later refreshes once live.
-  let bannerUrl = BRAND.banner;
-  {
-    const form = new FormData();
-    form.append(
-      "payload_json",
-      JSON.stringify({ content: "banner-host (ignore)" }),
-    );
-    form.append(
-      "files[0]",
-      new Blob([fs.readFileSync(bannerPath)], { type: "image/png" }),
-      "discord-banner.png",
-    );
-    const hosted = await fetch(
-      `https://discord.com/api/v10/channels/${welcome.id}/messages`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bot ${token}` },
-        body: form,
-      },
-    ).then(async (r) => {
-      const t = await r.text();
-      if (!r.ok) throw new Error(`upload ${r.status}: ${t}`);
-      return JSON.parse(t);
-    });
-    if (hosted.attachments?.[0]?.url) {
-      bannerUrl = hosted.attachments[0].url;
-      BRAND.banner = bannerUrl;
-      console.log("Using Discord CDN banner for embeds (from local file)");
-    }
-    await api(`/channels/${welcome.id}/messages/${hosted.id}`, {
-      method: "DELETE",
-    }).catch(() => undefined);
-  }
-
   for (const chId of [rules.id, welcome.id, support.id]) {
     await purgeBotMessages(chId, me.id);
   }
 
-  await api(`/channels/${rules.id}/messages`, {
-    method: "POST",
-    body: JSON.stringify({ embeds: rulesEmbeds() }),
-  });
+  await postWithBanner(rules.id, { embeds: rulesEmbeds() });
   console.log("Posted rules");
 
-  await api(`/channels/${welcome.id}/messages`, {
-    method: "POST",
-    body: JSON.stringify({
-      embeds: welcomeEmbeds(ids),
-      components: [
-        {
-          type: 1,
-          components: [
-            {
-              type: 2,
-              style: 1,
-              label: "Get Signal",
-              emoji: { name: "📡" },
-              custom_id: "claim_member_role",
-            },
-            { type: 2, style: 5, label: "Website", url: BRAND.site },
-            { type: 2, style: 5, label: "Browse", url: `${BRAND.site}/browse` },
-          ],
-        },
-      ],
-    }),
+  await postWithBanner(welcome.id, {
+    embeds: welcomeEmbeds(ids),
+    components: [
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 1,
+            label: "Get Signal",
+            emoji: { name: "📡" },
+            custom_id: "claim_member_role",
+          },
+          { type: 2, style: 5, label: "Website", url: BRAND.site },
+          { type: 2, style: 5, label: "Browse", url: `${BRAND.site}/browse` },
+        ],
+      },
+    ],
   });
   console.log("Posted welcome");
 
-  await api(`/channels/${support.id}/messages`, {
-    method: "POST",
-    body: JSON.stringify(supportPanel(ids)),
-  });
+  await postWithBanner(support.id, supportPayload(ids));
   console.log("Posted support");
 
   console.log("Done.");
