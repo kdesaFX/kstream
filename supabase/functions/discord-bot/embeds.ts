@@ -1,13 +1,10 @@
-/** Brand assets from the live site. */
+/** Single dark aesthetic — matches Creator Coaster (no rainbow side bars). */
 export const BRAND = {
-  color: 0x1a1b1e,
-  accent: 0x5865f2,
-  success: 0x57f287,
-  warn: 0xfee75c,
-  danger: 0xed4245,
+  /** Left border for every embed — dark, blends with Discord night theme */
+  color: 0x111214,
   site: "https://kdesa.stream",
-  /** Wide banner (same asset as site OG / embed preview) */
-  banner: "https://kdesa.stream/embed-preview.png?v=8",
+  /** Black + teal kstream signal banner */
+  banner: "https://kdesa.stream/discord-banner.png?v=1",
 };
 
 type ChannelIds = {
@@ -23,7 +20,7 @@ function ch(id: string | undefined, fallback: string) {
 
 export function bannerEmbed() {
   return {
-    color: BRAND.accent,
+    color: BRAND.color,
     image: { url: BRAND.banner },
   };
 }
@@ -47,7 +44,7 @@ export function welcomeEmbeds(ids: ChannelIds = {}) {
         "",
         `Jump in on the site anytime: **${BRAND.site}**`,
       ].join("\n"),
-      color: BRAND.accent,
+      color: BRAND.color,
       footer: { text: "kdesa.stream community" },
     },
   ];
@@ -84,7 +81,7 @@ export function rulesEmbeds() {
         "",
         "**Note:** Warns expire after **3 months** — they're not forever.",
       ].join("\n"),
-      color: BRAND.danger,
+      color: BRAND.color,
     },
     {
       title: "Warnable Offenses",
@@ -129,7 +126,7 @@ export function infoEmbeds(ids: ChannelIds = {}) {
         `⤷ ${support}`,
         "Bugs, account issues, and reports via ticket buttons.",
       ].join("\n"),
-      color: BRAND.accent,
+      color: BRAND.color,
     },
   ];
 }
@@ -148,7 +145,7 @@ export function supportPanelEmbeds(ids: ChannelIds = {}) {
         "",
         `Site news lives in ${updates}.`,
       ].join("\n"),
-      color: BRAND.accent,
+      color: BRAND.color,
       fields: [
         {
           name: "🛠️ General Support",
@@ -201,7 +198,7 @@ export function updateEmbed(
   return {
     title: isBig ? `🚀 ${title}` : `📌 ${title}`,
     description,
-    color: isBig ? BRAND.accent : BRAND.success,
+    color: BRAND.color,
     footer: authorName
       ? { text: `Posted by ${authorName}` }
       : { text: "kdesa.stream updates" },
@@ -227,6 +224,6 @@ export function ticketOpenEmbed(
       "",
       "Use **Close ticket** below or `/ticket-close` when you're done.",
     ].join("\n"),
-    color: kind === "report" ? BRAND.danger : BRAND.warn,
+    color: BRAND.color,
   };
 }
