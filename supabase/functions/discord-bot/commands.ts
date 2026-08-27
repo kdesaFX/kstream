@@ -29,6 +29,7 @@ type Env = {
   applicationId: string;
   guildId: string;
   ticketCategoryId?: string;
+  closedTicketCategoryId?: string;
   updatesChannelId?: string;
   welcomeChannelId?: string;
   rulesChannelId?: string;
@@ -221,6 +222,40 @@ async function handleTicket(
   return startTicketDeferred(interaction, env, user, kind, subjectOverride);
 }
 
+async function ensureClosedTicketCategory(
+  token: string,
+  guildId: string,
+  staffRoleId?: string,
+): Promise<string> {
+  const existing = await discordJson<DiscordChannel[]>(
+    token,
+    `/guilds/${guildId}/channels`,
+  );
+  const found = existing.find(
+    (c) =>
+      c.type === 4 &&
+      (c.name === "Closed Tickets" || c.name === "closed-tickets" ||
+        c.name === "Closed tickets"),
+  );
+  if (found) return found.id;
+
+  const cat = await discordJson<DiscordChannel>(token, `/guilds/${guildId}/channels`, {
+    method: "POST",
+    body: JSON.stringify({
+      name: "Closed Tickets",
+      type: 4,
+      permission_overwrites: [
+        // @everyone — cannot see closed tickets
+        { id: guildId, type: 0, deny: "1024" },
+        ...(staffRoleId
+          ? [{ id: staffRoleId, type: 0, allow: "1024" }]
+          : []),
+      ],
+    }),
+  });
+  return cat.id;
+}
+
 async function handleTicketClose(
   interaction: Interaction,
   env: Env,
@@ -228,6 +263,9 @@ async function handleTicketClose(
 ): Promise<Record<string, unknown>> {
   const channelId = interaction.channel_id;
   if (!channelId) return ephemeral("Run this inside a ticket channel.");
+
+  const guildId = interaction.guild_id;
+  if (!guildId) return ephemeral("Missing guild.");
 
   const supabase = supabaseAdmin();
   const { data: ticket } = await supabase
@@ -246,16 +284,85 @@ async function handleTicketClose(
     return ephemeral("Only the ticket opener or staff can close this.");
   }
 
-  await supabase
-    .from("discord_tickets")
-    .update({ status: "closed", closed_at: new Date().toISOString() })
-    .eq("id", ticket.id);
+  // ACK fast — archive happens after.
+  queueMicrotask(async () => {
+    try {
+      let closedCategoryId = env.closedTicketCategoryId;
+      if (!closedCategoryId) {
+        closedCategoryId = await ensureClosedTicketCategory(
+          env.token,
+          guildId,
+          env.staffRoleId,
+        );
+        await saveVaultSetting("DISCORD_CLOSED_TICKET_CATEGORY_ID", closedCategoryId);
+      }
 
-  await discordJson(env.token, `/channels/${channelId}`, {
-    method: "DELETE",
-  }).catch(() => undefined);
+      const channel = await discordJson<{ name: string }>(
+        env.token,
+        `/channels/${channelId}`,
+      );
+      const closedName = channel.name.startsWith("closed-")
+        ? channel.name
+        : `closed-${channel.name}`.slice(0, 100);
 
-  return ephemeral("Ticket closed.");
+      await discordJson(env.token, `/channels/${channelId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: closedName,
+          parent_id: closedCategoryId,
+          // Lock: nobody (@everyone) can view; opener loses access; staff keeps view if set
+          permission_overwrites: [
+            { id: guildId, type: 0, deny: "1024" },
+            {
+              id: ticket.opener_discord_id,
+              type: 1,
+              deny: "1024",
+            },
+            ...(env.staffRoleId
+              ? [{
+                id: env.staffRoleId,
+                type: 0,
+                allow: "117760", // view + send + read history
+              }]
+              : []),
+          ],
+        }),
+      });
+
+      await discordJson(env.token, `/channels/${channelId}/messages`, {
+        method: "POST",
+        body: JSON.stringify({
+          embeds: [{
+            title: "Ticket closed",
+            description: `Closed by <@${user.id}>. Moved to **Closed Tickets** (hidden from members).`,
+            color: 0x111214,
+          }],
+          components: [],
+        }),
+      }).catch(() => undefined);
+
+      await supabase
+        .from("discord_tickets")
+        .update({ status: "closed", closed_at: new Date().toISOString() })
+        .eq("id", ticket.id);
+
+      await editOriginal(env.token, env.applicationId, interaction.token, {
+        content: "Ticket closed and archived to **Closed Tickets**.",
+      }).catch(async () => {
+        await followUp(env.token, env.applicationId, interaction.token, {
+          content: "Ticket closed and archived to **Closed Tickets**.",
+          flags: 64,
+        }).catch(() => undefined);
+      });
+    } catch (err) {
+      await followUp(env.token, env.applicationId, interaction.token, {
+        content: `Close failed: ${err instanceof Error ? err.message : String(err)}`,
+        flags: 64,
+      }).catch(() => undefined);
+    }
+  });
+
+  return { type: 5, data: { flags: 64 } };
 }
 
 async function handleUpdate(
@@ -316,6 +423,10 @@ async function handleSetupServer(
       await saveVaultSetting("DISCORD_UPDATES_CHANNEL_ID", created.updatesId);
       await saveVaultSetting("DISCORD_SUPPORT_CHANNEL_ID", created.supportId);
       await saveVaultSetting("DISCORD_TICKET_CATEGORY_ID", created.ticketCategoryId);
+      await saveVaultSetting(
+        "DISCORD_CLOSED_TICKET_CATEGORY_ID",
+        created.closedTicketCategoryId,
+      );
 
       await editOriginal(env.token, env.applicationId, interaction.token, {
         content: [
@@ -325,7 +436,8 @@ async function handleSetupServer(
           `#rules <#${created.rulesId}>`,
           `#updates <#${created.updatesId}>`,
           `#support <#${created.supportId}>`,
-          `Tickets: \`${created.ticketCategoryId}\``,
+          `Open tickets: \`${created.ticketCategoryId}\``,
+          `Closed tickets: \`${created.closedTicketCategoryId}\``,
         ].join("\n"),
       });
     } catch (err) {
@@ -376,6 +488,12 @@ export async function runServerSetup(token: string, guildId: string) {
   let supportId = find("support", "🛠️・support", "🛠️-support");
   let ticketCategoryId = existing.find(
     (c) => (c.name === "Support Tickets" || c.name === "tickets") && c.type === 4,
+  )?.id;
+  let closedTicketCategoryId = existing.find(
+    (c) =>
+      c.type === 4 &&
+      (c.name === "Closed Tickets" || c.name === "closed-tickets" ||
+        c.name === "Closed tickets"),
   )?.id;
 
   if (!rulesId) {
@@ -434,6 +552,20 @@ export async function runServerSetup(token: string, guildId: string) {
     ticketCategoryId = cat.id;
   }
 
+  if (!closedTicketCategoryId) {
+    closedTicketCategoryId = await ensureClosedTicketCategory(token, guildId);
+  } else {
+    // Keep category hidden from @everyone
+    await discordJson(token, `/channels/${closedTicketCategoryId}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        permission_overwrites: [
+          { id: guildId, type: 0, deny: "1024" },
+        ],
+      }),
+    }).catch(() => undefined);
+  }
+
   const ids = {
     rules: rulesId!,
     welcome: welcomeId!,
@@ -472,6 +604,7 @@ export async function runServerSetup(token: string, guildId: string) {
     updatesId: updatesId!,
     supportId: supportId!,
     ticketCategoryId: ticketCategoryId!,
+    closedTicketCategoryId: closedTicketCategoryId!,
   };
 }
 
