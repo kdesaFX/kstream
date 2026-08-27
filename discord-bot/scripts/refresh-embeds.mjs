@@ -111,6 +111,8 @@ function welcomeEmbeds(ids) {
       description: [
         "Your hub for streaming movies & shows, browsing manga, and getting help when something breaks.",
         "",
+        "Tap **Get Signal** below to pick up the member role.",
+        "",
         "**Important Channels:**",
         `• **Rules** — <#${ids.rules}>`,
         `• **Support** — <#${ids.support}>`,
@@ -321,6 +323,13 @@ async function main() {
         {
           type: 1,
           components: [
+            {
+              type: 2,
+              style: 1,
+              label: "Get Signal",
+              emoji: { name: "📡" },
+              custom_id: "claim_member_role",
+            },
             { type: 2, style: 5, label: "Website", url: BRAND.site },
             { type: 2, style: 5, label: "Browse", url: `${BRAND.site}/browse` },
           ],

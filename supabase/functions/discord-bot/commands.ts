@@ -30,6 +30,7 @@ type Env = {
   guildId: string;
   ticketCategoryId?: string;
   closedTicketCategoryId?: string;
+  memberRoleId?: string;
   updatesChannelId?: string;
   welcomeChannelId?: string;
   rulesChannelId?: string;
@@ -427,6 +428,9 @@ async function handleSetupServer(
         "DISCORD_CLOSED_TICKET_CATEGORY_ID",
         created.closedTicketCategoryId,
       );
+      if (created.memberRoleId) {
+        await saveVaultSetting("DISCORD_MEMBER_ROLE_ID", created.memberRoleId);
+      }
 
       await editOriginal(env.token, env.applicationId, interaction.token, {
         content: [
@@ -438,7 +442,10 @@ async function handleSetupServer(
           `#support <#${created.supportId}>`,
           `Open tickets: \`${created.ticketCategoryId}\``,
           `Closed tickets: \`${created.closedTicketCategoryId}\``,
-        ].join("\n"),
+          created.memberRoleId
+            ? `Member role (Signal): \`${created.memberRoleId}\``
+            : "",
+        ].filter(Boolean).join("\n"),
       });
     } catch (err) {
       await followUp(env.token, env.applicationId, interaction.token, {
@@ -471,6 +478,27 @@ async function ensureChannel(
     body: JSON.stringify({ name, type: 0, topic }),
   });
   return ch.id;
+}
+
+async function ensureMemberRole(token: string, guildId: string): Promise<string> {
+  const roles = await discordJson<Array<{ id: string; name: string }>>(
+    token,
+    `/guilds/${guildId}/roles`,
+  );
+  const existing = roles.find((r) => r.name === "Signal");
+  if (existing) return existing.id;
+
+  const role = await discordJson<{ id: string }>(token, `/guilds/${guildId}/roles`, {
+    method: "POST",
+    body: JSON.stringify({
+      name: "Signal",
+      color: 0x2dd4bf,
+      hoist: false,
+      mentionable: false,
+      permissions: "0",
+    }),
+  });
+  return role.id;
 }
 
 export async function runServerSetup(token: string, guildId: string) {
@@ -566,6 +594,8 @@ export async function runServerSetup(token: string, guildId: string) {
     }).catch(() => undefined);
   }
 
+  const memberRoleId = await ensureMemberRole(token, guildId);
+
   const ids = {
     rules: rulesId!,
     welcome: welcomeId!,
@@ -605,6 +635,7 @@ export async function runServerSetup(token: string, guildId: string) {
     supportId: supportId!,
     ticketCategoryId: ticketCategoryId!,
     closedTicketCategoryId: closedTicketCategoryId!,
+    memberRoleId,
   };
 }
 
@@ -646,6 +677,44 @@ export async function handleTicketButton(
   await editOriginal(env.token, env.applicationId, interaction.token, { content });
 }
 
+export async function handleClaimMemberRole(
+  interaction: Interaction,
+  env: Env,
+): Promise<void> {
+  const user = interactionUser(interaction);
+  const guildId = interaction.guild_id;
+  if (!user || !guildId) {
+    await editOriginal(env.token, env.applicationId, interaction.token, {
+      content: "Could not resolve user.",
+    });
+    return;
+  }
+
+  let roleId = env.memberRoleId;
+  if (!roleId) {
+    roleId = await ensureMemberRole(env.token, guildId);
+    await saveVaultSetting("DISCORD_MEMBER_ROLE_ID", roleId);
+  }
+
+  const member = interaction.member;
+  if (member?.roles?.includes(roleId)) {
+    await editOriginal(env.token, env.applicationId, interaction.token, {
+      content: "You're already tuned in — you have **Signal**.",
+    });
+    return;
+  }
+
+  await discordJson(
+    env.token,
+    `/guilds/${guildId}/members/${user.id}/roles/${roleId}`,
+    { method: "PUT" },
+  );
+
+  await editOriginal(env.token, env.applicationId, interaction.token, {
+    content: "Welcome aboard — you now have **Signal** 📡",
+  });
+}
+
 export async function handleComponent(
   interaction: Interaction,
   env: Env,
@@ -664,6 +733,20 @@ export async function handleComponent(
 
   if (customId === "ticket_open_report") {
     return startTicketDeferred(interaction, env, user, "report", "Report");
+  }
+
+  if (customId === "claim_member_role") {
+    queueMicrotask(async () => {
+      try {
+        await handleClaimMemberRole(interaction, env);
+      } catch (err) {
+        await followUp(env.token, env.applicationId, interaction.token, {
+          content: `Failed: ${err instanceof Error ? err.message : String(err)}`,
+          flags: 64,
+        }).catch(() => undefined);
+      }
+    });
+    return { type: 5, data: { flags: 64 } };
   }
 
   return ephemeral("Unknown action.");

@@ -11,6 +11,7 @@ export type BotEnv = {
   guildId: string;
   ticketCategoryId?: string;
   closedTicketCategoryId?: string;
+  memberRoleId?: string;
   updatesChannelId?: string;
   welcomeChannelId?: string;
   rulesChannelId?: string;
@@ -25,6 +26,7 @@ const KEYS = [
   "DISCORD_GUILD_ID",
   "DISCORD_TICKET_CATEGORY_ID",
   "DISCORD_CLOSED_TICKET_CATEGORY_ID",
+  "DISCORD_MEMBER_ROLE_ID",
   "DISCORD_UPDATES_CHANNEL_ID",
   "DISCORD_WELCOME_CHANNEL_ID",
   "DISCORD_RULES_CHANNEL_ID",
@@ -86,6 +88,7 @@ export async function loadEnv(force = false): Promise<BotEnv> {
     guildId: pick(map, "DISCORD_GUILD_ID") ?? "",
     ticketCategoryId: pick(map, "DISCORD_TICKET_CATEGORY_ID"),
     closedTicketCategoryId: pick(map, "DISCORD_CLOSED_TICKET_CATEGORY_ID"),
+    memberRoleId: pick(map, "DISCORD_MEMBER_ROLE_ID"),
     updatesChannelId: pick(map, "DISCORD_UPDATES_CHANNEL_ID"),
     welcomeChannelId: pick(map, "DISCORD_WELCOME_CHANNEL_ID"),
     rulesChannelId: pick(map, "DISCORD_RULES_CHANNEL_ID"),

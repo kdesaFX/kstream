@@ -10,6 +10,7 @@ import {
   handleCommand,
   handleComponent,
   handleTicketButton,
+  handleClaimMemberRole,
 } from "./commands.ts";
 import { loadEnv } from "./config.ts";
 
@@ -20,6 +21,7 @@ const PUBLIC_KEY =
 const DEFER_IDS = new Set([
   "ticket_open_support",
   "ticket_open_report",
+  "claim_member_role",
 ]);
 
 Deno.serve(async (req) => {
@@ -38,13 +40,17 @@ Deno.serve(async (req) => {
     return jsonResponse({ type: 1 });
   }
 
-  // ACK ticket buttons in <1s so Discord never times out.
+  // ACK buttons in <1s so Discord never times out.
   const customId = interaction.data?.custom_id;
   if (interaction.type === 3 && customId && DEFER_IDS.has(customId)) {
     queueMicrotask(async () => {
       try {
         const env = await loadEnv();
-        await handleTicketButton(interaction, env, customId);
+        if (customId === "claim_member_role") {
+          await handleClaimMemberRole(interaction, env);
+        } else {
+          await handleTicketButton(interaction, env, customId);
+        }
       } catch (err) {
         console.error(err);
         try {
