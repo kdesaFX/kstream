@@ -11,6 +11,7 @@ import {
   handleComponent,
   handleTicketButton,
   handleClaimMemberRole,
+  handleClaimUpdatesRole,
 } from "./commands.ts";
 import { loadEnv } from "./config.ts";
 
@@ -22,6 +23,7 @@ const DEFER_IDS = new Set([
   "ticket_open_support",
   "ticket_open_report",
   "claim_member_role",
+  "claim_updates_role",
 ]);
 
 Deno.serve(async (req) => {
@@ -46,7 +48,9 @@ Deno.serve(async (req) => {
     queueMicrotask(async () => {
       try {
         const env = await loadEnv();
-        if (customId === "claim_member_role") {
+        if (customId === "claim_updates_role") {
+          await handleClaimUpdatesRole(interaction, env);
+        } else if (customId === "claim_member_role") {
           await handleClaimMemberRole(interaction, env);
         } else {
           await handleTicketButton(interaction, env, customId);

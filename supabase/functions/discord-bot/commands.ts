@@ -18,24 +18,20 @@ import {
   supportPanelComponents,
 } from "./embeds.ts";
 import { saveVaultSetting } from "./config.ts";
+import {
+  type Env,
+  ensureMemberHasSignal,
+  ensureMemberRole,
+  ensureUpdatesRole,
+  handleClaimMemberRole,
+  handleClaimUpdatesRole,
+} from "./roles.ts";
+
+export { handleClaimMemberRole, handleClaimUpdatesRole };
 
 function deferredEphemeral() {
   return { type: 5, data: { flags: 64 } };
 }
-
-type Env = {
-  token: string;
-  applicationId: string;
-  guildId: string;
-  ticketCategoryId?: string;
-  closedTicketCategoryId?: string;
-  memberRoleId?: string;
-  updatesChannelId?: string;
-  welcomeChannelId?: string;
-  rulesChannelId?: string;
-  supportChannelId?: string;
-  staffRoleId?: string;
-};
 
 type DiscordChannel = { id: string; name: string; type: number };
 
@@ -136,6 +132,15 @@ async function createTicket(
   kind: "support" | "report" = "support",
   subjectOverride?: string,
 ): Promise<{ data: { content: string } }> {
+  if (interaction.guild_id) {
+    await ensureMemberHasSignal(
+      env,
+      interaction.guild_id,
+      user.id,
+      interaction.member?.roles,
+    );
+  }
+
   if (!env.ticketCategoryId) {
     return ephemeral(
       "Tickets are not configured yet. Run `/setup-server` (admin).",
@@ -429,6 +434,9 @@ async function handleSetupServer(
       if (created.memberRoleId) {
         await saveVaultSetting("DISCORD_MEMBER_ROLE_ID", created.memberRoleId);
       }
+      if (created.updatesRoleId) {
+        await saveVaultSetting("DISCORD_UPDATES_ROLE_ID", created.updatesRoleId);
+      }
 
       await editOriginal(env.token, env.applicationId, interaction.token, {
         content: [
@@ -440,8 +448,13 @@ async function handleSetupServer(
           `Open tickets: \`${created.ticketCategoryId}\``,
           `Closed tickets: \`${created.closedTicketCategoryId}\``,
           created.memberRoleId
-            ? `Member role (Signal): \`${created.memberRoleId}\``
+            ? `Member role (Signal, on join): \`${created.memberRoleId}\``
             : "",
+          created.updatesRoleId
+            ? `Updates ping role: \`${created.updatesRoleId}\``
+            : "",
+          "",
+          "Set Signal as a Default Role: Server Settings → Onboarding → Default Roles.",
         ].filter(Boolean).join("\n"),
       });
     } catch (err) {
@@ -475,27 +488,6 @@ async function ensureChannel(
     body: JSON.stringify({ name, type: 0, topic }),
   });
   return ch.id;
-}
-
-async function ensureMemberRole(token: string, guildId: string): Promise<string> {
-  const roles = await discordJson<Array<{ id: string; name: string }>>(
-    token,
-    `/guilds/${guildId}/roles`,
-  );
-  const existing = roles.find((r) => r.name === "Signal");
-  if (existing) return existing.id;
-
-  const role = await discordJson<{ id: string }>(token, `/guilds/${guildId}/roles`, {
-    method: "POST",
-    body: JSON.stringify({
-      name: "Signal",
-      color: 0x2dd4bf,
-      hoist: false,
-      mentionable: false,
-      permissions: "0",
-    }),
-  });
-  return role.id;
 }
 
 export async function runServerSetup(token: string, guildId: string) {
@@ -581,6 +573,7 @@ export async function runServerSetup(token: string, guildId: string) {
   }
 
   const memberRoleId = await ensureMemberRole(token, guildId);
+  const updatesRoleId = await ensureUpdatesRole(token, guildId);
 
   const ids = {
     welcome: welcomeId!,
@@ -613,6 +606,7 @@ export async function runServerSetup(token: string, guildId: string) {
     ticketCategoryId: ticketCategoryId!,
     closedTicketCategoryId: closedTicketCategoryId!,
     memberRoleId,
+    updatesRoleId,
   };
 }
 
@@ -654,44 +648,6 @@ export async function handleTicketButton(
   await editOriginal(env.token, env.applicationId, interaction.token, { content });
 }
 
-export async function handleClaimMemberRole(
-  interaction: Interaction,
-  env: Env,
-): Promise<void> {
-  const user = interactionUser(interaction);
-  const guildId = interaction.guild_id;
-  if (!user || !guildId) {
-    await editOriginal(env.token, env.applicationId, interaction.token, {
-      content: "Could not resolve user.",
-    });
-    return;
-  }
-
-  let roleId = env.memberRoleId;
-  if (!roleId) {
-    roleId = await ensureMemberRole(env.token, guildId);
-    await saveVaultSetting("DISCORD_MEMBER_ROLE_ID", roleId);
-  }
-
-  const member = interaction.member;
-  if (member?.roles?.includes(roleId)) {
-    await editOriginal(env.token, env.applicationId, interaction.token, {
-    content: "You're tuned in — **Signal** is your member role on this server.",
-  });
-  return;
-  }
-
-  await discordJson(
-    env.token,
-    `/guilds/${guildId}/members/${user.id}/roles/${roleId}`,
-    { method: "PUT" },
-  );
-
-  await editOriginal(env.token, env.applicationId, interaction.token, {
-    content: "You're in — **Signal** is the member role for kdesa.stream.",
-  });
-}
-
 export async function handleComponent(
   interaction: Interaction,
   env: Env,
@@ -712,10 +668,14 @@ export async function handleComponent(
     return startTicketDeferred(interaction, env, user, "report", "Report");
   }
 
-  if (customId === "claim_member_role") {
+  if (customId === "claim_updates_role" || customId === "claim_member_role") {
     queueMicrotask(async () => {
       try {
-        await handleClaimMemberRole(interaction, env);
+        if (customId === "claim_updates_role") {
+          await handleClaimUpdatesRole(interaction, env);
+        } else {
+          await handleClaimMemberRole(interaction, env);
+        }
       } catch (err) {
         await followUp(env.token, env.applicationId, interaction.token, {
           content: `Failed: ${err instanceof Error ? err.message : String(err)}`,

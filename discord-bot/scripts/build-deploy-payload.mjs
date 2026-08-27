@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "../../supabase/functions/discord-bot");
 
-const files = ["index.ts", "config.ts", "discord.ts", "embeds.ts", "commands.ts"].map((name) => ({
+const files = ["index.ts", "config.ts", "discord.ts", "embeds.ts", "roles.ts", "commands.ts"].map((name) => ({
   name,
   content: fs.readFileSync(path.join(root, name), "utf8"),
 }));
