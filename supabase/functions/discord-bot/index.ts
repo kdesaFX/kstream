@@ -4,20 +4,29 @@ import {
   type Interaction,
   jsonResponse,
   ephemeral,
+  followUp,
 } from "./discord.ts";
-import { handleCommand, handleComponent } from "./commands.ts";
+import {
+  handleCommand,
+  handleComponent,
+  handleTicketButton,
+} from "./commands.ts";
 import { loadEnv } from "./config.ts";
 
 const PUBLIC_KEY =
   Deno.env.get("DISCORD_PUBLIC_KEY") ??
   "cb8edf355b81013b7f84bb228a5df074a5253b2680f42f8ccbbc661b434fc1a5";
 
+const DEFER_IDS = new Set([
+  "ticket_open_support",
+  "ticket_open_report",
+]);
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  // Verify first with known public key so Discord PING stays fast.
   const { valid, body } = await verifyDiscordRequest(req, PUBLIC_KEY);
   if (!valid) {
     return new Response("Invalid request signature", { status: 401 });
@@ -29,24 +38,38 @@ Deno.serve(async (req) => {
     return jsonResponse({ type: 1 });
   }
 
-  let env;
-  try {
-    env = await loadEnv();
-  } catch (err) {
-    return jsonResponse(
-      ephemeral(`Bot config error: ${err instanceof Error ? err.message : "error"}`),
-    );
+  // ACK ticket buttons in <1s so Discord never times out.
+  const customId = interaction.data?.custom_id;
+  if (interaction.type === 3 && customId && DEFER_IDS.has(customId)) {
+    queueMicrotask(async () => {
+      try {
+        const env = await loadEnv();
+        await handleTicketButton(interaction, env, customId);
+      } catch (err) {
+        console.error(err);
+        try {
+          const env = await loadEnv();
+          await followUp(env.token, env.applicationId, interaction.token, {
+            content: `Failed: ${err instanceof Error ? err.message : String(err)}`,
+            flags: 64,
+          });
+        } catch {
+          /* ignore */
+        }
+      }
+    });
+    return jsonResponse({ type: 5, data: { flags: 64 } });
   }
 
   try {
+    const env = await loadEnv();
+
     if (interaction.type === 2) {
-      const response = await handleCommand(interaction, env);
-      return jsonResponse(response);
+      return jsonResponse(await handleCommand(interaction, env));
     }
 
     if (interaction.type === 3) {
-      const response = await handleComponent(interaction, env);
-      return jsonResponse(response);
+      return jsonResponse(await handleComponent(interaction, env));
     }
 
     return jsonResponse(ephemeral("Unsupported interaction type."));

@@ -20,6 +20,10 @@ import {
 } from "./embeds.ts";
 import { saveVaultSetting } from "./config.ts";
 
+function deferredEphemeral() {
+  return { type: 5, data: { flags: 64 } };
+}
+
 type Env = {
   token: string;
   applicationId: string;
@@ -85,7 +89,7 @@ export async function handleCommand(
 
   switch (name) {
     case "ticket":
-      return handleTicket(interaction, env, user, "support");
+      return startTicketDeferred(interaction, env, user, "support");
     case "ticket-close":
       return handleTicketClose(interaction, env, user);
     case "update":
@@ -97,17 +101,44 @@ export async function handleCommand(
   }
 }
 
-async function handleTicket(
+function startTicketDeferred(
+  interaction: Interaction,
+  env: Env,
+  user: { id: string; username: string },
+  kind: "support" | "report",
+  subjectOverride?: string,
+): Record<string, unknown> {
+  queueMicrotask(async () => {
+    try {
+      const result = await createTicket(interaction, env, user, kind, subjectOverride);
+      const content =
+        typeof result.data === "object" && result.data && "content" in result.data
+          ? String((result.data as { content: string }).content)
+          : "Done.";
+      await editOriginal(env.token, env.applicationId, interaction.token, {
+        content,
+      });
+    } catch (err) {
+      await followUp(env.token, env.applicationId, interaction.token, {
+        content: `Failed: ${err instanceof Error ? err.message : String(err)}`,
+        flags: 64,
+      }).catch(() => undefined);
+    }
+  });
+  return deferredEphemeral();
+}
+
+async function createTicket(
   interaction: Interaction,
   env: Env,
   user: { id: string; username: string },
   kind: "support" | "report" = "support",
   subjectOverride?: string,
-): Promise<Record<string, unknown>> {
+): Promise<{ data: { content: string } }> {
   if (!env.ticketCategoryId) {
     return ephemeral(
       "Tickets are not configured yet. Run `/setup-server` (admin).",
-    );
+    ) as { data: { content: string } };
   }
 
   const subject =
@@ -124,7 +155,9 @@ async function handleTicket(
     .maybeSingle();
 
   if (existing?.channel_id) {
-    return ephemeral(`You already have an open ticket: <#${existing.channel_id}>`);
+    return ephemeral(`You already have an open ticket: <#${existing.channel_id}>`) as {
+      data: { content: string };
+    };
   }
 
   const prefix = kind === "report" ? "report" : "ticket";
@@ -175,7 +208,17 @@ async function handleTicket(
     }),
   });
 
-  return ephemeral(`Ticket created: <#${channel.id}>`);
+  return ephemeral(`Ticket created: <#${channel.id}>`) as { data: { content: string } };
+}
+
+async function handleTicket(
+  interaction: Interaction,
+  env: Env,
+  user: { id: string; username: string },
+  kind: "support" | "report" = "support",
+  subjectOverride?: string,
+): Promise<Record<string, unknown>> {
+  return startTicketDeferred(interaction, env, user, kind, subjectOverride);
 }
 
 async function handleTicketClose(
@@ -398,12 +441,14 @@ export async function runServerSetup(token: string, guildId: string) {
     support: supportId!,
   };
 
-  // Always refresh branded embeds
+  // Always refresh branded embeds (wipe bot posts first)
+  await purgeBotMessages(token, rulesId!);
   await discordJson(token, `/channels/${rulesId}/messages`, {
     method: "POST",
     body: JSON.stringify({ embeds: rulesEmbeds() }),
   });
 
+  await purgeBotMessages(token, welcomeId!);
   await discordJson(token, `/channels/${welcomeId}/messages`, {
     method: "POST",
     body: JSON.stringify({
@@ -412,6 +457,7 @@ export async function runServerSetup(token: string, guildId: string) {
     }),
   });
 
+  await purgeBotMessages(token, supportId!);
   await discordJson(token, `/channels/${supportId}/messages`, {
     method: "POST",
     body: JSON.stringify({
@@ -429,6 +475,44 @@ export async function runServerSetup(token: string, guildId: string) {
   };
 }
 
+async function purgeBotMessages(token: string, channelId: string) {
+  const me = await discordJson<{ id: string }>(token, "/users/@me");
+  const messages = await discordJson<Array<{ id: string; author: { id: string } }>>(
+    token,
+    `/channels/${channelId}/messages?limit=50`,
+  );
+  for (const msg of messages) {
+    if (msg.author.id !== me.id) continue;
+    await discordJson(token, `/channels/${channelId}/messages/${msg.id}`, {
+      method: "DELETE",
+    }).catch(() => undefined);
+    await new Promise((r) => setTimeout(r, 350));
+  }
+}
+
+export async function handleTicketButton(
+  interaction: Interaction,
+  env: Env,
+  customId: string,
+): Promise<void> {
+  const user = interactionUser(interaction);
+  if (!user) {
+    await editOriginal(env.token, env.applicationId, interaction.token, {
+      content: "Could not resolve user.",
+    });
+    return;
+  }
+
+  const kind = customId === "ticket_open_report" ? "report" : "support";
+  const subject = kind === "report" ? "Report" : "General Support";
+  const result = await createTicket(interaction, env, user, kind, subject);
+  const content =
+    typeof result.data === "object" && result.data && "content" in result.data
+      ? String((result.data as { content: string }).content)
+      : "Done.";
+  await editOriginal(env.token, env.applicationId, interaction.token, { content });
+}
+
 export async function handleComponent(
   interaction: Interaction,
   env: Env,
@@ -442,11 +526,11 @@ export async function handleComponent(
   }
 
   if (customId === "ticket_open_support") {
-    return handleTicket(interaction, env, user, "support", "General Support");
+    return startTicketDeferred(interaction, env, user, "support", "General Support");
   }
 
   if (customId === "ticket_open_report") {
-    return handleTicket(interaction, env, user, "report", "Report");
+    return startTicketDeferred(interaction, env, user, "report", "Report");
   }
 
   return ephemeral("Unknown action.");

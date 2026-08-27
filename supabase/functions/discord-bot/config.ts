@@ -17,43 +17,80 @@ export type BotEnv = {
   staffRoleId?: string;
 };
 
-async function vaultSetting(name: string): Promise<string | undefined> {
+const KEYS = [
+  "DISCORD_BOT_TOKEN",
+  "DISCORD_PUBLIC_KEY",
+  "DISCORD_APPLICATION_ID",
+  "DISCORD_GUILD_ID",
+  "DISCORD_TICKET_CATEGORY_ID",
+  "DISCORD_UPDATES_CHANNEL_ID",
+  "DISCORD_WELCOME_CHANNEL_ID",
+  "DISCORD_RULES_CHANNEL_ID",
+  "DISCORD_SUPPORT_CHANNEL_ID",
+  "DISCORD_STAFF_ROLE_ID",
+] as const;
+
+let cache: BotEnv | null = null;
+let cacheAt = 0;
+const CACHE_MS = 60_000;
+
+async function loadVaultMap(): Promise<Record<string, string>> {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!url || !key) return undefined;
+  if (!url || !key) return {};
 
   const supabase = createClient(url, key, { auth: { persistSession: false } });
-  const { data, error } = await supabase.rpc("discord_bot_setting", {
-    setting_name: name,
-  });
-  if (error || !data) return undefined;
-  return String(data);
+  const results = await Promise.all(
+    KEYS.map(async (name) => {
+      const { data } = await supabase.rpc("discord_bot_setting", {
+        setting_name: name,
+      });
+      return [name, data ? String(data) : ""] as const;
+    }),
+  );
+
+  const map: Record<string, string> = {};
+  for (const [name, value] of results) {
+    if (value) map[name] = value;
+  }
+  return map;
 }
 
-async function setting(name: string, fallback?: string): Promise<string | undefined> {
-  return Deno.env.get(name) ?? (await vaultSetting(name)) ?? fallback;
+function pick(
+  map: Record<string, string>,
+  name: string,
+  fallback?: string,
+): string | undefined {
+  return Deno.env.get(name) ?? map[name] ?? fallback;
 }
 
-export async function loadEnv(): Promise<BotEnv> {
-  const token = await setting("DISCORD_BOT_TOKEN");
-  const publicKey = await setting("DISCORD_PUBLIC_KEY", DEFAULT_PUBLIC_KEY);
+export async function loadEnv(force = false): Promise<BotEnv> {
+  if (!force && cache && Date.now() - cacheAt < CACHE_MS) {
+    return cache;
+  }
+
+  const map = await loadVaultMap();
+  const token = pick(map, "DISCORD_BOT_TOKEN");
+  const publicKey = pick(map, "DISCORD_PUBLIC_KEY", DEFAULT_PUBLIC_KEY);
 
   if (!token || !publicKey) {
     throw new Error("DISCORD_BOT_TOKEN and DISCORD_PUBLIC_KEY are required");
   }
 
-  return {
+  cache = {
     token,
     publicKey,
-    applicationId: (await setting("DISCORD_APPLICATION_ID")) ?? APPLICATION_ID,
-    guildId: (await setting("DISCORD_GUILD_ID")) ?? "",
-    ticketCategoryId: await setting("DISCORD_TICKET_CATEGORY_ID"),
-    updatesChannelId: await setting("DISCORD_UPDATES_CHANNEL_ID"),
-    welcomeChannelId: await setting("DISCORD_WELCOME_CHANNEL_ID"),
-    rulesChannelId: await setting("DISCORD_RULES_CHANNEL_ID"),
-    supportChannelId: await setting("DISCORD_SUPPORT_CHANNEL_ID"),
-    staffRoleId: await setting("DISCORD_STAFF_ROLE_ID"),
+    applicationId: pick(map, "DISCORD_APPLICATION_ID") ?? APPLICATION_ID,
+    guildId: pick(map, "DISCORD_GUILD_ID") ?? "",
+    ticketCategoryId: pick(map, "DISCORD_TICKET_CATEGORY_ID"),
+    updatesChannelId: pick(map, "DISCORD_UPDATES_CHANNEL_ID"),
+    welcomeChannelId: pick(map, "DISCORD_WELCOME_CHANNEL_ID"),
+    rulesChannelId: pick(map, "DISCORD_RULES_CHANNEL_ID"),
+    supportChannelId: pick(map, "DISCORD_SUPPORT_CHANNEL_ID"),
+    staffRoleId: pick(map, "DISCORD_STAFF_ROLE_ID"),
   };
+  cacheAt = Date.now();
+  return cache;
 }
 
 export async function saveVaultSetting(name: string, value: string): Promise<void> {
@@ -66,4 +103,5 @@ export async function saveVaultSetting(name: string, value: string): Promise<voi
     setting_name: name,
     setting_value: value,
   });
+  cache = null;
 }

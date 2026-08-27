@@ -1,10 +1,11 @@
 /**
- * Refresh branded embeds in existing channels (no need for /setup-server).
+ * Wipe bot messages in welcome/rules/support, then repost branded embeds.
  *
  *   node discord-bot/scripts/refresh-embeds.mjs YOUR_BOT_TOKEN
  */
 const token = process.argv[2] || process.env.DISCORD_BOT_TOKEN;
 const GUILD_ID = process.env.DISCORD_GUILD_ID || "1542310809898590288";
+const BANNER = "https://kdesa.stream/embed-preview.png?v=8";
 
 if (!token) {
   console.error("Need bot token");
@@ -23,16 +24,36 @@ async function api(path, init = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function purgeBotMessages(channelId, botId) {
+  const messages = await api(`/channels/${channelId}/messages?limit=50`);
+  let n = 0;
+  for (const msg of messages) {
+    if (msg.author?.id !== botId) continue;
+    await api(`/channels/${channelId}/messages/${msg.id}`, { method: "DELETE" });
+    n++;
+    await sleep(350);
+  }
+  console.log(`Purged ${n} bot messages in ${channelId}`);
+}
+
 const BRAND = {
   accent: 0x5865f2,
   color: 0x1a1b1e,
   danger: 0xed4245,
   site: "https://kdesa.stream",
-  thumbnail: "https://kdesa.stream/apple-touch-icon.png",
 };
+
+function banner() {
+  return { color: BRAND.accent, image: { url: BANNER } };
+}
 
 function welcomeEmbeds(ids) {
   return [
+    banner(),
     {
       title: "Welcome to kdesa.stream!",
       description: [
@@ -46,7 +67,6 @@ function welcomeEmbeds(ids) {
         `Jump in on the site anytime: **${BRAND.site}**`,
       ].join("\n"),
       color: BRAND.accent,
-      thumbnail: { url: BRAND.thumbnail },
       footer: { text: "kdesa.stream community" },
     },
     {
@@ -69,13 +89,13 @@ function welcomeEmbeds(ids) {
         "Bugs, account issues, and reports via ticket buttons.",
       ].join("\n"),
       color: BRAND.accent,
-      thumbnail: { url: BRAND.thumbnail },
     },
   ];
 }
 
 function rulesEmbeds() {
   return [
+    banner(),
     {
       title: "kdesa.stream Rules",
       description: [
@@ -93,7 +113,6 @@ function rulesEmbeds() {
         "**Note:** Warns expire after **3 months** — they're not forever.",
       ].join("\n"),
       color: BRAND.danger,
-      thumbnail: { url: BRAND.thumbnail },
     },
     {
       title: "Warnable Offenses",
@@ -116,6 +135,7 @@ function rulesEmbeds() {
 function supportPanel(ids) {
   return {
     embeds: [
+      banner(),
       {
         title: "Contact Support",
         description: [
@@ -126,7 +146,6 @@ function supportPanel(ids) {
           `Site news lives in <#${ids.updates}>.`,
         ].join("\n"),
         color: BRAND.accent,
-        thumbnail: { url: BRAND.thumbnail },
         fields: [
           {
             name: "🛠️ General Support",
@@ -164,13 +183,16 @@ function supportPanel(ids) {
 }
 
 async function main() {
+  const me = await api("/users/@me");
+  console.log(`Bot: ${me.username} (${me.id})`);
+
   const channels = await api(`/guilds/${GUILD_ID}/channels`);
   const byName = (names) => channels.find((c) => names.includes(c.name));
 
   const rules = byName(["rules", "📜・rules", "📜-rules"]);
   const welcome = byName(["welcome", "👋・welcome", "👋-welcome"]);
   const updates = byName(["updates", "📢・updates", "📢-updates"]);
-  const support = byName(["support", "🛠️・support", "🛠️-support"]);
+  const support = byName(["support", "🛠️・support", "🛠️-support", "🔧・support", "🔧-support"]);
 
   if (!rules || !welcome || !updates || !support) {
     throw new Error("Missing channels — run complete-setup first");
@@ -195,12 +217,14 @@ async function main() {
     }).catch(() => undefined);
   }
 
+  await purgeBotMessages(rules.id, me.id);
   await api(`/channels/${rules.id}/messages`, {
     method: "POST",
     body: JSON.stringify({ embeds: rulesEmbeds() }),
   });
-  console.log("Posted rules embeds");
+  console.log("Posted rules");
 
+  await purgeBotMessages(welcome.id, me.id);
   await api(`/channels/${welcome.id}/messages`, {
     method: "POST",
     body: JSON.stringify({
@@ -216,15 +240,16 @@ async function main() {
       ],
     }),
   });
-  console.log("Posted welcome embeds");
+  console.log("Posted welcome");
 
+  await purgeBotMessages(support.id, me.id);
   await api(`/channels/${support.id}/messages`, {
     method: "POST",
     body: JSON.stringify(supportPanel(ids)),
   });
-  console.log("Posted support panel");
+  console.log("Posted support");
 
-  console.log("Done — check Discord.");
+  console.log("Done.");
 }
 
 main().catch((e) => {

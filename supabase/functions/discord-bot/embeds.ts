@@ -1,4 +1,4 @@
-/** Brand assets hosted on the live site (swap banner later if you make a custom one). */
+/** Brand assets from the live site. */
 export const BRAND = {
   color: 0x1a1b1e,
   accent: 0x5865f2,
@@ -6,9 +6,8 @@ export const BRAND = {
   warn: 0xfee75c,
   danger: 0xed4245,
   site: "https://kdesa.stream",
-  thumbnail: "https://kdesa.stream/apple-touch-icon.png",
-  /** Optional wide banner URL — set when you have a Creator-Coaster-style header image */
-  banner: "" as string,
+  /** Wide banner (same asset as site OG / embed preview) */
+  banner: "https://kdesa.stream/embed-preview.png?v=8",
 };
 
 type ChannelIds = {
@@ -23,13 +22,10 @@ function ch(id: string | undefined, fallback: string) {
 }
 
 export function bannerEmbed() {
-  const embed: Record<string, unknown> = {
+  return {
     color: BRAND.accent,
+    image: { url: BRAND.banner },
   };
-  if (BRAND.banner) {
-    embed.image = { url: BRAND.banner };
-  }
-  return embed;
 }
 
 export function welcomeEmbeds(ids: ChannelIds = {}) {
@@ -52,7 +48,6 @@ export function welcomeEmbeds(ids: ChannelIds = {}) {
         `Jump in on the site anytime: **${BRAND.site}**`,
       ].join("\n"),
       color: BRAND.accent,
-      thumbnail: { url: BRAND.thumbnail },
       footer: { text: "kdesa.stream community" },
     },
   ];
@@ -63,18 +58,8 @@ export function welcomeComponents() {
     {
       type: 1,
       components: [
-        {
-          type: 2,
-          style: 5,
-          label: "Website",
-          url: BRAND.site,
-        },
-        {
-          type: 2,
-          style: 5,
-          label: "Browse",
-          url: `${BRAND.site}/browse`,
-        },
+        { type: 2, style: 5, label: "Website", url: BRAND.site },
+        { type: 2, style: 5, label: "Browse", url: `${BRAND.site}/browse` },
       ],
     },
   ];
@@ -100,7 +85,6 @@ export function rulesEmbeds() {
         "**Note:** Warns expire after **3 months** — they're not forever.",
       ].join("\n"),
       color: BRAND.danger,
-      thumbnail: { url: BRAND.thumbnail },
     },
     {
       title: "Warnable Offenses",
@@ -126,7 +110,6 @@ export function infoEmbeds(ids: ChannelIds = {}) {
   const updates = ch(ids.updates, "#📢・updates");
 
   return [
-    bannerEmbed(),
     {
       title: "Start Here",
       description: [
@@ -147,7 +130,6 @@ export function infoEmbeds(ids: ChannelIds = {}) {
         "Bugs, account issues, and reports via ticket buttons.",
       ].join("\n"),
       color: BRAND.accent,
-      thumbnail: { url: BRAND.thumbnail },
     },
   ];
 }
@@ -167,18 +149,15 @@ export function supportPanelEmbeds(ids: ChannelIds = {}) {
         `Site news lives in ${updates}.`,
       ].join("\n"),
       color: BRAND.accent,
-      thumbnail: { url: BRAND.thumbnail },
       fields: [
         {
           name: "🛠️ General Support",
-          value:
-            "Bugs, playback issues, manga loading, account/login help.",
+          value: "Bugs, playback issues, manga loading, account/login help.",
           inline: false,
         },
         {
           name: "🛡️ Report",
-          value:
-            "Report a member or something that broke the rules.",
+          value: "Report a member or something that broke the rules.",
           inline: false,
         },
       ],
@@ -223,7 +202,6 @@ export function updateEmbed(
     title: isBig ? `🚀 ${title}` : `📌 ${title}`,
     description,
     color: isBig ? BRAND.accent : BRAND.success,
-    thumbnail: { url: BRAND.thumbnail },
     footer: authorName
       ? { text: `Posted by ${authorName}` }
       : { text: "kdesa.stream updates" },
@@ -250,31 +228,5 @@ export function ticketOpenEmbed(
       "Use **Close ticket** below or `/ticket-close` when you're done.",
     ].join("\n"),
     color: kind === "report" ? BRAND.danger : BRAND.warn,
-    thumbnail: { url: BRAND.thumbnail },
   };
-}
-
-/** @deprecated use welcomeEmbeds */
-export function welcomeEmbed() {
-  return welcomeEmbeds()[1];
-}
-
-/** @deprecated use rulesEmbeds */
-export function rulesEmbed() {
-  return rulesEmbeds()[1];
-}
-
-export function replaceChannelPlaceholders(
-  embed: { description?: string; [k: string]: unknown },
-  ids: ChannelIds,
-) {
-  let description = String(embed.description ?? "");
-  if (ids.rules) description = description.replaceAll("<#RULES>", `<#${ids.rules}>`);
-  if (ids.support) {
-    description = description.replaceAll("<#SUPPORT>", `<#${ids.support}>`);
-  }
-  if (ids.updates) {
-    description = description.replaceAll("<#UPDATES>", `<#${ids.updates}>`);
-  }
-  return { ...embed, description };
 }
