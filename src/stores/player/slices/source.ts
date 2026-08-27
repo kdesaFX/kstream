@@ -703,13 +703,16 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
         s.audioStreamOptions,
         options,
       );
+      // Only mark a discovered option as selected when it matches the stream
+      // actually playing. Falling back to options[0] (alphabetical) falsely
+      // checkmarks e.g. French while Nova English with a blank language tag
+      // is still on the wire.
       if (!s.currentAudioStreamId) {
         const lang = s.source?.audioLanguage?.trim();
-        const match = lang
-          ? s.audioStreamOptions.find((o) => o.language === lang)
-          : undefined;
-        s.currentAudioStreamId =
-          match?.id ?? s.audioStreamOptions[0]?.id ?? null;
+        if (lang) {
+          const match = s.audioStreamOptions.find((o) => o.language === lang);
+          if (match) s.currentAudioStreamId = match.id;
+        }
       }
     });
   },

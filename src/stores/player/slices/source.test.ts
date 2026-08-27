@@ -114,3 +114,85 @@ describe("reportStreamDuration", () => {
     expect(usePlayerStore.getState().wrongRuntimeSkips).toBe(0);
   });
 });
+
+describe("registerAudioStreamOptions", () => {
+  beforeEach(() => {
+    usePlayerStore.getState().reset();
+  });
+
+  it("does not auto-select an unrelated dub when the playing stream has no language", () => {
+    usePlayerStore.setState((s) => {
+      s.source = {
+        type: "hls",
+        url: "https://example.com/nova.m3u8",
+        // blank / missing audioLanguage — Nova English often looks like this
+      } as any;
+      s.currentAudioStreamId = null;
+    });
+
+    usePlayerStore.getState().registerAudioStreamOptions([
+      {
+        id: "cuevana:direct:1:es",
+        language: "es",
+        label: "Spanish",
+        sourceId: "cuevana3",
+        embedId: null,
+        source: { type: "hls", url: "https://example.com/es.m3u8" } as any,
+        captions: [],
+      },
+      {
+        id: "french:direct:1:fr",
+        language: "fr",
+        label: "French",
+        sourceId: "vixsrc",
+        embedId: null,
+        source: { type: "hls", url: "https://example.com/fr.m3u8" } as any,
+        captions: [],
+      },
+    ]);
+
+    const store = usePlayerStore.getState();
+    expect(store.audioStreamOptions.map((o) => o.language).sort()).toEqual([
+      "es",
+      "fr",
+    ]);
+    // Must stay null — previously fell through to alphabetical French.
+    expect(store.currentAudioStreamId).toBeNull();
+  });
+
+  it("selects the option matching the playing stream language", () => {
+    usePlayerStore.setState((s) => {
+      s.source = {
+        type: "hls",
+        url: "https://example.com/en.m3u8",
+        audioLanguage: "en",
+      } as any;
+      s.currentAudioStreamId = null;
+    });
+
+    usePlayerStore.getState().registerAudioStreamOptions([
+      {
+        id: "nova:direct:0:en",
+        language: "en",
+        label: "English",
+        sourceId: "nova",
+        embedId: null,
+        source: { type: "hls", url: "https://example.com/en.m3u8" } as any,
+        captions: [],
+      },
+      {
+        id: "vixsrc:direct:1:fr",
+        language: "fr",
+        label: "French",
+        sourceId: "vixsrc",
+        embedId: null,
+        source: { type: "hls", url: "https://example.com/fr.m3u8" } as any,
+        captions: [],
+      },
+    ]);
+
+    expect(usePlayerStore.getState().currentAudioStreamId).toBe(
+      "nova:direct:0:en",
+    );
+  });
+});
