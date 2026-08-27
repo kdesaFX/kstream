@@ -7,4 +7,6 @@ declare const __BUILD_ID__: string;
 
 interface Window {
   __kstreamLoadPopunder?: () => void;
+  __kstreamUnloadPopunder?: () => void;
+  __kstreamPopunderGuardInstalled?: boolean;
 }

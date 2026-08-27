@@ -34,7 +34,7 @@ window.__CONFIG__ = {
   // --- Ads ---
   // Popunders earn more than display banners on streaming traffic, so banners
   // are off. Soft Popunder loads on homepage, browse, read-history, algorithm,
-  // and about (not player/search).
+  // and about only — not player (/media), manga reader, search, or settings.
   // Paste your Adsterra Soft Popunder "Get code" values below to go live:
   //   <script data-zone="ZONE" src="SCRIPT_URL"></script>
   // Two scripts on one page is not supported (and usually against network rules);
