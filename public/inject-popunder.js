@@ -1,12 +1,15 @@
 /**
  * Adsterra Soft Popunder — must NOT open tabs on page load.
- * Script loads only after the first user click on allowed pages; window.open
- * to ad hosts is blocked unless it follows a recent trusted gesture.
+ * Script loads only after the first user click on allowed pages; at most one
+ * popunder per tab session (sessionStorage). window.open to ad hosts is
+ * blocked unless it follows a recent trusted gesture, and blocked entirely
+ * after that session has already spent its one popunder.
  */
 (function injectPopunderInHead() {
   var AD_HOST_RE =
     /(?:profitableratecpmnetwork|highrevenueformat|adsterra|effectivegatecpm|clickadu|onclick|pemsrv|revenuecpmnetwork)\./i;
   var GESTURE_MS = 1500;
+  var SESSION_KEY = "kstream:popunder-spent";
 
   var lastUserGestureAt = 0;
 
@@ -16,6 +19,23 @@
 
   function recentUserGesture() {
     return Date.now() - lastUserGestureAt <= GESTURE_MS;
+  }
+
+  function hasSpentPopunder() {
+    try {
+      return sessionStorage.getItem(SESSION_KEY) === "1";
+    } catch (_e) {
+      return Boolean(window.__kstreamPopunderSpent);
+    }
+  }
+
+  function markPopunderSpent() {
+    window.__kstreamPopunderSpent = true;
+    try {
+      sessionStorage.setItem(SESSION_KEY, "1");
+    } catch (_e) {
+      /* private mode / blocked storage — in-memory flag still applies */
+    }
   }
 
   function isPopunderPath(path) {
@@ -72,8 +92,14 @@
 
     var nativeOpen = window.open;
     window.open = function popunderGuard(url, target, features) {
-      if (isSuspiciousPopunderUrl(url) && !recentUserGesture()) {
-        return null;
+      if (isSuspiciousPopunderUrl(url)) {
+        // One popunder per tab session — block every further ad open.
+        if (hasSpentPopunder()) return null;
+        if (!recentUserGesture()) return null;
+        markPopunderSpent();
+        unloadPopunderScript();
+        disarmPopunderOnGesture();
+        pendingCfg = null;
       }
       return nativeOpen.call(window, url, target, features);
     };
@@ -82,6 +108,7 @@
   function loadPopunderScript(cfg) {
     var src = cfg.VITE_POPUNDER_SCRIPT_URL;
     if (!src) return;
+    if (hasSpentPopunder()) return;
 
     if (document.querySelector('script[data-kstream-popunder="1"]')) return;
 
@@ -108,11 +135,13 @@
 
   function onFirstGesture() {
     disarmPopunderOnGesture();
+    if (hasSpentPopunder()) return;
     if (pendingCfg) loadPopunderScript(pendingCfg);
   }
 
   /** Wait for a real click before injecting the network script (blocks load-time popups). */
   function armPopunderOnGesture(cfg) {
+    if (hasSpentPopunder()) return;
     if (window.__kstreamPopunderArmed) return;
     if (document.querySelector('script[data-kstream-popunder="1"]')) return;
 
@@ -127,7 +156,7 @@
       var cfg = window.__CONFIG__ || {};
       var path = window.location.pathname || "/";
 
-      if (cfg.VITE_ENABLE_POPUNDER !== "true" || isAdsOptedOut()) {
+      if (cfg.VITE_ENABLE_POPUNDER !== "true" || isAdsOptedOut() || hasSpentPopunder()) {
         disarmPopunderOnGesture();
         unloadPopunderScript();
         pendingCfg = null;
