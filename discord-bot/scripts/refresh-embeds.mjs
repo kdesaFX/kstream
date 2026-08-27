@@ -267,12 +267,10 @@ async function main() {
     support: support.id,
   };
 
-  // Prefer permanent site URL (CDN attachment links expire).
-  try {
-    const probe = await fetch(BRAND.banner, { method: "HEAD" });
-    if (!probe.ok) throw new Error("site banner not live yet");
-    console.log("Using site banner URL");
-  } catch {
+  // Prefer Discord CDN from local file so embeds update immediately (site deploy can lag).
+  // Permanent site URL is still used in code for later refreshes once live.
+  let bannerUrl = BRAND.banner;
+  {
     const form = new FormData();
     form.append(
       "payload_json",
@@ -295,10 +293,10 @@ async function main() {
       if (!r.ok) throw new Error(`upload ${r.status}: ${t}`);
       return JSON.parse(t);
     });
-    const cdnBanner = hosted.attachments?.[0]?.url;
-    if (cdnBanner) {
-      BRAND.banner = cdnBanner;
-      console.log("Site banner not live yet — using temporary CDN");
+    if (hosted.attachments?.[0]?.url) {
+      bannerUrl = hosted.attachments[0].url;
+      BRAND.banner = bannerUrl;
+      console.log("Using Discord CDN banner for embeds (from local file)");
     }
     await api(`/channels/${welcome.id}/messages/${hosted.id}`, {
       method: "DELETE",
