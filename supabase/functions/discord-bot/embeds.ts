@@ -4,7 +4,7 @@ export const BRAND = {
   color: 0x111214,
   site: "https://kdesa.stream",
   /** Black + teal kstream signal banner */
-  banner: "https://kdesa.stream/discord-banner.png?v=1",
+  banner: "https://kdesa.stream/discord-banner.png?v=2",
 };
 
 type ChannelIds = {

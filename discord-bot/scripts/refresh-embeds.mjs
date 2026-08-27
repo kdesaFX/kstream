@@ -96,7 +96,7 @@ async function purgeBotMessages(channelId, botId) {
 const BRAND = {
   color: 0x111214,
   site: "https://kdesa.stream",
-  banner: "https://kdesa.stream/discord-banner.png?v=1",
+  banner: "https://kdesa.stream/discord-banner.png?v=2",
 };
 
 function banner() {
