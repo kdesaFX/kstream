@@ -265,38 +265,43 @@ async function main() {
     support: support.id,
   };
 
-  // Upload banner to Discord CDN so embeds work before site deploy finishes
-  const form = new FormData();
-  form.append(
-    "payload_json",
-    JSON.stringify({ content: "banner-host (ignore)" }),
-  );
-  form.append(
-    "files[0]",
-    new Blob([fs.readFileSync(bannerPath)], { type: "image/png" }),
-    "discord-banner.png",
-  );
-  const hosted = await fetch(
-    `https://discord.com/api/v10/channels/${welcome.id}/messages`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bot ${token}` },
-      body: form,
-    },
-  ).then(async (r) => {
-    const t = await r.text();
-    if (!r.ok) throw new Error(`upload ${r.status}: ${t}`);
-    return JSON.parse(t);
-  });
-  const cdnBanner = hosted.attachments?.[0]?.url;
-  if (cdnBanner) {
-    BRAND.banner = cdnBanner;
-    console.log("Using Discord CDN banner for embeds");
+  // Prefer permanent site URL (CDN attachment links expire).
+  try {
+    const probe = await fetch(BRAND.banner, { method: "HEAD" });
+    if (!probe.ok) throw new Error("site banner not live yet");
+    console.log("Using site banner URL");
+  } catch {
+    const form = new FormData();
+    form.append(
+      "payload_json",
+      JSON.stringify({ content: "banner-host (ignore)" }),
+    );
+    form.append(
+      "files[0]",
+      new Blob([fs.readFileSync(bannerPath)], { type: "image/png" }),
+      "discord-banner.png",
+    );
+    const hosted = await fetch(
+      `https://discord.com/api/v10/channels/${welcome.id}/messages`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bot ${token}` },
+        body: form,
+      },
+    ).then(async (r) => {
+      const t = await r.text();
+      if (!r.ok) throw new Error(`upload ${r.status}: ${t}`);
+      return JSON.parse(t);
+    });
+    const cdnBanner = hosted.attachments?.[0]?.url;
+    if (cdnBanner) {
+      BRAND.banner = cdnBanner;
+      console.log("Site banner not live yet — using temporary CDN");
+    }
+    await api(`/channels/${welcome.id}/messages/${hosted.id}`, {
+      method: "DELETE",
+    }).catch(() => undefined);
   }
-  // delete host message
-  await api(`/channels/${welcome.id}/messages/${hosted.id}`, {
-    method: "DELETE",
-  }).catch(() => undefined);
 
   for (const chId of [rules.id, welcome.id, support.id]) {
     await purgeBotMessages(chId, me.id);
