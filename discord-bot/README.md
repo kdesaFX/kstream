@@ -97,12 +97,21 @@ DISCORD_BOT_TOKEN=your_token node discord-bot/scripts/register-commands.mjs YOUR
 | `/update` | Staff/admin | Posts an embed to `#updates` (no @everyone — you say when to ping) |
 | `/setup-server` | Admin | Creates channels + starter embeds |
 
-## Deploy function
+## Hosting (free)
 
-From repo (or use Supabase dashboard):
+The bot runs on **Supabase Edge Functions** (your existing `khplnaovkxvzhbimuvzn` project) — free tier, no VPS needed.
 
-```bash
-supabase functions deploy discord-bot --project-ref khplnaovkxvzhbimuvzn --no-verify-jwt
-```
+Discord hits:
+`https://khplnaovkxvzhbimuvzn.supabase.co/functions/v1/discord-bot`
 
-JWT verification is off because Discord authenticates via Ed25519 signature on each request.
+Set that as the **Interactions Endpoint URL** in the Developer Portal.
+
+## Brand embeds
+
+`/setup-server` (or `node discord-bot/scripts/refresh-embeds.mjs TOKEN`) posts Creator-Coaster-style panels:
+
+- Welcome + Start Here + Website/Browse link buttons
+- Rules + warning system + warnable offenses
+- Contact Support panel with **Support Ticket** / **Report Ticket** buttons
+
+Optional: drop a wide banner image URL into `BRAND.banner` in `embeds.ts` when you have one.

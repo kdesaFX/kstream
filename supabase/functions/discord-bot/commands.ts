@@ -11,9 +11,12 @@ import {
 import {
   updateEmbed,
   ticketOpenEmbed,
-  welcomeEmbed,
-  rulesEmbed,
-  replaceChannelPlaceholders,
+  welcomeEmbeds,
+  welcomeComponents,
+  rulesEmbeds,
+  infoEmbeds,
+  supportPanelEmbeds,
+  supportPanelComponents,
 } from "./embeds.ts";
 import { saveVaultSetting } from "./config.ts";
 
@@ -52,17 +55,22 @@ function supabaseAdmin() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-async function nextTicketName(token: string, guildId: string): Promise<string> {
+async function nextTicketName(
+  token: string,
+  guildId: string,
+  prefix = "ticket",
+): Promise<string> {
   const channels = await discordJson<DiscordChannel[]>(
     token,
     `/guilds/${guildId}/channels`,
   );
+  const re = new RegExp(`^${prefix}-(\\d+)$`);
   const nums = channels
-    .map((c) => /^ticket-(\d+)$/.exec(c.name))
+    .map((c) => re.exec(c.name))
     .filter(Boolean)
     .map((m) => parseInt(m![1], 10));
   const next = nums.length ? Math.max(...nums) + 1 : 1;
-  return `ticket-${String(next).padStart(3, "0")}`;
+  return `${prefix}-${String(next).padStart(3, "0")}`;
 }
 
 export async function handleCommand(
@@ -77,7 +85,7 @@ export async function handleCommand(
 
   switch (name) {
     case "ticket":
-      return handleTicket(interaction, env, user);
+      return handleTicket(interaction, env, user, "support");
     case "ticket-close":
       return handleTicketClose(interaction, env, user);
     case "update":
@@ -93,14 +101,18 @@ async function handleTicket(
   interaction: Interaction,
   env: Env,
   user: { id: string; username: string },
+  kind: "support" | "report" = "support",
+  subjectOverride?: string,
 ): Promise<Record<string, unknown>> {
   if (!env.ticketCategoryId) {
     return ephemeral(
-      "Tickets are not configured yet. Run `/setup-server` (admin) or set DISCORD_TICKET_CATEGORY_ID.",
+      "Tickets are not configured yet. Run `/setup-server` (admin).",
     );
   }
 
-  const subject = optionString(interaction, "subject")?.slice(0, 200);
+  const subject =
+    (subjectOverride ?? optionString(interaction, "subject"))?.slice(0, 200) ??
+    (kind === "report" ? "Report" : "Support");
   const supabase = supabaseAdmin();
 
   const { data: existing } = await supabase
@@ -115,7 +127,8 @@ async function handleTicket(
     return ephemeral(`You already have an open ticket: <#${existing.channel_id}>`);
   }
 
-  const channelName = await nextTicketName(env.token, interaction.guild_id!);
+  const prefix = kind === "report" ? "report" : "ticket";
+  const channelName = await nextTicketName(env.token, interaction.guild_id!, prefix);
   const channel = await discordJson<DiscordChannel>(
     env.token,
     `/guilds/${interaction.guild_id}/channels`,
@@ -125,24 +138,12 @@ async function handleTicket(
         name: channelName,
         type: 0,
         parent_id: env.ticketCategoryId,
-        topic: `Ticket for ${user.username}${subject ? ` — ${subject}` : ""}`,
+        topic: `${kind} for ${user.username} — ${subject}`,
         permission_overwrites: [
-          {
-            id: interaction.guild_id,
-            type: 0,
-            deny: "1024",
-          },
-          {
-            id: user.id,
-            type: 1,
-            allow: "3072",
-          },
+          { id: interaction.guild_id, type: 0, deny: "1024" },
+          { id: user.id, type: 1, allow: "3072" },
           ...(env.staffRoleId
-            ? [{
-              id: env.staffRoleId,
-              type: 0,
-              allow: "3072",
-            }]
+            ? [{ id: env.staffRoleId, type: 0, allow: "3072" }]
             : []),
         ],
       }),
@@ -153,16 +154,15 @@ async function handleTicket(
     guild_id: interaction.guild_id,
     channel_id: channel.id,
     opener_discord_id: user.id,
-    subject: subject ?? null,
+    subject,
     status: "open",
   });
 
-  const embed = ticketOpenEmbed(subject ?? "", `<@${user.id}>`);
   await discordJson(env.token, `/channels/${channel.id}/messages`, {
     method: "POST",
     body: JSON.stringify({
       content: `<@${user.id}>`,
-      embeds: [embed],
+      embeds: [ticketOpenEmbed(subject, `<@${user.id}>`, kind)],
       components: [{
         type: 1,
         components: [{
@@ -226,7 +226,7 @@ async function handleUpdate(
 
   if (!env.updatesChannelId) {
     return ephemeral(
-      "Updates channel not configured. Run `/setup-server` or set DISCORD_UPDATES_CHANNEL_ID.",
+      "Updates channel not configured. Run `/setup-server`.",
     );
   }
 
@@ -239,20 +239,22 @@ async function handleUpdate(
   }
 
   const displayName = user.global_name ?? user.username;
-  const embed = updateEmbed(title, description, type, displayName);
-
   await discordJson(env.token, `/channels/${env.updatesChannelId}/messages`, {
     method: "POST",
-    body: JSON.stringify({ embeds: [embed] }),
+    body: JSON.stringify({
+      embeds: [updateEmbed(title, description, type, displayName)],
+    }),
   });
 
-  return ephemeral(`Update posted to <#${env.updatesChannelId}>. (No ping — tell me if you want one later.)`);
+  return ephemeral(
+    `Update posted to <#${env.updatesChannelId}>. (No ping — tell me when you want one.)`,
+  );
 }
 
 async function handleSetupServer(
   interaction: Interaction,
   env: Env,
-  user: { id: string; username: string },
+  _user: { id: string; username: string },
 ): Promise<Record<string, unknown>> {
   if (!hasAdmin(interaction)) {
     return ephemeral("You need Administrator to run server setup.");
@@ -263,7 +265,7 @@ async function handleSetupServer(
 
   queueMicrotask(async () => {
     try {
-      const created = await runServerSetup(env.token, guildId, env.applicationId);
+      const created = await runServerSetup(env.token, guildId);
 
       await saveVaultSetting("DISCORD_GUILD_ID", guildId);
       await saveVaultSetting("DISCORD_RULES_CHANNEL_ID", created.rulesId);
@@ -274,13 +276,13 @@ async function handleSetupServer(
 
       await editOriginal(env.token, env.applicationId, interaction.token, {
         content: [
-          "Server setup complete. Channel IDs saved to Supabase Vault.",
+          "Server setup / embed refresh complete.",
           "",
-          `#rules <#${created.rulesId}>`,
           `#welcome <#${created.welcomeId}>`,
+          `#rules <#${created.rulesId}>`,
           `#updates <#${created.updatesId}>`,
           `#support <#${created.supportId}>`,
-          `Tickets category: \`${created.ticketCategoryId}\``,
+          `Tickets: \`${created.ticketCategoryId}\``,
         ].join("\n"),
       });
     } catch (err) {
@@ -294,77 +296,91 @@ async function handleSetupServer(
   return deferred;
 }
 
-export async function runServerSetup(
+async function ensureChannel(
   token: string,
   guildId: string,
-  _applicationId: string,
-) {
+  existing: DiscordChannel[],
+  name: string,
+  topic: string,
+): Promise<string> {
+  const found = existing.find((c) => c.name === name || c.name.endsWith(name));
+  if (found) {
+    // Rename to emoji style if still plain
+    if (found.name === name.replace(/^[^a-z0-9-]+/i, "") || found.name === name) {
+      // keep as-is if already good
+    }
+    return found.id;
+  }
+  const ch = await discordJson<DiscordChannel>(token, `/guilds/${guildId}/channels`, {
+    method: "POST",
+    body: JSON.stringify({ name, type: 0, topic }),
+  });
+  return ch.id;
+}
+
+export async function runServerSetup(token: string, guildId: string) {
   const existing = await discordJson<DiscordChannel[]>(
     token,
     `/guilds/${guildId}/channels`,
   );
 
-  const findByName = (name: string) =>
-    existing.find((c) => c.name === name)?.id;
+  const find = (...names: string[]) =>
+    existing.find((c) => names.includes(c.name))?.id;
 
-  let rulesId = findByName("rules");
-  let welcomeId = findByName("welcome");
-  let updatesId = findByName("updates");
-  let supportId = findByName("support");
-  let ticketCategoryId = existing.find((c) => c.name === "Support Tickets" && c.type === 4)?.id;
+  let rulesId = find("rules", "📜・rules", "📜-rules");
+  let welcomeId = find("welcome", "👋・welcome", "👋-welcome");
+  let updatesId = find("updates", "📢・updates", "📢-updates");
+  let supportId = find("support", "🛠️・support", "🛠️-support");
+  let ticketCategoryId = existing.find(
+    (c) => (c.name === "Support Tickets" || c.name === "tickets") && c.type === 4,
+  )?.id;
 
   if (!rulesId) {
-    const ch = await discordJson<DiscordChannel>(token, `/guilds/${guildId}/channels`, {
-      method: "POST",
-      body: JSON.stringify({ name: "rules", type: 0, topic: "Server rules" }),
-    });
-    rulesId = ch.id;
-    await discordJson(token, `/channels/${rulesId}/messages`, {
-      method: "POST",
-      body: JSON.stringify({ embeds: [rulesEmbed()] }),
-    });
+    rulesId = await ensureChannel(token, guildId, existing, "📜・rules", "Server rules");
+  } else {
+    await discordJson(token, `/channels/${rulesId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name: "📜・rules" }),
+    }).catch(() => undefined);
   }
 
   if (!welcomeId) {
-    const ch = await discordJson<DiscordChannel>(token, `/guilds/${guildId}/channels`, {
-      method: "POST",
-      body: JSON.stringify({ name: "welcome", type: 0, topic: "Welcome" }),
-    });
-    welcomeId = ch.id;
+    welcomeId = await ensureChannel(token, guildId, existing, "👋・welcome", "Welcome");
+  } else {
+    await discordJson(token, `/channels/${welcomeId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name: "👋・welcome" }),
+    }).catch(() => undefined);
   }
 
   if (!updatesId) {
-    const ch = await discordJson<DiscordChannel>(token, `/guilds/${guildId}/channels`, {
-      method: "POST",
-      body: JSON.stringify({
-        name: "updates",
-        type: 0,
-        topic: "kdesa.stream site updates",
-      }),
-    });
-    updatesId = ch.id;
+    updatesId = await ensureChannel(
+      token,
+      guildId,
+      existing,
+      "📢・updates",
+      "kdesa.stream site updates",
+    );
+  } else {
+    await discordJson(token, `/channels/${updatesId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name: "📢・updates" }),
+    }).catch(() => undefined);
   }
 
   if (!supportId) {
-    const ch = await discordJson<DiscordChannel>(token, `/guilds/${guildId}/channels`, {
-      method: "POST",
-      body: JSON.stringify({
-        name: "support",
-        type: 0,
-        topic: "Open a ticket with /ticket",
-      }),
-    });
-    supportId = ch.id;
-    await discordJson(token, `/channels/${supportId}/messages`, {
-      method: "POST",
-      body: JSON.stringify({
-        embeds: [{
-          title: "Need help?",
-          description: "Use `/ticket` anywhere in the server to open a private support channel.",
-          color: 0x5865f2,
-        }],
-      }),
-    });
+    supportId = await ensureChannel(
+      token,
+      guildId,
+      existing,
+      "🛠️・support",
+      "Open a ticket with the buttons below",
+    );
+  } else {
+    await discordJson(token, `/channels/${supportId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name: "🛠️・support" }),
+    }).catch(() => undefined);
   }
 
   if (!ticketCategoryId) {
@@ -375,14 +391,33 @@ export async function runServerSetup(
     ticketCategoryId = cat.id;
   }
 
-  const welcome = replaceChannelPlaceholders(welcomeEmbed(), {
-    rules: rulesId,
-    support: supportId,
-    updates: updatesId,
+  const ids = {
+    rules: rulesId!,
+    welcome: welcomeId!,
+    updates: updatesId!,
+    support: supportId!,
+  };
+
+  // Always refresh branded embeds
+  await discordJson(token, `/channels/${rulesId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ embeds: rulesEmbeds() }),
   });
+
   await discordJson(token, `/channels/${welcomeId}/messages`, {
     method: "POST",
-    body: JSON.stringify({ embeds: [welcome] }),
+    body: JSON.stringify({
+      embeds: [...welcomeEmbeds(ids), ...infoEmbeds(ids)],
+      components: welcomeComponents(),
+    }),
+  });
+
+  await discordJson(token, `/channels/${supportId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      embeds: supportPanelEmbeds(ids),
+      components: supportPanelComponents(),
+    }),
   });
 
   return {
@@ -398,18 +433,21 @@ export async function handleComponent(
   interaction: Interaction,
   env: Env,
 ): Promise<Record<string, unknown>> {
-  if (interaction.data?.custom_id !== "ticket_close") {
-    return ephemeral("Unknown action.");
-  }
-
+  const customId = interaction.data?.custom_id;
   const user = interactionUser(interaction);
-  if (!user || !interaction.channel_id) {
-    return ephemeral("Could not resolve user.");
+  if (!user) return ephemeral("Could not resolve user.");
+
+  if (customId === "ticket_close") {
+    return handleTicketClose(interaction, env, user);
   }
 
-  const fakeCommand: Interaction = {
-    ...interaction,
-    data: { name: "ticket-close" },
-  };
-  return handleTicketClose(fakeCommand, env, user);
+  if (customId === "ticket_open_support") {
+    return handleTicket(interaction, env, user, "support", "General Support");
+  }
+
+  if (customId === "ticket_open_report") {
+    return handleTicket(interaction, env, user, "report", "Report");
+  }
+
+  return ephemeral("Unknown action.");
 }
