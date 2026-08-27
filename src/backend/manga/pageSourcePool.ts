@@ -27,30 +27,35 @@ export async function racePageSourcesPool(
       }
     };
 
+    const onTaskDone = (pages: string[] | null) => {
+      active -= 1;
+      if (settled) return;
+      if (pages?.length) {
+        settled = true;
+        resolve(pages);
+        return;
+      }
+      pump();
+      tryResolveEmpty();
+    };
+
+    const onTaskError = () => {
+      active -= 1;
+      if (settled) return;
+      pump();
+      tryResolveEmpty();
+    };
+
+    const startTask = (run: PageSourceTask) => {
+      active += 1;
+      void run().then(onTaskDone).catch(onTaskError);
+    };
+
     const pump = () => {
       if (settled) return;
       while (active < concurrency && nextIndex < tasks.length) {
-        const run = tasks[nextIndex];
+        startTask(tasks[nextIndex]);
         nextIndex += 1;
-        active += 1;
-        void run()
-          .then((pages) => {
-            active -= 1;
-            if (settled) return;
-            if (pages?.length) {
-              settled = true;
-              resolve(pages);
-              return;
-            }
-            pump();
-            tryResolveEmpty();
-          })
-          .catch(() => {
-            active -= 1;
-            if (settled) return;
-            pump();
-            tryResolveEmpty();
-          });
       }
       tryResolveEmpty();
     };

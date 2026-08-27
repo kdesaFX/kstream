@@ -22,7 +22,9 @@ describe("racePageSourcesPool", () => {
     const track = (delay: number, pages: string[] | null) => async () => {
       inFlight += 1;
       peak = Math.max(peak, inFlight);
-      await new Promise((r) => setTimeout(r, delay));
+      await new Promise<void>((r) => {
+        setTimeout(r, delay);
+      });
       inFlight -= 1;
       return pages;
     };
