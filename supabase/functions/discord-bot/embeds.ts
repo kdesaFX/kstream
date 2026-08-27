@@ -3,13 +3,11 @@ export const BRAND = {
   /** Left border for every embed — dark, blends with Discord night theme */
   color: 0x111214,
   site: "https://kdesa.stream",
-  /** Black + teal kstream signal banner */
   /** Prefer attached file in refresh script; site URL for edge posts */
   banner: "https://kdesa.stream/discord-banner.jpg?v=3",
 };
 
 type ChannelIds = {
-  rules?: string;
   welcome?: string;
   updates?: string;
   support?: string;
@@ -27,7 +25,6 @@ export function bannerEmbed() {
 }
 
 export function welcomeEmbeds(ids: ChannelIds = {}) {
-  const rules = ch(ids.rules, "#📜・rules");
   const support = ch(ids.support, "#🛠️・support");
   const updates = ch(ids.updates, "#📢・updates");
 
@@ -41,7 +38,6 @@ export function welcomeEmbeds(ids: ChannelIds = {}) {
         "Tap **Get Signal** below to pick up the member role.",
         "",
         "**Important Channels:**",
-        `• **Rules** — ${rules}`,
         `• **Support** — ${support}`,
         `• **Updates** — ${updates}`,
         "",
@@ -72,47 +68,7 @@ export function welcomeComponents() {
   ];
 }
 
-export function rulesEmbeds() {
-  return [
-    bannerEmbed(),
-    {
-      title: "kdesa.stream Rules",
-      description: [
-        "Follow these so the server stays chill. Staff usually start with warnings.",
-        "",
-        "**Warning System:**",
-        "• **1st** — Warning",
-        "• **2nd** — Warning",
-        "• **3rd** — Warning + 1 day mute",
-        "• **4th** — Warning + 3 day mute",
-        "• **5th** — Warning + 3 day ban",
-        "• **6th** — Warning + 14 day ban",
-        "• **7th** — Permanent ban",
-        "",
-        "**Note:** Warns expire after **3 months** — they're not forever.",
-      ].join("\n"),
-      color: BRAND.color,
-    },
-    {
-      title: "Warnable Offenses",
-      description: [
-        "• Be respectful — no harassment, slurs, or drama.",
-        "• No spam, raids, or mass-pinging.",
-        "• No self-promo / unsolicited links without staff OK.",
-        "• Don't share account credentials or try to bypass site limits.",
-        "• Don't ask for / share illegal download how-tos.",
-        "• Keep tickets on-topic (site bugs, account help, reports).",
-        "• No inappropriate reactions or NSFW content.",
-        "• Don't ghost-ping or excessively tag people/roles.",
-        "• Staff decisions are final — argue in a ticket, not in chat.",
-      ].join("\n"),
-      color: BRAND.color,
-    },
-  ];
-}
-
 export function infoEmbeds(ids: ChannelIds = {}) {
-  const rules = ch(ids.rules, "#📜・rules");
   const support = ch(ids.support, "#🛠️・support");
   const updates = ch(ids.updates, "#📢・updates");
 
@@ -121,12 +77,8 @@ export function infoEmbeds(ids: ChannelIds = {}) {
       title: "Start Here",
       description: [
         "**Information**",
-        "This server is for kdesa.stream — streaming, manga, and support.",
-        `Questions about the site? Open a ticket in ${support}.`,
-        "",
-        "**Rules**",
-        `⤷ ${rules}`,
-        "General rules for the whole server.",
+        "This server is for kdesa.stream support — site bugs, account help, and reports.",
+        `Need help? Open a ticket in ${support}.`,
         "",
         "**Updates**",
         `⤷ ${updates}`,
@@ -164,7 +116,7 @@ export function supportPanelEmbeds(ids: ChannelIds = {}) {
         },
         {
           name: "🛡️ Report",
-          value: "Report a member or something that broke the rules.",
+          value: "Report a member or something that broke server guidelines.",
           inline: false,
         },
       ],

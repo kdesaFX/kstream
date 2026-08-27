@@ -138,7 +138,6 @@ function welcomeEmbeds(ids) {
         "Tap **Get Signal** below to pick up the member role.",
         "",
         "**Important Channels:**",
-        `• **Rules** — <#${ids.rules}>`,
         `• **Support** — <#${ids.support}>`,
         `• **Updates** — <#${ids.updates}>`,
         "",
@@ -151,12 +150,8 @@ function welcomeEmbeds(ids) {
       title: "Start Here",
       description: [
         "**Information**",
-        "This server is for kdesa.stream — streaming, manga, and support.",
-        `Questions about the site? Open a ticket in <#${ids.support}>.`,
-        "",
-        "**Rules**",
-        `⤷ <#${ids.rules}>`,
-        "General rules for the whole server.",
+        "This server is for kdesa.stream support — site bugs, account help, and reports.",
+        `Need help? Open a ticket in <#${ids.support}>.`,
         "",
         "**Updates**",
         `⤷ <#${ids.updates}>`,
@@ -165,45 +160,6 @@ function welcomeEmbeds(ids) {
         "**Support**",
         `⤷ <#${ids.support}>`,
         "Bugs, account issues, and reports via ticket buttons.",
-      ].join("\n"),
-      color: BRAND.color,
-    },
-  ];
-}
-
-function rulesEmbeds() {
-  return [
-    bannerEmbed(),
-    {
-      title: "kdesa.stream Rules",
-      description: [
-        "Follow these so the server stays chill. Staff usually start with warnings.",
-        "",
-        "**Warning System:**",
-        "• **1st** — Warning",
-        "• **2nd** — Warning",
-        "• **3rd** — Warning + 1 day mute",
-        "• **4th** — Warning + 3 day mute",
-        "• **5th** — Warning + 3 day ban",
-        "• **6th** — Warning + 14 day ban",
-        "• **7th** — Permanent ban",
-        "",
-        "**Note:** Warns expire after **3 months** — they're not forever.",
-      ].join("\n"),
-      color: BRAND.color,
-    },
-    {
-      title: "Warnable Offenses",
-      description: [
-        "• Be respectful — no harassment, slurs, or drama.",
-        "• No spam, raids, or mass-pinging.",
-        "• No self-promo / unsolicited links without staff OK.",
-        "• Don't share account credentials or try to bypass site limits.",
-        "• Don't ask for / share illegal download how-tos.",
-        "• Keep tickets on-topic (site bugs, account help, reports).",
-        "• No inappropriate reactions or NSFW content.",
-        "• Don't ghost-ping or excessively tag people/roles.",
-        "• Staff decisions are final — argue in a ticket, not in chat.",
       ].join("\n"),
       color: BRAND.color,
     },
@@ -231,7 +187,7 @@ function supportPayload(ids) {
           },
           {
             name: "🛡️ Report",
-            value: "Report a member or something that broke the rules.",
+            value: "Report a member or something that broke server guidelines.",
           },
         ],
       },
@@ -269,7 +225,6 @@ async function main() {
   const channels = await api(`/guilds/${GUILD_ID}/channels`);
   const byName = (names) => channels.find((c) => names.includes(c.name));
 
-  const rules = byName(["rules", "📜・rules", "📜-rules"]);
   const welcome = byName(["welcome", "👋・welcome", "👋-welcome"]);
   const updates = byName(["updates", "📢・updates", "📢-updates"]);
   const support = byName([
@@ -280,23 +235,19 @@ async function main() {
     "🔧-support",
   ]);
 
-  if (!rules || !welcome || !updates || !support) {
-    throw new Error("Missing channels");
+  if (!welcome || !updates || !support) {
+    throw new Error("Missing channels (need welcome, updates, support)");
   }
 
   const ids = {
-    rules: rules.id,
     welcome: welcome.id,
     updates: updates.id,
     support: support.id,
   };
 
-  for (const chId of [rules.id, welcome.id, support.id]) {
+  for (const chId of [welcome.id, support.id]) {
     await purgeBotMessages(chId, me.id);
   }
-
-  await postWithBanner(rules.id, { embeds: rulesEmbeds() });
-  console.log("Posted rules");
 
   await postWithBanner(welcome.id, {
     embeds: welcomeEmbeds(ids),

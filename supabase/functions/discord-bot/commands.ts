@@ -13,7 +13,6 @@ import {
   ticketOpenEmbed,
   welcomeEmbeds,
   welcomeComponents,
-  rulesEmbeds,
   infoEmbeds,
   supportPanelEmbeds,
   supportPanelComponents,
@@ -419,7 +418,6 @@ async function handleSetupServer(
       const created = await runServerSetup(env.token, guildId);
 
       await saveVaultSetting("DISCORD_GUILD_ID", guildId);
-      await saveVaultSetting("DISCORD_RULES_CHANNEL_ID", created.rulesId);
       await saveVaultSetting("DISCORD_WELCOME_CHANNEL_ID", created.welcomeId);
       await saveVaultSetting("DISCORD_UPDATES_CHANNEL_ID", created.updatesId);
       await saveVaultSetting("DISCORD_SUPPORT_CHANNEL_ID", created.supportId);
@@ -437,7 +435,6 @@ async function handleSetupServer(
           "Server setup / embed refresh complete.",
           "",
           `#welcome <#${created.welcomeId}>`,
-          `#rules <#${created.rulesId}>`,
           `#updates <#${created.updatesId}>`,
           `#support <#${created.supportId}>`,
           `Open tickets: \`${created.ticketCategoryId}\``,
@@ -510,7 +507,6 @@ export async function runServerSetup(token: string, guildId: string) {
   const find = (...names: string[]) =>
     existing.find((c) => names.includes(c.name))?.id;
 
-  let rulesId = find("rules", "📜・rules", "📜-rules");
   let welcomeId = find("welcome", "👋・welcome", "👋-welcome");
   let updatesId = find("updates", "📢・updates", "📢-updates");
   let supportId = find("support", "🛠️・support", "🛠️-support");
@@ -523,15 +519,6 @@ export async function runServerSetup(token: string, guildId: string) {
       (c.name === "Closed Tickets" || c.name === "closed-tickets" ||
         c.name === "Closed tickets"),
   )?.id;
-
-  if (!rulesId) {
-    rulesId = await ensureChannel(token, guildId, existing, "📜・rules", "Server rules");
-  } else {
-    await discordJson(token, `/channels/${rulesId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ name: "📜・rules" }),
-    }).catch(() => undefined);
-  }
 
   if (!welcomeId) {
     welcomeId = await ensureChannel(token, guildId, existing, "👋・welcome", "Welcome");
@@ -583,7 +570,6 @@ export async function runServerSetup(token: string, guildId: string) {
   if (!closedTicketCategoryId) {
     closedTicketCategoryId = await ensureClosedTicketCategory(token, guildId);
   } else {
-    // Keep category hidden from @everyone
     await discordJson(token, `/channels/${closedTicketCategoryId}`, {
       method: "PATCH",
       body: JSON.stringify({
@@ -597,18 +583,10 @@ export async function runServerSetup(token: string, guildId: string) {
   const memberRoleId = await ensureMemberRole(token, guildId);
 
   const ids = {
-    rules: rulesId!,
     welcome: welcomeId!,
     updates: updatesId!,
     support: supportId!,
   };
-
-  // Always refresh branded embeds (wipe bot posts first)
-  await purgeBotMessages(token, rulesId!);
-  await discordJson(token, `/channels/${rulesId}/messages`, {
-    method: "POST",
-    body: JSON.stringify({ embeds: rulesEmbeds() }),
-  });
 
   await purgeBotMessages(token, welcomeId!);
   await discordJson(token, `/channels/${welcomeId}/messages`, {
@@ -629,7 +607,6 @@ export async function runServerSetup(token: string, guildId: string) {
   });
 
   return {
-    rulesId: rulesId!,
     welcomeId: welcomeId!,
     updatesId: updatesId!,
     supportId: supportId!,
