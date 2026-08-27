@@ -9,7 +9,7 @@ import { useRandomTranslation } from "@/hooks/useRandomTranslation";
 import { useSearchQuery } from "@/hooks/useSearchQuery";
 import { FeaturedCarousel } from "@/pages/discover/components/FeaturedCarousel";
 import type { FeaturedMedia } from "@/pages/discover/components/FeaturedCarousel";
-import DiscoverContent from "@/pages/discover/discoverContent";
+import { LazyDiscoverContent } from "@/pages/parts/home/LazyDiscoverContent";
 import { HomeLayout } from "@/pages/layouts/HomeLayout";
 import { BookmarksCarousel } from "@/pages/parts/home/BookmarksCarousel";
 import { BookmarksGrid } from "@/pages/parts/home/BookmarksGrid";
@@ -293,7 +293,7 @@ export function HomePage() {
           <>
             <HomeAd slot="discoverSeam" />
             <div className="pb-6" />
-            <DiscoverContent />
+            <LazyDiscoverContent />
           </>
         ) : null}
       </WideContainer>

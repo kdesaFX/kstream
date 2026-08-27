@@ -375,7 +375,7 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
               decoding="async"
               // eslint-disable-next-line react/no-unknown-property -- LCP hint
               fetchPriority="high"
-              className="absolute inset-0 h-full w-full object-cover object-top"
+              className="absolute inset-0 h-full w-full object-cover object-top no-fade"
             />
           ) : null}
         </div>

@@ -243,6 +243,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://image.tmdb.org" crossorigin />
     <link rel="preconnect" href="https://uploads.mangadex.org" crossorigin />
+    <link rel="dns-prefetch" href="https://khplnaovkxvzhbimuvzn.supabase.co" />
     <!-- Non-blocking font CSS so it doesn't delay LCP/FCP. -->
     <link
       rel="preload"
@@ -257,9 +258,9 @@
       />
     </noscript>
 
-    <script src="/config.js"></script>
+    <script defer src="/config.js"></script>
     <!-- Popunder: Adsterra requires this in <head>, not <body> (see public/inject-popunder.js). -->
-    <script src="/inject-popunder.js"></script>
+    <script defer src="/inject-popunder.js"></script>
 
     {{#if env.VITE_TRACK_SCRIPT }} {{{ env.VITE_TRACK_SCRIPT }}} {{/if}}
 

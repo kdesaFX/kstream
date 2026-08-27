@@ -84,7 +84,7 @@ function MangaSlideArt({
           loading={isActive ? "eager" : "lazy"}
           // eslint-disable-next-line react/no-unknown-property -- LCP hint
           fetchPriority={isActive ? "high" : "low"}
-          className="absolute inset-0 h-full w-full object-cover object-[center_20%]"
+          className="absolute inset-0 h-full w-full object-cover object-[center_20%] no-fade"
         />
         {readOverlay}
       </>
@@ -102,7 +102,7 @@ function MangaSlideArt({
         decoding="async"
         loading={isActive ? "eager" : "lazy"}
         aria-hidden
-        className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_15%] opacity-80 blur-2xl"
+        className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_15%] opacity-80 blur-2xl no-fade"
       />
       <img
         src={artUrl}
@@ -112,7 +112,7 @@ function MangaSlideArt({
         loading={isActive ? "eager" : "lazy"}
         // eslint-disable-next-line react/no-unknown-property -- LCP hint
         fetchPriority={isActive ? "high" : "low"}
-        className="absolute inset-0 h-full w-full object-cover object-[center_20%]"
+        className="absolute inset-0 h-full w-full object-cover object-[center_20%] no-fade"
       />
       {readOverlay}
     </>
@@ -689,7 +689,7 @@ export function FeaturedCarousel({
                   // React 18 DOM: fetchPriority is valid; eslint rule lags.
                   // eslint-disable-next-line react/no-unknown-property -- LCP hint
                   fetchPriority={isActive ? "high" : "low"}
-                  className="absolute inset-0 h-full w-full object-cover object-top"
+                  className="absolute inset-0 h-full w-full object-cover object-top no-fade"
                 />
               ) : null}
             </div>
