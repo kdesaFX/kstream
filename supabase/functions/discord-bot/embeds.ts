@@ -33,18 +33,17 @@ export function welcomeEmbeds(ids: ChannelIds = {}) {
     {
       title: "Welcome to kdesa.stream!",
       description: [
-        "Your hub for streaming movies & shows, browsing manga, and getting help when something breaks.",
+        "Support server for **kdesa.stream** — movies, TV, manga, and help when something breaks.",
         "",
-        "Tap **Get Signal** below to pick up the member role.",
+        `• ${support} — open a ticket for bugs or account issues`,
+        `• ${updates} — site changes (no random pings)`,
         "",
-        "**Important Channels:**",
-        `• **Support** — ${support}`,
-        `• **Updates** — ${updates}`,
+        "**Signal** is the member role — tap **Get Signal** below so you're marked as part of the community.",
         "",
-        `Jump in on the site anytime: **${BRAND.site}**`,
+        BRAND.site,
       ].join("\n"),
       color: BRAND.color,
-      footer: { text: "kdesa.stream community" },
+      footer: { text: "kdesa.stream" },
     },
   ];
 }
@@ -62,35 +61,14 @@ export function welcomeComponents() {
           custom_id: "claim_member_role",
         },
         { type: 2, style: 5, label: "Website", url: BRAND.site },
-        { type: 2, style: 5, label: "Browse", url: `${BRAND.site}/browse` },
       ],
     },
   ];
 }
 
-export function infoEmbeds(ids: ChannelIds = {}) {
-  const support = ch(ids.support, "#🛠️・support");
-  const updates = ch(ids.updates, "#📢・updates");
-
-  return [
-    {
-      title: "Start Here",
-      description: [
-        "**Information**",
-        "This server is for kdesa.stream support — site bugs, account help, and reports.",
-        `Need help? Open a ticket in ${support}.`,
-        "",
-        "**Updates**",
-        `⤷ ${updates}`,
-        "Site changes and announcements (no random pings — we tell you when).",
-        "",
-        "**Support**",
-        `⤷ ${support}`,
-        "Bugs, account issues, and reports via ticket buttons.",
-      ].join("\n"),
-      color: BRAND.color,
-    },
-  ];
+/** @deprecated kept empty — welcome is a single embed now */
+export function infoEmbeds(_ids: ChannelIds = {}) {
+  return [];
 }
 
 export function supportPanelEmbeds(ids: ChannelIds = {}) {

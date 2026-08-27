@@ -676,9 +676,9 @@ export async function handleClaimMemberRole(
   const member = interaction.member;
   if (member?.roles?.includes(roleId)) {
     await editOriginal(env.token, env.applicationId, interaction.token, {
-      content: "You're already tuned in — you have **Signal**.",
-    });
-    return;
+    content: "You're tuned in — **Signal** is your member role on this server.",
+  });
+  return;
   }
 
   await discordJson(
@@ -688,7 +688,7 @@ export async function handleClaimMemberRole(
   );
 
   await editOriginal(env.token, env.applicationId, interaction.token, {
-    content: "Welcome aboard — you now have **Signal** 📡",
+    content: "You're in — **Signal** is the member role for kdesa.stream.",
   });
 }
 
