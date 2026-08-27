@@ -28,6 +28,8 @@ export type QualityStreamOption = {
   sourceId: string;
   /** Human-readable provider name shown next to a cross-source quality. */
   sourceName: string;
+  /** Audio languages that can actually play at this quality tier. */
+  languages: string[];
   embedId?: string | null;
   source: SourceSliceSource;
   captions: CaptionListItem[];
@@ -186,6 +188,12 @@ function isOfferableTier(quality: SourceQuality): boolean {
   return quality !== "unknown";
 }
 
+function streamLanguageCodes(stream: Stream): string[] {
+  const raw = stream.audioLanguage?.trim();
+  if (!raw || raw === "unknown" || raw === "und") return [];
+  return [raw.toLowerCase()];
+}
+
 export async function streamToQualityOptions(
   stream: Stream,
   sourceId: string,
@@ -194,6 +202,7 @@ export async function streamToQualityOptions(
   const source = convertRunoutputToSource({ stream });
   const qualities = await streamQualities(stream, source);
   const captions = convertProviderCaption(stream.captions);
+  const languages = streamLanguageCodes(stream);
 
   const sourceName = sourceDisplayName(sourceId);
 
@@ -202,6 +211,7 @@ export async function streamToQualityOptions(
     quality,
     sourceId,
     sourceName,
+    languages,
     embedId: embedId ?? null,
     source,
     captions,
@@ -254,17 +264,79 @@ export function alternateSourceLabels(opts: {
   return labels;
 }
 
-/** Prefer one provider per quality; the first (higher-ranked) source wins. */
+/** Prefer one provider per quality; the first (higher-ranked) source wins.
+ *  Languages from later sources still merge in so the menu can flag every
+ *  dub that actually exists at that tier. */
 export function mergeQualityStreamOptions(
   existing: QualityStreamOption[],
   incoming: QualityStreamOption[],
 ): QualityStreamOption[] {
   const byQuality = new Map<SourceQuality, QualityStreamOption>();
-  for (const option of existing) {
-    if (!byQuality.has(option.quality)) byQuality.set(option.quality, option);
-  }
-  for (const option of incoming) {
-    if (!byQuality.has(option.quality)) byQuality.set(option.quality, option);
-  }
+  const mergeOne = (option: QualityStreamOption) => {
+    const prev = byQuality.get(option.quality);
+    if (!prev) {
+      byQuality.set(option.quality, {
+        ...option,
+        languages: uniqueLanguages(option.languages),
+      });
+      return;
+    }
+    byQuality.set(option.quality, {
+      ...prev,
+      languages: uniqueLanguages([...prev.languages, ...option.languages]),
+    });
+  };
+  for (const option of existing) mergeOne(option);
+  for (const option of incoming) mergeOne(option);
   return Array.from(byQuality.values());
+}
+
+function uniqueLanguages(languages: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of languages) {
+    const lang = raw.trim().toLowerCase();
+    if (!lang || lang === "unknown" || lang === "und" || seen.has(lang)) {
+      continue;
+    }
+    seen.add(lang);
+    out.push(lang);
+  }
+  return out;
+}
+
+/** Languages offered at each quality tier (current ladder + discovered streams). */
+export function languagesByQuality(opts: {
+  available: SourceQuality[];
+  currentLanguage?: string | null;
+  alternates: QualityStreamOption[];
+}): Partial<Record<SourceQuality, string[]>> {
+  const map = new Map<SourceQuality, string[]>();
+  const add = (quality: SourceQuality, languages: string[]) => {
+    map.set(
+      quality,
+      uniqueLanguages([...(map.get(quality) ?? []), ...languages]),
+    );
+  };
+
+  for (const option of opts.alternates) {
+    add(option.quality, option.languages);
+  }
+
+  const current = opts.currentLanguage?.trim().toLowerCase();
+  if (current && current !== "unknown" && current !== "und") {
+    for (const quality of opts.available) {
+      add(quality, [current]);
+    }
+  }
+
+  const sorted: Partial<Record<SourceQuality, string[]>> = {};
+  for (const [quality, languages] of map) {
+    sorted[quality] = [...languages].sort((a, b) => {
+      if (a === "en") return -1;
+      if (b === "en") return 1;
+      return a.localeCompare(b);
+    });
+  }
+  return sorted;
 }

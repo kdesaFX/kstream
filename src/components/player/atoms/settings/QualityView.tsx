@@ -1,9 +1,12 @@
 import Hls from "hls.js";
 import { t } from "i18next";
+import { iso6393To1 } from "iso-639-3";
 import { useCallback, useMemo } from "react";
 import { Trans } from "react-i18next";
 
 import { Toggle } from "@/components/buttons/Toggle";
+import { FlagIcon } from "@/components/FlagIcon";
+import { Icon, Icons } from "@/components/Icon";
 import { Menu } from "@/components/player/internals/ContextMenu";
 import { SelectableLink } from "@/components/player/internals/ContextMenu/Links";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
@@ -15,6 +18,7 @@ import {
 } from "@/stores/player/utils/qualities";
 import {
   alternateSourceLabels,
+  languagesByQuality,
   selectableQualityTiers,
 } from "@/stores/player/utils/qualityStreams";
 import { useQualityStore } from "@/stores/quality";
@@ -28,6 +32,29 @@ const alwaysVisibleQualities: Record<SourceQuality, boolean> = {
   "1080": true,
   "4k": true,
 };
+
+function flagCode(language: string): string {
+  return language.length === 3
+    ? (iso6393To1[language] ?? language)
+    : language;
+}
+
+function QualityLanguageFlags({ languages }: { languages: string[] }) {
+  if (!languages.length) return null;
+  return (
+    <span className="inline-flex items-center gap-0.5 mr-1.5">
+      {languages.map((lang) => (
+        <span
+          key={lang}
+          className="inline-flex scale-[0.55] origin-center -mx-1"
+          title={lang.toUpperCase()}
+        >
+          <FlagIcon langCode={flagCode(lang)} />
+        </span>
+      ))}
+    </span>
+  );
+}
 
 function useIsIosHls() {
   const sourceType = usePlayerStore((s) => s.source?.type);
@@ -49,6 +76,8 @@ export function QualityView({ id }: { id: string }) {
   const alternateQualityOptions = usePlayerStore((s) => s.qualityStreamOptions);
   const currentQuality = usePlayerStore((s) => s.currentQuality);
   const currentSourceId = usePlayerStore((s) => s.sourceId);
+  const source = usePlayerStore((s) => s.source);
+  const currentAudioTrack = usePlayerStore((s) => s.currentAudioTrack);
   const switchQuality = usePlayerStore((s) => s.switchQuality);
   const switchQualityStream = usePlayerStore((s) => s.switchQualityStream);
   const enableAutomaticQuality = usePlayerStore(
@@ -77,6 +106,24 @@ export function QualityView({ id }: { id: string }) {
       availableQualities,
       currentQuality,
       currentSourceId,
+    ],
+  );
+
+  const qualityLanguages = useMemo(
+    () =>
+      languagesByQuality({
+        available: availableQualities,
+        currentLanguage:
+          source?.audioLanguage?.trim() ||
+          currentAudioTrack?.language ||
+          null,
+        alternates: alternateQualityOptions,
+      }),
+    [
+      alternateQualityOptions,
+      availableQualities,
+      currentAudioTrack?.language,
+      source?.audioLanguage,
     ],
   );
 
@@ -145,25 +192,45 @@ export function QualityView({ id }: { id: string }) {
         {t("player.menus.quality.title")}
       </Menu.BackLink>
       <Menu.Section className="flex flex-col pb-4">
-        {visibleQualities.map((v) => (
-          <SelectableLink
-            key={v}
-            selected={v === currentQuality}
-            onClick={
-              selectableQualities.includes(v) ? () => change(v) : undefined
-            }
-            disabled={!selectableQualities.includes(v)}
-            rightSide={
-              alternateSourceNames[v] ? (
-                <span className="text-video-context-type-secondary text-sm">
-                  {alternateSourceNames[v]}
-                </span>
-              ) : undefined
-            }
-          >
-            {qualityToString(v)}
-          </SelectableLink>
-        ))}
+        {visibleQualities.map((v) => {
+          const selected = v === currentQuality;
+          const sourceName = alternateSourceNames[v];
+          const languages = qualityLanguages[v] ?? [];
+          const hasRightMeta = Boolean(
+            languages.length || sourceName || selected,
+          );
+
+          return (
+            <SelectableLink
+              key={v}
+              selected={selected}
+              onClick={
+                selectableQualities.includes(v) ? () => change(v) : undefined
+              }
+              disabled={!selectableQualities.includes(v)}
+              rightSide={
+                hasRightMeta ? (
+                  <span className="flex items-center">
+                    <QualityLanguageFlags languages={languages} />
+                    {sourceName ? (
+                      <span className="text-video-context-type-secondary text-sm">
+                        {sourceName}
+                      </span>
+                    ) : null}
+                    {selected ? (
+                      <Icon
+                        icon={Icons.CIRCLE_CHECK}
+                        className="text-xl text-video-context-type-accent ml-1.5"
+                      />
+                    ) : null}
+                  </span>
+                ) : undefined
+              }
+            >
+              {qualityToString(v)}
+            </SelectableLink>
+          );
+        })}
         {supportsAutoQuality && (
           <>
             <Menu.Divider />

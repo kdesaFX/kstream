@@ -6,6 +6,7 @@ import type { Stream } from "@p-stream/providers";
 import {
   alternateSourceLabels,
   firstNonEmptyQualities,
+  languagesByQuality,
   mergeQualityStreamOptions,
   parseHlsQualities,
   QualityStreamOption,
@@ -18,12 +19,14 @@ import type { SourceQuality } from "@/stores/player/utils/qualities";
 function option(
   quality: QualityStreamOption["quality"],
   sourceId: string,
+  languages: string[] = [],
 ): QualityStreamOption {
   return {
     id: `${sourceId}:${quality}`,
     quality,
     sourceId,
     sourceName: sourceId,
+    languages,
     source: {
       type: "file",
       qualities: {
@@ -189,8 +192,52 @@ describe("mergeQualityStreamOptions", () => {
       mergeQualityStreamOptions([primary], [alternate480, alternate4k]),
     ).toEqual([primary, alternate4k]);
   });
+
+  it("unions languages when another source also offers the same tier", () => {
+    const english480 = option("480", "7movies", ["en"]);
+    const hindi480 = option("480", "nova", ["hi"]);
+    const hindi1080 = option("1080", "nova", ["hi"]);
+
+    expect(
+      mergeQualityStreamOptions([english480], [hindi480, hindi1080]),
+    ).toEqual([
+      { ...english480, languages: ["en", "hi"] },
+      hindi1080,
+    ]);
+  });
 });
 
+describe("languagesByQuality", () => {
+  it("flags every language that can play at a tier", () => {
+    expect(
+      languagesByQuality({
+        available: ["480"],
+        currentLanguage: "en",
+        alternates: [
+          option("480", "7movies", ["en"]),
+          option("1080", "nova", ["hi"]),
+          option("720", "vixsrc", ["fr", "ta"]),
+        ],
+      }),
+    ).toEqual({
+      "480": ["en"],
+      "720": ["fr", "ta"],
+      "1080": ["hi"],
+    });
+  });
+
+  it("puts English first when sorting mixed language flags", () => {
+    expect(
+      languagesByQuality({
+        available: [],
+        currentLanguage: null,
+        alternates: [option("720", "mix", ["ta", "en", "hi"])],
+      }),
+    ).toEqual({
+      "720": ["en", "hi", "ta"],
+    });
+  });
+});
 describe("selectableQualityTiers", () => {
   it("offers tiers another source can serve alongside the current ladder", () => {
     expect(selectableQualityTiers(["480"], [option("1080", "reyna")])).toEqual([
