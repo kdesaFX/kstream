@@ -1,0 +1,61 @@
+name: Sync Windows installer
+
+# Keep R2 (kdesa.stream/download/kstream-Setup.exe) aligned with desktop releases.
+on:
+  schedule:
+    - cron: "15 */4 * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [desktop-release]
+
+jobs:
+  sync:
+    name: Mirror kstream-Setup.exe to R2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve Cloudflare account
+        id: cf
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CF_ACCOUNT_ID" ]; then
+            echo "account_id=$CF_ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "$CF_API_TOKEN" ]; then
+            echo "::error::Need CLOUDFLARE_API_TOKEN"
+            exit 1
+          fi
+          ACCOUNT_ID=$(curl -sf -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts?per_page=50" \
+            | jq -r '.result[0].id // empty')
+          if [ -z "$ACCOUNT_ID" ] && [ -n "$CF_ZONE_ID" ]; then
+            ACCOUNT_ID=$(curl -sf -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}" \
+              | jq -r '.result.account.id // empty')
+          fi
+          if [ -z "$ACCOUNT_ID" ]; then
+            echo "::error::Could not resolve Cloudflare account id"
+            exit 1
+          fi
+          echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Download latest installer
+        run: |
+          mkdir -p .tmp
+          curl -fsSL -L --retry 3 -o .tmp/kstream-Setup.exe \
+            "https://github.com/kdesaFX/kstream-desktop/releases/latest/download/kstream-Setup.exe"
+          ls -lh .tmp/kstream-Setup.exe
+
+      - name: Upload to R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+        run: |
+          npx --yes wrangler@4.54.0 r2 object put \
+            kstream-downloads/kstream-Setup.exe \
+            --file .tmp/kstream-Setup.exe \
+            --content-type application/octet-stream \
+            --remote

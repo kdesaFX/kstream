@@ -6,7 +6,10 @@ import proxyHandler from "../api/proxy";
 import m3u8ProxyHandler from "../api/m3u8-proxy";
 import tsProxyHandler from "../api/ts-proxy";
 import mangaPagesHandler from "../api/manga-pages";
-import { serveWindowsInstaller } from "./windowsInstaller";
+import {
+  serveWindowsInstaller,
+  syncWindowsInstallerFromGitHub,
+} from "./windowsInstaller";
 
 export interface Env {
   ASSETS: Fetcher;
@@ -23,7 +26,11 @@ function isHashedAssetPath(pathname: string): boolean {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
     const url = new URL(request.url);
     const { pathname } = url;
 
@@ -51,7 +58,9 @@ export default {
       pathname === "/download/kstream-Setup.exe" ||
       pathname === "/download/kstream-Setup.exe/"
     ) {
-      return withSecurityHeaders(await serveWindowsInstaller(request, env));
+      return withSecurityHeaders(
+        await serveWindowsInstaller(request, env, ctx),
+      );
     }
 
     // Explicit security.txt in case static asset headers are stripped.
@@ -81,6 +90,19 @@ export default {
     }
 
     return withSecurityHeaders(asset);
+  },
+
+  /** Keep the Windows installer in R2 current with GitHub Releases. */
+  async scheduled(
+    _controller: ScheduledController,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<void> {
+    ctx.waitUntil(
+      syncWindowsInstallerFromGitHub(env).then((result) => {
+        console.log("windows-installer-sync", result);
+      }),
+    );
   },
 };
 

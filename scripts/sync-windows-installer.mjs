@@ -3,7 +3,8 @@
  * Pull the latest kstream-Setup.exe from GitHub Releases into R2
  * (bucket: kstream-downloads) so /download/kstream-Setup.exe is fast.
  *
- * Usage: node scripts/sync-windows-installer.mjs
+ * Usually unnecessary: Worker cron + GitHub Action sync every ~4 hours.
+ * Usage: pnpm run sync:installer
  */
 import { mkdir, rm, stat } from "node:fs/promises";
 import { spawn } from "node:child_process";
