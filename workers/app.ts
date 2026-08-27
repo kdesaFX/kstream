@@ -6,9 +6,11 @@ import proxyHandler from "../api/proxy";
 import m3u8ProxyHandler from "../api/m3u8-proxy";
 import tsProxyHandler from "../api/ts-proxy";
 import mangaPagesHandler from "../api/manga-pages";
+import { serveWindowsInstaller } from "./windowsInstaller";
 
 export interface Env {
   ASSETS: Fetcher;
+  DOWNLOADS: R2Bucket;
 }
 
 function isHashedAssetPath(pathname: string): boolean {
@@ -42,6 +44,14 @@ export default {
     }
     if (pathname === "/api/manga/pages" || pathname === "/api/manga/pages/") {
       return withSecurityHeaders(await mangaPagesHandler(request));
+    }
+
+    // Windows installer: R2 CDN (avoids slow GitHub → Azure redirect chain).
+    if (
+      pathname === "/download/kstream-Setup.exe" ||
+      pathname === "/download/kstream-Setup.exe/"
+    ) {
+      return withSecurityHeaders(await serveWindowsInstaller(request, env));
     }
 
     // Explicit security.txt in case static asset headers are stripped.

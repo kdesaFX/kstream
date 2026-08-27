@@ -12,6 +12,7 @@ node_modules
 /dist
 dev-dist
 /stats.html
+.tmp/
 
 # misc
 .DS_Store

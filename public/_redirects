@@ -1,3 +1,2 @@
-# Download shortcut (same as vercel.json redirect).
+# Download shortcut handled by Worker → R2 (see workers/windowsInstaller.ts).
 # SPA fallback is handled by wrangler.toml not_found_handling — do not add /* here.
-/download/kstream-Setup.exe https://github.com/kdesaFX/kstream-desktop/releases/latest/download/kstream-Setup.exe 302

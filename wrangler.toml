@@ -8,4 +8,9 @@ workers_dev = true
 directory = "./dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-run_worker_first = ["/api/*"]
+run_worker_first = ["/api/*", "/download/*"]
+
+# Windows installer (synced from kstream-desktop GitHub releases).
+[[r2_buckets]]
+binding = "DOWNLOADS"
+bucket_name = "kstream-downloads"

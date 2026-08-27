@@ -6,6 +6,7 @@ import { useOverlayStack } from "@/stores/interface/overlayStack";
 import {
   WINDOWS_APP_DOWNLOAD_FILENAME,
   WINDOWS_APP_DOWNLOAD_PATH,
+  WINDOWS_APP_DOWNLOAD_SIZE_LABEL,
   downloadWindowsApp,
 } from "@/utils/downloadWindowsApp";
 
@@ -140,8 +141,8 @@ export function DownloadModal({ id }: { id: string }) {
                   </div>
                   <div className="mt-0.5 text-xs text-type-secondary">
                     {fromAds
-                      ? "Ad-free · native app · starts right away"
-                      : `${WINDOWS_APP_DOWNLOAD_FILENAME} · starts right away`}
+                      ? `Ad-free · native app · ${WINDOWS_APP_DOWNLOAD_SIZE_LABEL}`
+                      : `${WINDOWS_APP_DOWNLOAD_FILENAME} · ${WINDOWS_APP_DOWNLOAD_SIZE_LABEL}`}
                   </div>
                 </div>
                 <span className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/80 transition-all group-hover:bg-white/10 group-hover:text-white">
@@ -155,6 +156,15 @@ export function DownloadModal({ id }: { id: string }) {
             </button>
 
             <SafetyBanner />
+
+            <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3">
+              <p className="text-sm leading-relaxed text-amber-100/90">
+                School or work filters (GoGuardian, etc.) often block{" "}
+                <span className="font-semibold text-amber-50">kdesa.stream</span>
+                . Download the app on home Wi‑Fi or a phone hotspot, then install
+                there. Streaming on a filtered network may still be blocked.
+              </p>
+            </div>
 
             {!fromAds ? (
               <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
