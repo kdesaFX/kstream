@@ -32,13 +32,8 @@ window.__CONFIG__ = {
   VITE_ALLOW_FEBBOX_KEY: "true",
 
   // --- Ads ---
-  // Popunders earn more than display banners on streaming traffic, so banners
-  // are off. Soft Popunder loads on homepage, browse, read-history, algorithm,
-  // and about only — not player (/media), manga reader, search, or settings.
-  // Paste your Adsterra Soft Popunder "Get code" values below to go live:
-  //   <script data-zone="ZONE" src="SCRIPT_URL"></script>
-  // Two scripts on one page is not supported (and usually against network rules);
-  // raise frequency in the Adsterra dashboard instead.
+  // Soft Popunder: loads only after the user's first click (never on page load).
+  // If tabs still open instantly, the Adsterra unit may be Pop-up — swap to Soft Popunder in the dashboard.
   VITE_ADSTERRA_SCRIPT_HOST: "https://www.highrevenueformat.com",
   VITE_ENABLE_POPUNDER: "true",
   VITE_POPUNDER_ZONE_ID: "", // optional; this Soft Popunder code is script-src only

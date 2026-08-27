@@ -1,15 +1,22 @@
 /**
- * Adsterra Popunder must load from <head> (before </head>), not <body>.
- * Runs synchronously right after /config.js on first paint; App.tsx re-calls
- * __kstreamLoadPopunder on SPA navigations.
- *
- * Important: once injected, the network script hooks document clicks globally.
- * On SPA navigation to player/manga/search we must unload the tag AND guard
- * window.open — otherwise popunders keep firing after leaving the homepage.
+ * Adsterra Soft Popunder — must NOT open tabs on page load.
+ * Script loads only after the first user click on allowed pages; window.open
+ * to ad hosts is blocked unless it follows a recent trusted gesture.
  */
 (function injectPopunderInHead() {
   var AD_HOST_RE =
     /(?:profitableratecpmnetwork|highrevenueformat|adsterra|effectivegatecpm|clickadu|onclick|pemsrv|revenuecpmnetwork)\./i;
+  var GESTURE_MS = 1500;
+
+  var lastUserGestureAt = 0;
+
+  function markUserGesture() {
+    lastUserGestureAt = Date.now();
+  }
+
+  function recentUserGesture() {
+    return Date.now() - lastUserGestureAt <= GESTURE_MS;
+  }
 
   function isPopunderPath(path) {
     if (!path || path.indexOf("/media/") === 0) return false;
@@ -40,6 +47,7 @@
     document.querySelectorAll('script[data-kstream-popunder="1"]').forEach(function (node) {
       node.parentNode && node.parentNode.removeChild(node);
     });
+    window.__kstreamPopunderArmed = false;
   }
 
   function isSuspiciousPopunderUrl(url) {
@@ -59,13 +67,12 @@
     if (window.__kstreamPopunderGuardInstalled) return;
     window.__kstreamPopunderGuardInstalled = true;
 
+    document.addEventListener("pointerdown", markUserGesture, true);
+    document.addEventListener("keydown", markUserGesture, true);
+
     var nativeOpen = window.open;
     window.open = function popunderGuard(url, target, features) {
-      var path = window.location.pathname || "/";
-      if (isPopunderPath(path)) {
-        return nativeOpen.call(window, url, target, features);
-      }
-      if (isSuspiciousPopunderUrl(url)) {
+      if (isSuspiciousPopunderUrl(url) && !recentUserGesture()) {
         return null;
       }
       return nativeOpen.call(window, url, target, features);
@@ -91,23 +98,50 @@
     document.head.appendChild(script);
   }
 
+  function disarmPopunderOnGesture() {
+    document.removeEventListener("pointerdown", onFirstGesture, true);
+    document.removeEventListener("keydown", onFirstGesture, true);
+    window.__kstreamPopunderArmed = false;
+  }
+
+  var pendingCfg = null;
+
+  function onFirstGesture() {
+    disarmPopunderOnGesture();
+    if (pendingCfg) loadPopunderScript(pendingCfg);
+  }
+
+  /** Wait for a real click before injecting the network script (blocks load-time popups). */
+  function armPopunderOnGesture(cfg) {
+    if (window.__kstreamPopunderArmed) return;
+    if (document.querySelector('script[data-kstream-popunder="1"]')) return;
+
+    pendingCfg = cfg;
+    window.__kstreamPopunderArmed = true;
+    document.addEventListener("pointerdown", onFirstGesture, true);
+    document.addEventListener("keydown", onFirstGesture, true);
+  }
+
   function syncPopunderForPath() {
     try {
       var cfg = window.__CONFIG__ || {};
       var path = window.location.pathname || "/";
 
       if (cfg.VITE_ENABLE_POPUNDER !== "true" || isAdsOptedOut()) {
+        disarmPopunderOnGesture();
         unloadPopunderScript();
+        pendingCfg = null;
         return;
       }
 
       if (!isPopunderPath(path)) {
+        disarmPopunderOnGesture();
         unloadPopunderScript();
-        installPopunderGuard();
+        pendingCfg = null;
         return;
       }
 
-      loadPopunderScript(cfg);
+      armPopunderOnGesture(cfg);
     } catch (_err) {
       /* never block app boot */
     }

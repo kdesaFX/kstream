@@ -9,4 +9,5 @@ interface Window {
   __kstreamLoadPopunder?: () => void;
   __kstreamUnloadPopunder?: () => void;
   __kstreamPopunderGuardInstalled?: boolean;
+  __kstreamPopunderArmed?: boolean;
 }
