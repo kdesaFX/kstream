@@ -2,6 +2,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
   type Interaction,
   discordJson,
+  discordRequest,
   followUp,
   editOriginal,
   interactionUser,
@@ -12,7 +13,21 @@ import { ticketOpenEmbed } from "./embeds.ts";
 import { saveVaultSetting } from "./config.ts";
 import { type Env, ensureMemberHasSignal } from "./roles.ts";
 
-type DiscordChannel = { id: string; name: string; type: number };
+type DiscordChannel = { id: string; name: string; type: number; parent_id?: string | null };
+
+/** True only if the Discord channel still exists and isn't a closed-* archive. */
+async function isOpenTicketChannel(token: string, channelId: string): Promise<boolean> {
+  const res = await discordRequest(token, `/channels/${channelId}`);
+  if (res.status === 404) return false;
+  if (!res.ok) {
+    // Transient Discord errors — treat as still open so we don't open duplicates.
+    return true;
+  }
+  const channel = (await res.json()) as DiscordChannel;
+  if (!channel?.id) return false;
+  if (channel.name?.startsWith("closed-")) return false;
+  return true;
+}
 
 function deferredEphemeral() {
   return { type: 5, data: { flags: 64 } };
@@ -78,16 +93,24 @@ async function createTicket(
 
   const { data: existing } = await supabase
     .from("discord_tickets")
-    .select("channel_id")
+    .select("id, channel_id")
     .eq("guild_id", interaction.guild_id!)
     .eq("opener_discord_id", user.id)
     .eq("status", "open")
     .maybeSingle();
 
   if (existing?.channel_id) {
-    return ephemeral(`You already have an open ticket: <#${existing.channel_id}>`) as {
-      data: { content: string };
-    };
+    const stillOpen = await isOpenTicketChannel(env.token, existing.channel_id);
+    if (stillOpen) {
+      return ephemeral(`You already have an open ticket: <#${existing.channel_id}>`) as {
+        data: { content: string };
+      };
+    }
+    // Channel deleted, archived, or renamed closed-* — clear stale DB row.
+    await supabase
+      .from("discord_tickets")
+      .update({ status: "closed", closed_at: new Date().toISOString() })
+      .eq("id", existing.id);
   }
 
   const prefix = kind === "report" ? "report" : "ticket";
