@@ -1,3 +1,4 @@
+/* eslint-disable import/no-extraneous-dependencies */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { areAdsBlocked } from "@/stores/ads";
