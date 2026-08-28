@@ -12,6 +12,7 @@
     "serve:local": "pnpm build:local && pnpm dlx wrangler@4 dev",
     "deploy": "pnpm build && pnpm dlx wrangler@4 deploy",
     "sync:installer": "node scripts/sync-windows-installer.mjs",
+    "allowlist:school-mirror": "node scripts/allowlist-school-mirror-auth.mjs",
     "build:workers": "node scripts/prepare-providers.mjs && pnpm install && pnpm run build",
     "update-and-build": "pnpm remove @p-stream/providers && pnpm add github:kdesaFX/providers#production && pnpm run build",
     "update-providers": "pnpm update @p-stream/providers",

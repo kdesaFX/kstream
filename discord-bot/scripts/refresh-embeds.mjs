@@ -12,7 +12,7 @@ const token = process.argv[2] || process.env.DISCORD_BOT_TOKEN;
 const GUILD_ID = process.env.DISCORD_GUILD_ID || "1542310809898590288";
 const APP_ID = "1536251834203770941";
 const BIO =
-  "Official kdesa.stream bot — tickets, updates, and server info. Watch movies, TV & manga at https://kdesa.stream";
+  "Official kdesa.stream bot — tickets, updates, and server info. Watch at https://kdesa.stream · School Wi‑Fi: https://kstream.kdesabiz.workers.dev";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const bannerPath = path.join(__dirname, "../../public/discord-banner.jpg");
@@ -96,6 +96,7 @@ async function purgeBotMessages(channelId, botId) {
 const BRAND = {
   color: 0x111214,
   site: "https://kdesa.stream",
+  schoolMirror: "https://kstream.kdesabiz.workers.dev",
 };
 
 /** Banner via message attachment — reliable; external URLs often break in embeds. */
@@ -141,7 +142,8 @@ function welcomeEmbeds(ids) {
         "Everyone gets the **Signal** member role when they join.",
         "Want pings when we post site updates? Tap **Update pings** below (you can turn it off anytime).",
         "",
-        BRAND.site,
+        `Site: ${BRAND.site}`,
+        `School / filtered Wi‑Fi: ${BRAND.schoolMirror}`,
       ].join("\n"),
       color: BRAND.color,
       footer: { text: "kdesa.stream" },
@@ -157,6 +159,8 @@ function supportPayload(ids) {
         title: "Contact Support",
         description: [
           "Need help with **kdesa.stream**? Open a private ticket below.",
+          "",
+          `School / filtered Wi‑Fi blocking the main site? Try **${BRAND.schoolMirror}** (same app).`,
           "",
           "**NOTE:** Tickets are for site/account issues and reports — not random chat. Misuse may get a warning.",
           "",
@@ -192,6 +196,12 @@ function supportPayload(ids) {
             label: "Report Ticket",
             emoji: { name: "🛡️" },
             custom_id: "ticket_open_report",
+          },
+          {
+            type: 2,
+            style: 5,
+            label: "School Wi‑Fi?",
+            url: BRAND.schoolMirror,
           },
         ],
       },
@@ -246,6 +256,12 @@ async function main() {
             custom_id: "claim_updates_role",
           },
           { type: 2, style: 5, label: "Website", url: BRAND.site },
+          {
+            type: 2,
+            style: 5,
+            label: "School Wi‑Fi?",
+            url: BRAND.schoolMirror,
+          },
         ],
       },
     ],

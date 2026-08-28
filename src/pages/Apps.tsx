@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 
+import { SchoolMirrorTip } from "@/components/overlays/downloadModal/SchoolMirrorTip";
 import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { PageTitle } from "@/pages/parts/util/PageTitle";
 
@@ -123,6 +124,10 @@ export function AppsPage() {
 
         <div className="relative mx-auto mt-16 max-w-md">
           <Panel {...windowsPanel} />
+        </div>
+
+        <div className="mx-auto mt-10 max-w-md">
+          <SchoolMirrorTip />
         </div>
       </div>
     </SubPageLayout>

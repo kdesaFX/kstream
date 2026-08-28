@@ -6,3 +6,10 @@ export const TWITTER_LINK = "";
 export const SUPPORT_EMAIL = "kdesabiz@gmail.com";
 export const GA_ID = import.meta.env.VITE_GA_ID;
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+/**
+ * Same Worker as kdesa.stream — use when school/work filters block the main domain.
+ * Proxies stay same-origin on this host (`/api/proxy`, `/api/m3u8-proxy`).
+ */
+export const SCHOOL_MIRROR_URL = "https://kstream.kdesabiz.workers.dev";
+export const SCHOOL_MIRROR_LABEL = "School / filtered Wi‑Fi";

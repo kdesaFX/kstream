@@ -1,14 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 
+/** Matches layout breakpoints used for ad slots (< 1024px = mobile/tablet). */
+export const MOBILE_LAYOUT_MAX_WIDTH = 1024;
+
+export function isMobileViewport(horizontal?: boolean): boolean {
+  if (typeof window === "undefined") return false;
+  return horizontal
+    ? window.innerHeight < 600
+    : window.innerWidth < MOBILE_LAYOUT_MAX_WIDTH;
+}
+
 export function useIsMobile(horizontal?: boolean) {
-  const [isMobile, setIsMobile] = useState(false);
-  const isMobileCurrent = useRef<boolean | null>(false);
+  const [isMobile, setIsMobile] = useState(() => isMobileViewport(horizontal));
+  const isMobileCurrent = useRef<boolean | null>(null);
 
   useEffect(() => {
     function onResize() {
-      const value = horizontal
-        ? window.innerHeight < 600
-        : window.innerWidth < 1024;
+      const value = isMobileViewport(horizontal);
       const isChanged = isMobileCurrent.current !== value;
       if (!isChanged) return;
 

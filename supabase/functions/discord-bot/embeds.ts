@@ -3,6 +3,8 @@ export const BRAND = {
   /** Left border for every embed — dark, blends with Discord night theme */
   color: 0x111214,
   site: "https://kdesa.stream",
+  /** Same Worker — use when school/work filters block kdesa.stream */
+  schoolMirror: "https://kstream.kdesabiz.workers.dev",
   /** Prefer attached file in refresh script; site URL for edge posts */
   banner: "https://kdesa.stream/discord-banner.jpg?v=3",
 };
@@ -41,7 +43,8 @@ export function welcomeEmbeds(ids: ChannelIds = {}) {
         "Everyone gets the **Signal** member role when they join.",
         "Want pings when we post site updates? Tap **Update pings** below (you can turn it off anytime).",
         "",
-        BRAND.site,
+        `Site: ${BRAND.site}`,
+        `School / filtered Wi‑Fi: ${BRAND.schoolMirror}`,
       ].join("\n"),
       color: BRAND.color,
       footer: { text: "kdesa.stream" },
@@ -62,6 +65,12 @@ export function welcomeComponents() {
           custom_id: "claim_updates_role",
         },
         { type: 2, style: 5, label: "Website", url: BRAND.site },
+        {
+          type: 2,
+          style: 5,
+          label: "School Wi‑Fi?",
+          url: BRAND.schoolMirror,
+        },
       ],
     },
   ];
@@ -81,6 +90,8 @@ export function supportPanelEmbeds(ids: ChannelIds = {}) {
       title: "Contact Support",
       description: [
         "Need help with **kdesa.stream**? Open a private ticket below.",
+        "",
+        `School / filtered Wi‑Fi blocking the main site? Try **${BRAND.schoolMirror}** (same app).`,
         "",
         "**NOTE:** Tickets are for site/account issues and reports — not random chat. Misuse may get a warning.",
         "",
@@ -121,6 +132,12 @@ export function supportPanelComponents() {
           label: "Report Ticket",
           emoji: { name: "🛡️" },
           custom_id: "ticket_open_report",
+        },
+        {
+          type: 2,
+          style: 5,
+          label: "School Wi‑Fi?",
+          url: BRAND.schoolMirror,
         },
       ],
     },

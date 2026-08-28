@@ -51,6 +51,7 @@
 
   function isAdsOptedOut() {
     if (window.__KSTREAM_DESKTOP_IPC__ || window.__PSTREAM_DESKTOP__) return true;
+    if (window.innerWidth < 1024) return true;
     try {
       var raw = localStorage.getItem("__MW::ads");
       if (raw) {

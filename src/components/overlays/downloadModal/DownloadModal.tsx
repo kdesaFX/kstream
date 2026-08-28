@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { Icon, Icons } from "@/components/Icon";
 import { FancyModal } from "@/components/overlays/Modal";
+import { SchoolMirrorTip } from "@/components/overlays/downloadModal/SchoolMirrorTip";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import {
   WINDOWS_APP_DOWNLOAD_FILENAME,
@@ -157,14 +158,7 @@ export function DownloadModal({ id }: { id: string }) {
 
             <SafetyBanner />
 
-            <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3">
-              <p className="text-sm leading-relaxed text-amber-100/90">
-                School or work filters (GoGuardian, etc.) often block{" "}
-                <span className="font-semibold text-amber-50">kdesa.stream</span>
-                . Download the app on home Wi‑Fi or a phone hotspot, then install
-                there. Streaming on a filtered network may still be blocked.
-              </p>
-            </div>
+            <SchoolMirrorTip />
 
             {!fromAds ? (
               <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
