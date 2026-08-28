@@ -42,10 +42,10 @@ Deno.serve(async (req) => {
     return jsonResponse({ type: 1 });
   }
 
-  // ACK buttons in <1s so Discord never times out.
+  // ACK buttons in <1s so Discord never times out; finish work after respond.
   const customId = interaction.data?.custom_id;
   if (interaction.type === 3 && customId && DEFER_IDS.has(customId)) {
-    queueMicrotask(async () => {
+    const work = (async () => {
       try {
         const env = await loadEnv();
         if (customId === "claim_updates_role") {
@@ -67,7 +67,14 @@ Deno.serve(async (req) => {
           /* ignore */
         }
       }
-    });
+    })();
+    // Keep the isolate alive after the deferred ACK (Supabase Edge Runtime).
+    try {
+      // deno-lint-ignore no-explicit-any
+      (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+    } catch {
+      /* ignore */
+    }
     return jsonResponse({ type: 5, data: { flags: 64 } });
   }
 
