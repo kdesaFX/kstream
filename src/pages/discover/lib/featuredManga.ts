@@ -140,20 +140,19 @@ export async function fetchFeaturedManga(
     resolved.map((item) => [item.title, item] as const),
   );
   // Prefer AniList order / art, but only titles we can actually open.
-  const candidates = shuffle(
-    anilist
-      .map((hit) => {
-        const item = byTitle.get(hit.title);
-        if (!item) return null;
-        return {
-          ...item,
-          poster: hit.cover || item.poster,
-          description: hit.description || item.description,
-        } satisfies MangaListItem;
-      })
-      .filter((item): item is MangaListItem => Boolean(item))
-      .filter((item) => item.description?.trim() && item.poster),
-  );
+  const candidateItems: MangaListItem[] = [];
+  for (const hit of anilist) {
+    const item = byTitle.get(hit.title);
+    if (!item) continue;
+    const merged: MangaListItem = {
+      ...item,
+      poster: hit.cover || item.poster,
+      description: hit.description || item.description,
+    };
+    if (!merged.description?.trim() || !merged.poster) continue;
+    candidateItems.push(merged);
+  }
+  const candidates = shuffle(candidateItems);
 
   if (candidates.length === 0) {
     // Fallback: resolved list alone (covers may be MangaDex 512).

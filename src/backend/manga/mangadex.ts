@@ -445,15 +445,16 @@ export async function listManga(ops: {
 
 export async function searchManga(
   title: string,
-  limit = 24,
+  limit?: number,
   opts?: { includeStats?: boolean },
 ): Promise<MangaListItem[]> {
   const q = title.trim();
   if (!q) return [];
+  const resolvedLimit = limit ?? 24;
   const includeStats = opts?.includeStats !== false;
   const res = await mdGet<MdListResponse<MdManga>>("/manga", {
     title: q,
-    limit,
+    limit: resolvedLimit,
     "includes[]": ["cover_art"],
     "contentRating[]": contentRatingsQuery(),
     "order[relevance]": "desc",
