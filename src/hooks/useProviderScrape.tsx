@@ -274,6 +274,13 @@ export function useScrape() {
 
   const startScraping = useCallback(
     async (media: ScrapeMedia, startFromSourceId?: string) => {
+      // Browser path hits same-origin proxies; wait briefly so cold edges
+      // don't fail the whole first scrape after reopening the site.
+      const { ensureSameOriginProxiesWarm } = await import(
+        "@/backend/providers/providers"
+      );
+      await ensureSameOriginProxiesWarm();
+
       const providerInstance = getProviders();
       // Keep scrape UI metadata in sync with the live provider list used below
       setCachedMetadata([

@@ -95,6 +95,7 @@ export function RealPlayerView() {
   );
   useRybbitWatchingEvent();
   const [startAtParam] = useQueryParam("t");
+  const [scrapeAttempt, setScrapeAttempt] = useState(0);
   const {
     status,
     playMedia,
@@ -141,6 +142,7 @@ export function RealPlayerView() {
     reset();
     openedWatchPartyRef.current = false;
     playbackRetryBudget.current.setMedia(paramsData);
+    setScrapeAttempt(0);
     return () => {
       reset();
     };
@@ -349,7 +351,7 @@ export function RealPlayerView() {
           <SourceSelectPart media={scrapeMedia} />
         ) : (
           <ScrapingPart
-            key={`scraping-${resumeFromSourceId || storeResumeFromSourceId || "default"}`}
+            key={`scraping-${scrapeAttempt}-${resumeFromSourceId || storeResumeFromSourceId || "default"}`}
             media={scrapeMedia}
             startFromSourceId={
               resumeFromSourceId || storeResumeFromSourceId || undefined
@@ -367,7 +369,13 @@ export function RealPlayerView() {
         )
       ) : null}
       {status === playerStatus.SCRAPE_NOT_FOUND && errorData ? (
-        <ScrapeErrorPart data={errorData} />
+        <ScrapeErrorPart
+          data={errorData}
+          onRetry={() => {
+            setScrapeAttempt((n) => n + 1);
+            setStatus(playerStatus.SCRAPING);
+          }}
+        />
       ) : null}
       {status === playerStatus.PLAYBACK_ERROR ? (
         <PlaybackErrorPart

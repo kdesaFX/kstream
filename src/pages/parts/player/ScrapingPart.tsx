@@ -117,9 +117,24 @@ export function ScrapingPart(props: ScrapingProps) {
     started.current = currentKey;
 
     (async () => {
-      const output = props.startFromSourceId
+      let output = props.startFromSourceId
         ? await resumeScraping(props.media, props.startFromSourceId)
         : await startScraping(props.media);
+
+      // First scrape after a cold open often races waking proxies and returns
+      // null even though sources exist. One automatic retry covers most of it.
+      if (!output && !props.startFromSourceId && isMounted()) {
+        const { ensureSameOriginProxiesWarm } = await import(
+          "@/backend/providers/providers"
+        );
+        await ensureSameOriginProxiesWarm(2500, true);
+        await new Promise<void>((r) => {
+          window.setTimeout(r, 800);
+        });
+        if (!isMounted()) return;
+        output = await startScraping(props.media);
+      }
+
       if (!isMounted()) return;
       props.onResult?.(
         resultRef.current.sources,

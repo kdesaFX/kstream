@@ -28,6 +28,7 @@ export interface ScrapeErrorPartProps {
     sources: Record<string, ScrapingSegment>;
     sourceOrder: ScrapingItems[];
   };
+  onRetry?: () => void;
 }
 
 export function ScrapeErrorPart(props: ScrapeErrorPartProps) {
@@ -154,7 +155,17 @@ export function ScrapeErrorPart(props: ScrapeErrorPartProps) {
         </IconPill>
         <Title>{t("player.scraping.notFound.title")}</Title>
         <Paragraph>{t("player.scraping.notFound.text")}</Paragraph>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 justify-center">
+          {props.onRetry ? (
+            <Button
+              onClick={() => props.onRetry?.()}
+              theme="purple"
+              padding="md:px-12 p-2.5"
+              className="mt-6"
+            >
+              {t("player.scraping.notFound.retryButton")}
+            </Button>
+          ) : null}
           <Button
             href="/"
             theme="secondary"
@@ -165,7 +176,7 @@ export function ScrapeErrorPart(props: ScrapeErrorPartProps) {
           </Button>
           <Button
             onClick={() => modal.show()}
-            theme="purple"
+            theme="secondary"
             padding="md:px-12 p-2.5"
             className="mt-6"
           >

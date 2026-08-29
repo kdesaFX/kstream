@@ -134,6 +134,13 @@ export async function runBootWarmup(
     heroWork().catch((err) => {
       console.error("Boot hero warmup failed:", err);
     }),
+    // Wake scrape proxies during splash so the first play after reopen
+    // is less likely to miss on a cold edge (esp. mobile).
+    import("@/backend/providers/providers")
+      .then(({ ensureSameOriginProxiesWarm }) =>
+        ensureSameOriginProxiesWarm(1200),
+      )
+      .catch(() => undefined),
   ]);
 
   await settleWithTimeout(work, maxMs);

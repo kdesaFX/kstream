@@ -21,20 +21,55 @@ function isDesktopApp(): boolean {
   );
 }
 
-/** Wake cold Vercel edge functions before the first scrape/play request. */
-let proxyWarmStarted = false;
-function warmSameOriginProxies() {
-  if (proxyWarmStarted || typeof window === "undefined") return;
-  proxyWarmStarted = true;
+/**
+ * Wake cold same-origin edge proxies before the first scrape.
+ * Mobile always goes through these; a cold wake is a common cause of
+ * intermittent "no sources found" right after reopening the site.
+ */
+let proxyWarmPromise: Promise<void> | null = null;
+
+function pingSameOriginProxies(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
   const origin = window.location.origin;
-  // Fire-and-forget OPTIONS / tiny GETs — ignore failures.
-  void fetch(`${origin}/api/proxy?destination=${encodeURIComponent("https://example.com")}`, {
-    method: "GET",
-    cache: "no-store",
-  }).catch(() => undefined);
-  void fetch(`${origin}/api/m3u8-proxy?url=${encodeURIComponent("https://example.com")}`, {
-    method: "OPTIONS",
-  }).catch(() => undefined);
+  return Promise.allSettled([
+    fetch(
+      `${origin}/api/proxy?destination=${encodeURIComponent("https://example.com")}`,
+      { method: "GET", cache: "no-store" },
+    ),
+    fetch(
+      `${origin}/api/m3u8-proxy?url=${encodeURIComponent("https://example.com")}`,
+      { method: "OPTIONS" },
+    ),
+  ]).then(() => undefined);
+}
+
+/** Fire-and-forget warm (boot / getProviders). Safe to call many times. */
+export function warmSameOriginProxies(): void {
+  if (typeof window === "undefined") return;
+  if (!proxyWarmPromise) {
+    proxyWarmPromise = pingSameOriginProxies().catch(() => undefined);
+  }
+}
+
+/**
+ * Await a proxy warm with a short budget so scrapes don't race a cold edge.
+ * Never throws; times out after `budgetMs`. Pass `force` to ping again
+ * (e.g. before an automatic scrape retry).
+ */
+export async function ensureSameOriginProxiesWarm(
+  budgetMs = 2500,
+  force = false,
+): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (force || !proxyWarmPromise) {
+    proxyWarmPromise = pingSameOriginProxies().catch(() => undefined);
+  }
+  await Promise.race([
+    proxyWarmPromise,
+    new Promise<void>((resolve) => {
+      window.setTimeout(resolve, budgetMs);
+    }),
+  ]);
 }
 
 export function getProviders() {
