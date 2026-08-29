@@ -1,7 +1,7 @@
 import type { MangaArt } from "@/backend/manga/anilistArt";
 import { listAniListManga } from "@/backend/manga/anilistDiscover";
 import { listDiscoverManga } from "@/backend/manga/discoverCatalog";
-import { listManga } from "@/backend/manga/mangadex";
+import { getMangaStatistics, listManga } from "@/backend/manga/mangadex";
 import { resolveMangaAnimeAdaptations } from "@/backend/manga/mangaLogo";
 import type { MangaListItem, MangaStatus } from "@/backend/manga/types";
 
@@ -183,6 +183,23 @@ export async function fetchFeaturedManga(
       art,
       count,
     );
+  }
+
+  // Discover lists skip MD stats for speed — pull scores for the hero slides
+  // only so ★ matches the info modal (MangaDex bayesian, not TMDB).
+  const missingScore = picked.filter((item) => item.rating == null);
+  if (missingScore.length > 0) {
+    const stats = await getMangaStatistics(
+      missingScore.map((item) => item.id),
+    ).catch(() => ({} as Record<string, { rating?: number }>));
+    picked = picked.map((item) => {
+      if (item.rating != null) return item;
+      const fromMd = stats[item.id]?.rating;
+      if (typeof fromMd === "number") return { ...item, rating: fromMd };
+      const fromAni = art.get(item.title)?.score;
+      if (typeof fromAni === "number") return { ...item, rating: fromAni / 10 };
+      return item;
+    });
   }
 
   return withLogoBudget(picked);

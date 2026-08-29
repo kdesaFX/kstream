@@ -367,6 +367,13 @@ async function fetchStatistics(
   return out;
 }
 
+/** Ratings/follows for a small set of manga ids (featured hero enrichment). */
+export async function getMangaStatistics(
+  ids: string[],
+): Promise<Record<string, { rating?: number; follows?: number }>> {
+  return fetchStatistics(ids);
+}
+
 function listQuery(
   order: MangaOrder,
   limit: number,
