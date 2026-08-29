@@ -27,9 +27,9 @@ describe("device profiles", () => {
     expect(LOW_DEVICE_PROFILE.proxyArtwork).toBe(true);
   });
 
-  it("keeps discover on mid and enables featured on high", () => {
+  it("keeps discover and featured on mid; high uses sharper heroes", () => {
     expect(MID_DEVICE_PROFILE.enableDiscover).toBe(true);
-    expect(MID_DEVICE_PROFILE.enableFeatured).toBe(false);
+    expect(MID_DEVICE_PROFILE.enableFeatured).toBe(true);
     expect(MID_DEVICE_PROFILE.proxyTmdb).toBe(false);
     expect(MID_DEVICE_PROFILE.proxyArtwork).toBe(true);
     expect(MID_DEVICE_PROFILE.backdropQuality).toBe("standard");
@@ -39,13 +39,15 @@ describe("device profiles", () => {
     expect(HIGH_DEVICE_PROFILE.backdropQuality).toBe("high");
   });
 
-  it("heals Discover back on for Mid installs that drifted", () => {
+  it("heals Discover and Featured back on for Mid installs that drifted", () => {
     const drifted = {
       lastAppliedDeviceProfile: "mid" as const,
       enableDiscover: false,
+      enableFeatured: false,
     };
     healMidDiscoverPreference(drifted);
     expect(drifted.enableDiscover).toBe(true);
+    expect(drifted.enableFeatured).toBe(true);
   });
 
   it("keeps TMDB API direct on mid while still proxying artwork", () => {

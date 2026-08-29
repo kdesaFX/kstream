@@ -44,17 +44,18 @@ export const MID_DEVICE_PROFILE: DeviceProfileFlags = {
   enableThumbnails: false,
   enableAutoplay: false,
   enableDiscover: true,
-  enableFeatured: false,
+  enableFeatured: true,
   enableDetailsModal: true,
   enableImageLogos: true,
   enablePauseOverlay: false,
   forceCompactEpisodeView: false,
   enableCarouselView: false,
   enableLowPerformanceMode: true,
-  // Artwork only — proxying TMDB list JSON emptied Mid Discover after deploys.
+  // Artwork only — proxying TMDB API emptied Mid Discover after deploys.
   proxyTmdb: false,
   proxyArtwork: true,
   posterQuality: "standard",
+  // Lighter heroes than High (w780 vs w1280).
   backdropQuality: "standard",
 };
 
@@ -196,15 +197,17 @@ export function flagsForDeviceProfile(profile: DeviceProfile): DeviceProfileFlag
 }
 
 /**
- * Mid must keep Discover. Older low-perf UI locked the Appearance toggle,
- * so some Mid installs still have Discover off while lastApplied is mid.
+ * Mid must keep Discover + Featured. Older Mid presets and low-perf UI
+ * left those off while lastApplied stayed "mid".
  */
 export function healMidDiscoverPreference(s: {
   lastAppliedDeviceProfile?: DeviceProfile | null;
   enableDiscover?: boolean;
+  enableFeatured?: boolean;
 }): void {
   if (s.lastAppliedDeviceProfile === "mid") {
     s.enableDiscover = true;
+    s.enableFeatured = true;
   }
 }
 
@@ -297,6 +300,7 @@ export function deviceProfileSummaryKeys(
   }
   if (profile === "mid") {
     return [
+      "settings.optimize.summaryFeaturedOn",
       "settings.optimize.summaryDiscoverLimited",
       "settings.optimize.summaryFewerAnimations",
       "settings.optimize.summaryProxyArtwork",
