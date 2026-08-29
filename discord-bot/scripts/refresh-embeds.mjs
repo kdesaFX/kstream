@@ -7,12 +7,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { BOT_BIO } from "./profile.mjs";
 
-const token = process.argv[2] || process.env.DISCORD_BOT_TOKEN;
+const args = process.argv.slice(2);
+const profileOnly = args.includes("--profile-only");
+const token = args.find((a) => !a.startsWith("-")) || process.env.DISCORD_BOT_TOKEN;
 const GUILD_ID = process.env.DISCORD_GUILD_ID || "1542310809898590288";
 const APP_ID = "1536251834203770941";
-const BIO =
-  "Official kdesa.stream bot — tickets, updates, and server info. Watch at https://kdesa.stream · School Wi‑Fi: https://kstream.kdesabiz.workers.dev";
+const BIO = BOT_BIO;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const bannerPath = path.join(__dirname, "../../public/discord-banner.jpg");
@@ -211,6 +213,10 @@ function supportPayload(ids) {
 
 async function main() {
   await setBotProfile();
+  if (profileOnly) {
+    console.log("Profile updated (--profile-only, skipped channel embeds).");
+    return;
+  }
 
   const me = await api("/users/@me");
   console.log(`Bot: ${me.username} (${me.id})`);

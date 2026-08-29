@@ -13,6 +13,8 @@
     "deploy": "pnpm build && pnpm dlx wrangler@4 deploy",
     "sync:installer": "node scripts/sync-windows-installer.mjs",
     "allowlist:school-mirror": "node scripts/allowlist-school-mirror-auth.mjs",
+    "bot:profile": "node discord-bot/scripts/refresh-embeds.mjs",
+    "bot:presence": "node discord-bot/scripts/set-bot-presence.mjs",
     "build:workers": "node scripts/prepare-providers.mjs && pnpm install && pnpm run build",
     "update-and-build": "pnpm remove @p-stream/providers && pnpm add github:kdesaFX/providers#production && pnpm run build",
     "update-providers": "pnpm update @p-stream/providers",
