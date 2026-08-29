@@ -1,6 +1,9 @@
-/** Shared bot profile copy — keep it short and human. */
-export const BOT_BIO =
-  "support bot for kdesa.stream — tickets, updates, that kind of thing. site blocked at school? try kstream.kdesabiz.workers.dev";
+/** Shared bot profile copy — short value line + links (Invite Tracker / Starboard style). */
+export const BOT_BIO = [
+  "Tickets, updates, and help for kdesa.stream.",
+  "Website: https://kdesa.stream/",
+  "School Wi‑Fi: https://kstream.kdesabiz.workers.dev",
+].join("\n");
 
 /** Shows under the bot name like a user custom status (Gateway presence). */
 export const BOT_CUSTOM_STATUS = "kdesa.stream";
