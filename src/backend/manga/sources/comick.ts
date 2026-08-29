@@ -211,17 +211,19 @@ export async function resolveComickChapters(
   }
 
   const queries = buildFallbackSearchQueries(title, alternateTitles);
-  let result: MangaChapter[] | null = null;
+  let best: MangaChapter[] | null = null;
   for (const query of queries) {
     const hit = await loadComickMatch(query).catch(() => null);
-    if (hit && titlesCompatible(title, hit.title, alternateTitles)) {
-      result = hit.chapters;
-      break;
+    if (!hit) continue;
+    if (!titlesCompatible(title, hit.title, alternateTitles)) continue;
+    if (!best || hit.chapters.length > best.length) {
+      best = hit.chapters;
     }
+    if (best.length >= 80) break;
   }
 
-  resolvedComickCache.set(cacheKey, { at: Date.now(), chapters: result });
-  return result;
+  resolvedComickCache.set(cacheKey, { at: Date.now(), chapters: best });
+  return best;
 }
 
 function mangaseeSlugFromDetail(detail: ComickChapterDetail | undefined): string | null {

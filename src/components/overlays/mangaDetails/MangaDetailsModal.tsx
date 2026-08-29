@@ -118,6 +118,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
   const [hasCopiedShare, setHasCopiedShare] = useState(false);
   const [logoHeight, setLogoHeight] = useState(0);
   const logoRef = useRef<HTMLDivElement>(null);
+  const scrollBodyRef = useRef<HTMLDivElement>(null);
   const similarCarouselRef = useRef<HTMLDivElement>(null);
   const similarCarouselRefs = useRef<{
     [key: string]: HTMLDivElement | null;
@@ -157,12 +158,16 @@ export function MangaDetailsModal({ id }: { id: string }) {
     preloadMangaReaderView();
     let cancelled = false;
     setChaptersPending(true);
+    // Negative hero margin used to clip the title above scrollTop=0 — reset.
+    scrollBodyRef.current?.scrollTo({ top: 0 });
     getMangaDetails(mangaId, preferredLanguage, (partial) => {
       if (cancelled) return;
       setLoaded({ mangaId, details: partial });
       // MD returned first — keep the chapters section in a loading state when
-      // empty so we don't flash "official sites only" before mirrors arrive.
-      setChaptersPending(partial.chapters.length === 0);
+      // empty OR suspiciously thin so licensed stubs don't flash as "done".
+      setChaptersPending(
+        partial.chapters.length === 0 || partial.chapters.length <= 8,
+      );
     })
       .then((d) => {
         if (cancelled) return;
@@ -354,7 +359,11 @@ export function MangaDetailsModal({ id }: { id: string }) {
                 <IconPatch icon={Icons.X} />
               </button>
             </div>
-            <Flare.Child className="pointer-events-auto relative h-full overflow-y-auto scrollbar-none select-text">
+            <Flare.Child className="pointer-events-auto relative h-full">
+              <div
+                ref={scrollBodyRef}
+                className="h-full overflow-y-auto scrollbar-none select-text pt-12"
+              >
               {hasCopiedShare ? (
                 <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 bg-green-600 text-white rounded-lg shadow-lg transition-all duration-300 animate-[scaleIn_0.6s_ease-out_forwards]">
                   <div className="flex items-center gap-2">
@@ -371,8 +380,8 @@ export function MangaDetailsModal({ id }: { id: string }) {
                 <div className="p-10 text-center text-red-400">{error}</div>
               ) : null}
               {details ? (
-                <div className="relative h-full flex flex-col">
-                  {/* Tall hero backdrop */}
+                <div className="relative min-h-full flex flex-col">
+                  {/* Tall hero backdrop — -mt-12 bleeds into pt-12 so the title stays reachable */}
                   <div
                     className="relative -mt-12 z-20"
                     style={{
@@ -624,7 +633,8 @@ export function MangaDetailsModal({ id }: { id: string }) {
                         className="max-h-[28rem] space-y-1 overflow-y-auto overscroll-contain pr-1 rounded-xl"
                         onWheel={(e) => e.stopPropagation()}
                       >
-                        {details.chapters.length === 0 ? (
+                        {details.chapters.length === 0 ||
+                        (chaptersPending && details.chapters.length <= 8) ? (
                           <p className="text-sm text-type-secondary">
                             {chaptersPending
                               ? t("manga.details.loadingChapters")
@@ -721,6 +731,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
                   </div>
                 </div>
               ) : null}
+              </div>
             </Flare.Child>
           </div>
         </Flare.Base>

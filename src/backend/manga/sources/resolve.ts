@@ -34,8 +34,28 @@ export function getChapterFallbackIds(
 }
 
 /**
+ * MangaDex often keeps only a handful of English chapters for licensed titles
+ * (Komi: 288 / 500 / 500.5). Anything this thin needs mirror fill.
+ */
+export function isSparseMangaDexList(
+  chapters: MangaChapter[],
+  lastChapter?: string | null,
+): boolean {
+  if (chapters.length === 0) return true;
+  if (chapters.length <= 8) return true;
+  const last = parseFloat(String(lastChapter ?? "").trim());
+  if (Number.isFinite(last) && last >= 20 && chapters.length < last * 0.2) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Fill English gaps from WeebCentral and Comick while keeping MangaDex chapters
  * when they exist. Stores alternate ids for page-load retry.
+ *
+ * Licensed MangaDex stubs (tiny EN feed) always pull mirrors — even if the UI
+ * language preference isn't English — otherwise titles like Komi show 3 chapters.
  */
 export async function resolveReadableChapters(
   details: MangaDetails,
@@ -60,7 +80,10 @@ export async function resolveReadableChapters(
     source: ch.source ?? ("mangadex" as const),
   }));
 
-  if (language !== "en") {
+  const sparse = isSparseMangaDexList(mdChapters, details.lastChapter);
+  const shouldMirror = language === "en" || sparse;
+
+  if (!shouldMirror) {
     const groups =
       details.chapterGroups.length > 0
         ? details.chapterGroups
@@ -84,8 +107,16 @@ export async function resolveReadableChapters(
     ),
   ]);
 
+  // When MangaDex is licensed-hollow, prefer the bigger mirror catalog as the
+  // spine and only keep MD chapters that actually have pages.
+  const mdForMerge =
+    sparse && ((wcChapters?.length ?? 0) > mdChapters.length * 2 ||
+      (ckChapters?.length ?? 0) > mdChapters.length * 2)
+      ? mdChapters.filter((ch) => (ch.pages ?? 0) > 0)
+      : mdChapters;
+
   const merged = mergeChapterLists([
-    { source: "mangadex", chapters: mdChapters },
+    { source: "mangadex", chapters: mdForMerge },
     ...(wcChapters?.length
       ? [{ source: "weebcentral" as const, chapters: wcChapters }]
       : []),
@@ -124,7 +155,10 @@ function enrichComickAlternates(
     const alts = getComickAlternateHids(hid).map((alt) => `comick-${alt}`);
     if (alts.length === 0) continue;
     const existing = fallbacks.get(ch.id) ?? [];
-    fallbacks.set(ch.id, [...existing, ...alts.filter((id) => !existing.includes(id))]);
+    fallbacks.set(ch.id, [
+      ...existing,
+      ...alts.filter((id) => !existing.includes(id)),
+    ]);
   }
 }
 

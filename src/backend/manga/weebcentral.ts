@@ -340,13 +340,22 @@ function isGenericSearchToken(token: string): boolean {
 
 function spinoffPenalty(title: string): number {
   const t = title.toLowerCase();
-  if (/anthology|doujin|fan colored|spin.?off|side story|extra|omnibus/i.test(t)) {
-    return 20;
+  if (
+    /anthology|doujin|fan.?colored|fan coloured|spin.?off|side story|oneshot|one.?shot|extra|omnibus/i.test(
+      t,
+    )
+  ) {
+    return 40;
   }
   if (/\(volume\)|\bvol\b|\bnovel\b/i.test(t)) {
     return 10;
   }
   return 0;
+}
+
+/** Fan-colored / oneshot / anthology variants — never treat as the main series. */
+export function isSpinoffOrVariantTitle(title: string): boolean {
+  return spinoffPenalty(title) >= 40;
 }
 
 function significantTokens(title: string): string[] {
@@ -394,6 +403,14 @@ export function titlesCompatible(
   candidate: string,
   alternateTitles: string[] = [],
 ): boolean {
+  // "Komi Can't Communicate (Fan-Colored)" must not satisfy the main series.
+  if (
+    isSpinoffOrVariantTitle(candidate) &&
+    !isSpinoffOrVariantTitle(wanted) &&
+    !alternateTitles.some((alt) => isSpinoffOrVariantTitle(alt))
+  ) {
+    return false;
+  }
   if (titleSatisfiesQuery(wanted, candidate)) return true;
   return alternateTitles.some((alt) => titleSatisfiesQuery(alt, candidate));
 }
@@ -410,13 +427,21 @@ export function pickBestSeriesHit(
   hits: WeebCentralSearchHit[],
 ): WeebCentralSearchHit | undefined {
   if (hits.length === 0) return undefined;
-  const exact = pickMatchingSeries(query, hits);
+  const preferMain = !isSpinoffOrVariantTitle(query);
+  const pool = preferMain
+    ? hits.filter((hit) => !isSpinoffOrVariantTitle(hit.title))
+    : hits;
+  // Better to miss than open Fan-Colored / Oneshot as the main series.
+  if (pool.length === 0) return undefined;
+  const candidates = pool;
+
+  const exact = pickMatchingSeries(query, candidates);
   if (exact) return exact;
 
   const needle = normalizeMangaTitle(query);
   if (!needle) return undefined;
 
-  const ranked = [...hits]
+  const ranked = [...candidates]
     .filter((hit) => hitMatchesQuery(query, hit))
     .sort((a, b) => {
       const score = (raw: string) => {
@@ -476,7 +501,7 @@ function isRomajiLikeTitle(value: string): boolean {
   );
 }
 
-const MAX_FALLBACK_QUERIES = 4;
+const MAX_FALLBACK_QUERIES = 8;
 
 export function buildFallbackSearchQueries(
   title: string,
@@ -563,8 +588,8 @@ async function loadWeebCentralMatch(
 /**
  * Resolve readable chapters from WeebCentral when MangaDex is empty or
  * licensed-only. Tries the display title, romaji/alts, then one distinctive
- * proper-noun token. Never keeps the longest chapter list from an unrelated
- * series that merely shares a word ("Leveling").
+ * proper-noun token. Prefers the longest matching series list (so a fan-colored
+ * stub can't win over the real catalog).
  */
 export async function resolveWeebCentralChapters(
   title: string,
@@ -577,17 +602,20 @@ export async function resolveWeebCentralChapters(
   }
 
   const queries = buildFallbackSearchQueries(title, alternateTitles);
-  let result: MangaChapter[] | null = null;
+  let best: MangaChapter[] | null = null;
   for (const query of queries) {
     const hit = await loadWeebCentralMatch(query).catch(() => null);
-    if (hit && titlesCompatible(title, hit.title, alternateTitles)) {
-      result = hit.chapters;
-      break;
+    if (!hit) continue;
+    if (!titlesCompatible(title, hit.title, alternateTitles)) continue;
+    if (!best || hit.chapters.length > best.length) {
+      best = hit.chapters;
     }
+    // Full catalogs are hundreds of chapters — stop once we clearly have one.
+    if (best.length >= 80) break;
   }
 
-  resolvedChaptersCache.set(cacheKey, { at: Date.now(), chapters: result });
-  return result;
+  resolvedChaptersCache.set(cacheKey, { at: Date.now(), chapters: best });
+  return best;
 }
 
 function hitToListItem(hit: WeebCentralSearchHit): MangaListItem {

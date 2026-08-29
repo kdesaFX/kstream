@@ -149,7 +149,7 @@ describe("weebcentral parsers", () => {
       "Don't Toy With Me, Miss Nagatoro!",
       ["Ijiranaide, Nagatoro-san"],
     );
-    expect(queries.length).toBeLessThanOrEqual(4);
+    expect(queries.length).toBeLessThanOrEqual(8);
     expect(queries[0]).toBe("Don't Toy With Me, Miss Nagatoro!");
     expect(
       queries.some((q) => normalizeMangaTitle(q).includes("ijiranaide")),
@@ -187,6 +187,31 @@ describe("weebcentral parsers", () => {
     expect(queries).toEqual(["Solo Leveling"]);
     expect(queries).not.toContain("Leveling");
     expect(queries).not.toContain("Solo");
+  });
+
+  it("does not treat Fan-Colored / Oneshot as the main series", () => {
+    const main = {
+      id: "01KOMIMAIN0000000000000001",
+      slug: "Komi-Cant-Communicate",
+      title: "Komi Can't Communicate",
+      poster: "",
+    };
+    const fan = {
+      id: "01KOMIFAN00000000000000001",
+      slug: "Komi-Cant-Communicate-Fan-Colored",
+      title: "Komi Can't Communicate (Fan-Colored)",
+      poster: "",
+    };
+    const oneshot = {
+      id: "01KOMIONE00000000000000001",
+      slug: "Komi-Cant-Communicate-Oneshot",
+      title: "Komi Can't Communicate. (Oneshot)",
+      poster: "",
+    };
+    expect(pickBestSeriesHit("Komi Can't Communicate", [fan, oneshot, main])?.title).toBe(
+      "Komi Can't Communicate",
+    );
+    expect(pickBestSeriesHit("Komi Can't Communicate", [fan, oneshot])?.title).toBeUndefined();
   });
 
   it("picks the main series when the English title does not match WC exactly", () => {
