@@ -71,8 +71,9 @@ export function LazyMediaCarousel({
           genreId={genreId}
         />
       ) : (
-        // Placeholder with similar height to prevent layout shift
-        <div className="h-[20rem]" />
+        // Placeholder matching a heading + poster row so intersection load
+        // does not jump the page when carousels enter view.
+        <div className="h-[22rem]" aria-hidden />
       )}
     </div>
   );

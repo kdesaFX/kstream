@@ -126,17 +126,18 @@ function FeaturedCarouselSkeleton({
   shorter?: boolean;
   searching?: boolean;
 }) {
+  // Keep in sync with the loaded carousel height classes below.
+  const heightClass = searching
+    ? "h-24"
+    : shorter
+      ? "h-[40rem] md:h-[85vh]"
+      : "h-[40rem] md:h-[100vh]";
+
   return (
     <div
       className={classNames(
         "relative w-full transition-[height] duration-300 ease-in-out",
-        // Heights must match the loaded carousel or the swap spikes CLS.
-        // While searching the loaded carousel is only h-24, so a full-height
-        // placeholder collapses by most of the viewport the moment it resolves,
-        // dragging the results out from under whatever the viewer was clicking.
-        searching && "h-24",
-        !searching &&
-          (shorter ? "h-[40rem] md:h-[85vh]" : "h-[40rem] md:h-[100vh]"),
+        heightClass,
       )}
     >
       <div className="relative w-full h-full overflow-hidden">
@@ -215,7 +216,7 @@ export function FeaturedCarousel({
   );
   const userLanguage = useLanguageStore((s) => s.language);
   const formattedLanguage = getTmdbLanguageCode(userLanguage);
-  const { width: windowWidth, height: windowHeight } = useWindowSize();
+  const { width: windowWidth } = useWindowSize();
   const [releaseInfo, setReleaseInfo] = useState<TraktReleaseResponse | null>(
     null,
   );
@@ -627,12 +628,12 @@ export function FeaturedCarousel({
     <div
       className={classNames(
         "relative w-full transition-[height] duration-300 ease-in-out",
+        // Fixed heights only — avoid windowHeight races that flip 100vh ↔ 40rem
+        // after first paint and spike CLS on the hero container.
         searching
           ? "h-24"
           : shorter
-            ? windowHeight > 600
-              ? "h-[40rem] md:h-[85vh]"
-              : "h-[100vh]"
+            ? "h-[40rem] md:h-[85vh]"
             : "h-[40rem] md:h-[100vh]",
       )}
       onTouchStart={handleTouchStart}
@@ -779,11 +780,13 @@ export function FeaturedCarousel({
               <img
                 src={logoUrl}
                 alt={mediaTitle}
-                className="max-w-[14rem] md:max-w-[22rem] max-h-[20vh] object-contain drop-shadow-lg bg-transparent mb-6"
+                width={352}
+                height={160}
+                className="max-w-[14rem] md:max-w-[22rem] max-h-[20vh] w-auto h-auto object-contain drop-shadow-lg bg-transparent mb-6"
                 style={{ background: "none" }}
               />
             ) : (
-              <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
+              <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 min-h-[2.5rem] md:min-h-[3.75rem]">
                 {mediaTitle}
               </h1>
             )}

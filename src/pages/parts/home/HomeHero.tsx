@@ -44,7 +44,8 @@ export function HomeHero(props: { searching?: boolean }) {
         "relative z-0 w-full transition-[height,opacity] duration-300 ease-in-out",
         props.searching
           ? "h-24 opacity-0 pointer-events-none"
-          : "opacity-100",
+          : // Reserve space so title/search fonts don't shove content below on first paint.
+            "min-h-[16rem] md:min-h-[18rem] opacity-100",
       )}
     >
       <div className="flex flex-col items-center justify-start px-6 pt-28 pb-4 text-center gap-5 md:pt-32 md:pb-6">

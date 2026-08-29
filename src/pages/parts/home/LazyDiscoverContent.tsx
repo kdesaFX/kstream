@@ -2,9 +2,9 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 const DiscoverContent = lazy(() => import("@/pages/discover/discoverContent"));
 
-/** Reserve discover tab + first carousel row so lazy mount does not shift layout. */
+/** Reserve discover nav + ~2 carousel rows so lazy mount does not shove the footer. */
 function DiscoverContentPlaceholder() {
-  return <div className="min-h-[20rem]" aria-hidden />;
+  return <div className="min-h-[48rem]" aria-hidden />;
 }
 
 /**

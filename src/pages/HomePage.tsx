@@ -242,11 +242,6 @@ export function HomePage() {
     >
       <div className="relative mb-2">
         <Helmet>
-          <style type="text/css">{`
-            html, body {
-              scrollbar-gutter: stable;
-            }
-          `}</style>
           <title>{t("global.name")}</title>
         </Helmet>
 
