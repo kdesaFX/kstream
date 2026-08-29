@@ -28,6 +28,7 @@ import { useProgressStore } from "@/stores/progress";
 import { useRatingsStore } from "@/stores/ratings";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
 import { fetchImdbRating } from "@/utils/services/imdbRating";
+import { tmdbBackdropSize } from "@/utils/media/artwork";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { resolveCardArtworkUrl } from "@/utils/media/artwork";
 
@@ -214,6 +215,10 @@ export function FeaturedCarousel({
   const enableImageLogos = usePreferencesStore(
     (state) => state.enableImageLogos,
   );
+  const backdropQuality = usePreferencesStore(
+    (state) => state.backdropQuality ?? "high",
+  );
+  const heroBackdropSize = tmdbBackdropSize(backdropQuality);
   const userLanguage = useLanguageStore((s) => s.language);
   const formattedLanguage = getTmdbLanguageCode(userLanguage);
   const { width: windowWidth } = useWindowSize();
@@ -692,8 +697,12 @@ export function FeaturedCarousel({
             <div key={item.id} className={fade} style={mask}>
               {shouldLoad && item.backdrop_path ? (
                 <img
-                  src={`https://image.tmdb.org/t/p/w780${item.backdrop_path}`}
-                  srcSet={`https://image.tmdb.org/t/p/w500${item.backdrop_path} 500w, https://image.tmdb.org/t/p/w780${item.backdrop_path} 780w`}
+                  src={`https://image.tmdb.org/t/p/${heroBackdropSize}${item.backdrop_path}`}
+                  srcSet={
+                    heroBackdropSize === "w1280"
+                      ? `https://image.tmdb.org/t/p/w780${item.backdrop_path} 780w, https://image.tmdb.org/t/p/w1280${item.backdrop_path} 1280w`
+                      : `https://image.tmdb.org/t/p/w500${item.backdrop_path} 500w, https://image.tmdb.org/t/p/w780${item.backdrop_path} 780w`
+                  }
                   sizes="100vw"
                   alt=""
                   decoding={isActive ? "sync" : "async"}

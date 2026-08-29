@@ -23,10 +23,11 @@ import { Movie, TVShow } from "@/pages/discover/common";
 import type { MangaStatus } from "@/backend/manga/types";
 import { useProgressStore } from "@/stores/progress";
 import { progressMediaIsHighPercentage } from "@/stores/progress/utils";
+import { usePreferencesStore } from "@/stores/preferences";
 import { useRatingsStore } from "@/stores/ratings";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
 import { shouldAllowMatureTitles } from "@/utils/media/mature";
-import { resolveCardArtworkUrl } from "@/utils/media/artwork";
+import { resolveCardArtworkUrl, tmdbBackdropSize } from "@/utils/media/artwork";
 
 export type FeaturedHeroCategory = "movies" | "tvshows" | "manga";
 
@@ -141,7 +142,9 @@ export function featuredBackdropUrl(item: FeaturedMedia): string | undefined {
     return resolveCardArtworkUrl(item.artUrl) ?? undefined;
   }
   if (!item.backdrop_path) return undefined;
-  return `https://image.tmdb.org/t/p/w780${item.backdrop_path}`;
+  const quality =
+    usePreferencesStore.getState().backdropQuality ?? "high";
+  return `https://image.tmdb.org/t/p/${tmdbBackdropSize(quality)}${item.backdrop_path}`;
 }
 
 export async function preloadFeaturedBackdrop(

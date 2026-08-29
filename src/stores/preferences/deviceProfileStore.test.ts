@@ -52,8 +52,17 @@ describe("device profile store", () => {
     expect(after.enableDiscover).toBe(true);
     expect(after.enableLowPerformanceMode).toBe(false);
     expect(after.posterQuality).toBe("standard");
+    expect(after.backdropQuality).toBe("high");
     expect(after.proxyArtwork).toBe(false);
     expect(after.lastAppliedDeviceProfile).toBe("high");
     expect(after.deviceProfileSnapshot).toBeNull();
+  });
+
+  it("uses lighter backdrops on mid and sharp on high", () => {
+    const { applyDeviceProfile } = usePreferencesStore.getState();
+    applyDeviceProfile("mid");
+    expect(usePreferencesStore.getState().backdropQuality).toBe("standard");
+    applyDeviceProfile("high");
+    expect(usePreferencesStore.getState().backdropQuality).toBe("high");
   });
 });

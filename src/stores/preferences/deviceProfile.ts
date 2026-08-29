@@ -1,5 +1,7 @@
 export type DeviceProfile = "low" | "mid" | "high";
 export type PosterQuality = "low" | "standard";
+/** Hero / details backdrops — High keeps sharp TMDB w1280; Mid/Low use lighter w780. */
+export type BackdropQuality = "standard" | "high";
 
 export interface DeviceProfileFlags {
   enableThumbnails: boolean;
@@ -15,6 +17,7 @@ export interface DeviceProfileFlags {
   proxyTmdb: boolean;
   proxyArtwork: boolean;
   posterQuality: PosterQuality;
+  backdropQuality: BackdropQuality;
 }
 
 export interface DeviceProfileSnapshot extends DeviceProfileFlags {}
@@ -34,6 +37,7 @@ export const HIGH_DEVICE_PROFILE: DeviceProfileFlags = {
   proxyTmdb: false,
   proxyArtwork: false,
   posterQuality: "standard",
+  backdropQuality: "high",
 };
 
 export const MID_DEVICE_PROFILE: DeviceProfileFlags = {
@@ -51,6 +55,7 @@ export const MID_DEVICE_PROFILE: DeviceProfileFlags = {
   proxyTmdb: false,
   proxyArtwork: true,
   posterQuality: "standard",
+  backdropQuality: "standard",
 };
 
 /** School Chromebooks — Discover off is the main win. */
@@ -68,6 +73,7 @@ export const LOW_DEVICE_PROFILE: DeviceProfileFlags = {
   proxyTmdb: true,
   proxyArtwork: true,
   posterQuality: "low",
+  backdropQuality: "standard",
 };
 
 /** How many Discover carousels Mid / low-perf loads before “Show more”. */
@@ -96,6 +102,7 @@ export function captureDeviceProfileSnapshot(
     proxyTmdb: s.proxyTmdb,
     proxyArtwork: s.proxyArtwork,
     posterQuality: s.posterQuality ?? "standard",
+    backdropQuality: s.backdropQuality ?? "high",
   };
 }
 
@@ -116,6 +123,7 @@ export function applyDeviceProfileFlags(
   s.proxyTmdb = flags.proxyTmdb;
   s.proxyArtwork = flags.proxyArtwork;
   s.posterQuality = flags.posterQuality;
+  s.backdropQuality = flags.backdropQuality;
 }
 
 /** Preference keys owned by Optimize — stay on this device, never account-synced. */
@@ -133,6 +141,7 @@ export const DEVICE_LOCAL_PREF_KEYS = [
   "proxyTmdb",
   "proxyArtwork",
   "posterQuality",
+  "backdropQuality",
   "lastAppliedDeviceProfile",
   "deviceProfileSnapshot",
 ] as const;
@@ -162,6 +171,7 @@ export function deviceProfileToSettingsPatch(
   proxyTmdb: boolean;
   proxyArtwork: boolean;
   posterQuality: PosterQuality;
+  backdropQuality: BackdropQuality;
 } {
   return {
     enableThumbnails: s.enableThumbnails,
@@ -177,6 +187,7 @@ export function deviceProfileToSettingsPatch(
     proxyTmdb: s.proxyTmdb,
     proxyArtwork: s.proxyArtwork,
     posterQuality: s.posterQuality ?? "standard",
+    backdropQuality: s.backdropQuality ?? "high",
   };
 }
 
@@ -201,7 +212,8 @@ export function deviceProfilesMatch(
     a.enableLowPerformanceMode === b.enableLowPerformanceMode &&
     a.proxyTmdb === b.proxyTmdb &&
     a.proxyArtwork === b.proxyArtwork &&
-    (a.posterQuality ?? "standard") === (b.posterQuality ?? "standard")
+    (a.posterQuality ?? "standard") === (b.posterQuality ?? "standard") &&
+    (a.backdropQuality ?? "high") === (b.backdropQuality ?? "high")
   );
 }
 

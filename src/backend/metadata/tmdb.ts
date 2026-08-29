@@ -14,7 +14,7 @@ import {
 } from "@/utils/media/logoBackground";
 import { MediaItem } from "@/utils/media/mediaTypes";
 import { tmdbIncludeAdult, filterOutMatureMedia } from "@/utils/media/mature";
-import { tmdbPosterSize, resolveCardArtworkUrl } from "@/utils/media/artwork";
+import { tmdbBackdropSize, tmdbPosterSize, resolveCardArtworkUrl } from "@/utils/media/artwork";
 import { getProxyUrls, proxiedDestinationUrl } from "@/utils/hosting/proxyUrls";
 
 import { MWMediaMeta, MWMediaType, MWSeasonMeta } from "./types/mw";
@@ -582,8 +582,10 @@ export function getMediaBackdrop(
   backdropPath: string | null,
 ): string | undefined {
   const shouldProxyTmdb = usePreferencesStore.getState().proxyTmdb;
-  // w780 is enough for details/hero UIs and ~40% lighter than w1280 for LCP.
-  const imgUrl = `https://image.tmdb.org/t/p/w780${backdropPath}`;
+  const quality =
+    usePreferencesStore.getState().backdropQuality ?? "high";
+  // High build: w1280. Mid/Low keep w780 for lighter LCP.
+  const imgUrl = `https://image.tmdb.org/t/p/${tmdbBackdropSize(quality)}${backdropPath}`;
   if (shouldProxyTmdb) {
     const proxied = proxiedDestinationUrl(imgUrl, getProxyUrls());
     if (proxied) return proxied;

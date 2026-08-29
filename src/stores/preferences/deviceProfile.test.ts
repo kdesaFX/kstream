@@ -31,9 +31,11 @@ describe("device profiles", () => {
     expect(MID_DEVICE_PROFILE.enableFeatured).toBe(false);
     expect(MID_DEVICE_PROFILE.proxyTmdb).toBe(false);
     expect(MID_DEVICE_PROFILE.proxyArtwork).toBe(true);
+    expect(MID_DEVICE_PROFILE.backdropQuality).toBe("standard");
     expect(HIGH_DEVICE_PROFILE.enableDiscover).toBe(true);
     expect(HIGH_DEVICE_PROFILE.enableFeatured).toBe(true);
     expect(HIGH_DEVICE_PROFILE.enableDetailsModal).toBe(true);
+    expect(HIGH_DEVICE_PROFILE.backdropQuality).toBe("high");
   });
 
   it("keeps TMDB API direct on mid while still proxying artwork", () => {

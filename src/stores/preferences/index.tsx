@@ -7,6 +7,7 @@ import {
   captureDeviceProfileSnapshot,
   flagsForDeviceProfile,
   HIGH_DEVICE_PROFILE,
+  type BackdropQuality,
   type DeviceProfile,
   type DeviceProfileSnapshot,
   type PosterQuality,
@@ -73,6 +74,7 @@ export interface PreferencesStore {
   lowPerformanceSnapshot: LowPerformanceSnapshot | null;
   proxyArtwork: boolean;
   posterQuality: PosterQuality;
+  backdropQuality: BackdropQuality;
   lastAppliedDeviceProfile: DeviceProfile | null;
   deviceProfileSnapshot: DeviceProfileSnapshot | null;
   enableNativeSubtitles: boolean;
@@ -134,6 +136,7 @@ export interface PreferencesStore {
   rememberLowPerformanceSnapshot(snapshot: LowPerformanceSnapshot): void;
   setProxyArtwork(v: boolean): void;
   setPosterQuality(v: PosterQuality): void;
+  setBackdropQuality(v: BackdropQuality): void;
   applyDeviceProfile(profile: DeviceProfile): void;
   resetDeviceProfile(): void;
   setEnableNativeSubtitles(v: boolean): void;
@@ -202,6 +205,7 @@ export const usePreferencesStore = create(
       lowPerformanceSnapshot: null,
       proxyArtwork: false,
       posterQuality: "standard",
+      backdropQuality: "high",
       lastAppliedDeviceProfile: "high",
       deviceProfileSnapshot: null,
       enableNativeSubtitles: false,
@@ -409,6 +413,11 @@ export const usePreferencesStore = create(
           s.posterQuality = v;
         });
       },
+      setBackdropQuality(v) {
+        set((s) => {
+          s.backdropQuality = v;
+        });
+      },
       applyDeviceProfile(profile) {
         set((s) => {
           if (!s.deviceProfileSnapshot) {
@@ -581,6 +590,7 @@ export const usePreferencesStore = create(
           s.proxyTmdb = false;
           s.proxyArtwork = false;
           s.posterQuality = "standard";
+          s.backdropQuality = "high";
           s.lastAppliedDeviceProfile = "high";
           s.deviceProfileSnapshot = null;
           s.enablePauseOverlay = false;
@@ -627,6 +637,15 @@ export const usePreferencesStore = create(
         }
         if (merged.posterQuality !== "low" && merged.posterQuality !== "standard") {
           merged.posterQuality = "standard";
+        }
+        if (merged.backdropQuality !== "standard" && merged.backdropQuality !== "high") {
+          // Pre-backdropQuality installs: Mid/Low keep lighter heroes; High stays sharp.
+          merged.backdropQuality =
+            merged.lastAppliedDeviceProfile === "mid" ||
+            merged.lastAppliedDeviceProfile === "low" ||
+            merged.enableLowPerformanceMode
+              ? "standard"
+              : "high";
         }
         if (typeof merged.proxyArtwork !== "boolean") {
           merged.proxyArtwork = false;

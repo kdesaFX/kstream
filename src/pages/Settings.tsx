@@ -551,6 +551,7 @@ export function SettingsPage() {
   );
   const proxyArtwork = usePreferencesStore((s) => s.proxyArtwork);
   const posterQuality = usePreferencesStore((s) => s.posterQuality);
+  const backdropQuality = usePreferencesStore((s) => s.backdropQuality);
   const applyDeviceProfileStore = usePreferencesStore(
     (s) => s.applyDeviceProfile,
   );
@@ -1148,6 +1149,7 @@ export function SettingsPage() {
                 proxyTmdb: state.proxyTmdb.state,
                 proxyArtwork,
                 posterQuality,
+                backdropQuality: backdropQuality ?? "high",
               })}
               lastAppliedDeviceProfile={lastAppliedDeviceProfile}
               hasOptimized={Boolean(

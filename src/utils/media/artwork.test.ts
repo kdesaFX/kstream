@@ -1,7 +1,11 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, expect, it } from "vitest";
 
-import { rewriteTmdbPosterUrl, tmdbPosterSize } from "@/utils/media/artwork";
+import {
+  rewriteTmdbPosterUrl,
+  tmdbBackdropSize,
+  tmdbPosterSize,
+} from "@/utils/media/artwork";
 
 describe("artwork urls", () => {
   it("uses w185 for low quality posters", () => {
@@ -14,5 +18,10 @@ describe("artwork urls", () => {
   it("leaves standard posters alone", () => {
     const url = "https://image.tmdb.org/t/p/w342/abc.jpg";
     expect(rewriteTmdbPosterUrl(url, "standard")).toBe(url);
+  });
+
+  it("uses w1280 heroes on high and w780 on standard", () => {
+    expect(tmdbBackdropSize("high")).toBe("w1280");
+    expect(tmdbBackdropSize("standard")).toBe("w780");
   });
 });

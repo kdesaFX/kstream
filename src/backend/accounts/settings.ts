@@ -8,6 +8,7 @@ import type {
   DeviceProfile,
   DeviceProfileSnapshot,
   PosterQuality,
+  BackdropQuality,
 } from "@/stores/preferences/deviceProfile";
 import { KeyboardShortcuts } from "@/utils/browser/keyboardShortcuts";
 
@@ -77,6 +78,7 @@ export interface SettingsInput {
   gamepadMapping?: Record<string, string>;
   proxyArtwork?: boolean;
   posterQuality?: PosterQuality;
+  backdropQuality?: BackdropQuality;
   lastAppliedDeviceProfile?: DeviceProfile | null;
   deviceProfileSnapshot?: DeviceProfileSnapshot | null;
 }

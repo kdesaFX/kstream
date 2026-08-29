@@ -1,10 +1,17 @@
 import { proxiedMangaUrl } from "@/backend/manga/mangadex";
 import { usePreferencesStore } from "@/stores/preferences";
-import type { PosterQuality } from "@/stores/preferences/deviceProfile";
+import type {
+  BackdropQuality,
+  PosterQuality,
+} from "@/stores/preferences/deviceProfile";
 import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 
 export function tmdbPosterSize(quality: PosterQuality): "w185" | "w342" {
   return quality === "low" ? "w185" : "w342";
+}
+
+export function tmdbBackdropSize(quality: BackdropQuality): "w780" | "w1280" {
+  return quality === "high" ? "w1280" : "w780";
 }
 
 export function rewriteTmdbPosterUrl(
