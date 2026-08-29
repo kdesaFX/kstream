@@ -128,8 +128,18 @@ const mdFetch = ofetch.create({
  * browser on any real domain has its response thrown away. Extensions and the
  * desktop app aren't bound by that, so try direct first and fall back to our
  * proxy, remembering the answer for the rest of the session.
+ *
+ * On deployed web origins, skip the doomed direct attempt — that race alone
+ * made manga discover feel much slower than TMDB movies/TV.
  */
 let proxyRequired = false;
+
+function preferMangaDexProxy(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") return false;
+  return getProxyUrls().length > 0;
+}
 
 /** @deprecated Prefer proxiedDestinationUrl — kept for existing manga call sites. */
 export function proxiedMangaUrl(
@@ -162,6 +172,9 @@ async function mdGet<T>(
   path: string,
   params: Record<string, string | string[] | number | boolean> = {},
 ): Promise<T> {
+  if (!proxyRequired && preferMangaDexProxy()) {
+    proxyRequired = true;
+  }
   const qs = mdQuery(params);
   const url = `${API}${qs ? `${path}?${qs}` : path}`;
   const viaProxy = () => proxiedMangaUrl(url, getProxyUrls());
@@ -217,7 +230,7 @@ function coverFileName(manga: MdManga): string | undefined {
   return typeof file === "string" ? file : undefined;
 }
 
-function coverUrl(mangaId: string, fileName?: string, size: 256 | 512 = 256) {
+function coverUrl(mangaId: string, fileName?: string, size: 256 | 512 = 512) {
   if (!fileName) return undefined;
   return `${COVER_CDN}/covers/${mangaId}/${fileName}.${size}.jpg`;
 }
@@ -433,9 +446,11 @@ export async function listManga(ops: {
 export async function searchManga(
   title: string,
   limit = 24,
+  opts?: { includeStats?: boolean },
 ): Promise<MangaListItem[]> {
   const q = title.trim();
   if (!q) return [];
+  const includeStats = opts?.includeStats !== false;
   const res = await mdGet<MdListResponse<MdManga>>("/manga", {
     title: q,
     limit,
@@ -444,7 +459,9 @@ export async function searchManga(
     "order[relevance]": "desc",
     hasAvailableChapters: "true",
   });
-  const stats = await fetchStatistics(res.data.map((m) => m.id));
+  const stats = includeStats
+    ? await fetchStatistics(res.data.map((m) => m.id))
+    : {};
   const items = res.data.map((m) => mapManga(m, stats[m.id]));
   // Same as TMDB search: include adult hits; MediaCard blurs until opted in.
   return items;

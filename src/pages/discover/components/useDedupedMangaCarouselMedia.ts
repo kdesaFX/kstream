@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { listManga, mangaToMediaItem } from "@/backend/manga/mangadex";
+import {
+  discoverMangaToMediaItem,
+  listDiscoverManga,
+} from "@/backend/manga/discoverCatalog";
+import type { AniListDiscoverKind } from "@/backend/manga/anilistDiscover";
 import type { MediaItem } from "@/utils/media/mediaTypes";
 
 import { useDedupedMedia } from "./CarouselDedupeContext";
@@ -46,19 +50,16 @@ export function useDedupedMangaCarouselMedia(
     attemptsRef.current = round;
 
     let cancelled = false;
-    const limit = 32;
-    const offset = (priority + round) * limit;
 
     (async () => {
       try {
-        const items = await listManga({
-          order: "followedCount",
-          limit,
-          offset,
-          includeStats: false,
+        const items = await listDiscoverManga({
+          kind: "popular",
+          limit: 32,
+          page: priority + round,
         });
         if (cancelled) return;
-        const slice = items.map(mangaToMediaItem);
+        const slice = items.map(discoverMangaToMediaItem);
         setBackfill((prev) => {
           if (prev.length === 0) return slice;
           const have = new Set(prev.map((p) => String(p.id)));
@@ -83,3 +84,6 @@ export function useDedupedMangaCarouselMedia(
 
   return media;
 }
+
+// Keep the kind union visible to callers that cast carousel kind strings.
+export type { AniListDiscoverKind };

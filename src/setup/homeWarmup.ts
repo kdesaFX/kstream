@@ -141,6 +141,16 @@ export async function runBootWarmup(
         ensureSameOriginProxiesWarm(1200),
       )
       .catch(() => undefined),
+    // Manga discover uses AniList + MangaDex id resolve — warm while splash
+    // is up so the manga tab isn't cold vs movies/TV.
+    Promise.resolve()
+      .then(() => {
+        if (!usePreferencesStore.getState().enableMangaDiscover) return;
+        return import("@/backend/manga/discoverCatalog").then(
+          ({ prefetchDiscoverManga }) => prefetchDiscoverManga(),
+        );
+      })
+      .catch(() => undefined),
   ]);
 
   await settleWithTimeout(work, maxMs);

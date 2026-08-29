@@ -1,6 +1,6 @@
 import type { MangaArt } from "@/backend/manga/anilistArt";
-import { fetchMangaArt } from "@/backend/manga/anilistArt";
-import { listManga } from "@/backend/manga/mangadex";
+import { listAniListManga } from "@/backend/manga/anilistDiscover";
+import { listDiscoverManga } from "@/backend/manga/discoverCatalog";
 import { resolveMangaAnimeAdaptations } from "@/backend/manga/mangaLogo";
 import type { MangaListItem, MangaStatus } from "@/backend/manga/types";
 
@@ -14,7 +14,7 @@ export interface FeaturedMangaItem {
   wideArt: boolean;
   /** Anime clear logo when TMDB has one for the adaptation. */
   logoUrl?: string;
-  /** MangaDex rating, 0-10. */
+  /** Rating on a 0-10 scale. */
   rating?: number;
   year?: number;
   status: MangaStatus;
@@ -22,10 +22,8 @@ export interface FeaturedMangaItem {
   adult: boolean;
 }
 
-/** Titles pulled from MangaDex before art lookup narrows them down. */
+/** Titles pulled before art / id narrowing. */
 const POOL_SIZE = 24;
-/** How many of those get an AniList lookup (one batch of 20 + a small remainder). */
-const LOOKUP_SIZE = 24;
 
 export function shuffle<T>(
   items: T[],
@@ -112,21 +110,57 @@ export async function applyAnimeAdaptationArt(
   });
 }
 
+/**
+ * Featured manga from AniList (banners + HD covers in one request), then
+ * MangaDex ids via the shared discover catalog. Skips the old MD→AniList
+ * title-search waterfall that made the manga hero lag movies/TV.
+ */
 export async function fetchFeaturedManga(
   count: number,
 ): Promise<FeaturedMangaItem[]> {
-  // Stats add another MD round-trip; featured only needs posters + descriptions.
-  const pool = await listManga({
-    order: "followedCount",
-    limit: POOL_SIZE,
-    includeStats: false,
-  });
-  // Shuffled so the hero isn't the same handful of titles on every visit.
+  // Discover catalog caches AniList internally — fetch it first so the resolve
+  // pass reuses the same page instead of double-hitting GraphQL.
+  const anilist = await listAniListManga({ kind: "popular", limit: POOL_SIZE });
+  const resolved = await listDiscoverManga({ kind: "popular", limit: POOL_SIZE });
+
+  const art = new Map<string, MangaArt>();
+  for (const hit of anilist) {
+    if (!hit.banner && !hit.cover) continue;
+    art.set(hit.title, {
+      anilistId: hit.anilistId,
+      banner: hit.banner,
+      score:
+        typeof hit.rating === "number"
+          ? Math.round(hit.rating * 10)
+          : undefined,
+    });
+  }
+
+  const byTitle = new Map(
+    resolved.map((item) => [item.title, item] as const),
+  );
+  // Prefer AniList order / art, but only titles we can actually open.
   const candidates = shuffle(
-    pool.filter((item) => item.description?.trim() && item.poster),
-  ).slice(0, LOOKUP_SIZE);
-  if (candidates.length === 0) return [];
-  const art = await fetchMangaArt(candidates.map((item) => item.title));
+    anilist
+      .map((hit) => {
+        const item = byTitle.get(hit.title);
+        if (!item) return null;
+        return {
+          ...item,
+          poster: hit.cover || item.poster,
+          description: hit.description || item.description,
+        } satisfies MangaListItem;
+      })
+      .filter((item): item is MangaListItem => Boolean(item))
+      .filter((item) => item.description?.trim() && item.poster),
+  );
+
+  if (candidates.length === 0) {
+    // Fallback: resolved list alone (covers may be MangaDex 512).
+    const picked = pickFeaturedManga(resolved, art, count);
+    return applyAnimeAdaptationArt(picked);
+  }
+
   const picked = pickFeaturedManga(candidates, art, count);
   return applyAnimeAdaptationArt(picked);
 }

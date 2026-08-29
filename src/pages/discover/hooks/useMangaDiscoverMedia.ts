@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { MANGA_GENRE_TAGS, type MangaGenreTagKey } from "@/backend/manga/mangaTags";
 import {
-  listManga,
-  mangaToMediaItem,
-  type MangaOrder,
-} from "@/backend/manga/mangadex";
+  discoverMangaToMediaItem,
+  listDiscoverManga,
+} from "@/backend/manga/discoverCatalog";
+import type { MangaGenreTagKey } from "@/backend/manga/mangaTags";
 import { usePreferencesStore } from "@/stores/preferences";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
@@ -15,22 +14,6 @@ export type MangaCarouselKind =
   | "latest"
   | "recentlyAdded"
   | MangaGenreTagKey;
-
-const ORDER: Record<
-  "popular" | "topRated" | "latest" | "recentlyAdded",
-  MangaOrder
-> = {
-  popular: "followedCount",
-  topRated: "rating",
-  latest: "latestUploadedChapter",
-  recentlyAdded: "createdAt",
-};
-
-function isGenreKind(
-  kind: MangaCarouselKind,
-): kind is MangaGenreTagKey {
-  return kind in MANGA_GENRE_TAGS;
-}
 
 export function useMangaDiscoverMedia(
   kind: MangaCarouselKind,
@@ -47,17 +30,11 @@ export function useMangaDiscoverMedia(
     setIsLoading(true);
     setError(null);
     try {
-      const includedTags = isGenreKind(kind)
-        ? [MANGA_GENRE_TAGS[kind]]
-        : undefined;
-      const order = isGenreKind(kind) ? "followedCount" : ORDER[kind];
-      const items = await listManga({
-        order,
+      const items = await listDiscoverManga({
+        kind,
         limit: 24,
-        includeStats: false,
-        includedTags,
       });
-      setMedia(items.map(mangaToMediaItem));
+      setMedia(items.map(discoverMangaToMediaItem));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load manga");
       setMedia([]);

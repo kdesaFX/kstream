@@ -250,7 +250,7 @@ function MediaCardContent({
             )}
           >
             {media.type === "manga" && posterUrl ? (
-              // Same-origin proxy URL from resolveCardArtworkUrl; lazy when off-screen.
+              // Manga posters may be AniList CDN (preferred) or proxied MangaDex.
               <img
                 src={isIntersecting ? posterUrl : undefined}
                 alt=""

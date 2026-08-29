@@ -23,7 +23,8 @@ function isArtworkUrl(url: string): boolean {
     url.includes("image.tmdb.org") ||
     url.includes("uploads.mangadex.org") ||
     url.includes("mangadex.org/covers") ||
-    url.includes("weebcentral.com")
+    url.includes("weebcentral.com") ||
+    url.includes("anilist.co")
   );
 }
 
