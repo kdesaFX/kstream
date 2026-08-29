@@ -115,8 +115,10 @@ export function OptimizeModal() {
 
   const recommended = useMemo(() => recommendDeviceProfile(), []);
 
-  const currentProfile =
-    inferred === "custom" ? lastApplied : inferred;
+  // Only treat a card as selected when flags still match. If prefs drifted
+  // (e.g. Discover off while lastApplied is mid), keep Mid clickable to heal.
+  const currentProfile = inferred === "custom" ? null : inferred;
+  const driftedFrom = inferred === "custom" ? lastApplied : null;
 
   const [phase, setPhase] = useState<"pick" | "applying" | "done">("pick");
   const [activeProfile, setActiveProfile] = useState<DeviceProfile | null>(
@@ -129,7 +131,7 @@ export function OptimizeModal() {
     : [];
 
   const runApply = (profile: DeviceProfile) => {
-    if (currentProfile === profile) return;
+    if (inferred === profile) return;
     applyDeviceProfile(profile);
     void syncDeviceProfileSettings(backendUrl, account);
     setActiveProfile(profile);
@@ -190,6 +192,13 @@ export function OptimizeModal() {
             recommended={recommended}
             onSelect={runApply}
           />
+          {driftedFrom ? (
+            <p className="text-sm text-type-secondary">
+              {t("settings.optimize.driftedHint", {
+                profile: t(profileLabel(driftedFrom)),
+              })}
+            </p>
+          ) : null}
           {currentProfile !== recommended ? (
             <Button theme="purple" onClick={() => runApply(recommended)}>
               {t("settings.optimize.useRecommended")}

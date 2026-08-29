@@ -377,6 +377,12 @@ export function AppearancePart(props: {
   setHiddenDefaultThemes: (v: string[]) => void;
 }) {
   const { t } = useTranslation();
+  const lastAppliedDeviceProfile = usePreferencesStore(
+    (s) => s.lastAppliedDeviceProfile,
+  );
+  // Low end turns Discover off on purpose. Mid keeps Discover with low-perf
+  // animations — don't lock the toggle or Mid users can't turn it back on.
+  const discoverToggleLocked = lastAppliedDeviceProfile === "low";
   const enableMangaDiscover = usePreferencesStore((s) => s.enableMangaDiscover);
   const setEnableMangaDiscover = usePreferencesStore(
     (s) => s.setEnableMangaDiscover,
@@ -488,7 +494,7 @@ export function AppearancePart(props: {
               onChange={(v) => {
                 props.setEnableDiscover(v);
               }}
-              disabled={props.enableLowPerformanceMode}
+              disabled={discoverToggleLocked}
             />
             <ToggleRow
               title={t("settings.appearance.options.mangaDiscoverLabel")}
@@ -497,7 +503,7 @@ export function AppearancePart(props: {
               )}
               enabled={enableMangaDiscover}
               onChange={setEnableMangaDiscover}
-              disabled={props.enableLowPerformanceMode || !props.enableDiscover}
+              disabled={discoverToggleLocked || !props.enableDiscover}
             />
             <div id="enable-mature-titles">
               <ToggleRow
@@ -514,7 +520,7 @@ export function AppearancePart(props: {
               description={t("settings.appearance.options.modalDescription")}
               enabled={props.enableDetailsModal}
               onChange={(v) => props.setEnableDetailsModal(v)}
-              disabled={props.enableLowPerformanceMode}
+              disabled={discoverToggleLocked}
             />
             <ToggleRow
               title={t("settings.appearance.options.logosLabel")}

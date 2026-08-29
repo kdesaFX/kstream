@@ -1554,6 +1554,7 @@
       "current": "Currently selected",
       "useRecommended": "Use recommended",
       "alreadyOnRecommended": "You're already on the recommended build for this device.",
+      "driftedHint": "Your {{profile}} setup changed somehow — pick it again to restore Discover and the rest.",
       "lowTitle": "Low end",
       "lowDesc": "School Chromebooks, Celeron or N100, about 4GB of RAM. Turns off Discover and uses smaller posters so Chrome can keep up.",
       "midTitle": "Mid build",

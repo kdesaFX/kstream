@@ -11,6 +11,7 @@ import {
   deviceProfilesMatch,
   inferDeviceProfile,
   recommendDeviceProfile,
+  healMidDiscoverPreference,
   type DeviceProfileFlags,
 } from "@/stores/preferences/deviceProfile";
 
@@ -36,6 +37,15 @@ describe("device profiles", () => {
     expect(HIGH_DEVICE_PROFILE.enableFeatured).toBe(true);
     expect(HIGH_DEVICE_PROFILE.enableDetailsModal).toBe(true);
     expect(HIGH_DEVICE_PROFILE.backdropQuality).toBe("high");
+  });
+
+  it("heals Discover back on for Mid installs that drifted", () => {
+    const drifted = {
+      lastAppliedDeviceProfile: "mid" as const,
+      enableDiscover: false,
+    };
+    healMidDiscoverPreference(drifted);
+    expect(drifted.enableDiscover).toBe(true);
   });
 
   it("keeps TMDB API direct on mid while still proxying artwork", () => {

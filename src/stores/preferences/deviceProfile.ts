@@ -195,6 +195,19 @@ export function flagsForDeviceProfile(profile: DeviceProfile): DeviceProfileFlag
   return { ...PRESETS[profile] };
 }
 
+/**
+ * Mid must keep Discover. Older low-perf UI locked the Appearance toggle,
+ * so some Mid installs still have Discover off while lastApplied is mid.
+ */
+export function healMidDiscoverPreference(s: {
+  lastAppliedDeviceProfile?: DeviceProfile | null;
+  enableDiscover?: boolean;
+}): void {
+  if (s.lastAppliedDeviceProfile === "mid") {
+    s.enableDiscover = true;
+  }
+}
+
 export function deviceProfilesMatch(
   a: DeviceProfileFlags,
   b: DeviceProfileFlags,

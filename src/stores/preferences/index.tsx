@@ -6,6 +6,7 @@ import {
   applyDeviceProfileFlags,
   captureDeviceProfileSnapshot,
   flagsForDeviceProfile,
+  healMidDiscoverPreference,
   HIGH_DEVICE_PROFILE,
   type BackdropQuality,
   type DeviceProfile,
@@ -660,6 +661,8 @@ export const usePreferencesStore = create(
         ) {
           merged.proxyTmdb = false;
         }
+
+        healMidDiscoverPreference(merged);
 
         // Goated was renamed to Reyna — rewrite saved prefs so scrapes still hit it.
         const renameSourceId = (id: string) => (id === "goated" ? "reyna" : id);
