@@ -8,10 +8,7 @@ import { mangaMediaLink } from "@/backend/manga/ids";
 import { getMangaAdaptationLogo } from "@/backend/manga/mangaLogo";
 import { mangaStatusKey } from "@/backend/manga/types";
 import { getMediaLogo } from "@/backend/metadata/tmdb";
-import {
-  getReleaseDetails,
-  isTraktEnabled,
-} from "@/backend/metadata/traktApi";
+import { getReleaseDetails } from "@/backend/metadata/traktApi";
 import { TMDBContentTypes } from "@/backend/metadata/types/tmdb";
 import type { TraktReleaseResponse } from "@/backend/metadata/types/trakt";
 import { Icon, Icons } from "@/components/Icon";
@@ -27,10 +24,12 @@ import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
 import { useRatingsStore } from "@/stores/ratings";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
-import { fetchImdbRating } from "@/utils/services/imdbRating";
-import { tmdbBackdropSize } from "@/utils/media/artwork";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
-import { resolveCardArtworkUrl } from "@/utils/media/artwork";
+import {
+  resolveCardArtworkUrl,
+  tmdbBackdropSize,
+} from "@/utils/media/artwork";
+import { fetchImdbRating } from "@/utils/services/imdbRating";
 
 import { RandomMovieButton } from "./RandomMovieButton";
 
