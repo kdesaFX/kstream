@@ -82,48 +82,41 @@ export function pickFeaturedManga(
 /**
  * Prefer the anime adaptation's TMDB backdrop / logo when one exists — those
  * usually read better on the hero than MangaDex covers or AniList banners.
+ * Info modal always awaits this; discover must too or the hero keeps AniList art.
  */
 export async function applyAnimeAdaptationArt(
   items: FeaturedMangaItem[],
 ): Promise<FeaturedMangaItem[]> {
   if (items.length === 0) return items;
-  const adaptations = await resolveMangaAnimeAdaptations(
-    items.map((item) => item.title),
-  );
-  return items.map((item) => {
-    const anime = adaptations.get(item.title);
-    if (!anime) return item;
-    if (anime.backdropUrl) {
+  try {
+    const adaptations = await resolveMangaAnimeAdaptations(
+      items.map((item) => item.title),
+    );
+    return items.map((item) => {
+      const anime = adaptations.get(item.title);
+      if (!anime) return item;
+      if (anime.backdropUrl) {
+        return {
+          ...item,
+          artUrl: anime.backdropUrl,
+          wideArt: true,
+          logoUrl: anime.logoUrl ?? item.logoUrl,
+        };
+      }
       return {
         ...item,
-        artUrl: anime.backdropUrl,
-        wideArt: true,
         logoUrl: anime.logoUrl ?? item.logoUrl,
       };
-    }
-    return {
-      ...item,
-      logoUrl: anime.logoUrl ?? item.logoUrl,
-    };
-  });
-}
-
-async function withLogoBudget(
-  items: FeaturedMangaItem[],
-): Promise<FeaturedMangaItem[]> {
-  if (items.length === 0) return items;
-  const withLogos = applyAnimeAdaptationArt(items);
-  const timeout = new Promise<FeaturedMangaItem[]>((resolve) => {
-    const timer =
-      typeof window !== "undefined" ? window.setTimeout : setTimeout;
-    timer(() => resolve(items), 2500);
-  });
-  return Promise.race([withLogos.catch(() => items), timeout]);
+    });
+  } catch (err) {
+    console.error("Manga adaptation art lookup failed:", err);
+    return items;
+  }
 }
 
 /**
- * Featured manga: AniList banners + discover catalog (MD pool match, budgeted
- * leftover resolve). Must stay fast — a hung hero freezes the whole homepage.
+ * Featured manga: AniList banners + discover catalog, then TMDB anime
+ * adaptation covers (same source as the info modal hero).
  */
 export async function fetchFeaturedManga(
   count: number,
@@ -172,7 +165,6 @@ export async function fetchFeaturedManga(
   }
 
   if (picked.length === 0) {
-    // Absolute fallback: MangaDex popular only (no AniList dependency).
     const mdOnly = await listManga({
       order: "followedCount",
       limit: POOL_SIZE,
@@ -202,5 +194,7 @@ export async function fetchFeaturedManga(
     });
   }
 
-  return withLogoBudget(picked);
+  // Await TMDB adaptation backdrops (info modal parity) — do not race-timeout
+  // this or discover keeps AniList art while More Info shows TMDB.
+  return applyAnimeAdaptationArt(picked);
 }
