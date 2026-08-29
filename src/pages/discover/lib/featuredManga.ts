@@ -1,8 +1,9 @@
 import type { MangaArt } from "@/backend/manga/anilistArt";
 import { listAniListManga } from "@/backend/manga/anilistDiscover";
-import { listDiscoverManga } from "@/backend/manga/discoverCatalog";
+import { listManga } from "@/backend/manga/mangadex";
 import { resolveMangaAnimeAdaptations } from "@/backend/manga/mangaLogo";
 import type { MangaListItem, MangaStatus } from "@/backend/manga/types";
+import { normalizeMangaTitle } from "@/backend/manga/weebcentral";
 
 export interface FeaturedMangaItem {
   id: string;
@@ -110,18 +111,35 @@ export async function applyAnimeAdaptationArt(
   });
 }
 
+function indexByTitle(pool: MangaListItem[]): Map<string, MangaListItem> {
+  const byTitle = new Map<string, MangaListItem>();
+  for (const item of pool) {
+    const primary = normalizeMangaTitle(item.title);
+    if (primary && !byTitle.has(primary)) byTitle.set(primary, item);
+    for (const alt of item.alternateTitles ?? []) {
+      const key = normalizeMangaTitle(alt);
+      if (key && !byTitle.has(key)) byTitle.set(key, item);
+    }
+  }
+  return byTitle;
+}
+
 /**
- * Featured manga from AniList (banners + HD covers in one request), then
- * MangaDex ids via the shared discover catalog. Skips the old MD→AniList
- * title-search waterfall that made the manga hero lag movies/TV.
+ * Featured manga: AniList for banners/covers + one MangaDex popular list for
+ * readable ids. Never per-title MD/WC search — that froze the whole homepage
+ * hero when the manga tab was selected.
  */
 export async function fetchFeaturedManga(
   count: number,
 ): Promise<FeaturedMangaItem[]> {
-  // Discover catalog caches AniList internally — fetch it first so the resolve
-  // pass reuses the same page instead of double-hitting GraphQL.
-  const anilist = await listAniListManga({ kind: "popular", limit: POOL_SIZE });
-  const resolved = await listDiscoverManga({ kind: "popular", limit: POOL_SIZE });
+  const [anilist, mdPool] = await Promise.all([
+    listAniListManga({ kind: "popular", limit: POOL_SIZE }),
+    listManga({
+      order: "followedCount",
+      limit: 48,
+      includeStats: false,
+    }).catch(() => [] as MangaListItem[]),
+  ]);
 
   const art = new Map<string, MangaArt>();
   for (const hit of anilist) {
@@ -136,30 +154,46 @@ export async function fetchFeaturedManga(
     });
   }
 
-  const byTitle = new Map(
-    resolved.map((item) => [item.title, item] as const),
-  );
-  // Prefer AniList order / art, but only titles we can actually open.
+  const byTitle = indexByTitle(mdPool);
   const candidateItems: MangaListItem[] = [];
   for (const hit of anilist) {
-    const item = byTitle.get(hit.title);
-    if (!item) continue;
+    const keys = [hit.title, ...hit.alternateTitles].map(normalizeMangaTitle);
+    let md: MangaListItem | undefined;
+    for (const key of keys) {
+      md = byTitle.get(key);
+      if (md) break;
+    }
+    if (!md) continue;
     const merged: MangaListItem = {
-      ...item,
-      poster: hit.cover || item.poster,
-      description: hit.description || item.description,
+      ...md,
+      poster: hit.cover || md.poster,
+      description: hit.description || md.description,
+      rating: hit.rating ?? md.rating,
+      year: hit.year ?? md.year,
+      status: hit.status !== "unknown" ? hit.status : md.status,
     };
     if (!merged.description?.trim() || !merged.poster) continue;
     candidateItems.push(merged);
   }
-  const candidates = shuffle(candidateItems);
 
+  const candidates = shuffle(candidateItems);
   if (candidates.length === 0) {
-    // Fallback: resolved list alone (covers may be MangaDex 512).
-    const picked = pickFeaturedManga(resolved, art, count);
-    return applyAnimeAdaptationArt(picked);
+    // Last resort: MangaDex popular alone (512 covers, may lack banners).
+    const picked = pickFeaturedManga(
+      mdPool.filter((item) => item.description?.trim() && item.poster),
+      art,
+      count,
+    );
+    return applyAnimeAdaptationArt(picked).catch(() => picked);
   }
 
   const picked = pickFeaturedManga(candidates, art, count);
-  return applyAnimeAdaptationArt(picked);
+  // Logos are nice-to-have — don't block the hero if TMDB is slow.
+  const withLogos = applyAnimeAdaptationArt(picked);
+  const timeout = new Promise<FeaturedMangaItem[]>((resolve) => {
+    const timer =
+      typeof window !== "undefined" ? window.setTimeout : setTimeout;
+    timer(() => resolve(picked), 2500);
+  });
+  return Promise.race([withLogos.catch(() => picked), timeout]);
 }

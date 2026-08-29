@@ -136,7 +136,8 @@ export async function listDiscoverManga(ops: {
     }
 
     if (needResolve.length > 0) {
-      const ids = await resolveDiscoverMangaIds(needResolve, 8);
+      // Hard budget — never leave carousels/hero waiting on title search storms.
+      const ids = await resolveDiscoverMangaIds(needResolve, 6, 4000);
       for (const hit of needResolve) {
         const id = ids.get(hit.title);
         if (!id) continue;
@@ -170,15 +171,15 @@ export function discoverMangaToMediaItem(item: MangaListItem): MediaItem {
   return mangaToMediaItem(item);
 }
 
-/** Warm AniList + resolved popular rows while the user is still on movies/TV. */
+/** Warm AniList pages only — full id-resolve belongs on first carousel paint. */
 export function prefetchDiscoverManga(): void {
-  const kinds: AniListDiscoverKind[] = [
-    "popular",
-    "latest",
-    "topRated",
-    "recentlyAdded",
-  ];
+  const kinds: AniListDiscoverKind[] = ["popular", "latest", "topRated"];
   for (const kind of kinds) {
-    void listDiscoverManga({ kind, limit: 24 }).catch(() => undefined);
+    void listAniListManga({ kind, limit: 24 }).catch(() => undefined);
   }
+  void listManga({
+    order: "followedCount",
+    limit: 48,
+    includeStats: false,
+  }).catch(() => undefined);
 }

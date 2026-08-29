@@ -1,8 +1,5 @@
 import { searchManga as searchMangaDex } from "@/backend/manga/mangadex";
-import {
-  normalizeMangaTitle,
-  searchWeebCentral,
-} from "@/backend/manga/weebcentral";
+import { normalizeMangaTitle } from "@/backend/manga/weebcentral";
 
 const TTL_MS = 60 * 60 * 1000;
 const cache = new Map<string, { at: number; id: string | null }>();
@@ -28,8 +25,9 @@ function scoreTitleMatch(
 }
 
 /**
- * Map an AniList catalog title to a readable MangaDex (or WeebCentral) id.
- * Session-cached so carousel rows and featured don't re-search the same title.
+ * Map an AniList catalog title to a MangaDex id (discover cards only).
+ * One MD search — no WeebCentral cascade. That cascade froze the homepage
+ * when many AniList titles missed the MD popular pool.
  */
 export async function resolveDiscoverMangaId(
   title: string,
@@ -45,13 +43,13 @@ export async function resolveDiscoverMangaId(
   if (pending) return pending;
 
   const run = (async () => {
-    const queries = [title, ...alternateTitles].filter(Boolean);
+    const queries = [title, ...alternateTitles.slice(0, 2)].filter(Boolean);
     let bestId: string | null = null;
     let bestScore = 0;
 
     for (const query of queries) {
       try {
-        const hits = await searchMangaDex(query, 8, { includeStats: false });
+        const hits = await searchMangaDex(query, 5, { includeStats: false });
         for (const hit of hits) {
           const score = Math.max(
             scoreTitleMatch(title, hit.title, hit.alternateTitles),
@@ -64,26 +62,8 @@ export async function resolveDiscoverMangaId(
         }
         if (bestScore >= 95) break;
       } catch {
-        // Try next query / WeebCentral
+        // Try next query
       }
-    }
-
-    if (bestId && bestScore >= 60) {
-      cache.set(key, { at: Date.now(), id: bestId });
-      return bestId;
-    }
-
-    try {
-      const wc = await searchWeebCentral(title, 6);
-      for (const hit of wc) {
-        const score = scoreTitleMatch(title, hit.title);
-        if (score > bestScore) {
-          bestScore = score;
-          bestId = hit.id;
-        }
-      }
-    } catch {
-      // leave bestId as-is
     }
 
     const id = bestId && bestScore >= 60 ? bestId : null;
@@ -99,17 +79,25 @@ export async function resolveDiscoverMangaId(
   }
 }
 
-/** Resolve many titles with a small concurrency pool. */
+/** Resolve many titles with a small concurrency pool and a hard time budget. */
 export async function resolveDiscoverMangaIds(
   items: Array<{ title: string; alternateTitles?: string[] }>,
-  concurrency = 8,
+  concurrency = 6,
+  budgetMs = 4000,
 ): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   if (items.length === 0) return out;
 
+  const started = Date.now();
   let next = 0;
+  let timedOut = false;
+
   async function worker() {
     while (next < items.length) {
+      if (Date.now() - started > budgetMs) {
+        timedOut = true;
+        return;
+      }
       const i = next;
       next += 1;
       const item = items[i]!;
@@ -126,5 +114,10 @@ export async function resolveDiscoverMangaIds(
     () => worker(),
   );
   await Promise.all(workers);
+  if (timedOut) {
+    console.warn(
+      `Manga discover id resolve hit ${budgetMs}ms budget; showing pool matches only`,
+    );
+  }
   return out;
 }

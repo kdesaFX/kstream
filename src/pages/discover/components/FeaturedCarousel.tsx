@@ -356,11 +356,21 @@ export function FeaturedCarousel({
         logoFetchController.current.abort();
       }
       try {
-        const items = await fetchFeaturedHeroMedia({
-          category: effectiveCategory,
-          language: formattedLanguage,
-          includePersonalization: true,
-        });
+        const items = await Promise.race([
+          fetchFeaturedHeroMedia({
+            category: effectiveCategory,
+            language: formattedLanguage,
+            includePersonalization: true,
+          }),
+          new Promise<never>((_, reject) => {
+            const timer =
+              typeof window !== "undefined" ? window.setTimeout : setTimeout;
+            timer(
+              () => reject(new Error("Featured hero timed out")),
+              12000,
+            );
+          }),
+        ]);
         applyMedia(items);
       } catch (error) {
         console.error("Error fetching featured media:", error);
@@ -574,8 +584,9 @@ export function FeaturedCarousel({
     return <FeaturedCarouselSkeleton shorter={shorter} searching={searching} />;
   }
 
+  // Empty featured must not leave an eternal skeleton (manga resolve miss, etc.).
   if (media.length === 0) {
-    return <FeaturedCarouselSkeleton shorter={shorter} searching={searching} />;
+    return null;
   }
 
   const mediaTitle = currentMedia.title || currentMedia.name;
