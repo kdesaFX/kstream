@@ -19,6 +19,9 @@ const LIST_TTL_MS = 15 * 60 * 1000;
 const listCache = new Map<string, { at: number; items: MangaListItem[] }>();
 const listInFlight = new Map<string, Promise<MangaListItem[]>>();
 
+/** Prefer a usable row over an empty AniList-matched one. */
+const MIN_USABLE = 8;
+
 const KIND_MD_ORDER: Record<
   "popular" | "topRated" | "latest" | "recentlyAdded",
   MangaOrder
@@ -37,6 +40,10 @@ function isCoreKind(
 
 function isGenreKind(kind: AniListDiscoverKind): kind is MangaGenreTagKey {
   return kind in MANGA_GENRE_TAGS;
+}
+
+function mdOrderFor(kind: AniListDiscoverKind): MangaOrder {
+  return isCoreKind(kind) ? KIND_MD_ORDER[kind] : "followedCount";
 }
 
 function indexMangaPool(pool: MangaListItem[]): Map<string, MangaListItem> {
@@ -70,7 +77,6 @@ function withAniListArt(
 ): MangaListItem {
   return {
     ...base,
-    // Prefer AniList extraLarge over MangaDex thumbs.
     poster: hit.cover || base.poster,
     description: hit.description || base.description,
     rating: hit.rating ?? base.rating,
@@ -79,10 +85,42 @@ function withAniListArt(
   };
 }
 
+function findAniListArt(
+  item: MangaListItem,
+  anilist: AniListMangaHit[],
+): AniListMangaHit | undefined {
+  const keys = new Set(
+    [item.title, ...(item.alternateTitles ?? [])].map(normalizeMangaTitle),
+  );
+  return anilist.find((hit) =>
+    [hit.title, ...hit.alternateTitles].some((t) =>
+      keys.has(normalizeMangaTitle(t)),
+    ),
+  );
+}
+
+function fillFromMdPool(
+  items: MangaListItem[],
+  mdPool: MangaListItem[],
+  anilist: AniListMangaHit[],
+  limit: number,
+): MangaListItem[] {
+  if (items.length >= Math.min(MIN_USABLE, limit)) return items;
+  const seen = new Set(items.map((item) => item.id));
+  const out = [...items];
+  for (const md of mdPool) {
+    if (seen.has(md.id) || !md.poster) continue;
+    const art = findAniListArt(md, anilist);
+    out.push(art ? withAniListArt(md, art) : md);
+    seen.add(md.id);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 /**
- * Discover catalog: AniList for speed + HD covers, MangaDex/WeebCentral ids so
- * the reader still opens. Matches against a parallel MD list when possible so
- * we only title-search the leftovers.
+ * Discover catalog: AniList for HD covers when titles match, MangaDex as the
+ * reliable spine so carousels never go blank.
  */
 export async function listDiscoverManga(ops: {
   kind: AniListDiscoverKind;
@@ -94,35 +132,44 @@ export async function listDiscoverManga(ops: {
   const cacheKey = `${ops.kind}:${limit}:${page}`;
 
   const cached = listCache.get(cacheKey);
-  if (cached && Date.now() - cached.at < LIST_TTL_MS) return cached.items;
+  if (cached && Date.now() - cached.at < LIST_TTL_MS && cached.items.length > 0) {
+    return cached.items;
+  }
 
   const pending = listInFlight.get(cacheKey);
   if (pending) return pending;
 
   const run = (async () => {
+    const includedTags = isGenreKind(ops.kind)
+      ? [MANGA_GENRE_TAGS[ops.kind]]
+      : undefined;
+
+    const mdPromise = listManga({
+      order: mdOrderFor(ops.kind),
+      limit: Math.max(limit * 2, 48),
+      offset: page > 1 ? (page - 1) * limit : 0,
+      includeStats: false,
+      includedTags,
+    }).catch(() => [] as MangaListItem[]);
+
     const alPromise = listAniListManga({
       kind: ops.kind,
       limit,
       page,
-    });
-
-    const mdPromise =
-      page === 1
-        ? listManga({
-            order: isCoreKind(ops.kind)
-              ? KIND_MD_ORDER[ops.kind]
-              : "followedCount",
-            limit: Math.max(limit * 2, 48),
-            includeStats: false,
-            includedTags: isGenreKind(ops.kind)
-              ? [MANGA_GENRE_TAGS[ops.kind]]
-              : undefined,
-          }).catch(() => [] as MangaListItem[])
-        : Promise.resolve([] as MangaListItem[]);
+    }).catch(() => [] as AniListMangaHit[]);
 
     const [anilist, mdPool] = await Promise.all([alPromise, mdPromise]);
-    const byTitle = indexMangaPool(mdPool);
 
+    // AniList down / empty → MangaDex-only (pre-AniList carousel behavior).
+    if (anilist.length === 0) {
+      const items = mdPool.filter((item) => item.poster).slice(0, limit);
+      if (items.length > 0) {
+        listCache.set(cacheKey, { at: Date.now(), items });
+      }
+      return items;
+    }
+
+    const byTitle = indexMangaPool(mdPool);
     const byAniTitle = new Map<string, MangaListItem>();
     const needResolve: AniListMangaHit[] = [];
 
@@ -136,8 +183,7 @@ export async function listDiscoverManga(ops: {
     }
 
     if (needResolve.length > 0) {
-      // Hard budget — never leave carousels/hero waiting on title search storms.
-      const ids = await resolveDiscoverMangaIds(needResolve, 6, 4000);
+      const ids = await resolveDiscoverMangaIds(needResolve, 6, 3500);
       for (const hit of needResolve) {
         const id = ids.get(hit.title);
         if (!id) continue;
@@ -145,7 +191,7 @@ export async function listDiscoverManga(ops: {
       }
     }
 
-    const items: MangaListItem[] = [];
+    let items: MangaListItem[] = [];
     const seen = new Set<string>();
     for (const hit of anilist) {
       const item = byAniTitle.get(hit.title);
@@ -155,7 +201,14 @@ export async function listDiscoverManga(ops: {
       if (items.length >= limit) break;
     }
 
-    listCache.set(cacheKey, { at: Date.now(), items });
+    // Title mismatch / resolve budget → backfill from the MD pool so rows
+    // never collapse to zero (which hid every manga carousel).
+    items = fillFromMdPool(items, mdPool, anilist, limit);
+
+    // Never cache empty — a poisoned empty entry blanked the tab for 15m.
+    if (items.length > 0) {
+      listCache.set(cacheKey, { at: Date.now(), items });
+    }
     return items;
   })();
 
@@ -171,7 +224,7 @@ export function discoverMangaToMediaItem(item: MangaListItem): MediaItem {
   return mangaToMediaItem(item);
 }
 
-/** Warm AniList pages only — full id-resolve belongs on first carousel paint. */
+/** Warm AniList + MD popular without blocking on id resolve. */
 export function prefetchDiscoverManga(): void {
   const kinds: AniListDiscoverKind[] = ["popular", "latest", "topRated"];
   for (const kind of kinds) {
