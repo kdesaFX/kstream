@@ -28,6 +28,10 @@ import { useGroupOrderStore } from "@/stores/groupOrder";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
 import { useMediaGridColumns } from "@/hooks/useMediaGridColumns";
+import {
+  homeSectionWhileHydrating,
+  usePersistedStoreHydrated,
+} from "@/hooks/usePersistedStoreHydrated";
 import { parseGroupString } from "@/utils/media/bookmarkModifications";
 import { SortOption } from "@/utils/media/mediaSorting";
 import { MediaItem } from "@/utils/media/mediaTypes";
@@ -77,6 +81,7 @@ export function BookmarksGrid({
   const { t } = useTranslation();
   const progressItems = useProgressStore((s) => s.items);
   const bookmarks = useBookmarkStore((s) => s.bookmarks);
+  const bookmarksHydrated = usePersistedStoreHydrated(useBookmarkStore.persist);
   const groupOrder = useGroupOrderStore((s) => s.groupOrder);
   const removeBookmark = useBookmarkStore((s) => s.removeBookmark);
   // Not persisted: editing is something you're in the middle of, not a
@@ -96,9 +101,7 @@ export function BookmarksGrid({
       enableAnimations(true);
       return;
     }
-    enableAnimations(true);
-    const timeout = setTimeout(() => enableAnimations(false), 500);
-    return () => clearTimeout(timeout);
+    enableAnimations(false);
   }, [bookmarkRowsToShow, editing, enableAnimations]);
 
   const editBookmarkModal = useModal("bookmark-edit");
@@ -215,8 +218,9 @@ export function BookmarksGrid({
   }, [bookmarks, groupOrder, sortBy, progressItems, runtimeData]);
 
   useEffect(() => {
+    if (!bookmarksHydrated) return;
     onItemsChange(Object.keys(bookmarks).length > 0);
-  }, [bookmarks, onItemsChange]);
+  }, [bookmarks, onItemsChange, bookmarksHydrated]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -273,6 +277,10 @@ export function BookmarksGrid({
     { id: "length-asc", name: t("home.bookmarks.sorting.options.lengthAsc") },
     { id: "length-desc", name: t("home.bookmarks.sorting.options.lengthDesc") },
   ];
+
+  if (!bookmarksHydrated) {
+    return homeSectionWhileHydrating("__MW::bookmarks", false);
+  }
 
   if (Object.keys(bookmarks).length === 0) return null;
 

@@ -119,6 +119,17 @@ function MangaSlideArt({
   );
 }
 
+function featuredCarouselHeightClass(opts: {
+  searching?: boolean;
+  shorter?: boolean;
+}): string {
+  // Fixed rem heights only — vh/dvh change when mobile chrome shows/hides and
+  // shove every WideContainer below the hero (CLS ≈ 1 in Web Analytics).
+  if (opts.searching) return "h-24";
+  if (opts.shorter) return "h-[40rem] md:h-[48rem]";
+  return "h-[40rem] md:h-[52rem]";
+}
+
 function FeaturedCarouselSkeleton({
   shorter,
   searching,
@@ -126,18 +137,11 @@ function FeaturedCarouselSkeleton({
   shorter?: boolean;
   searching?: boolean;
 }) {
-  // Keep in sync with the loaded carousel height classes below.
-  const heightClass = searching
-    ? "h-24"
-    : shorter
-      ? "h-[40rem] md:h-[85vh]"
-      : "h-[40rem] md:h-[100vh]";
-
   return (
     <div
       className={classNames(
-        "relative w-full transition-[height] duration-300 ease-in-out",
-        heightClass,
+        "relative w-full overflow-hidden",
+        featuredCarouselHeightClass({ searching, shorter }),
       )}
     >
       <div className="relative w-full h-full overflow-hidden">
@@ -642,14 +646,8 @@ export function FeaturedCarousel({
   return (
     <div
       className={classNames(
-        "relative w-full transition-[height] duration-300 ease-in-out",
-        // Fixed heights only — avoid windowHeight races that flip 100vh ↔ 40rem
-        // after first paint and spike CLS on the hero container.
-        searching
-          ? "h-24"
-          : shorter
-            ? "h-[40rem] md:h-[85vh]"
-            : "h-[40rem] md:h-[100vh]",
+        "relative w-full overflow-hidden",
+        featuredCarouselHeightClass({ searching, shorter }),
       )}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

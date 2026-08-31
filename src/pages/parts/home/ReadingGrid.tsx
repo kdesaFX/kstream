@@ -8,6 +8,10 @@ import { Icon, Icons } from "@/components/Icon";
 import { SectionHeading } from "@/components/layout/SectionHeading";
 import { MediaGrid } from "@/components/media/MediaGrid";
 import { ReadMediaCard } from "@/components/media/ReadMediaCard";
+import {
+  homeSectionWhileHydrating,
+  usePersistedStoreHydrated,
+} from "@/hooks/usePersistedStoreHydrated";
 import { useMediaGridColumns } from "@/hooks/useMediaGridColumns";
 import { MoreCard } from "@/pages/parts/home/BookmarksGrid";
 import {
@@ -27,6 +31,9 @@ export function ReadingGrid({
 }) {
   const { t } = useTranslation();
   const progressItems = useMangaProgressStore((s) => s.items);
+  const progressHydrated = usePersistedStoreHydrated(
+    useMangaProgressStore.persist,
+  );
   const removeItem = useMangaProgressStore((s) => s.removeItem);
   const [editing, setEditing] = useState(false);
 
@@ -47,9 +54,7 @@ export function ReadingGrid({
       enableAnimations(true);
       return;
     }
-    enableAnimations(true);
-    const timeout = setTimeout(() => enableAnimations(false), 500);
-    return () => clearTimeout(timeout);
+    enableAnimations(false);
   }, [readingRowsToShow, editing, enableAnimations]);
 
   useEffect(() => {
@@ -87,8 +92,9 @@ export function ReadingGrid({
   }, [progressItems, sortBy, sortProgress]);
 
   useEffect(() => {
+    if (!progressHydrated) return;
     onItemsChange(sortedProgressItems.length > 0);
-  }, [sortedProgressItems, onItemsChange]);
+  }, [sortedProgressItems, onItemsChange, progressHydrated]);
 
   const sortOptions: OptionItem[] = [
     { id: "date", name: t("home.continueReading.sorting.options.date") },
@@ -106,6 +112,10 @@ export function ReadingGrid({
       name: t("home.continueReading.sorting.options.yearDesc"),
     },
   ];
+
+  if (!progressHydrated) {
+    return homeSectionWhileHydrating("__MW::mangaProgress", false);
+  }
 
   if (sortedProgressItems.length === 0) return null;
 

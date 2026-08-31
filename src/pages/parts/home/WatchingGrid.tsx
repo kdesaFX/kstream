@@ -8,6 +8,10 @@ import { Icon, Icons } from "@/components/Icon";
 import { SectionHeading } from "@/components/layout/SectionHeading";
 import { MediaGrid } from "@/components/media/MediaGrid";
 import { WatchedMediaCard } from "@/components/media/WatchedMediaCard";
+import {
+  homeSectionWhileHydrating,
+  usePersistedStoreHydrated,
+} from "@/hooks/usePersistedStoreHydrated";
 import { useMediaGridColumns } from "@/hooks/useMediaGridColumns";
 import { MoreCard } from "@/pages/parts/home/BookmarksGrid";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -25,6 +29,7 @@ export function WatchingGrid({
 }) {
   const { t } = useTranslation();
   const progressItems = useProgressStore((s) => s.items);
+  const progressHydrated = usePersistedStoreHydrated(useProgressStore.persist);
   const removeItem = useProgressStore((s) => s.removeItem);
   // Not persisted, unlike the sort choice below: editing is something you're
   // in the middle of, not a preference. Leaving it on meant coming back to a
@@ -46,9 +51,8 @@ export function WatchingGrid({
       enableAnimations(true);
       return;
     }
-    enableAnimations(true);
-    const timeout = setTimeout(() => enableAnimations(false), 500);
-    return () => clearTimeout(timeout);
+    // Keep auto-animate off on first paint — animating cards in spikes CLS.
+    enableAnimations(false);
   }, [watchingRowsToShow, editing, enableAnimations]);
 
   useEffect(() => {
@@ -70,8 +74,9 @@ export function WatchingGrid({
   }, [progressItems, sortBy]);
 
   useEffect(() => {
+    if (!progressHydrated) return;
     onItemsChange(sortedProgressItems.length > 0);
-  }, [sortedProgressItems, onItemsChange]);
+  }, [sortedProgressItems, onItemsChange, progressHydrated]);
 
   const sortOptions: OptionItem[] = [
     { id: "date", name: t("home.continueWatching.sorting.options.date") },
@@ -80,6 +85,10 @@ export function WatchingGrid({
     { id: "year-asc", name: t("home.continueWatching.sorting.options.yearAsc") },
     { id: "year-desc", name: t("home.continueWatching.sorting.options.yearDesc") },
   ];
+
+  if (!progressHydrated) {
+    return homeSectionWhileHydrating("__MW::progress", false);
+  }
 
   if (sortedProgressItems.length === 0) return null;
 

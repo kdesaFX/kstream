@@ -7,7 +7,7 @@ import { BlurEllipsis } from "@/pages/layouts/SubPageLayout";
 export function MigrationPart() {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col justify-center items-center h-screen text-center font-medium">
+    <div className="flex flex-col justify-center items-center min-h-[100svh] text-center font-medium">
       {/* Overlaid elements */}
       <BlurEllipsis />
       <div className="right-[calc(2rem+env(safe-area-inset-right))] top-6 absolute">
@@ -16,7 +16,7 @@ export function MigrationPart() {
 
       {/* Content */}
       <Loading />
-      <p className="max-w-[19rem] mt-3 mb-12 text-type-secondary">
+      <p className="max-w-[19rem] mt-3 mb-12 min-h-[4.5rem] text-type-secondary">
         {t("screens.migration.inProgress")}
       </p>
     </div>

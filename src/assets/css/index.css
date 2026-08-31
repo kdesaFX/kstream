@@ -12,9 +12,11 @@ body {
   font-size: 1.0248em;
   /* Use clip instead of hidden so position:sticky still works (e.g. Settings sidebar) */
   overflow-x: clip;
-  /* Reserve scrollbar space from first paint — injecting this via Helmet after
-     mount was shifting the whole page (CLS ~1 on home containers). */
+  /* Reserve scrollbar space from first paint — late injection via Helmet was
+     shifting the whole page (CLS ~1 on home containers). Force overflow-y so
+     browsers without scrollbar-gutter still keep a stable layout width. */
   scrollbar-gutter: stable;
+  overflow-y: scroll;
 }
 
 @layer base {
