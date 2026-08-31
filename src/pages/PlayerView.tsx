@@ -125,6 +125,7 @@ export function RealPlayerView() {
   const playbackRetryBudget = useRef(createPlaybackRetryBudget());
   const [playbackRetryCount, setPlaybackRetryCount] = useState(0);
   const wrongRuntimeSkips = usePlayerStore((s) => s.wrongRuntimeSkips);
+  const progressItems = useProgressStore((s) => s.items);
 
   // Reset resume from source ID when leaving the player
   useEffect(() => {
