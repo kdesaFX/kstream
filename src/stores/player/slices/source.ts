@@ -54,7 +54,7 @@ const QUALITY_HOP_PROBATION_MS = 45_000;
 const MAX_WRONG_RUNTIME_SKIPS = 3;
 
 /** How long a suspiciously short video gets to grow before we believe it. */
-const SHORT_RUNTIME_SETTLE_MS = 4000;
+const SHORT_RUNTIME_SETTLE_MS = 8000;
 
 /** The short-looking duration we are waiting on, if any. */
 let shortRuntimeProbe: { sourceId: string; durationSeconds: number } | null =

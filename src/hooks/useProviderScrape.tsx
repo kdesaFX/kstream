@@ -459,6 +459,15 @@ export function useScrape() {
       let bestFallbackOutput: RunOutput | null = null;
       let bestFallbackScore = -1;
 
+      const markSourceRejected = (sourceId: string, reason: string) => {
+        updateEvent({
+          id: sourceId,
+          percentage: 100,
+          status: "notfound",
+          reason,
+        });
+      };
+
       while (remainingSourceOrder.length > 0) {
         const output = await providers.runAll({
           media,
@@ -485,6 +494,11 @@ export function useScrape() {
           if (isExtensionActiveCached()) await prepareStream(output.stream);
           return getResult(output);
         }
+
+        markSourceRejected(
+          output.sourceId,
+          `Below ${preferredMinimumResolution} minimum`,
+        );
 
         const currentSourceIndex = remainingSourceOrder.indexOf(
           output.sourceId,
@@ -516,6 +530,7 @@ export function useScrape() {
       enableEmbedOrder,
       preferredMinimumResolution,
       debridToken,
+      updateEvent,
     ],
   );
 

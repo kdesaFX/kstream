@@ -34,6 +34,8 @@ export interface ScrapingProps {
     sourceOrder: ScrapingItems[],
   ) => void;
   startFromSourceId?: string;
+  /** Hide the full source carousel on automatic retries (wrong runtime, playback recovery). */
+  compact?: boolean;
 }
 
 /**
@@ -111,8 +113,11 @@ export function ScrapingPart(props: ScrapingProps) {
 
   const started = useRef<string | null>(null);
   useEffect(() => {
-    // Only start scraping if we haven't started with this startFromSourceId before
-    const currentKey = props.startFromSourceId || "default";
+    const mediaKey =
+      props.media.type === "movie"
+        ? `movie-${props.media.tmdbId}`
+        : `show-${props.media.tmdbId}-${props.media.season.number}-${props.media.episode.number}`;
+    const currentKey = `${props.startFromSourceId ?? "default"}:${mediaKey}`;
     if (started.current === currentKey) return;
     started.current = currentKey;
 
@@ -175,7 +180,13 @@ export function ScrapingPart(props: ScrapingProps) {
       className="h-full w-full relative dir-neutral:origin-top-left flex"
       ref={containerRef}
     >
-      {!sourceOrder || sourceOrder.length === 0 ? (
+      {props.compact ? (
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center flex flex-col justify-center z-0">
+          <Loading className="mb-8" />
+          <p>{t("player.scraping.retryNextSource")}</p>
+        </div>
+      ) : null}
+      {!props.compact && (!sourceOrder || sourceOrder.length === 0) ? (
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center flex flex-col justify-center z-0">
           <Loading className="mb-8" />
           <p>{t("player.scraping.items.pending")}</p>
@@ -185,6 +196,7 @@ export function ScrapingPart(props: ScrapingProps) {
         className={classNames({
           "absolute transition-[transform,opacity] opacity-0 dir-neutral:left-0": true,
           "!opacity-100": renderedOnce,
+          hidden: props.compact,
         })}
         ref={listRef}
       >

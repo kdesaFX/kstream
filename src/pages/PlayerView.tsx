@@ -123,7 +123,8 @@ export function RealPlayerView() {
   const router = useOverlayRouter("settings");
   const openedWatchPartyRef = useRef<boolean>(false);
   const playbackRetryBudget = useRef(createPlaybackRetryBudget());
-  const progressItems = useProgressStore((s) => s.items);
+  const [playbackRetryCount, setPlaybackRetryCount] = useState(0);
+  const wrongRuntimeSkips = usePlayerStore((s) => s.wrongRuntimeSkips);
 
   // Reset resume from source ID when leaving the player
   useEffect(() => {
@@ -143,6 +144,7 @@ export function RealPlayerView() {
     openedWatchPartyRef.current = false;
     playbackRetryBudget.current.setMedia(paramsData);
     setScrapeAttempt(0);
+    setPlaybackRetryCount(0);
     return () => {
       reset();
     };
@@ -228,6 +230,7 @@ export function RealPlayerView() {
   const handleResumeScraping = useCallback(
     (startFromSourceId: string) => {
       playbackRetryBudget.current.recordAttempt();
+      setPlaybackRetryCount(playbackRetryBudget.current.getAttemptCount());
       setResumeFromSourceId(startFromSourceId);
       setResumeFromSourceIdInStore(startFromSourceId);
       setTimeout(() => {
@@ -240,6 +243,7 @@ export function RealPlayerView() {
   /** Retry scrape without skipping the current source (next TQQ mirror, etc.). */
   const handleRetrySource = useCallback(() => {
     playbackRetryBudget.current.recordAttempt();
+    setPlaybackRetryCount(playbackRetryBudget.current.getAttemptCount());
     setResumeFromSourceId(null);
     setResumeFromSourceIdInStore(null);
     setTimeout(() => {
@@ -351,8 +355,9 @@ export function RealPlayerView() {
           <SourceSelectPart media={scrapeMedia} />
         ) : (
           <ScrapingPart
-            key={`scraping-${scrapeAttempt}-${resumeFromSourceId || storeResumeFromSourceId || "default"}`}
+            key={`scraping-${scrapeAttempt}-${paramsData}`}
             media={scrapeMedia}
+            compact={wrongRuntimeSkips > 0 || playbackRetryCount > 0}
             startFromSourceId={
               resumeFromSourceId || storeResumeFromSourceId || undefined
             }
