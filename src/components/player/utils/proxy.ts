@@ -1,5 +1,20 @@
 import { getLoadbalancedM3U8ProxyUrl } from "@/backend/providers/fetchers";
+import { isDesktopApp } from "@/hooks/useIsDesktopApp";
+import { conf } from "@/setup/config";
 import { getM3U8ProxyUrls, resolveProxyUrl } from "@/utils/hosting/proxyUrls";
+
+/** Resolve /api base for stream proxies (web same-origin or desktop backend). */
+function resolveStreamProxyBase(): string | null {
+  let proxyBase = getLoadbalancedM3U8ProxyUrl();
+  if (!proxyBase && typeof window !== "undefined") {
+    proxyBase = resolveProxyUrl("/api");
+  }
+  if (!proxyBase && isDesktopApp()) {
+    const backend = conf().BACKEND_URL?.replace(/\/$/, "");
+    if (backend) proxyBase = `${backend}/api`;
+  }
+  return proxyBase?.replace(/\/$/, "") || null;
+}
 
 /**
  * Creates a proxied M3U8 URL for HLS streams using a random proxy from config
@@ -12,7 +27,7 @@ export function createM3U8ProxyUrl(
   headers: Record<string, string> = {},
   options: { requireProxy?: boolean } = {},
 ): string {
-  const proxyBaseUrl = getLoadbalancedM3U8ProxyUrl();
+  const proxyBaseUrl = resolveStreamProxyBase();
 
   if (!proxyBaseUrl) {
     if (options.requireProxy || Object.keys(headers).length > 0) {
@@ -39,16 +54,11 @@ export function createMP4ProxyUrl(
   url: string,
   headers: Record<string, string> = {},
 ): string {
-  let proxyBase = getLoadbalancedM3U8ProxyUrl();
-  if (!proxyBase && typeof window !== "undefined") {
-    proxyBase = resolveProxyUrl("/api");
-  }
+  const proxyBase = resolveStreamProxyBase();
   if (!proxyBase) {
     console.warn("No MP4 proxy configured — using original URL");
     return url;
   }
-
-  proxyBase = proxyBase.replace(/\/$/, "");
   const params = new URLSearchParams({ destination: url });
   if (Object.keys(headers).length > 0) {
     params.set("headers", JSON.stringify(headers));

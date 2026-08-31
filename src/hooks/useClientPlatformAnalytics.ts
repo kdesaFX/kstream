@@ -2,14 +2,6 @@ import { useEffect, useRef } from "react";
 
 import { getClientPlatform } from "@/hooks/useIsDesktopApp";
 
-declare global {
-  interface Window {
-    rybbit?: {
-      event: (name: string, properties?: Record<string, unknown>) => void;
-    };
-  }
-}
-
 /** Once per tab — Rybbit may load after first paint. */
 export function useClientPlatformAnalytics() {
   const fired = useRef(false);

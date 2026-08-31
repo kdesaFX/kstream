@@ -288,7 +288,7 @@ export function RealPlayerView() {
         out.stream,
       );
 
-      if (isExtensionActiveCached() && selectedStream !== out.stream) {
+      if (isExtensionActiveCached()) {
         await prepareStream(selectedStream);
       }
 

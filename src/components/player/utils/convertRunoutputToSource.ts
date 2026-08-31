@@ -125,9 +125,11 @@ function maybeProxyHlsPlaylist(
 }
 
 function shouldProxyFileUrls(headers: Record<string, string>): boolean {
-  if (isDesktopApp()) return false;
+  if (Object.keys(headers).length === 0) return false;
   if (isMobileBrowser()) return true;
-  if (!isExtensionActiveCached()) return Object.keys(headers).length > 0;
+  // VidLink MP4 CDNs reject bare origins; desktop header rules miss them often.
+  if (isDesktopApp()) return true;
+  if (!isExtensionActiveCached()) return true;
   return false;
 }
 
