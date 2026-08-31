@@ -1,0 +1,104 @@
+{
+  "vidrock": {
+    "inception": "https://vz-61b02ce5-177.b-cdn.net/73baff63-b049-4e7c-8034-e5e9aa76123f/playlist.m3u8",
+    "dune": "https://vz-61b02ce5-177.b-cdn.net/73baff63-b049-4e7c-8034-e5e9aa76123f/playlist.m3u8",
+    "breakingBad": "https://vz-61b02ce5-177.b-cdn.net/73baff63-b049-4e7c-8034-e5e9aa76123f/playlist.m3u8",
+    "sameStub": true
+  },
+  "primesrcServers": [
+    {
+      "name": "Filemoon",
+      "file": "Inception 2010 1080p BrRip YIFY",
+      "key": "bYLSx"
+    },
+    {
+      "name": "Filemoon",
+      "file": "Inception 2010 720p x264",
+      "key": "QZaRH"
+    },
+    {
+      "name": "Filemoon",
+      "file": "⭐**VC**[►Inception-(2010)◄]**VC**⭐",
+      "key": "8D8x4"
+    },
+    {
+      "name": "Voe",
+      "file": "Inception.2010.720p.x264.mkv",
+      "key": "7zXni"
+    },
+    {
+      "name": "Voe",
+      "file": "Inception 2010 1080p BluRay DDP5 1 x265 10bit LAMA.mkv",
+      "key": "v9heO"
+    },
+    {
+      "name": "Voe",
+      "file": "Inception 2010 1080p BluRay DDP5 1 x265 10bit LAMA.mkv",
+      "key": "7mEwJ"
+    },
+    {
+      "name": "Streamtape",
+      "file": "Inception.2010.720p.x264.mkv.mp4",
+      "key": "KOGWY"
+    },
+    {
+      "name": "Streamtape",
+      "file": "Inception.2010.720p.x264.mkv.mp4",
+      "key": "kOml5"
+    }
+  ],
+  "primesrcLink": {
+    "status": 403,
+    "body": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\"noindex,nofollow\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"content-security-policy\" content=\"default-src &#39;none&#39;; script-src &#39;nonce-5dLUD81vGPjMOIi5XkKt4y&#39; &#39;unsafe-eval&#39; https://challenges.cloudflare.com; script-s",
+    "server": {
+      "name": "Filemoon",
+      "file_name": "Inception 2010 1080p BrRip YIFY",
+      "file_size": null,
+      "key": "bYLSx",
+      "quality": null,
+      "audio_language": "en",
+      "audio_type": "orig"
+    }
+  },
+  "primesrcTvCount": 27,
+  "primesrcTvSample": [
+    {
+      "name": "Filemoon",
+      "file": "Breaking Bad-S01E01 Pilot 720p BluRay x265-LGC"
+    },
+    {
+      "name": "Filemoon",
+      "file": "Breaking Bad S01E01 2008 1080p WEBRIP HEVC OPUS2 0"
+    },
+    {
+      "name": "Filemoon",
+      "file": "Breaking Bad S01E01 Pilot 1080p 10bit BluRay 6CH x265 HEVC-PSA"
+    },
+    {
+      "name": "Filemoon",
+      "file": "Breaking Bad S01E01 Pilot 1080p 10bit BluRay x265 HEVC 6CH-MRN"
+    },
+    {
+      "name": "Voe",
+      "file": "Breaking.Bad.S01E01.Pilot.720p.HEVC.x265-MeGusta.mkv"
+    }
+  ],
+  "extras": {
+    "hexa": {
+      "status": 200,
+      "preview": "\n<!doctype html>\n<html\n  class=\"no-js  m:overflow-hidden\"\n  lang=\"en\"\n  data-template=\"index\"\n  \n>\n \n<head>\n<script type=\"text/javascript\">\n  // * Theme file for custom changes\n  try {\n      // * Listening for the event \"zecpeThemeScriptLoaded\" on th"
+    },
+    "vidzee": {
+      "status": 200,
+      "preview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>VidZee - Lightning-Fast Video Streaming API</title>\n    \n    <link rel=\"icon\" type=\"image/s"
+    },
+    "flicky": {
+      "status": 200,
+      "preview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>VidZee - Lightning-Fast Video Streaming API</title>\n    \n    <link rel=\"icon\" type=\"image/s"
+    },
+    "cinemaos": {
+      "status": 200,
+      "preview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <script type=\"module\">import { injectIntoGlobalHook } from \"/@react-refresh\";\ninjectIntoGlobalHook(window);\nwindow.$RefreshReg$ = () => {};\nwindow.$RefreshSig$ = () => (type) => type;</script>\n\n    <scrip"
+    }
+  }
+}

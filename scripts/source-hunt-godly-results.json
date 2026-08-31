@@ -1,0 +1,1313 @@
+{
+  "at": "2026-08-31T21:59:48.035Z",
+  "summary": [
+    {
+      "id": "primesrc-servers",
+      "hits": 3,
+      "tries": 3,
+      "avgMs": 395,
+      "maxScore": 85,
+      "qualify": true,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://primesrc.me/api/v1/s?tmdb=27205&type=movie",
+          "status": 200,
+          "ms": 421,
+          "len": 4078,
+          "score": 80,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "{\"info\":{\"status\":\"Released\",\"type\":\"movie\",\"description\":\"Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets is offered a chance to regain his old life as payment for a"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://primesrc.me/api/v1/s?tmdb=693134&type=movie",
+          "status": 200,
+          "ms": 406,
+          "len": 4178,
+          "score": 80,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "{\"info\":{\"status\":\"Released\",\"type\":\"movie\",\"description\":\"Follow the mythic journey of Paul Atreides as he unites with Chani and the Fremen while on a path of revenge against the conspirators who destroyed his family. F"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://primesrc.me/api/v1/s?tmdb=1396&season=1&episode=1&type=tv",
+          "status": 200,
+          "ms": 358,
+          "len": 5903,
+          "score": 85,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "{\"info\":{\"status\":\"Ended\",\"type\":\"tv\",\"description\":\"<p><b>Breaking Bad</b> follows protagonist Walter White, a chemistry teacher who lives in New Mexico with his wife and teenage son who has cerebral palsy. White is dia"
+        }
+      ]
+    },
+    {
+      "id": "vidrock-movie",
+      "hits": 3,
+      "tries": 3,
+      "avgMs": 164,
+      "maxScore": 85,
+      "qualify": true,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://vidrock.net/api/movie/27205",
+          "status": 200,
+          "ms": 182,
+          "len": 730,
+          "score": 85,
+          "m3u8": [
+            "https://vz-61b02ce5-177.b-cdn.net/73baff63-b049-4e7c-8034-e5e9aa76123f/playlist.m3u8",
+            "https://vz-61b02ce5-177.b-cdn.net/73baff63-b049-4e7c-8034-e5e9aa76123f/playlist.m3u8"
+          ],
+          "mp4": [],
+          "preview": "{ \"source1\": { \"url\": \"https://vz-61b02ce5-177.b-cdn.net/73baff63-b049-4e7c-8034-e5e9aa76123f/playlist.m3u8\", \"language\": \"English\", \"flag\": \"us\" }, \"source2\": { \"url\": \"https://vz-61b02ce5-177.b-cd"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://vidrock.net/api/movie/693134",
+          "status": 200,
+          "ms": 157,
+          "len": 730,
+          "score": 85,
+          "m3u8": [
+            "https://vz-61b02ce5-177.b-cdn.net/73baff63-b049-4e7c-8034-e5e9aa76123f/playlist.m3u8",
+            "https://vz-61b02ce5-177.b-cdn.net/73baff63-b049-4e7c-8034-e5e9aa76123f/playlist.m3u8"
+          ],
+          "mp4": [],
+          "preview": "{ \"source1\": { \"url\": \"https://vz-61b02ce5-177.b-cdn.net/73baff63-b049-4e7c-8034-e5e9aa76123f/playlist.m3u8\", \"language\": \"English\", \"flag\": \"us\" }, \"source2\": { \"url\": \"https://vz-61b02ce5-177.b-cd"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://vidrock.net/api/tv/1396/1/1",
+          "status": 200,
+          "ms": 153,
+          "len": 730,
+          "score": 85,
+          "m3u8": [
+            "https://vz-61b02ce5-177.b-cdn.net/73baff63-b049-4e7c-8034-e5e9aa76123f/playlist.m3u8",
+            "https://vz-61b02ce5-177.b-cdn.net/73baff63-b049-4e7c-8034-e5e9aa76123f/playlist.m3u8"
+          ],
+          "mp4": [],
+          "preview": "{ \"source1\": { \"url\": \"https://vz-61b02ce5-177.b-cdn.net/73baff63-b049-4e7c-8034-e5e9aa76123f/playlist.m3u8\", \"language\": \"English\", \"flag\": \"us\" }, \"source2\": { \"url\": \"https://vz-61b02ce5-177.b-cd"
+        }
+      ]
+    },
+    {
+      "id": "111movies",
+      "hits": 3,
+      "tries": 3,
+      "avgMs": 352,
+      "maxScore": 70,
+      "qualify": true,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://111movies.com/movie/27205",
+          "status": 200,
+          "ms": 710,
+          "len": 9010,
+          "score": 70,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <!-- background is set INLINE on html/body, before any stylesheet or JS. src/index.css ships shadcn's LIGHT :root (--background: 0 0% 100%) and the .dark block it defines is never applied to "
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://111movies.com/movie/693134",
+          "status": 200,
+          "ms": 182,
+          "len": 9010,
+          "score": 70,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <!-- background is set INLINE on html/body, before any stylesheet or JS. src/index.css ships shadcn's LIGHT :root (--background: 0 0% 100%) and the .dark block it defines is never applied to "
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://111movies.com/tv/1396/1/1",
+          "status": 200,
+          "ms": 164,
+          "len": 9010,
+          "score": 70,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <!-- background is set INLINE on html/body, before any stylesheet or JS. src/index.css ships shadcn's LIGHT :root (--background: 0 0% 100%) and the .dark block it defines is never applied to "
+        }
+      ]
+    },
+    {
+      "id": "streambox-vidjoy",
+      "hits": 3,
+      "tries": 3,
+      "avgMs": 404,
+      "maxScore": 45,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://vidjoy.pro/embed/api/fastfetch/27205?sr=0",
+          "status": 200,
+          "ms": 489,
+          "len": 985,
+          "score": 45,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>vidjoy.pro</title> <meta name=\"description\" content=\"Find information, resources "
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://vidjoy.pro/embed/api/fastfetch/693134?sr=0",
+          "status": 200,
+          "ms": 525,
+          "len": 985,
+          "score": 45,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>vidjoy.pro</title> <meta name=\"description\" content=\"Find information, resources "
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://vidjoy.pro/embed/api/fastfetch/1396/1/1?sr=0",
+          "status": 200,
+          "ms": 197,
+          "len": 985,
+          "score": 45,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>vidjoy.pro</title> <meta name=\"description\" content=\"Find information, resources "
+        }
+      ]
+    },
+    {
+      "id": "cinemaos-api",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 20,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://cinemaos.online/api/sources/27205",
+          "status": 200,
+          "ms": 512,
+          "len": 1973,
+          "score": 20,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <script type=\"module\">import { injectIntoGlobalHook } from \"/@react-refresh\"; injectIntoGlobalHook(window); window.$RefreshReg$ = () => {}; window.$RefreshSig$ = () => (type)"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://cinemaos.online/api/sources/693134",
+          "status": 200,
+          "ms": 432,
+          "len": 1973,
+          "score": 20,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <script type=\"module\">import { injectIntoGlobalHook } from \"/@react-refresh\"; injectIntoGlobalHook(window); window.$RefreshReg$ = () => {}; window.$RefreshSig$ = () => (type)"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://cinemaos.online/api/sources/1396/1/1",
+          "status": 200,
+          "ms": 173,
+          "len": 1973,
+          "score": 20,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <script type=\"module\">import { injectIntoGlobalHook } from \"/@react-refresh\"; injectIntoGlobalHook(window); window.$RefreshReg$ = () => {}; window.$RefreshSig$ = () => (type)"
+        }
+      ]
+    },
+    {
+      "id": "vidzee-api",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 5,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://vidzee.wtf/api/movie/27205",
+          "status": 200,
+          "ms": 689,
+          "len": 1047,
+          "score": 5,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>VidZee - Lightning-Fast Video Streaming API</title> "
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://vidzee.wtf/api/movie/693134",
+          "status": 200,
+          "ms": 231,
+          "len": 1047,
+          "score": 5,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>VidZee - Lightning-Fast Video Streaming API</title> "
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://vidzee.wtf/api/tv/1396/1/1",
+          "status": 200,
+          "ms": 229,
+          "len": 1047,
+          "score": 5,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>VidZee - Lightning-Fast Video Streaming API</title> "
+        }
+      ]
+    },
+    {
+      "id": "flicky-api",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 5,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://flicky.host/api/stream?tmdb=27205&type=movie",
+          "status": 200,
+          "ms": 1276,
+          "len": 1047,
+          "score": 5,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>VidZee - Lightning-Fast Video Streaming API</title> "
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://flicky.host/api/stream?tmdb=693134&type=movie",
+          "status": 200,
+          "ms": 458,
+          "len": 1047,
+          "score": 5,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>VidZee - Lightning-Fast Video Streaming API</title> "
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://flicky.host/api/stream?tmdb=1396&type=tv&season=1&episode=1",
+          "status": 200,
+          "ms": 420,
+          "len": 1047,
+          "score": 5,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>VidZee - Lightning-Fast Video Streaming API</title> "
+        }
+      ]
+    },
+    {
+      "id": "vidapi-click",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://vidapi.click/api/video/movie/27205",
+          "status": 200,
+          "ms": 377,
+          "len": 0,
+          "score": 0,
+          "m3u8": [],
+          "mp4": [],
+          "preview": ""
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://vidapi.click/api/video/movie/693134",
+          "status": 200,
+          "ms": 277,
+          "len": 0,
+          "score": 0,
+          "m3u8": [],
+          "mp4": [],
+          "preview": ""
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://vidapi.click/api/video/tv/1396/1/1",
+          "status": 200,
+          "ms": 97,
+          "len": 0,
+          "score": 0,
+          "m3u8": [],
+          "mp4": [],
+          "preview": ""
+        }
+      ]
+    },
+    {
+      "id": "slidemovies-worker",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://pupp.slidemovies-dev.workers.dev/movie/27205",
+          "status": 404,
+          "ms": 110,
+          "len": 17,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1042 "
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://pupp.slidemovies-dev.workers.dev/movie/693134",
+          "status": 404,
+          "ms": 139,
+          "len": 17,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1042 "
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://pupp.slidemovies-dev.workers.dev/tv/1396/1/-1",
+          "status": 404,
+          "ms": 40,
+          "len": 17,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1042 "
+        }
+      ]
+    },
+    {
+      "id": "nova-type-tv",
+      "hits": 0,
+      "tries": 1,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://novahd.cc/api/sources?type=tv&tmdbId=1396&season=1&episode=1",
+          "status": 400,
+          "ms": 230,
+          "len": 71,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "{\"error\":\"querystring/type must be equal to one of the allowed values\"}"
+        }
+      ]
+    },
+    {
+      "id": "nova-type-series",
+      "hits": 0,
+      "tries": 1,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://novahd.cc/api/sources?type=series&tmdbId=1396&season=1&episode=1",
+          "status": 400,
+          "ms": 277,
+          "len": 71,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "{\"error\":\"querystring/type must be equal to one of the allowed values\"}"
+        }
+      ]
+    },
+    {
+      "id": "nova-type-episode",
+      "hits": 0,
+      "tries": 1,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://novahd.cc/api/sources?type=episode&tmdbId=1396&season=1&episode=1",
+          "status": 400,
+          "ms": 203,
+          "len": 71,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "{\"error\":\"querystring/type must be equal to one of the allowed values\"}"
+        }
+      ]
+    },
+    {
+      "id": "vidsrc-cc-embed",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://vidsrc.cc/v2/embed/movie/27205",
+          "status": 403,
+          "ms": 84,
+          "len": 5635,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\""
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://vidsrc.cc/v2/embed/movie/693134",
+          "status": 403,
+          "ms": 171,
+          "len": 5638,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\""
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://vidsrc.cc/v2/embed/tv/1396/1/1",
+          "status": 403,
+          "ms": 39,
+          "len": 5635,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\""
+        }
+      ]
+    },
+    {
+      "id": "vidsrc-net-embed",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://vidsrc.net/embed/movie?tmdb=27205",
+          "status": 530,
+          "ms": 69,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://vidsrc.net/embed/movie?tmdb=693134",
+          "status": 530,
+          "ms": 124,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://vidsrc.net/embed/tv?tmdb=1396&season=1&episode=1",
+          "status": 530,
+          "ms": 40,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        }
+      ]
+    },
+    {
+      "id": "smashystream",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://player.smashy.stream/movie/27205",
+          "status": 526,
+          "ms": 627,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 526 "
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://player.smashy.stream/movie/693134",
+          "status": 526,
+          "ms": 729,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 526 "
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://player.smashy.stream/tv/1396?s=1&e=1",
+          "status": 526,
+          "ms": 175,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 526 "
+        }
+      ]
+    },
+    {
+      "id": "smashy-api",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://embed.smashystream.com/dataa.php?imdb=tt1375666",
+          "status": 400,
+          "ms": 554,
+          "len": 77,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "Bad Request: unrecognised URL pattern Path: /dataa.php Query: ?imdb=tt1375666"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://embed.smashystream.com/dataa.php?imdb=tt15239678",
+          "status": 400,
+          "ms": 634,
+          "len": 78,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "Bad Request: unrecognised URL pattern Path: /dataa.php Query: ?imdb=tt15239678"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://embed.smashystream.com/dataa.php?imdb=tt0903747&season=1&episode=1",
+          "status": 400,
+          "ms": 157,
+          "len": 96,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "Bad Request: unrecognised URL pattern Path: /dataa.php Query: ?imdb=tt0903747&season=1&episode=1"
+        }
+      ]
+    },
+    {
+      "id": "moviebox-api",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://api.moviebox.ng/api/v1/stream?tmdb=27205&type=movie",
+          "status": 530,
+          "ms": 308,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://api.moviebox.ng/api/v1/stream?tmdb=693134&type=movie",
+          "status": 530,
+          "ms": 319,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://api.moviebox.ng/api/v1/stream?tmdb=1396&type=tv&s=1&e=1",
+          "status": 530,
+          "ms": 40,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        }
+      ]
+    },
+    {
+      "id": "hexared-api",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://hexared.com/api/sources?id=27205&type=movie",
+          "status": 404,
+          "ms": 740,
+          "len": 4264,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>404 Not Found</title> <meta name=\"referrer\" content=\"never\" /> <style type=\"text/css\"> * { border:0; margin:0; padding:0; -moz-box-sizing"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://hexared.com/api/sources?id=693134&type=movie",
+          "status": 404,
+          "ms": 399,
+          "len": 4264,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>404 Not Found</title> <meta name=\"referrer\" content=\"never\" /> <style type=\"text/css\"> * { border:0; margin:0; padding:0; -moz-box-sizing"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://hexared.com/api/sources?id=1396&type=tv&season=1&episode=1",
+          "status": 404,
+          "ms": 288,
+          "len": 4264,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>404 Not Found</title> <meta name=\"referrer\" content=\"never\" /> <style type=\"text/css\"> * { border:0; margin:0; padding:0; -moz-box-sizing"
+        }
+      ]
+    },
+    {
+      "id": "vidora-api",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://vidora.su/api/sources?tmdb=27205&type=movie",
+          "status": 0,
+          "ms": 20002,
+          "len": 0,
+          "score": -20,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "The operation was aborted due to timeout"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://vidora.su/api/sources?tmdb=693134&type=movie",
+          "status": 522,
+          "ms": 19681,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 522 "
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://vidora.su/api/sources?tmdb=1396&type=tv&s=1&e=1",
+          "status": 0,
+          "ms": 19998,
+          "len": 0,
+          "score": -20,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "The operation was aborted due to timeout"
+        }
+      ]
+    },
+    {
+      "id": "rgshows-api",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://api.rgshows.me/api/v1/movie/27205",
+          "status": 530,
+          "ms": 261,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://api.rgshows.me/api/v1/movie/693134",
+          "status": 530,
+          "ms": 123,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://api.rgshows.me/api/v1/tv/1396/1/1",
+          "status": 530,
+          "ms": 233,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        }
+      ]
+    },
+    {
+      "id": "spenflix",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://api.spenflix.com/movie/27205",
+          "status": 404,
+          "ms": 275,
+          "len": 19,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "404 page not found "
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://api.spenflix.com/movie/693134",
+          "status": 404,
+          "ms": 220,
+          "len": 19,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "404 page not found "
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://api.spenflix.com/tv/1396/1/1",
+          "status": 404,
+          "ms": 285,
+          "len": 19,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "404 page not found "
+        }
+      ]
+    },
+    {
+      "id": "vidfast-api",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://vidfast.pro/api/movie/27205",
+          "status": 404,
+          "ms": 511,
+          "len": 154,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Error</title> </head> <body> <pre>Cannot GET /api/movie/27205</pre> </body> </html> "
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://vidfast.pro/api/movie/693134",
+          "status": 404,
+          "ms": 515,
+          "len": 155,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Error</title> </head> <body> <pre>Cannot GET /api/movie/693134</pre> </body> </html> "
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://vidfast.pro/api/tv/1396/1/1",
+          "status": 404,
+          "ms": 416,
+          "len": 154,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Error</title> </head> <body> <pre>Cannot GET /api/tv/1396/1/1</pre> </body> </html> "
+        }
+      ]
+    },
+    {
+      "id": "vidlink-enc",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://vidlink.pro/api/movie/27205",
+          "status": 403,
+          "ms": 130,
+          "len": 4552,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]> <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]> <html class=\"no-js ie8 oldie\" lang=\""
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://vidlink.pro/api/movie/693134",
+          "status": 403,
+          "ms": 41,
+          "len": 4552,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]> <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]> <html class=\"no-js ie8 oldie\" lang=\""
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://vidlink.pro/api/tv/1396/1/1",
+          "status": 403,
+          "ms": 43,
+          "len": 4552,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]> <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]> <html class=\"no-js ie8 oldie\" lang=\""
+        }
+      ]
+    },
+    {
+      "id": "vidsrc-vip-api",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://vidsrc.vip/embed/movie/27205",
+          "status": 530,
+          "ms": 775,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://vidsrc.vip/embed/movie/693134",
+          "status": 530,
+          "ms": 95,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://vidsrc.vip/embed/tv/1396/1/1",
+          "status": 530,
+          "ms": 37,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        }
+      ]
+    },
+    {
+      "id": "embed-su-json",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://embed.su/api/embed/movie/27205",
+          "status": 530,
+          "ms": 434,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://embed.su/api/embed/movie/693134",
+          "status": 530,
+          "ms": 36,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://embed.su/api/embed/tv/1396/1/1",
+          "status": 530,
+          "ms": 40,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        }
+      ]
+    },
+    {
+      "id": "autoembed-json",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://player.autoembed.cc/embed/movie/27205?server=1",
+          "status": 530,
+          "ms": 86,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://player.autoembed.cc/embed/movie/693134?server=1",
+          "status": 530,
+          "ms": 37,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://player.autoembed.cc/embed/tv/1396/1/1?server=1",
+          "status": 530,
+          "ms": 42,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        }
+      ]
+    },
+    {
+      "id": "2embed-json",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://www.2embed.skin/embed/tt1375666",
+          "status": 200,
+          "ms": 1414,
+          "len": 8742,
+          "score": -5,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"robots\" content=\"noindex, nofollow\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>Inception (2010)</title> <link rel=\"shortcut ico"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://www.2embed.skin/embed/tt15239678",
+          "status": 200,
+          "ms": 521,
+          "len": 8923,
+          "score": -5,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"robots\" content=\"noindex, nofollow\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>Dune: Part Two (2024)</title> <link rel=\"shortcu"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://www.2embed.skin/embedtv/tt0903747&s=1&e=1",
+          "status": 200,
+          "ms": 264,
+          "len": 8048,
+          "score": -5,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"robots\" content=\"noindex, nofollow\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>Breaking Bad (2008) - 2Embed.cc Player</title> <"
+        }
+      ]
+    },
+    {
+      "id": "superembed",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://multiembed.mov/?video_id=tt1375666",
+          "status": 403,
+          "ms": 166,
+          "len": 4841,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]> <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]> <html class=\"no-js ie8 oldie\" lang=\""
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://multiembed.mov/?video_id=tt15239678",
+          "status": 403,
+          "ms": 41,
+          "len": 4841,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]> <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]> <html class=\"no-js ie8 oldie\" lang=\""
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://multiembed.mov/?video_id=tt0903747&s=1&e=1",
+          "status": 403,
+          "ms": 37,
+          "len": 4841,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]> <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]> <html class=\"no-js ie8 oldie\" lang=\""
+        }
+      ]
+    },
+    {
+      "id": "frembed",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://frembed.fun/api/film.php?id=27205",
+          "status": 530,
+          "ms": 50,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://frembed.fun/api/film.php?id=693134",
+          "status": 530,
+          "ms": 34,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://frembed.fun/api/serie.php?id=1396&sa=1&epi=1",
+          "status": 530,
+          "ms": 49,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        }
+      ]
+    },
+    {
+      "id": "vidsrc-icu",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://vidsrc.icu/embed/movie/27205",
+          "status": 530,
+          "ms": 198,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://vidsrc.icu/embed/movie/693134",
+          "status": 530,
+          "ms": 37,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://vidsrc.icu/embed/tv/1396/1/1",
+          "status": 530,
+          "ms": 39,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        }
+      ]
+    },
+    {
+      "id": "moviesapi-v2",
+      "hits": 0,
+      "tries": 3,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://moviesapi.club/movie/27205",
+          "status": 530,
+          "ms": 65,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://moviesapi.club/movie/693134",
+          "status": 530,
+          "ms": 36,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        },
+        {
+          "title": "Breaking Bad S1E1",
+          "url": "https://moviesapi.club/tv/1396-1-1",
+          "status": 530,
+          "ms": 39,
+          "len": 16,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "error code: 1016"
+        }
+      ]
+    },
+    {
+      "id": "showbox-json",
+      "hits": 0,
+      "tries": 2,
+      "avgMs": null,
+      "maxScore": 0,
+      "qualify": false,
+      "samples": [
+        {
+          "title": "Inception",
+          "url": "https://www.showbox.media/api/movie/detail?subjectId=27205",
+          "status": 500,
+          "ms": 267,
+          "len": 7156,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <html> <head> <meta charset=\"UTF-8\"> <title>System Error</title> <meta name=\"robots\" content=\"noindex,nofollow\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-"
+        },
+        {
+          "title": "Dune 2",
+          "url": "https://www.showbox.media/api/movie/detail?subjectId=693134",
+          "status": 500,
+          "ms": 87,
+          "len": 7156,
+          "score": -10,
+          "m3u8": [],
+          "mp4": [],
+          "preview": "<!DOCTYPE html> <html> <head> <meta charset=\"UTF-8\"> <title>System Error</title> <meta name=\"robots\" content=\"noindex,nofollow\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-"
+        }
+      ]
+    }
+  ]
+}
