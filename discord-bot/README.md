@@ -30,6 +30,8 @@ Project: `khplnaovkxvzhbimuvzn`
 
 Secrets live in **Supabase Vault** (not git). The edge function reads them via `discord_bot_setting` RPC.
 
+Local scripts read **`discord-bot/.env`** (gitignored). Do not put the token on the CLI.
+
 | Name | Purpose |
 |------|---------|
 | `DISCORD_BOT_TOKEN` | Bot token from Developer Portal |
@@ -72,10 +74,10 @@ Put the **bot’s role above Member and Updates** in Server Settings → Roles o
 ## Auto-Member + presence (keep running)
 
 ```bash
-node discord-bot/scripts/set-bot-presence.mjs YOUR_BOT_TOKEN
+node discord-bot/scripts/set-bot-presence.mjs
 ```
 
-This process must stay online for:
+Token is loaded from `discord-bot/.env`. This process must stay online for:
 - custom status / “online”
 - granting **Member** on `GUILD_MEMBER_ADD`
 
@@ -84,7 +86,7 @@ Optional env: `DISCORD_MEMBER_ROLE_ID`, `DISCORD_GUILD_ID`.
 ## Finish setup
 
 ```bash
-node discord-bot/scripts/complete-setup.mjs YOUR_BOT_TOKEN
+node discord-bot/scripts/complete-setup.mjs
 ```
 
 Then in Discord run **`/setup-server`** (Administrator). It creates channels, **Member** + **Updates** roles, and refreshes welcome/support embeds.
@@ -92,7 +94,7 @@ Then in Discord run **`/setup-server`** (Administrator). It creates channels, **
 Refresh embeds only:
 
 ```bash
-node discord-bot/scripts/refresh-embeds.mjs YOUR_BOT_TOKEN
+node discord-bot/scripts/refresh-embeds.mjs
 ```
 
 ## Commands

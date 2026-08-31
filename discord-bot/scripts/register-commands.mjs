@@ -2,8 +2,11 @@
  * Register guild slash commands for the kstream Discord bot.
  *
  * Usage (from repo root):
- *   DISCORD_BOT_TOKEN=... node discord-bot/scripts/register-commands.mjs [guild_id]
+ *   node discord-bot/scripts/register-commands.mjs [guild_id]
+ *   (reads token from discord-bot/.env)
  */
+
+import "./load-env.mjs";
 
 const APPLICATION_ID = "1536251834203770941";
 const token = process.env.DISCORD_BOT_TOKEN;

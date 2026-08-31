@@ -4,11 +4,12 @@
  * Requires Developer Portal → Bot → Privileged Gateway Intents →
  *   **Server Members Intent** ON
  *
- *   node discord-bot/scripts/set-bot-presence.mjs YOUR_BOT_TOKEN
- *   DISCORD_MEMBER_ROLE_ID=… DISCORD_GUILD_ID=… node discord-bot/scripts/set-bot-presence.mjs
+ *   node discord-bot/scripts/set-bot-presence.mjs
+ *   (reads token from discord-bot/.env — never commit that file)
  *
  * Role id is optional — looks up roles named Member (or legacy Signal) if omitted.
  */
+import "./load-env.mjs";
 import {
   BOT_CUSTOM_STATUS,
   BOT_CUSTOM_STATUS_EMOJI,
@@ -19,7 +20,7 @@ const once = args.includes("--once");
 const token = args.find((a) => !a.startsWith("-")) || process.env.DISCORD_BOT_TOKEN;
 
 if (!token) {
-  console.error("Need bot token");
+  console.error("Need bot token in discord-bot/.env (DISCORD_BOT_TOKEN=…)");
   process.exit(1);
 }
 

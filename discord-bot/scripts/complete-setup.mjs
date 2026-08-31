@@ -2,18 +2,24 @@
  * One-shot Discord + Supabase bot setup.
  *
  * Usage:
- *   node discord-bot/scripts/complete-setup.mjs [bot_token] [guild_id]
+ *   node discord-bot/scripts/complete-setup.mjs [guild_id]
  *
- * Env fallbacks: DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+ * Token from discord-bot/.env (DISCORD_BOT_TOKEN). Env: DISCORD_GUILD_ID, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  */
+
+import "./load-env.mjs";
 
 const APPLICATION_ID = "1536251834203770941";
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const INTERACTIONS_URL =
   "https://khplnaovkxvzhbimuvzn.supabase.co/functions/v1/discord-bot";
 
-const token = process.argv[2] || process.env.DISCORD_BOT_TOKEN;
-const guildIdArg = process.argv[3] || process.env.DISCORD_GUILD_ID;
+const token = process.argv[2]?.startsWith("MT")
+  ? process.argv[2]
+  : process.env.DISCORD_BOT_TOKEN;
+const guildIdArg = process.argv[2]?.startsWith("MT")
+  ? process.argv[3]
+  : process.argv[2] || process.env.DISCORD_GUILD_ID;
 
 async function discordApi(token, path, init = {}) {
   const headers = new Headers(init.headers);

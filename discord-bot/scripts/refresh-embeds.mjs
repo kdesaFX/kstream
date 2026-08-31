@@ -2,8 +2,10 @@
  * Set bot profile banner + bio, then refresh channel embeds.
  * Banner is attached to each message (attachment://) so Discord always loads it.
  *
- *   node discord-bot/scripts/refresh-embeds.mjs YOUR_BOT_TOKEN
+ *   node discord-bot/scripts/refresh-embeds.mjs
+ *   (reads token from discord-bot/.env)
  */
+import "./load-env.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
