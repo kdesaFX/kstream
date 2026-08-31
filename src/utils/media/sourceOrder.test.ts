@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   getMediaBucket,
   orderSourceIdsForPlayback,
+  prioritizeConfiguredSources,
 } from "@/utils/media/sourceOrder";
 import type { SourceScoreMatrix } from "@/utils/media/sourcePerformance.generated";
 
@@ -160,5 +161,21 @@ describe("orderSourceIdsForPlayback", () => {
       matrix,
     );
     expect(order[0]).toBe("tqq");
+  });
+});
+
+describe("prioritizeConfiguredSources", () => {
+  it("puts debrid first when token is configured", () => {
+    const ids = ["vidlink", "fsonline", "debrid", "cornclick"];
+    expect(
+      prioritizeConfiguredSources(ids, { hasDebridToken: true }),
+    ).toEqual(["debrid", "vidlink", "fsonline", "cornclick"]);
+  });
+
+  it("leaves order unchanged without debrid token", () => {
+    const ids = ["vidlink", "debrid", "fsonline"];
+    expect(
+      prioritizeConfiguredSources(ids, { hasDebridToken: false }),
+    ).toEqual(ids);
   });
 });

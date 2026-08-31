@@ -16,3 +16,7 @@ Probed through `https://kdesa.stream/api/proxy` on Inception + Breaking Bad S1E1
 | dahmer / streamflix / zxc | No | CF 1016 |
 
 **Shipped in providers:** `vidlink` rank 420, CORS_ALLOWED, skipValidation for hakunaymatata CDN. Debrid no longer disabled at module load.
+
+## Round 2 (2026-08-31 evening) — 20+ candidate probe
+
+All dead via datacenter proxy: reyna, embedsu, moviesapi, lordflix, nunflix, hexa, dahmer, rgshows, autoembed-tom (CF 1016). HTML-only shells: vidjoy, hydrahd, pressplay, embedflix. **vidsrcvip** API returns empty through proxy. No new qualify targets beyond VidLink.

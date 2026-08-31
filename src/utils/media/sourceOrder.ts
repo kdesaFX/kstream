@@ -35,6 +35,18 @@ export type SourceOrderContext = {
 // otherwise a slow scored source can prevent the new source from ever starting.
 const INITIAL_SOURCE_RACE_SIZE = 4;
 
+/** Boost sources that only activate when the user has configured them. */
+export function prioritizeConfiguredSources(
+  ids: string[],
+  opts: { hasDebridToken?: boolean },
+): string[] {
+  let out = [...ids];
+  if (opts.hasDebridToken && out.includes("debrid")) {
+    out = ["debrid", ...out.filter((id) => id !== "debrid")];
+  }
+  return out;
+}
+
 export function detectPlaybackEnv(): PlaybackEnv {
   if (
     typeof window !== "undefined" &&

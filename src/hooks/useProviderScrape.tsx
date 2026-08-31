@@ -26,6 +26,7 @@ import { excludeDeferredFromPrimary } from "@/utils/media/regionalSources";
 import {
   orderSourceIdsForPlayback,
   detectPlaybackEnv,
+  prioritizeConfiguredSources,
 } from "@/utils/media/sourceOrder";
 
 export type { ScrapingItems, ScrapingSegment } from "@/hooks/scrapeEvents";
@@ -271,6 +272,7 @@ export function useScrape() {
   const preferredMinimumResolution = usePreferencesStore(
     (s) => s.preferredMinimumResolution,
   );
+  const debridToken = usePreferencesStore((s) => s.debridToken);
 
   const startScraping = useCallback(
     async (media: ScrapeMedia, startFromSourceId?: string) => {
@@ -334,11 +336,14 @@ export function useScrape() {
       }
 
       // Goon-test stats: order by env (browser/extension/desktop) × media bucket.
-      baseSourceOrder = orderSourceIdsForPlayback(baseSourceOrder, {
-        env: detectPlaybackEnv(),
-        mediaType: media.type === "show" ? "show" : "movie",
-        meta: playerState.meta,
-      });
+      baseSourceOrder = prioritizeConfiguredSources(
+        orderSourceIdsForPlayback(baseSourceOrder, {
+          env: detectPlaybackEnv(),
+          mediaType: media.type === "show" ? "show" : "movie",
+          meta: playerState.meta,
+        }),
+        { hasDebridToken: Boolean(debridToken?.trim()) },
+      );
 
       // Prefer the source that worked for this title.
       // On anime, never let a remembered general source (Reyna, etc.) jump
@@ -510,6 +515,7 @@ export function useScrape() {
       preferredEmbedOrder,
       enableEmbedOrder,
       preferredMinimumResolution,
+      debridToken,
     ],
   );
 

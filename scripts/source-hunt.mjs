@@ -42,7 +42,7 @@ const CANDIDATES = [
     build: (t) =>
       t.movie
         ? `https://novahd.cc/api/sources?type=movie&tmdbId=${t.movie}`
-        : `https://novahd.cc/api/sources?type=tv&tmdbId=${t.show[0]}&season=${t.show[1]}&episode=${t.show[2]}`,
+        : `https://novahd.cc/api/sources?type=show&tmdbId=${t.show[0]}&season=${t.show[1]}&episode=${t.show[2]}`,
     headers: {
       Referer: "https://novahd.cc/",
       Origin: "https://novahd.cc",
