@@ -5,24 +5,11 @@ import {
   DEFAULT_UA,
   handleOptions,
   jsonResponse,
+  parseClientHeaders,
   resolvePlaylistUri,
 } from "../lib/proxy-shared";
 
 export const config = { runtime: "edge" };
-
-function parseClientHeaders(raw: string | null): Headers {
-  const out = new Headers();
-  if (!raw) return out;
-  try {
-    const parsed = JSON.parse(raw) as Record<string, string>;
-    for (const [k, v] of Object.entries(parsed)) {
-      if (typeof v === "string" && v) out.set(k, v);
-    }
-  } catch {
-    // ignore malformed headers JSON
-  }
-  return out;
-}
 
 function buildSegmentOrNestedProxy(
   absolute: string,

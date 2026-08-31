@@ -1,5 +1,5 @@
 import { getLoadbalancedM3U8ProxyUrl } from "@/backend/providers/fetchers";
-import { getM3U8ProxyUrls } from "@/utils/hosting/proxyUrls";
+import { getM3U8ProxyUrls, resolveProxyUrl } from "@/utils/hosting/proxyUrls";
 
 /**
  * Creates a proxied M3U8 URL for HLS streams using a random proxy from config
@@ -32,20 +32,28 @@ export function createM3U8ProxyUrl(
 }
 
 /**
- * TODO: Creates a proxied MP4 URL for MP4 streams
- * @param url - The original MP4 URL to proxy
- * @param headers - Headers to include with the request
- * @returns The proxied MP4 URL
+ * Creates a proxied MP4 URL for header-locked progressive streams (VidLink, etc.).
+ * Uses the same-origin /api/proxy route with embedded Referer/Origin headers.
  */
 export function createMP4ProxyUrl(
   url: string,
-  _headers: Record<string, string> = {},
+  headers: Record<string, string> = {},
 ): string {
-  // TODO: Implement MP4 proxy for protected streams
-  // This would need a separate MP4 proxy service that can handle headers
-  // For now, return the original URL
-  console.warn("MP4 proxy not yet implemented - using original URL");
-  return url;
+  let proxyBase = getLoadbalancedM3U8ProxyUrl();
+  if (!proxyBase && typeof window !== "undefined") {
+    proxyBase = resolveProxyUrl("/api");
+  }
+  if (!proxyBase) {
+    console.warn("No MP4 proxy configured — using original URL");
+    return url;
+  }
+
+  proxyBase = proxyBase.replace(/\/$/, "");
+  const params = new URLSearchParams({ destination: url });
+  if (Object.keys(headers).length > 0) {
+    params.set("headers", JSON.stringify(headers));
+  }
+  return `${proxyBase}/proxy?${params.toString()}`;
 }
 
 export type UnwrappedMediaUrl = {

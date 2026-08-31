@@ -3,6 +3,7 @@ import { Stream } from "@p-stream/providers";
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
 import {
   createM3U8ProxyUrl,
+  createMP4ProxyUrl,
   isUrlAlreadyProxied,
 } from "@/components/player/utils/proxy";
 import {
@@ -123,6 +124,22 @@ function maybeProxyHlsPlaylist(
   return createM3U8ProxyUrl(playlist, headers, { requireProxy: true });
 }
 
+function shouldProxyFileUrls(headers: Record<string, string>): boolean {
+  if (isDesktopApp()) return false;
+  if (isMobileBrowser()) return true;
+  if (!isExtensionActiveCached()) return Object.keys(headers).length > 0;
+  return false;
+}
+
+function maybeProxyFileUrl(
+  url: string,
+  headers: Record<string, string>,
+): string {
+  if (!shouldProxyFileUrls(headers)) return url;
+  if (isUrlAlreadyProxied(url)) return url;
+  return createMP4ProxyUrl(url, headers);
+}
+
 export function convertRunoutputToSource(out: {
   stream: Stream;
 }): SourceSliceSource {
@@ -143,6 +160,8 @@ export function convertRunoutputToSource(out: {
     };
   }
   if (out.stream.type === "file") {
+    const headers = mergeStreamHeaders(out.stream);
+    const proxiedAny = shouldProxyFileUrls(headers);
     const qualities: Partial<Record<SourceQuality, SourceFileStream>> = {};
     Object.entries(out.stream.qualities).forEach((entry) => {
       if (!isAllowedQuality(entry[0])) {
@@ -155,14 +174,14 @@ export function convertRunoutputToSource(out: {
       }
       qualities[entry[0]] = {
         type: entry[1].type,
-        url: entry[1].url,
+        url: maybeProxyFileUrl(entry[1].url, headers),
       };
     });
     return {
       type: "file",
       qualities,
-      headers: out.stream.headers,
-      preferredHeaders: out.stream.preferredHeaders,
+      headers: proxiedAny ? undefined : out.stream.headers,
+      preferredHeaders: proxiedAny ? undefined : out.stream.preferredHeaders,
       audioLanguage: out.stream.audioLanguage,
       audioLabel: out.stream.audioLabel,
     };

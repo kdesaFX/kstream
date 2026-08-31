@@ -4,6 +4,7 @@ import {
   buildUpstreamHeaders,
   handleOptions,
   jsonResponse,
+  parseClientHeaders,
 } from "../lib/proxy-shared";
 
 export const config = { runtime: "edge" };
@@ -20,6 +21,8 @@ export default async function handler(request: Request): Promise<Response> {
 
     const target = assertSafeDestination(destination);
     const upstreamHeaders = buildUpstreamHeaders(request.headers);
+    const embedded = parseClientHeaders(url.searchParams.get("headers"));
+    embedded.forEach((value, key) => upstreamHeaders.set(key, value));
 
     const host = target.hostname.toLowerCase();
     if (

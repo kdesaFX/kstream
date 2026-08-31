@@ -6,6 +6,7 @@ import {
   buildHlsDownloaderUrl,
   buildNm3u8Command,
   buildYtDlpCommand,
+  createMP4ProxyUrl,
   isOriginalFileHost,
   unwrapProxiedMediaUrl,
 } from "@/components/player/utils/proxy";
@@ -27,13 +28,23 @@ describe("unwrapProxiedMediaUrl", () => {
     expect(unwrapProxiedMediaUrl(raw)).toEqual({ url: raw, headers: {} });
   });
 
-  it("unwraps destination-style proxy URLs", () => {
+  it("unwraps destination-style proxy URLs with embedded headers", () => {
     const dest = "https://cdn.example.com/seg.ts";
-    const proxied = `https://kdesa.stream/api/proxy?destination=${encodeURIComponent(dest)}`;
+    const headers = { Referer: "https://vidlink.pro/" };
+    const proxied = `https://kdesa.stream/api/proxy?destination=${encodeURIComponent(dest)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
     expect(unwrapProxiedMediaUrl(proxied)).toEqual({
       url: dest,
-      headers: {},
+      headers,
     });
+  });
+
+  it("builds same-origin MP4 proxy URLs with Referer headers", () => {
+    const upstream = "https://bcdn.example.com/movie.mp4?sign=abc";
+    const headers = { Referer: "https://vidlink.pro/", Origin: "https://vidlink.pro" };
+    const proxied = createMP4ProxyUrl(upstream, headers);
+    expect(proxied).toContain("/api/proxy?destination=");
+    expect(proxied).toContain(encodeURIComponent(upstream));
+    expect(proxied).toContain(encodeURIComponent(JSON.stringify(headers)));
   });
 
   it("passes through plain playlist URLs", () => {

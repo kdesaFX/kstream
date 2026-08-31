@@ -57,6 +57,21 @@ export function handleOptions(): Response {
   return new Response(null, { status: 204, headers: corsHeaders() });
 }
 
+/** Parse optional JSON headers blob from proxy query strings (`headers=`). */
+export function parseClientHeaders(raw: string | null): Headers {
+  const out = new Headers();
+  if (!raw) return out;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    for (const [k, v] of Object.entries(parsed)) {
+      if (typeof v === "string" && v) out.set(k, v);
+    }
+  } catch {
+    // ignore malformed headers JSON
+  }
+  return out;
+}
+
 export function jsonResponse(
   data: unknown,
   status = 200,
