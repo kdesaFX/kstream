@@ -18,9 +18,10 @@ export function SpeedChangedPopout() {
     <Transition
       animation="slide-down"
       show={showSpeedIndicator && currentOverlay === "speed"}
-      className="absolute inset-x-0 top-4 flex justify-center pointer-events-none"
+      // Sit below TopControls (title / Sx-Ex row) so the pill never covers episode text.
+      className="absolute inset-x-0 top-20 z-[60] flex justify-center pointer-events-none"
     >
-      <Flare.Base className="hover:flare-enabled pointer-events-auto bg-video-context-background pl-4 pr-6 py-3 group w-20 h-full rounded-lg transition-colors text-video-context-type-main">
+      <Flare.Base className="hover:flare-enabled pointer-events-auto bg-video-context-background pl-4 pr-6 py-3 group w-20 h-full rounded-lg transition-colors text-video-context-type-main shadow-lg shadow-black/40">
         <Flare.Light
           enabled
           flareSize={200}

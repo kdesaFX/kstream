@@ -14,7 +14,7 @@ export function VolumeChangedPopout() {
     <Transition
       animation="slide-down"
       show={empheralVolume.showVolume && currentOverlay === "volume"}
-      className="absolute inset-x-0 top-4 flex justify-center pointer-events-none"
+      className="absolute inset-x-0 top-20 z-[60] flex justify-center pointer-events-none"
     >
       <Flare.Base className="hover:flare-enabled pointer-events-auto bg-video-context-background pl-4 pr-6 py-3 group w-72 h-full rounded-lg transition-colors text-video-context-type-main">
         <Flare.Light
