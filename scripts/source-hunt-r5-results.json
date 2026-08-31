@@ -1,0 +1,933 @@
+{
+  "at": "2026-08-31T22:29:39.603Z",
+  "special": [
+    {
+      "id": "castletv",
+      "ok": false,
+      "score": 35,
+      "preview": "{\"code\":200,\"msg\":\"OK\",\"data\":{\"expireTime\":1788225977781,\"permissionDenied\":true}}",
+      "searchHit": "Inception id=5846690106509312"
+    },
+    {
+      "id": "onetouchtv",
+      "ok": true,
+      "score": 90,
+      "preview": "https://aapanel.devcorp.me/assets/34cd9043-891e-5a3e-bf00-0690067aff26.m3u8",
+      "hit": "Inception (2001)"
+    },
+    {
+      "id": "dahmer-listing",
+      "url": "https://a.111477.xyz/movies/Inception%20(2010)/",
+      "status": 200,
+      "ms": 362,
+      "len": 38784,
+      "ct": "text/html; charset=utf-8",
+      "score": 0,
+      "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> <title id=\"pageTitle\">Index of /</title> <style> body { font-family: monospace; padd",
+      "ok": false,
+      "note": "listing only; file bytes CF-blocked via proxy; MKV not browser-native"
+    }
+  ],
+  "summary": [
+    {
+      "id": "primesrc-list",
+      "hits": 3,
+      "tries": 3,
+      "maxScore": 85,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 85,
+          "preview": "{\"info\":{\"status\":\"Released\",\"type\":\"movie\",\"description\":\"Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets is offered a chance to regain his old life as payment for a"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 85,
+          "preview": "{\"info\":{\"status\":\"Released\",\"type\":\"movie\",\"description\":\"Follow the mythic journey of Paul Atreides as he unites with Chani and the Fremen while on a path of revenge against the conspirators who destroyed his family. F"
+        }
+      ]
+    },
+    {
+      "id": "vidrock",
+      "hits": 2,
+      "tries": 2,
+      "maxScore": 65,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 65,
+          "preview": "{\"Nova\":{\"url\":null,\"type\":null},\"Atlas\":{\"url\":\"nmv9yQNqrHo8RMuPbt8-vy5eCtIcty6aj5taq1KYTjVGT5FHtfWyFMwbkWSnTcND0KO5qKUr3yc4Y98sBhDfiAiYzZGHXRaBFrIx86hrzPaU\",\"language\":\"English\",\"flag\":\"us\",\"type\":\"hls\"},\"Luna\":{\"url\":"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 65,
+          "preview": "{\"Nova\":{\"url\":null,\"type\":null},\"Atlas\":{\"url\":null,\"type\":null},\"Luna\":{\"url\":\"rFhof3EXXXYKrRqFfr2KVfyBKFqTnfbNqPQA4IlJEtzUaCYnJ9j6VBYhg_w03wdPOmgVXaYu0kAYnWuOT4gXOCpmP1TC4KGmwaYLMVtckOyxNAAM_UszCecihRB9clVPg1SoYmIOnj_"
+        }
+      ]
+    },
+    {
+      "id": "2embed-skin",
+      "hits": 3,
+      "tries": 3,
+      "maxScore": 60,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 60,
+          "preview": "<html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"robots\" content=\"noindex, nofollow\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>Inception (2010)</title> <link rel=\"shortcut ico"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 60,
+          "preview": "<html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"robots\" content=\"noindex, nofollow\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>Dune: Part Two (2024)</title> <link rel=\"shortcu"
+        }
+      ]
+    },
+    {
+      "id": "multiembed",
+      "hits": 3,
+      "tries": 3,
+      "maxScore": 60,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 60,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>Streaming...</title> <meta name=\"description\" content=\"\"> <meta name=\"robots"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 60,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>Streaming...</title> <meta name=\"description\" content=\"\"> <meta name=\"robots"
+        }
+      ]
+    },
+    {
+      "id": "vixsrc",
+      "hits": 2,
+      "tries": 2,
+      "maxScore": 60,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 60,
+          "preview": "<!DOCTYPE html><html lang=\"en\" class=\"dark\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"/_next/static/css/350eda4457e68f95.css\" data-prec"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 60,
+          "preview": "<!DOCTYPE html><html lang=\"en\" class=\"dark\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"/_next/static/css/350eda4457e68f95.css\" data-prec"
+        }
+      ]
+    },
+    {
+      "id": "flicky",
+      "hits": 3,
+      "tries": 3,
+      "maxScore": 50,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 50,
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>VidZee - Lightning-Fast Video Streaming API</title> "
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 50,
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>VidZee - Lightning-Fast Video Streaming API</title> "
+        }
+      ]
+    },
+    {
+      "id": "vidcore",
+      "hits": 2,
+      "tries": 2,
+      "maxScore": 50,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 50,
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <link rel=\"icon\" href=\"/favicon.ico\" type=\"image/x-icon\"> <title"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 50,
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <link rel=\"icon\" href=\"/favicon.ico\" type=\"image/x-icon\"> <title"
+        }
+      ]
+    },
+    {
+      "id": "vidfast-embed",
+      "hits": 0,
+      "tries": 2,
+      "maxScore": 20,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 20,
+          "preview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no\"/><link rel=\"preload\" as=\"image\" href=\"https://wsrv.nl/?ur"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 20,
+          "preview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no\"/><link rel=\"preload\" as=\"image\" href=\"https://wsrv.nl/?ur"
+        }
+      ]
+    },
+    {
+      "id": "smashystream",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 20,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 20,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <me"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 20,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <me"
+        }
+      ]
+    },
+    {
+      "id": "vidup",
+      "hits": 0,
+      "tries": 2,
+      "maxScore": 20,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 20,
+          "preview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no\"/><link rel=\"preload\" as=\"image\" href=\"https://wsrv.nl/?ur"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 20,
+          "preview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no\"/><link rel=\"preload\" as=\"image\" href=\"https://wsrv.nl/?ur"
+        }
+      ]
+    },
+    {
+      "id": "4khdhub-search",
+      "hits": 0,
+      "tries": 1,
+      "maxScore": 20,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 20,
+          "preview": "<!DOCTYPE html> <html lang=\"en\" class=\"dark\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> <title>Search - Inception - 4KHDHub</title> <script> !f"
+        }
+      ]
+    },
+    {
+      "id": "streamflix-api",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 20,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 20,
+          "preview": "<!DOCTYPE html> <html> <head> <!-- Site made with Mobirise Website Builder v5.3.10, https://mobirise.com --> <meta charset=\"UTF-8\" /> <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\" /> <meta name=\""
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 20,
+          "preview": "<!DOCTYPE html> <html> <head> <!-- Site made with Mobirise Website Builder v5.3.10, https://mobirise.com --> <meta charset=\"UTF-8\" /> <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\" /> <meta name=\""
+        }
+      ]
+    },
+    {
+      "id": "vidfast-tv",
+      "hits": 0,
+      "tries": 1,
+      "maxScore": 20,
+      "samples": [
+        {
+          "title": "Breaking Bad S1E1",
+          "status": 200,
+          "score": 20,
+          "preview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no\"/><link rel=\"preload\" as=\"image\" href=\"https://wsrv.nl/?ur"
+        }
+      ]
+    },
+    {
+      "id": "vidup-tv",
+      "hits": 0,
+      "tries": 1,
+      "maxScore": 20,
+      "samples": [
+        {
+          "title": "Breaking Bad S1E1",
+          "status": 200,
+          "score": 20,
+          "preview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no\"/><link rel=\"preload\" as=\"image\" href=\"https://wsrv.nl/?ur"
+        }
+      ]
+    },
+    {
+      "id": "mp4hydra",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 10,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 10,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <title>Mp4Hydra - Back soon</title> <link rel=\"shortcut icon\" href=\"/favicon.ico\"> <link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/apple-touch-icon.png\"> <link rel=\"icon\" type="
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 10,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <title>Mp4Hydra - Back soon</title> <link rel=\"shortcut icon\" href=\"/favicon.ico\"> <link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/apple-touch-icon.png\"> <link rel=\"icon\" type="
+        }
+      ]
+    },
+    {
+      "id": "vidlink-enc",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 404,
+          "score": 0,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Error</title> </head> <body> <pre>Cannot GET /api/vidlink/movie/27205</pre> </body> </html> "
+        },
+        {
+          "title": "Dune 2",
+          "status": 404,
+          "score": 0,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Error</title> </head> <body> <pre>Cannot GET /api/vidlink/movie/693134</pre> </body> </html> "
+        }
+      ]
+    },
+    {
+      "id": "vidsrc-pm",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 0,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no\"> <meta name=\"referrer\" content=\"origin\"> <title>Play"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 0,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no\"> <meta name=\"referrer\" content=\"origin\"> <title>Play"
+        }
+      ]
+    },
+    {
+      "id": "autoembed-co",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 0,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no\"> <meta name=\"referrer\" content=\"origin\"> <title>Play"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 0,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no\"> <meta name=\"referrer\" content=\"origin\"> <title>Play"
+        }
+      ]
+    },
+    {
+      "id": "moviesapi-to",
+      "hits": 0,
+      "tries": 2,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 0,
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <ti"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 0,
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <ti"
+        }
+      ]
+    },
+    {
+      "id": "nontongo",
+      "hits": 0,
+      "tries": 2,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 502,
+          "score": 0,
+          "preview": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]> <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]> <html class=\"no-js ie8 oldie\" lang=\""
+        },
+        {
+          "title": "Dune 2",
+          "status": 502,
+          "score": 0,
+          "preview": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]> <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]> <html class=\"no-js ie8 oldie\" lang=\""
+        }
+      ]
+    },
+    {
+      "id": "frembed",
+      "hits": 0,
+      "tries": 2,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        },
+        {
+          "title": "Dune 2",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        }
+      ]
+    },
+    {
+      "id": "videasy",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 404,
+          "score": 0,
+          "preview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><title>Opss...! You are lost - Videasy</title><meta name=\"title\" content=\"Opss...! You are lost - Videasy\"/><meta name=\"robots\" content=\"index,follow\"/><meta na"
+        },
+        {
+          "title": "Dune 2",
+          "status": 404,
+          "score": 0,
+          "preview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><title>Opss...! You are lost - Videasy</title><meta name=\"title\" content=\"Opss...! You are lost - Videasy\"/><meta name=\"robots\" content=\"index,follow\"/><meta na"
+        }
+      ]
+    },
+    {
+      "id": "vidzee",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 404,
+          "score": 0,
+          "preview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;60"
+        },
+        {
+          "title": "Dune 2",
+          "status": 404,
+          "score": 0,
+          "preview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;60"
+        }
+      ]
+    },
+    {
+      "id": "moviesmod",
+      "hits": 0,
+      "tries": 1,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        }
+      ]
+    },
+    {
+      "id": "uhdmovies",
+      "hits": 0,
+      "tries": 1,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        }
+      ]
+    },
+    {
+      "id": "netmirror",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        },
+        {
+          "title": "Dune 2",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        }
+      ]
+    },
+    {
+      "id": "cinemaos",
+      "hits": 0,
+      "tries": 2,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 402,
+          "score": 0,
+          "preview": "Payment required DEPLOYMENT_DISABLED cle1::4g55s-1788215197716-40ee83cf1df7 "
+        },
+        {
+          "title": "Dune 2",
+          "status": 402,
+          "score": 0,
+          "preview": "Payment required DEPLOYMENT_DISABLED cle1::nnlpn-1788215271871-24b4f7515dc4 "
+        }
+      ]
+    },
+    {
+      "id": "embedsu",
+      "hits": 0,
+      "tries": 2,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        },
+        {
+          "title": "Dune 2",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        }
+      ]
+    },
+    {
+      "id": "vidsrc-icu",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        },
+        {
+          "title": "Dune 2",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        }
+      ]
+    },
+    {
+      "id": "vidsrc-cc",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "The operation was aborted due to timeout"
+        },
+        {
+          "title": "Dune 2",
+          "status": 0,
+          "score": 0,
+          "preview": "The operation was aborted due to timeout"
+        }
+      ]
+    },
+    {
+      "id": "vidjoy",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 0,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>vidjoy.pro</title> <meta name=\"description\" content=\"Find information, resources "
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 0,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>vidjoy.pro</title> <meta name=\"description\" content=\"Find information, resources "
+        }
+      ]
+    },
+    {
+      "id": "ridomovies",
+      "hits": 0,
+      "tries": 1,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 403,
+          "score": 0,
+          "preview": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\""
+        }
+      ]
+    },
+    {
+      "id": "rgshows",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        },
+        {
+          "title": "Dune 2",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        }
+      ]
+    },
+    {
+      "id": "hexagl",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        },
+        {
+          "title": "Dune 2",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        }
+      ]
+    },
+    {
+      "id": "vipstream",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        },
+        {
+          "title": "Dune 2",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        }
+      ]
+    },
+    {
+      "id": "myflixerz",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "The operation was aborted due to timeout"
+        },
+        {
+          "title": "Dune 2",
+          "status": 0,
+          "score": 0,
+          "preview": "The operation was aborted due to timeout"
+        }
+      ]
+    },
+    {
+      "id": "flixhq",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "The operation was aborted due to timeout"
+        },
+        {
+          "title": "Dune 2",
+          "status": 0,
+          "score": 0,
+          "preview": "The operation was aborted due to timeout"
+        }
+      ]
+    },
+    {
+      "id": "hilocinema",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        },
+        {
+          "title": "Dune 2",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        }
+      ]
+    },
+    {
+      "id": "spencerdevs",
+      "hits": 0,
+      "tries": 3,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        },
+        {
+          "title": "Dune 2",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        }
+      ]
+    },
+    {
+      "id": "moviebox",
+      "hits": 0,
+      "tries": 1,
+      "maxScore": 0,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 0,
+          "score": 0,
+          "preview": "fetch failed"
+        }
+      ]
+    }
+  ],
+  "qualify": [
+    {
+      "id": "primesrc-list",
+      "hits": 3,
+      "tries": 3,
+      "maxScore": 85,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 85,
+          "preview": "{\"info\":{\"status\":\"Released\",\"type\":\"movie\",\"description\":\"Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets is offered a chance to regain his old life as payment for a"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 85,
+          "preview": "{\"info\":{\"status\":\"Released\",\"type\":\"movie\",\"description\":\"Follow the mythic journey of Paul Atreides as he unites with Chani and the Fremen while on a path of revenge against the conspirators who destroyed his family. F"
+        }
+      ]
+    },
+    {
+      "id": "vidrock",
+      "hits": 2,
+      "tries": 2,
+      "maxScore": 65,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 65,
+          "preview": "{\"Nova\":{\"url\":null,\"type\":null},\"Atlas\":{\"url\":\"nmv9yQNqrHo8RMuPbt8-vy5eCtIcty6aj5taq1KYTjVGT5FHtfWyFMwbkWSnTcND0KO5qKUr3yc4Y98sBhDfiAiYzZGHXRaBFrIx86hrzPaU\",\"language\":\"English\",\"flag\":\"us\",\"type\":\"hls\"},\"Luna\":{\"url\":"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 65,
+          "preview": "{\"Nova\":{\"url\":null,\"type\":null},\"Atlas\":{\"url\":null,\"type\":null},\"Luna\":{\"url\":\"rFhof3EXXXYKrRqFfr2KVfyBKFqTnfbNqPQA4IlJEtzUaCYnJ9j6VBYhg_w03wdPOmgVXaYu0kAYnWuOT4gXOCpmP1TC4KGmwaYLMVtckOyxNAAM_UszCecihRB9clVPg1SoYmIOnj_"
+        }
+      ]
+    },
+    {
+      "id": "2embed-skin",
+      "hits": 3,
+      "tries": 3,
+      "maxScore": 60,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 60,
+          "preview": "<html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"robots\" content=\"noindex, nofollow\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>Inception (2010)</title> <link rel=\"shortcut ico"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 60,
+          "preview": "<html lang=\"en\"> <head> <meta charset=\"utf-8\"> <meta name=\"robots\" content=\"noindex, nofollow\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>Dune: Part Two (2024)</title> <link rel=\"shortcu"
+        }
+      ]
+    },
+    {
+      "id": "multiembed",
+      "hits": 3,
+      "tries": 3,
+      "maxScore": 60,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 60,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>Streaming...</title> <meta name=\"description\" content=\"\"> <meta name=\"robots"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 60,
+          "preview": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> <title>Streaming...</title> <meta name=\"description\" content=\"\"> <meta name=\"robots"
+        }
+      ]
+    },
+    {
+      "id": "vixsrc",
+      "hits": 2,
+      "tries": 2,
+      "maxScore": 60,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 60,
+          "preview": "<!DOCTYPE html><html lang=\"en\" class=\"dark\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"/_next/static/css/350eda4457e68f95.css\" data-prec"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 60,
+          "preview": "<!DOCTYPE html><html lang=\"en\" class=\"dark\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"/_next/static/css/350eda4457e68f95.css\" data-prec"
+        }
+      ]
+    },
+    {
+      "id": "flicky",
+      "hits": 3,
+      "tries": 3,
+      "maxScore": 50,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 50,
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>VidZee - Lightning-Fast Video Streaming API</title> "
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 50,
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>VidZee - Lightning-Fast Video Streaming API</title> "
+        }
+      ]
+    },
+    {
+      "id": "vidcore",
+      "hits": 2,
+      "tries": 2,
+      "maxScore": 50,
+      "samples": [
+        {
+          "title": "Inception",
+          "status": 200,
+          "score": 50,
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <link rel=\"icon\" href=\"/favicon.ico\" type=\"image/x-icon\"> <title"
+        },
+        {
+          "title": "Dune 2",
+          "status": 200,
+          "score": 50,
+          "preview": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <link rel=\"icon\" href=\"/favicon.ico\" type=\"image/x-icon\"> <title"
+        }
+      ]
+    }
+  ]
+}

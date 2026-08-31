@@ -1,0 +1,30 @@
+{
+  "at": "2026-08-31T22:32:25.758Z",
+  "castle": {
+    "id": "castletv",
+    "ok": true,
+    "title": "Inception",
+    "movieId": "5846690106509312",
+    "episodeId": "7578995015239680",
+    "url": "https://img1.hvncw.com/hls/2ab614e3fd237e215ca7a9eb4f645f78/720/index_309.m3u8?auth_key=1JJ2p6ykppDXaQGN%2FB8%2BBGY7AsTldXcgpssrdEngkwA%3D&expire=1788226347511",
+    "play": {
+      "status": 206,
+      "ct": "application/vnd.apple.mpegurl",
+      "len": 201,
+      "isM3u8": true,
+      "preview": "#EXTM3U #EXT-X-VERSION:3 #EXT-X-MEDIA-SEQUENCE:0 #EXT-X-ALLOW-CACHE:YES #EXT-X-TARGETDURATION:17 #EXTINF:7.716122, https"
+    },
+    "qualities": [
+      "SD 480P",
+      "HD 720P"
+    ]
+  },
+  "onetouch": {
+    "id": "onetouchtv",
+    "ok": false,
+    "reason": "no 2010 match",
+    "samples": [
+      "Inception (2001) (2001)"
+    ]
+  }
+}
