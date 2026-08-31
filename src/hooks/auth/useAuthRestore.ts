@@ -6,6 +6,12 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { useAuthStore } from "@/stores/auth";
 import { runBootWarmup } from "@/setup/homeWarmup";
 
+/**
+ * Auth restore used to re-subscribe whenever `restore` / `importLocalGuestLibraries`
+ * changed identity. Those callbacks depended on language/theme/groupOrder, which
+ * `restore` itself writes — so every open tab ran an infinite INITIAL_SESSION →
+ * full library pull loop and burned Supabase egress (millions of REST calls/day).
+ */
 export function useAuthRestore() {
   const { account } = useAuthStore();
   const {
@@ -14,18 +20,27 @@ export function useAuthRestore() {
     importLocalGuestLibraries,
     onAuthStateChange,
   } = useAuth();
-  const hasRestored = useRef(false);
+
+  const restoreRef = useRef(restore);
+  const restoreFromSessionRef = useRef(restoreFromSession);
+  const importGuestRef = useRef(importLocalGuestLibraries);
+  restoreRef.current = restore;
+  restoreFromSessionRef.current = restoreFromSession;
+  importGuestRef.current = importLocalGuestLibraries;
+
+  const hasBootstrapped = useRef(false);
+  const cloudRestoreInFlight = useRef(false);
   const importingGuest = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(undefined);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return undefined;
+
     const sub = onAuthStateChange(async (event, session) => {
       if (!session) return;
 
-      // Token refresh only needs a fresh access token — full restore caused
-      // settings (devices list) to reload/flicker on every refresh.
+      // Token refresh: swap JWT only. Never re-pull libraries / touch device.
       if (event === "TOKEN_REFRESHED") {
         const existing = useAuthStore.getState().account;
         if (existing) {
@@ -37,22 +52,32 @@ export function useAuthRestore() {
         return;
       }
 
-      const acc = await accountFromSession(session);
-      if (!acc) return;
-      useAuthStore.getState().setAccount(acc);
-
-      try {
-        const { touchDevice } = await import("@/backend/supabase/data");
-        await touchDevice(acc.userId);
-      } catch {
-        // Device tracking is best-effort
+      // Boot warmup already restores once. Re-handling INITIAL_SESSION here
+      // re-subscribed in a loop and duplicated every table fetch.
+      if (event === "INITIAL_SESSION") {
+        return;
       }
 
-      // Fresh sign-in (email/password or Google OAuth return): upload whatever
-      // this browser watched/read as a guest before pulling cloud libraries.
-      const shouldMergeGuest =
-        event === "SIGNED_IN" ||
-        (() => {
+      // USER_UPDATED / password changes etc. — keep session account fresh,
+      // but do not dump progress/bookmarks again.
+      if (event !== "SIGNED_IN") {
+        try {
+          const acc = await accountFromSession(session);
+          if (acc) useAuthStore.getState().setAccount(acc);
+        } catch {
+          // best-effort
+        }
+        return;
+      }
+
+      if (cloudRestoreInFlight.current) return;
+      cloudRestoreInFlight.current = true;
+      try {
+        const acc = await accountFromSession(session);
+        if (!acc) return;
+        useAuthStore.getState().setAccount(acc);
+
+        const shouldMergeGuest = (() => {
           try {
             return sessionStorage.getItem("kstream::merge-guest-on-auth") === "1";
           } catch {
@@ -60,30 +85,36 @@ export function useAuthRestore() {
           }
         })();
 
-      if (shouldMergeGuest && !importingGuest.current) {
-        importingGuest.current = true;
-        try {
+        if (shouldMergeGuest && !importingGuest.current) {
+          importingGuest.current = true;
           try {
-            sessionStorage.removeItem("kstream::merge-guest-on-auth");
-          } catch {
-            // ignore
+            try {
+              sessionStorage.removeItem("kstream::merge-guest-on-auth");
+            } catch {
+              // ignore
+            }
+            await importGuestRef.current(acc, false);
+          } catch (err) {
+            console.error("Failed to import guest libraries on sign-in", err);
+          } finally {
+            importingGuest.current = false;
           }
-          await importLocalGuestLibraries(acc, false);
-        } catch (err) {
-          console.error("Failed to import guest libraries on sign-in", err);
-        } finally {
-          importingGuest.current = false;
         }
-      }
 
-      await restore(acc);
+        await restoreRef.current(acc);
+      } finally {
+        cloudRestoreInFlight.current = false;
+      }
     });
+
     return () => sub.unsubscribe();
-  }, [onAuthStateChange, restore, importLocalGuestLibraries]);
+    // Subscribe once — callbacks are read from refs so identity churn cannot
+    // re-fire INITIAL_SESSION / re-attach listeners.
+  }, [onAuthStateChange]);
 
   useEffect(() => {
-    if (hasRestored.current) return;
-    hasRestored.current = true;
+    if (hasBootstrapped.current) return;
+    hasBootstrapped.current = true;
 
     const accountAtBoot = useAuthStore.getState().account;
 
@@ -93,10 +124,10 @@ export function useAuthRestore() {
           authWork: async () => {
             if (!isSupabaseConfigured()) return;
             if (accountAtBoot) {
-              await restore(accountAtBoot);
+              await restoreRef.current(accountAtBoot);
               return;
             }
-            await restoreFromSession();
+            await restoreFromSessionRef.current();
           },
         });
       } catch (err) {
@@ -106,7 +137,7 @@ export function useAuthRestore() {
         setLoading(false);
       }
     })();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     loading,

@@ -142,11 +142,6 @@ export function useAuth() {
     login: userDataLogin,
     syncData,
   } = useAuthData();
-  const groupOrder = useGroupOrderStore((s) => s.groupOrder);
-  const preferences = usePreferencesStore.getState();
-  const subtitleLanguage = useSubtitleStore((s) => s.lastSelectedLanguage);
-  const applicationLanguage = useLanguageStore((s) => s.language);
-  const applicationTheme = useThemeStore((s) => s.theme);
 
   const finishLogin = useCallback(
     async (account: AccountWithToken) => {
@@ -203,12 +198,13 @@ export function useAuth() {
 
   const logout = useCallback(async () => {
     try {
-      await sbSignOut("", currentAccount?.token ?? "", "local");
+      const token = useAuthStore.getState().account?.token ?? "";
+      await sbSignOut("", token, "local");
     } catch {
       // ignore
     }
     await userDataLogout();
-  }, [userDataLogout, currentAccount?.token]);
+  }, [userDataLogout]);
 
   const signOutEverywhere = useCallback(async () => {
     const { signOut } = await import("@/backend/supabase/data");
@@ -237,28 +233,32 @@ export function useAuth() {
         bookmarkMediaToInput(tmdbId, item),
       );
 
+      // Read live store snapshots so this callback stays identity-stable.
+      // Depending on language/theme/groupOrder recreated restore listeners and
+      // caused a Supabase egress storm (full account restore in a tight loop).
+      const liveGroupOrder = useGroupOrderStore.getState().groupOrder;
+      const livePreferences = usePreferencesStore.getState();
+      const liveSubtitleLanguage =
+        useSubtitleStore.getState().lastSelectedLanguage;
+      const liveApplicationLanguage = useLanguageStore.getState().language;
+      const liveApplicationTheme = useThemeStore.getState().theme;
+
       await importAllUserData("", account, {
         progressInputs,
         watchHistoryInputs,
         bookmarkInputs,
-        groupOrder,
+        groupOrder: liveGroupOrder,
         mangaProgress,
         settings: pushSettings
-          ? buildFullSettingsInput(preferences, {
-              applicationLanguage,
-              applicationTheme: applicationTheme ?? undefined,
-              defaultSubtitleLanguage: subtitleLanguage || undefined,
+          ? buildFullSettingsInput(livePreferences, {
+              applicationLanguage: liveApplicationLanguage,
+              applicationTheme: liveApplicationTheme ?? undefined,
+              defaultSubtitleLanguage: liveSubtitleLanguage || undefined,
             })
           : undefined,
       });
     },
-    [
-      groupOrder,
-      preferences,
-      subtitleLanguage,
-      applicationLanguage,
-      applicationTheme,
-    ],
+    [],
   );
 
   /** Push whatever this browser watched/read as a guest into the account. */

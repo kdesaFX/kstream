@@ -173,13 +173,30 @@ function isGenericDeviceName(name: string): boolean {
   return /^(this device|unknown device)$/i.test(name.trim());
 }
 
+/** Skip redundant last_seen writes — device list does not need second-level freshness. */
+const TOUCH_DEVICE_MIN_INTERVAL_MS = 15 * 60 * 1000;
+const touchDeviceLastAt = new Map<string, number>();
+const touchDeviceNameCache = new Map<string, string>();
+
 export async function touchDevice(
   userId: string,
-  opts?: { deviceName?: string; clientId?: string },
+  opts?: { deviceName?: string; clientId?: string; force?: boolean },
 ): Promise<{ clientId: string; deviceName: string }> {
   const clientId = opts?.clientId ?? getDeviceClientId();
   const userAgent =
     typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 512) : "";
+  const cacheKey = `${userId}:${clientId}`;
+  const now = Date.now();
+  const lastAt = touchDeviceLastAt.get(cacheKey) ?? 0;
+  const force = Boolean(opts?.force || opts?.deviceName?.trim());
+
+  // Hot path: recently touched and no rename — zero network (was millions/day).
+  if (!force && now - lastAt < TOUCH_DEVICE_MIN_INTERVAL_MS) {
+    const cachedName = touchDeviceNameCache.get(cacheKey);
+    if (cachedName) {
+      return { clientId, deviceName: cachedName };
+    }
+  }
 
   const { data: existing, error: lookupError } = await getSupabase()
     .from("devices")
@@ -195,6 +212,11 @@ export async function touchDevice(
       ? existing.device_name
       : null) ||
     suggestDeviceName(userAgent || undefined);
+
+  if (existing && !force && now - lastAt < TOUCH_DEVICE_MIN_INTERVAL_MS) {
+    touchDeviceNameCache.set(cacheKey, existing.device_name || deviceName);
+    return { clientId, deviceName: existing.device_name || deviceName };
+  }
 
   const lastSeen = new Date().toISOString();
   if (existing) {
@@ -219,6 +241,8 @@ export async function touchDevice(
     if (error) throw error;
   }
 
+  touchDeviceLastAt.set(cacheKey, now);
+  touchDeviceNameCache.set(cacheKey, deviceName);
   return { clientId, deviceName };
 }
 
