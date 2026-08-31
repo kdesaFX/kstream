@@ -4,6 +4,7 @@ import { ofetch } from "ofetch";
 import { useCallback } from "react";
 
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
+import { isDesktopApp } from "@/hooks/useIsDesktopApp";
 import { ScrapingItems, ScrapingSegment } from "@/hooks/useProviderScrape";
 import { conf } from "@/setup/config";
 import { useAuthStore } from "@/stores/auth";
@@ -41,9 +42,10 @@ export type ProviderMetric = {
   fullError?: string;
 };
 
-export type ScrapeTool = "default" | "custom-proxy" | "extension";
+export type ScrapeTool = "default" | "custom-proxy" | "extension" | "desktop";
 
 export function getScrapeTool(): ScrapeTool {
+  if (isDesktopApp()) return "desktop";
   if (isExtensionActiveCached()) return "extension";
   const hasProxySet = !!useAuthStore.getState().proxySet;
   if (hasProxySet) return "custom-proxy";

@@ -37,6 +37,7 @@ import {
   getDeviceClientId,
   suggestDeviceName,
 } from "@/utils/deviceClient";
+import { getClientPlatform } from "@/hooks/useIsDesktopApp";
 
 import { progressInputToMediaItem, mergeProgressPayload } from "./progressMerge";
 
@@ -185,6 +186,7 @@ export async function touchDevice(
   const clientId = opts?.clientId ?? getDeviceClientId();
   const userAgent =
     typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 512) : "";
+  const platform = getClientPlatform();
   const cacheKey = `${userId}:${clientId}`;
   const now = Date.now();
   const lastAt = touchDeviceLastAt.get(cacheKey) ?? 0;
@@ -225,6 +227,7 @@ export async function touchDevice(
       .update({
         device_name: deviceName,
         user_agent: userAgent || null,
+        platform,
         last_seen: lastSeen,
       })
       .eq("user_id", userId)
@@ -236,6 +239,7 @@ export async function touchDevice(
       client_id: clientId,
       device_name: deviceName,
       user_agent: userAgent || null,
+      platform,
       last_seen: lastSeen,
     });
     if (error) throw error;
@@ -672,7 +676,7 @@ export async function importBookmarksFromStore(
 export async function fetchDevices(userId: string) {
   const { data, error } = await getSupabase()
     .from("devices")
-    .select("client_id, device_name, user_agent, last_seen")
+    .select("client_id, device_name, user_agent, platform, last_seen")
     .eq("user_id", userId)
     .order("last_seen", { ascending: false });
   if (error) throw error;
@@ -680,6 +684,7 @@ export async function fetchDevices(userId: string) {
     client_id: string;
     device_name: string;
     user_agent: string | null;
+    platform: string | null;
     last_seen: string;
   }>;
 }

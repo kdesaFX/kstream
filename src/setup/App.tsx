@@ -26,6 +26,7 @@ import { SimklAuthHandler } from "@/components/auth/SimklAuthHandler";
 import { UpdateNotice } from "@/components/UpdateNotice";
 import { TraktAuthHandler } from "@/components/auth/TraktAuthHandler";
 import { useGlobalKeyboardEvents } from "@/hooks/useGlobalKeyboardEvents";
+import { useClientPlatformAnalytics } from "@/hooks/useClientPlatformAnalytics";
 import { useOnlineListener } from "@/hooks/usePing";
 import { useScrollLockRestore } from "@/hooks/useScrollLockRestore";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
@@ -179,6 +180,7 @@ function App() {
   useHistoryListener();
   useOnlineListener();
   useGlobalKeyboardEvents();
+  useClientPlatformAnalytics();
   useClearModalsOnNavigation();
   const location = useLocation();
   const maintenance = false; // Shows maintance page

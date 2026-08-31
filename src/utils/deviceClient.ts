@@ -32,5 +32,12 @@ export function suggestDeviceName(userAgent = navigator.userAgent): string {
   else if (/Mac OS/i.test(ua)) os = "Mac";
   else if (/Linux/i.test(ua)) os = "Linux";
 
-  return `${browser} on ${os}`;
+  const label = `${browser} on ${os}`;
+  if (
+    typeof window !== "undefined" &&
+    (window.__PSTREAM_DESKTOP__ || window.__KSTREAM_DESKTOP_IPC__)
+  ) {
+    return `kstream Desktop (${label})`;
+  }
+  return label;
 }

@@ -26,6 +26,12 @@ export function isDesktopApp(): boolean {
   return Boolean(window.__PSTREAM_DESKTOP__ || window.__KSTREAM_DESKTOP_IPC__);
 }
 
+export type ClientPlatform = "desktop" | "web";
+
+export function getClientPlatform(): ClientPlatform {
+  return isDesktopApp() ? "desktop" : "web";
+}
+
 export function useIsDesktopApp(): boolean {
   return isDesktopApp();
 }
