@@ -146,6 +146,8 @@ export function PreferencesPart(props: {
   const enableGamepadControls = usePreferencesStore(
     (s) => s.enableGamepadControls,
   );
+  const debridToken = usePreferencesStore((s) => s.debridToken);
+  const hasDebridToken = Boolean(debridToken?.trim());
   const setEnableGamepadControls = usePreferencesStore(
     (s) => s.setEnableGamepadControls,
   );
@@ -178,14 +180,18 @@ export function PreferencesPart(props: {
 
   const allSources = getAllProviders().listSources();
   const primarySourceIds = useMemo(
-    () => excludeDeferredFromPrimary(allSources.map((s) => s.id)),
-    [allSources],
+    () =>
+      excludeDeferredFromPrimary(allSources.map((s) => s.id)).filter(
+        (id) => hasDebridToken || id !== "debrid",
+      ),
+    [allSources, hasDebridToken],
   );
 
   const sourceItems = useMemo(() => {
     const currentDeviceSources = getProviders().listSources();
     const orderedPrimary = props.sourceOrder.filter(
-      (id) => !isDeferredRegionalSource(id),
+      (id) =>
+        !isDeferredRegionalSource(id) && (hasDebridToken || id !== "debrid"),
     );
     const trailing = primarySourceIds.filter(
       (id) => !orderedPrimary.includes(id),
@@ -195,7 +201,7 @@ export function PreferencesPart(props: {
       name: allSources.find((s) => s.id === id)?.name || id,
       disabled: !currentDeviceSources.find((s) => s.id === id),
     }));
-  }, [props.sourceOrder, allSources, primarySourceIds]);
+  }, [props.sourceOrder, allSources, primarySourceIds, hasDebridToken]);
 
   const regionalSourceItems = useMemo(
     () =>

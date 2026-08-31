@@ -172,10 +172,10 @@ describe("prioritizeConfiguredSources", () => {
     ).toEqual(["debrid", "vidlink", "fsonline", "cornclick"]);
   });
 
-  it("leaves order unchanged without debrid token", () => {
+  it("removes debrid without token", () => {
     const ids = ["vidlink", "debrid", "fsonline"];
     expect(
       prioritizeConfiguredSources(ids, { hasDebridToken: false }),
-    ).toEqual(ids);
+    ).toEqual(["vidlink", "fsonline"]);
   });
 });

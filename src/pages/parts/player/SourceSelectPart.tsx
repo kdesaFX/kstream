@@ -15,7 +15,7 @@ import {
   getPreferredSourceForTitle,
   usePreferencesStore,
 } from "@/stores/preferences";
-import { orderSourcesForPlayback, detectPlaybackEnv } from "@/utils/media/sourceOrder";
+import { orderSourcesForPlayback, detectPlaybackEnv, filterConfiguredSources } from "@/utils/media/sourceOrder";
 import { isDeferredRegionalSource } from "@/utils/media/regionalSources";
 
 // Embed option component
@@ -162,6 +162,7 @@ export function SourceSelectPart(props: { media: ScrapeMedia }) {
   const enableLastSuccessfulSource = usePreferencesStore(
     (s) => s.enableLastSuccessfulSource,
   );
+  const debridToken = usePreferencesStore((s) => s.debridToken);
   const playerMeta = usePlayerStore((s) => s.meta);
 
   const sources = useMemo(() => {
@@ -180,7 +181,9 @@ export function SourceSelectPart(props: { media: ScrapeMedia }) {
         )
       : null;
 
-    let orderedSources = allSources;
+    let orderedSources = filterConfiguredSources(allSources, {
+      hasDebridToken: Boolean(debridToken?.trim()),
+    });
 
     if (enableSourceOrder && preferredSourceOrder.length > 0) {
       const preferred: typeof allSources = [];
@@ -240,6 +243,7 @@ export function SourceSelectPart(props: { media: ScrapeMedia }) {
     lastSuccessfulSource,
     preferredSourceByTitle,
     enableLastSuccessfulSource,
+    debridToken,
   ]);
 
   if (selectedSourceId) {

@@ -41,10 +41,22 @@ export function prioritizeConfiguredSources(
   opts: { hasDebridToken?: boolean },
 ): string[] {
   let out = [...ids];
-  if (opts.hasDebridToken && out.includes("debrid")) {
+  if (!opts.hasDebridToken) {
+    return out.filter((id) => id !== "debrid");
+  }
+  if (out.includes("debrid")) {
     out = ["debrid", ...out.filter((id) => id !== "debrid")];
   }
   return out;
+}
+
+/** Drop token-gated sources from a sourcerer list (manual source picker, etc.). */
+export function filterConfiguredSources<T extends { id: string }>(
+  sources: T[],
+  opts: { hasDebridToken?: boolean },
+): T[] {
+  if (opts.hasDebridToken) return sources;
+  return sources.filter((s) => s.id !== "debrid");
 }
 
 export function detectPlaybackEnv(): PlaybackEnv {
