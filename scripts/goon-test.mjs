@@ -7,6 +7,10 @@
  *   node scripts/goon-test.mjs --quick   # smaller catalog
  *   node scripts/goon-test.mjs --from-results  # rebuild matrix from last JSON (no scrape)
  *
+ * Optional env:
+ *   GOON_DEBRID_TOKEN — Real-Debrid API token so debrid scores in the matrix
+ *   GOON_PROVIDERS_PATH — override providers entry (default @p-stream/providers)
+ *
  * Envs tested:
  *   browser   → targets.BROWSER (CORS-only sources, site proxy)
  *   extension → targets.BROWSER_EXTENSION (all sources, site proxy stand-in)
@@ -17,6 +21,24 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+// Debrid scraper reads preferences from window.localStorage in-browser.
+// Inject a token for bench runs when GOON_DEBRID_TOKEN is set.
+if (process.env.GOON_DEBRID_TOKEN?.trim()) {
+  const prefs = JSON.stringify({
+    state: {
+      debridToken: process.env.GOON_DEBRID_TOKEN.trim(),
+      debridService: process.env.GOON_DEBRID_SERVICE?.trim() || "realdebrid",
+    },
+  });
+  globalThis.window = {
+    localStorage: {
+      getItem: (key) => (key === "__MW::preferences" ? prefs : null),
+      setItem: () => {},
+      removeItem: () => {},
+    },
+  };
+}
 
 const require = createRequire(import.meta.url);
 const providers = require(
@@ -327,19 +349,31 @@ export const SOURCE_SCORE_MATRIX: SourceScoreMatrix = ${body};
 `;
 }
 
+/** Token-gated or browser-only sources — 0% in Node bench is expected. */
+const NEVER_DISABLE = new Set(["debrid", "primesrc"]);
+const ENV_GATED_MISS = /token is required|Turnstile|browser environment/i;
+
 function disableRecommendations(attempts) {
   const bySource = new Map();
   for (const a of attempts) {
     if (a.status === "skip") continue;
     if (!bySource.has(a.sourceId)) {
-      bySource.set(a.sourceId, { id: a.sourceId, name: a.sourceName, n: 0, hits: 0 });
+      bySource.set(a.sourceId, {
+        id: a.sourceId,
+        name: a.sourceName,
+        n: 0,
+        hits: 0,
+        envGated: 0,
+      });
     }
     const s = bySource.get(a.sourceId);
     s.n += 1;
     if (a.status === "hit") s.hits += 1;
+    else if (a.reason && ENV_GATED_MISS.test(a.reason)) s.envGated += 1;
   }
   return [...bySource.values()]
-    .filter((s) => s.n >= 6 && s.hits === 0)
+    .filter((s) => s.n >= 6 && s.hits === 0 && !NEVER_DISABLE.has(s.id))
+    .filter((s) => s.envGated < s.n)
     .map((s) => `${s.name} (${s.id}): 0/${s.n} — consider disabled: true`);
 }
 
