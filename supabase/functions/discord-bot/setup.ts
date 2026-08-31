@@ -299,13 +299,14 @@ export async function handleSetupServer(
           `Open tickets: \`${created.ticketCategoryId}\``,
           `Closed tickets: \`${created.closedTicketCategoryId}\``,
           created.memberRoleId
-            ? `Member role (Signal, on join): \`${created.memberRoleId}\``
+            ? `Member role (auto on join via gateway helper): \`${created.memberRoleId}\``
             : "",
           created.updatesRoleId
             ? `Updates ping role: \`${created.updatesRoleId}\``
             : "",
           "",
-          "Set Signal as a Default Role: Server Settings → Onboarding → Default Roles.",
+          "Keep the bot’s role **above Member** and **Updates** in Server Settings → Roles.",
+          "Run `node discord-bot/scripts/set-bot-presence.mjs` with Server Members Intent enabled so joiners get Member automatically.",
         ].filter(Boolean).join("\n"),
       });
     } catch (err) {

@@ -40,7 +40,7 @@ export function welcomeEmbeds(ids: ChannelIds = {}) {
         `• ${support} — tickets for bugs or account issues`,
         `• ${updates} — site changes`,
         "",
-        "Everyone gets the **Signal** member role when they join.",
+        "Everyone gets the **Member** role automatically when they join.",
         "Want pings when we post site updates? Tap **Update pings** below (you can turn it off anytime).",
         "",
         `Site: ${BRAND.site}`,

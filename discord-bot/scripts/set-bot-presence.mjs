@@ -1,9 +1,13 @@
 /**
- * Keep the bot online with a custom status (like desktop Discord users).
- * Presence only sticks while this process stays connected to Gateway.
+ * Keep the bot online (custom status) and assign **Member** when someone joins.
+ *
+ * Requires Developer Portal → Bot → Privileged Gateway Intents →
+ *   **Server Members Intent** ON
  *
  *   node discord-bot/scripts/set-bot-presence.mjs YOUR_BOT_TOKEN
- *   node discord-bot/scripts/set-bot-presence.mjs --once YOUR_BOT_TOKEN  # set + exit (testing)
+ *   DISCORD_MEMBER_ROLE_ID=… DISCORD_GUILD_ID=… node discord-bot/scripts/set-bot-presence.mjs
+ *
+ * Role id is optional — looks up roles named Member (or legacy Signal) if omitted.
  */
 import {
   BOT_CUSTOM_STATUS,
@@ -20,16 +24,102 @@ if (!token) {
 }
 
 const GATEWAY = "wss://gateway.discord.gg/?v=10&encoding=json";
-const INTENTS = 1 << 0; // GUILDS — enough for presence
+const API = "https://discord.com/api/v10";
+/** GUILDS | GUILD_MEMBERS — Members intent is required for join events. */
+const INTENTS = (1 << 0) | (1 << 1);
+
+const MEMBER_NAMES = ["Member", "Signal"];
 
 let ws;
 let heartbeatMs = 41250;
 let heartbeatTimer;
 let seq = null;
 let identified = false;
+/** @type {Map<string, string>} guildId → memberRoleId */
+const memberRoleByGuild = new Map();
 
 function send(payload) {
   ws.send(JSON.stringify(payload));
+}
+
+async function discordJson(path, init = {}) {
+  const headers = new Headers(init.headers || {});
+  headers.set("Authorization", `Bot ${token}`);
+  if (init.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  const res = await fetch(`${API}${path}`, { ...init, headers });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${path} ${res.status}: ${text}`);
+  }
+  if (res.status === 204) return undefined;
+  return res.json();
+}
+
+async function resolveMemberRoleId(guildId) {
+  if (memberRoleByGuild.has(guildId)) return memberRoleByGuild.get(guildId);
+
+  const envRole = process.env.DISCORD_MEMBER_ROLE_ID;
+  const envGuild = process.env.DISCORD_GUILD_ID;
+  if (envRole && (!envGuild || envGuild === guildId)) {
+    memberRoleByGuild.set(guildId, envRole);
+    return envRole;
+  }
+
+  const roles = await discordJson(`/guilds/${guildId}/roles`);
+  const found = roles.find((r) => MEMBER_NAMES.includes(r.name));
+  if (!found) {
+    console.warn(
+      `No Member/Signal role in guild ${guildId} — run /setup-server first`,
+    );
+    return null;
+  }
+
+  if (found.name === "Signal") {
+    try {
+      await discordJson(`/guilds/${guildId}/roles/${found.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: "Member",
+          permissions: "0",
+          mentionable: false,
+        }),
+      });
+      console.log(`Renamed legacy Signal → Member (${found.id})`);
+    } catch (err) {
+      console.warn("Could not rename Signal → Member:", err.message || err);
+    }
+  } else if (found.permissions && found.permissions !== "0") {
+    try {
+      await discordJson(`/guilds/${guildId}/roles/${found.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ permissions: "0" }),
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  memberRoleByGuild.set(guildId, found.id);
+  return found.id;
+}
+
+async function assignMemberRole(guildId, userId) {
+  try {
+    const roleId = await resolveMemberRoleId(guildId);
+    if (!roleId) return;
+    await discordJson(`/guilds/${guildId}/members/${userId}/roles/${roleId}`, {
+      method: "PUT",
+    });
+    console.log(`Granted Member to ${userId} in ${guildId}`);
+  } catch (err) {
+    console.error(
+      `Failed to grant Member to ${userId}:`,
+      err.message || err,
+      "(Is the bot role above Member? Manage Roles enabled?)",
+    );
+  }
 }
 
 function setPresence() {
@@ -37,17 +127,21 @@ function setPresence() {
     op: 3,
     d: {
       since: Date.now(),
-      activities: [{
-        name: "Custom Status",
-        type: 4,
-        state: BOT_CUSTOM_STATUS,
-        emoji: BOT_CUSTOM_STATUS_EMOJI,
-      }],
+      activities: [
+        {
+          name: "Custom Status",
+          type: 4,
+          state: BOT_CUSTOM_STATUS,
+          emoji: BOT_CUSTOM_STATUS_EMOJI,
+        },
+      ],
       status: "online",
       afk: false,
     },
   });
-  console.log(`Custom status: ${BOT_CUSTOM_STATUS_EMOJI.name} ${BOT_CUSTOM_STATUS}`);
+  console.log(
+    `Custom status: ${BOT_CUSTOM_STATUS_EMOJI.name} ${BOT_CUSTOM_STATUS}`,
+  );
 }
 
 function startHeartbeat(interval) {
@@ -74,7 +168,7 @@ function identify() {
 }
 
 async function connect() {
-  const res = await fetch("https://discord.com/api/v10/gateway/bot", {
+  const res = await fetch(`${API}/gateway/bot`, {
     headers: { Authorization: `Bot ${token}` },
   });
   if (!res.ok) {
@@ -85,7 +179,7 @@ async function connect() {
   ws = new WebSocket(GATEWAY);
 
   ws.addEventListener("open", () => {
-    console.log("Gateway connected");
+    console.log("Gateway connected (presence + Member on join)");
   });
 
   ws.addEventListener("message", (ev) => {
@@ -113,6 +207,13 @@ async function connect() {
         if (msg.t === "RESUMED") {
           setPresence();
         }
+        if (msg.t === "GUILD_MEMBER_ADD") {
+          const guildId = msg.d.guild_id;
+          const userId = msg.d.user?.id;
+          if (guildId && userId && !msg.d.user?.bot) {
+            void assignMemberRole(guildId, userId);
+          }
+        }
         break;
       case 7: // Reconnect
         ws.close();
@@ -129,6 +230,12 @@ async function connect() {
   ws.addEventListener("close", (ev) => {
     clearInterval(heartbeatTimer);
     console.warn(`Gateway closed (${ev.code})`);
+    if (ev.code === 4014) {
+      console.error(
+        "Disallowed intents (4014). Enable Server Members Intent in the Discord Developer Portal → Bot.",
+      );
+      process.exit(1);
+    }
     if (!once && identified) {
       console.log("Reconnecting in 5s…");
       setTimeout(connect, 5000);

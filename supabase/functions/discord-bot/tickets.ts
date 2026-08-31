@@ -11,7 +11,7 @@ import {
 } from "./discord.ts";
 import { ticketOpenEmbed } from "./embeds.ts";
 import { saveVaultSetting } from "./config.ts";
-import { type Env, ensureMemberHasSignal } from "./roles.ts";
+import { type Env, ensureMemberHasRole } from "./roles.ts";
 
 type DiscordChannel = { id: string; name: string; type: number; parent_id?: string | null };
 
@@ -72,7 +72,7 @@ async function createTicket(
   subjectOverride?: string,
 ): Promise<{ data: { content: string } }> {
   if (interaction.guild_id) {
-    await ensureMemberHasSignal(
+    await ensureMemberHasRole(
       env,
       interaction.guild_id,
       user.id,

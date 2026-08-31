@@ -21,6 +21,20 @@ export type Env = {
   staffRoleId?: string;
 };
 
+const MEMBER_ROLE_NAME = "Member";
+const LEGACY_MEMBER_ROLE_NAME = "Signal";
+/** Teal accent — display-only; permissions stay empty (safe). */
+const MEMBER_ROLE_COLOR = 0x2dd4bf;
+
+type GuildRole = { id: string; name: string; permissions?: string };
+
+async function listRoles(
+  token: string,
+  guildId: string,
+): Promise<GuildRole[]> {
+  return discordJson<GuildRole[]>(token, `/guilds/${guildId}/roles`);
+}
+
 async function ensureNamedRole(
   token: string,
   guildId: string,
@@ -28,10 +42,7 @@ async function ensureNamedRole(
   color: number,
   mentionable = false,
 ): Promise<string> {
-  const roles = await discordJson<Array<{ id: string; name: string }>>(
-    token,
-    `/guilds/${guildId}/roles`,
-  );
+  const roles = await listRoles(token, guildId);
   const existing = roles.find((r) => r.name === name);
   if (existing) return existing.id;
 
@@ -42,40 +53,100 @@ async function ensureNamedRole(
       color,
       hoist: false,
       mentionable,
+      // No elevated permissions — label/access role only.
       permissions: "0",
     }),
   });
   return role.id;
 }
 
-export async function ensureMemberRole(token: string, guildId: string): Promise<string> {
-  return ensureNamedRole(token, guildId, "Signal", 0x2dd4bf, false);
+/**
+ * Ensure the Member role exists (permissions: none).
+ * Renames legacy "Signal" → "Member" when found.
+ */
+export async function ensureMemberRole(
+  token: string,
+  guildId: string,
+): Promise<string> {
+  const roles = await listRoles(token, guildId);
+  const member = roles.find((r) => r.name === MEMBER_ROLE_NAME);
+  if (member) {
+    // Keep permissions safe if someone elevated them by mistake.
+    if (member.permissions && member.permissions !== "0") {
+      await discordJson(token, `/guilds/${guildId}/roles/${member.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ permissions: "0" }),
+      }).catch(() => undefined);
+    }
+    return member.id;
+  }
+
+  const legacy = roles.find((r) => r.name === LEGACY_MEMBER_ROLE_NAME);
+  if (legacy) {
+    await discordJson(token, `/guilds/${guildId}/roles/${legacy.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        name: MEMBER_ROLE_NAME,
+        permissions: "0",
+        mentionable: false,
+        color: MEMBER_ROLE_COLOR,
+      }),
+    });
+    return legacy.id;
+  }
+
+  return ensureNamedRole(
+    token,
+    guildId,
+    MEMBER_ROLE_NAME,
+    MEMBER_ROLE_COLOR,
+    false,
+  );
 }
 
-export async function ensureUpdatesRole(token: string, guildId: string): Promise<string> {
+export async function ensureUpdatesRole(
+  token: string,
+  guildId: string,
+): Promise<string> {
   return ensureNamedRole(token, guildId, "Updates", 0x5865f2, true);
 }
 
-/** Grant Signal if missing. Silent on failure. */
-export async function ensureMemberHasSignal(
+export type RoleGrantResult = { ok: true } | { ok: false; error: string };
+
+/** Grant Member if missing. Returns failure reason (hierarchy, missing Manage Roles, etc.). */
+export async function ensureMemberHasRole(
   env: Env,
   guildId: string,
   userId: string,
   memberRoles?: string[],
-): Promise<void> {
-  let roleId = env.memberRoleId;
-  if (!roleId) {
-    roleId = await ensureMemberRole(env.token, guildId);
-    await saveVaultSetting("DISCORD_MEMBER_ROLE_ID", roleId);
-    env.memberRoleId = roleId;
+): Promise<RoleGrantResult> {
+  try {
+    let roleId = env.memberRoleId;
+    if (!roleId) {
+      roleId = await ensureMemberRole(env.token, guildId);
+      await saveVaultSetting("DISCORD_MEMBER_ROLE_ID", roleId);
+      env.memberRoleId = roleId;
+    }
+    if (memberRoles?.includes(roleId)) return { ok: true };
+    await discordJson(
+      env.token,
+      `/guilds/${guildId}/members/${userId}/roles/${roleId}`,
+      { method: "PUT" },
+    );
+    return { ok: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("ensureMemberHasRole failed:", msg);
+    return {
+      ok: false,
+      error:
+        "Couldn't assign the **Member** role. Put the bot’s role above **Member** in Server Settings → Roles, and keep Manage Roles enabled.",
+    };
   }
-  if (memberRoles?.includes(roleId)) return;
-  await discordJson(
-    env.token,
-    `/guilds/${guildId}/members/${userId}/roles/${roleId}`,
-    { method: "PUT" },
-  ).catch(() => undefined);
 }
+
+/** @deprecated alias — prefer ensureMemberHasRole */
+export const ensureMemberHasSignal = ensureMemberHasRole;
 
 export async function handleClaimUpdatesRole(
   interaction: Interaction,
@@ -90,41 +161,64 @@ export async function handleClaimUpdatesRole(
     return;
   }
 
-  await ensureMemberHasSignal(env, guildId, user.id, interaction.member?.roles);
+  const memberGrant = await ensureMemberHasRole(
+    env,
+    guildId,
+    user.id,
+    interaction.member?.roles,
+  );
 
   let roleId = env.updatesRoleId;
   if (!roleId) {
     roleId = await ensureUpdatesRole(env.token, guildId);
     await saveVaultSetting("DISCORD_UPDATES_ROLE_ID", roleId);
+    env.updatesRoleId = roleId;
   }
 
-  const hasRole = interaction.member?.roles?.includes(roleId);
-  if (hasRole) {
+  try {
+    const hasRole = interaction.member?.roles?.includes(roleId);
+    if (hasRole) {
+      await discordJson(
+        env.token,
+        `/guilds/${guildId}/members/${user.id}/roles/${roleId}`,
+        { method: "DELETE" },
+      );
+      await editOriginal(env.token, env.applicationId, interaction.token, {
+        content: [
+          "Update pings off — you won't be mentioned when we post site updates. Tap again anytime to turn them back on.",
+          memberGrant.ok ? "" : memberGrant.error,
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+      });
+      return;
+    }
+
     await discordJson(
       env.token,
       `/guilds/${guildId}/members/${user.id}/roles/${roleId}`,
-      { method: "DELETE" },
+      { method: "PUT" },
     );
+
+    await editOriginal(env.token, env.applicationId, interaction.token, {
+      content: [
+        "You're set — you'll get pinged for site updates. Tap **Update pings** again to turn them off.",
+        memberGrant.ok ? "" : memberGrant.error,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("handleClaimUpdatesRole failed:", msg);
     await editOriginal(env.token, env.applicationId, interaction.token, {
       content:
-        "Update pings off — you won't be mentioned when we post site updates. Tap again anytime to turn them back on.",
+        "Couldn't update your **Updates** role. Put the bot’s role above **Updates** in Server Settings → Roles.",
     });
-    return;
   }
-
-  await discordJson(
-    env.token,
-    `/guilds/${guildId}/members/${user.id}/roles/${roleId}`,
-    { method: "PUT" },
-  );
-
-  await editOriginal(env.token, env.applicationId, interaction.token, {
-    content:
-      "You're set — you'll get pinged for site updates. Tap **Update pings** again to turn them off.",
-  });
 }
 
-/** Old welcome button — still grants Signal if someone clicks it */
+/** Old welcome button — still grants Member if someone clicks it */
 export async function handleClaimMemberRole(
   interaction: Interaction,
   env: Env,
@@ -138,9 +232,15 @@ export async function handleClaimMemberRole(
     return;
   }
 
-  await ensureMemberHasSignal(env, guildId, user.id, interaction.member?.roles);
+  const grant = await ensureMemberHasRole(
+    env,
+    guildId,
+    user.id,
+    interaction.member?.roles,
+  );
   await editOriginal(env.token, env.applicationId, interaction.token, {
-    content:
-      "You're in — **Signal** is the member role. For update notifications, tap **Update pings** on the welcome message.",
+    content: grant.ok
+      ? "You're in — **Member** is set. For update notifications, tap **Update pings** on the welcome message."
+      : grant.error,
   });
 }
