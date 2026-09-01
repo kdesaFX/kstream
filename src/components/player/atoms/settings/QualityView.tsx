@@ -95,6 +95,13 @@ export function QualityView({
   const autoQuality = useQualityStore((s) => s.quality.automaticQuality);
   const lastChosenQuality = useQualityStore((s) => s.quality.lastChosenQuality);
 
+  const highlightedQuality = useMemo(() => {
+    if (lastChosenQuality && lastChosenQuality !== "unknown") {
+      return lastChosenQuality;
+    }
+    return currentQuality;
+  }, [lastChosenQuality, currentQuality]);
+
   const selectableQualities = useMemo(
     () => selectableQualityTiers(availableQualities, alternateQualityOptions),
     [availableQualities, alternateQualityOptions],
@@ -138,7 +145,6 @@ export function QualityView({
 
   const change = useCallback(
     (q: SourceQuality) => {
-      setAutomaticQuality(false);
       setLastChosenQuality(q);
       if (availableQualities.includes(q)) {
         switchQuality(q);
@@ -150,7 +156,6 @@ export function QualityView({
     [
       availableQualities,
       router,
-      setAutomaticQuality,
       setLastChosenQuality,
       switchQuality,
       switchQualityStream,
@@ -188,6 +193,7 @@ export function QualityView({
     const newValue = !autoQuality;
     setAutomaticQuality(newValue);
     if (newValue) {
+      setLastChosenQuality(null);
       enableAutomaticQuality();
       return;
     }
@@ -227,7 +233,7 @@ export function QualityView({
       </Menu.BackLink>
       <Menu.Section className="flex flex-col pb-4">
         {visibleQualities.map((v) => {
-          const selected = v === currentQuality;
+          const selected = v === highlightedQuality;
           const sourceName = alternateSourceNames[v];
           const languages = qualityLanguages[v] ?? [];
           const selectable = selectableQualities.includes(v);

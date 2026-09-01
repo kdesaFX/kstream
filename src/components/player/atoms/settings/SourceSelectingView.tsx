@@ -14,11 +14,6 @@ import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import {
-  highestAvailableQuality,
-  qualityToString,
-  type SourceQuality,
-} from "@/stores/player/utils/qualities";
-import {
   getPreferredSourceForTitle,
   usePreferencesStore,
 } from "@/stores/preferences";
@@ -180,9 +175,6 @@ export function SourceSelectionView({
   const metaOriginalLanguage = usePlayerStore((s) => s.meta?.originalLanguage);
   const metaOriginCountry = usePlayerStore((s) => s.meta?.originCountry);
   const currentSourceId = usePlayerStore((s) => s.sourceId);
-  const currentQuality = usePlayerStore((s) => s.currentQuality);
-  const ladderQualities = usePlayerStore((s) => s.qualities);
-  const qualityStreamOptions = usePlayerStore((s) => s.qualityStreamOptions);
   const setResumeFromSourceId = usePlayerStore((s) => s.setResumeFromSourceId);
   const setStatus = usePlayerStore((s) => s.setStatus);
   const preferredSourceOrder = usePreferencesStore((s) => s.sourceOrder);
@@ -306,19 +298,6 @@ export function SourceSelectionView({
     setStatus(playerStatus.SCRAPING);
   };
 
-  const sourceQualityLabel = (sourceId: string): string | null => {
-    if (sourceId !== currentSourceId) return null;
-    const tiers: SourceQuality[] = [...ladderQualities];
-    for (const option of qualityStreamOptions) {
-      if (option.sourceId === sourceId) tiers.push(option.quality);
-    }
-    if (currentQuality && currentQuality !== "unknown") {
-      tiers.push(currentQuality);
-    }
-    const peak = highestAvailableQuality(tiers);
-    return peak ? qualityToString(peak) : null;
-  };
-
   return (
     <>
       <Menu.BackLink
@@ -340,9 +319,7 @@ export function SourceSelectionView({
         {t("player.menus.sources.title")}
       </Menu.BackLink>
       <Menu.Section className="pb-4">
-        {sources.map((v) => {
-          const qualityLabel = sourceQualityLabel(v.id);
-          return (
+        {sources.map((v) => (
           <SelectableLink
             key={v.id}
             onClick={() => {
@@ -350,18 +327,10 @@ export function SourceSelectionView({
               router.navigate("/source/embeds");
             }}
             selected={v.id === currentSourceId}
-            rightSide={
-              qualityLabel ? (
-                <span className="text-video-context-type-secondary text-sm tabular-nums">
-                  {qualityLabel}
-                </span>
-              ) : undefined
-            }
           >
             {resolveSourceDisplayName(v.id, v.name)}
           </SelectableLink>
-          );
-        })}
+        ))}
       </Menu.Section>
     </>
   );

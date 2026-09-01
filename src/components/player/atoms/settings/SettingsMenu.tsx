@@ -15,6 +15,7 @@ import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { qualityToString } from "@/stores/player/utils/qualities";
+import { useQualityStore } from "@/stores/quality";
 import { useSubtitleStore } from "@/stores/subtitles";
 import { isAnimeTitle } from "@/utils/media/anime";
 import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
@@ -75,6 +76,26 @@ export function SettingsMenu({ id }: { id: string }) {
   const awaitingSource =
     status === playerStatus.SCRAPING ||
     (status !== playerStatus.PLAYING && !source);
+  const autoQuality = useQualityStore((s) => s.quality.automaticQuality);
+  const lastChosenQuality = useQualityStore((s) => s.quality.lastChosenQuality);
+  const qualityMenuLabel = useMemo(() => {
+    if (awaitingSource) return null;
+    if (lastChosenQuality && lastChosenQuality !== "unknown") {
+      return qualityToString(lastChosenQuality);
+    }
+    if (autoQuality) {
+      return currentQuality
+        ? qualityToString(currentQuality)
+        : t("player.menus.quality.auto");
+    }
+    return currentQuality ? qualityToString(currentQuality) : null;
+  }, [
+    awaitingSource,
+    autoQuality,
+    currentQuality,
+    lastChosenQuality,
+    t,
+  ]);
   const sourceName = useMemo(() => {
     if (!currentSourceId) return "...";
     const sourceMeta = getCachedMetadata().find(
@@ -253,21 +274,15 @@ export function SettingsMenu({ id }: { id: string }) {
             router.navigate("/quality");
           }}
           rightText={
-            awaitingSource
-              ? undefined
-              : currentQuality
-                ? qualityToString(currentQuality)
-                : ""
+            awaitingSource ? undefined : (qualityMenuLabel ?? undefined)
           }
         >
           {t("player.menus.settings.qualityItem")}
           <span className="text-type-secondary text-sm leading-5 h-5 flex items-center justify-center">
             {awaitingSource ? (
               <Spinner className="text-sm" />
-            ) : currentQuality ? (
-              qualityToString(currentQuality)
             ) : (
-              t("player.menus.quality.auto")
+              qualityMenuLabel ?? t("player.menus.quality.auto")
             )}
           </span>
         </Menu.ChevronLink>
