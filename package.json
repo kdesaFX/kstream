@@ -47,7 +47,7 @@
     "@ladjs/country-language": "^1.0.3",
     "@marsidev/react-turnstile": "^0.7.2",
     "@noble/hashes": "^1.8.0",
-    "@p-stream/providers": "github:kdesaFX/providers#ed4961d",
+    "@p-stream/providers": "github:kdesaFX/providers#9e067d1",
     "@plasmohq/messaging": "^0.6.2",
     "@react-spring/web": "^9.7.5",
     "@ricky0123/vad-web": "^0.0.24",
