@@ -551,9 +551,9 @@ export function useScrape() {
           return accepted;
         }
         markSourceRejected(output.sourceId, check.reason);
-        if (hasProvenZeroHit(output.sourceId, sourceOrderCtx)) {
-          recordFailedSource(output.sourceId);
-        }
+        // Remember every rejected hit for this episode so playback recovery
+        // and the next scrape cannot walk back into the same dead stream.
+        recordFailedSource(output.sourceId);
         return null;
       };
 
@@ -671,6 +671,7 @@ export function useScrape() {
           output.sourceId,
           `Below ${preferredMinimumResolution} minimum`,
         );
+        recordFailedSource(output.sourceId);
 
         const currentSourceIndex = remainingSourceOrder.indexOf(
           output.sourceId,

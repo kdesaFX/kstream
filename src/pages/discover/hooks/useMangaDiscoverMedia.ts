@@ -18,6 +18,7 @@ export type MangaCarouselKind =
 export function useMangaDiscoverMedia(
   kind: MangaCarouselKind,
   enabled: boolean,
+  tagFilter?: MangaGenreTagKey,
 ) {
   const enableMatureTitles = usePreferencesStore((s) => s.enableMatureTitles);
   const [media, setMedia] = useState<MediaItem[]>([]);
@@ -33,6 +34,7 @@ export function useMangaDiscoverMedia(
       const items = await listDiscoverManga({
         kind,
         limit: 24,
+        tagFilter,
       });
       setMedia(items.map(discoverMangaToMediaItem));
     } catch (e) {
@@ -42,7 +44,7 @@ export function useMangaDiscoverMedia(
       setIsLoading(false);
       setHasLoaded(true);
     }
-  }, [kind, enabled, enableMatureTitles]);
+  }, [kind, enabled, enableMatureTitles, tagFilter]);
 
   useEffect(() => {
     refetch();

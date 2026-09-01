@@ -11,7 +11,10 @@ import {
   isUrlAlreadyProxied,
 } from "@/components/player/utils/proxy";
 import type { CaptionListItem } from "@/stores/player/slices/source";
-import { resolutionHeightToQuality } from "@/stores/player/utils/qualities";
+import {
+  mergeQualityTiers,
+  resolutionHeightToQuality,
+} from "@/stores/player/utils/qualities";
 import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
 import type {
   SourceQuality,
@@ -315,9 +318,12 @@ export async function streamsToQualityOptions(
 export function selectableQualityTiers(
   available: SourceQuality[],
   alternates: QualityStreamOption[],
+  remembered: SourceQuality[] = [],
 ): SourceQuality[] {
-  return Array.from(
-    new Set([...available, ...alternates.map((option) => option.quality)]),
+  return mergeQualityTiers(
+    available,
+    alternates.map((option) => option.quality),
+    remembered,
   );
 }
 
@@ -434,6 +440,7 @@ export function languagesByQuality(opts: {
   available: SourceQuality[];
   currentLanguage?: string | null;
   alternates: QualityStreamOption[];
+  currentSourceId?: string | null;
 }): Partial<Record<SourceQuality, string[]>> {
   const map = new Map<SourceQuality, string[]>();
   const add = (quality: SourceQuality, languages: string[]) => {
@@ -443,15 +450,35 @@ export function languagesByQuality(opts: {
     );
   };
 
-  for (const option of opts.alternates) {
-    add(option.quality, option.languages);
-  }
+  const tierContext = {
+    available: opts.available,
+    alternates: opts.alternates,
+    currentSourceId: opts.currentSourceId ?? null,
+    currentLanguage: opts.currentLanguage ?? null,
+  };
 
   const current = opts.currentLanguage?.trim().toLowerCase();
-  if (current && current !== "unknown" && current !== "und") {
-    for (const quality of opts.available) {
-      add(quality, [current]);
+
+  for (const quality of opts.available) {
+    const choices = choicesForQualityTier({ ...tierContext, quality });
+    if (choices.length <= 1) {
+      if (current && current !== "unknown" && current !== "und") {
+        add(quality, [current]);
+      }
+      continue;
     }
+    for (const choice of choices) {
+      if (choice.kind === "current") {
+        add(quality, choice.languages);
+      } else {
+        add(quality, choice.option.languages);
+      }
+    }
+  }
+
+  for (const option of opts.alternates) {
+    if (opts.available.includes(option.quality)) continue;
+    add(option.quality, option.languages);
   }
 
   const sorted: Partial<Record<SourceQuality, string[]>> = {};

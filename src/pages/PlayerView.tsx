@@ -240,6 +240,9 @@ export function RealPlayerView() {
     (startFromSourceId: string) => {
       playbackRetryBudget.current.recordAttempt();
       setPlaybackRetryCount(playbackRetryBudget.current.getAttemptCount());
+      // Remount ScrapingPart so stale in-flight scrapes cannot replay the dead
+      // source and so the per-mount dedup guard does not block a real retry.
+      setScrapeAttempt((n) => n + 1);
       setResumeFromSourceId(startFromSourceId);
       setResumeFromSourceIdInStore(startFromSourceId);
       setTimeout(() => {
@@ -253,12 +256,21 @@ export function RealPlayerView() {
   const handleRetrySource = useCallback(() => {
     playbackRetryBudget.current.recordAttempt();
     setPlaybackRetryCount(playbackRetryBudget.current.getAttemptCount());
+    setScrapeAttempt((n) => n + 1);
     setResumeFromSourceId(null);
     setResumeFromSourceIdInStore(null);
     setTimeout(() => {
       setStatus(playerStatus.SCRAPING);
     }, 0);
   }, [setStatus, setResumeFromSourceIdInStore]);
+
+  const prevWrongRuntimeSkips = useRef(0);
+  useEffect(() => {
+    if (wrongRuntimeSkips > prevWrongRuntimeSkips.current) {
+      setScrapeAttempt((n) => n + 1);
+    }
+    prevWrongRuntimeSkips.current = wrongRuntimeSkips;
+  }, [wrongRuntimeSkips]);
 
   // Sync store value to local state when it changes (e.g., from settings)
   // or when status changes to SCRAPING

@@ -17,6 +17,7 @@ import {
 import {
   SourceQuality,
   SourceSliceSource,
+  mergeQualityTiers,
   selectQuality,
 } from "@/stores/player/utils/qualities";
 import {
@@ -197,6 +198,8 @@ export interface SourceSlice {
   /** Set while a quality hop is on probation; see restoreQualityHopFallback. */
   qualityHopFallback: QualityHopFallback | null;
   qualities: SourceQuality[];
+  /** Union of every tier seen this session — inference must not shrink the menu. */
+  rememberedQualityTiers: SourceQuality[];
   audioTracks: AudioTrack[];
   /** Cross-source / multi-stream audio languages available for this title. */
   audioStreamOptions: AudioStreamOption[];
@@ -365,6 +368,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   sourceId: null,
   embedId: null,
   qualities: [],
+  rememberedQualityTiers: [],
   audioTracks: [],
   audioStreamOptions: [],
   qualityStreamOptions: [],
@@ -513,6 +517,10 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
 
       s.source = stream;
       s.qualities = qualities as SourceQuality[];
+      s.rememberedQualityTiers = mergeQualityTiers(
+        s.rememberedQualityTiers,
+        s.qualities,
+      );
       s.currentQuality = loadableStream.quality;
       s.captionList = mergeUniqueCaptions(captions, cachedExternalCaptions);
       s.interface.error = undefined;
@@ -796,6 +804,11 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
         s.qualityStreamOptions,
         options,
       );
+      s.rememberedQualityTiers = mergeQualityTiers(
+        s.rememberedQualityTiers,
+        s.qualities,
+        options.map((option) => option.quality),
+      );
     });
   },
   registerSourceMirrors(sourceId, streams, preferredLanguage) {
@@ -932,6 +945,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.sourceId = null;
       s.embedId = null;
       s.qualities = [];
+      s.rememberedQualityTiers = [];
       s.audioTracks = [];
       s.audioStreamOptions = [];
       s.qualityStreamOptions = [];

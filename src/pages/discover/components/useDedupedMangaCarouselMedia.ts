@@ -5,6 +5,7 @@ import {
   listDiscoverManga,
 } from "@/backend/manga/discoverCatalog";
 import type { AniListDiscoverKind } from "@/backend/manga/anilistDiscover";
+import type { MangaGenreTagKey } from "@/backend/manga/mangaTags";
 import type { MediaItem } from "@/utils/media/mediaTypes";
 
 import { useDedupedMedia } from "./CarouselDedupeContext";
@@ -21,16 +22,17 @@ export function useDedupedMangaCarouselMedia(
     enabled?: boolean;
     hasLoaded?: boolean;
     kind?: string;
+    tagFilter?: MangaGenreTagKey;
   } = {},
 ): MediaItem[] {
-  const { enabled = true, hasLoaded = true, kind = "" } = options;
+  const { enabled = true, hasLoaded = true, kind = "", tagFilter } = options;
   const [backfill, setBackfill] = useState<MediaItem[]>([]);
   const attemptsRef = useRef(0);
 
   useEffect(() => {
     setBackfill([]);
     attemptsRef.current = 0;
-  }, [kind, priority]);
+  }, [kind, priority, tagFilter]);
 
   const pooled = useMemo(() => {
     if (backfill.length === 0) return rawMedia;
@@ -57,6 +59,7 @@ export function useDedupedMangaCarouselMedia(
           kind: "popular",
           limit: 32,
           page: priority + round,
+          tagFilter,
         });
         if (cancelled) return;
         const slice = items.map(discoverMangaToMediaItem);
@@ -80,7 +83,7 @@ export function useDedupedMangaCarouselMedia(
     return () => {
       cancelled = true;
     };
-  }, [enabled, hasLoaded, priority, kind, media.length]);
+  }, [enabled, hasLoaded, priority, kind, media.length, tagFilter]);
 
   return media;
 }

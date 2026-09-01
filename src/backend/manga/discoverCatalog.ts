@@ -1,5 +1,6 @@
 import {
   anilistHitToListItem,
+  anilistGenreLabel,
   listAniListManga,
   type AniListDiscoverKind,
   type AniListMangaHit,
@@ -9,7 +10,10 @@ import {
   mangaToMediaItem,
   type MangaOrder,
 } from "@/backend/manga/mangadex";
-import { MANGA_GENRE_TAGS, type MangaGenreTagKey } from "@/backend/manga/mangaTags";
+import {
+  MANGA_GENRE_TAGS,
+  type MangaGenreTagKey,
+} from "@/backend/manga/mangaTags";
 import { resolveDiscoverMangaIds } from "@/backend/manga/resolveDiscoverMangaId";
 import type { MangaListItem } from "@/backend/manga/types";
 import { normalizeMangaTitle } from "@/backend/manga/weebcentral";
@@ -126,10 +130,12 @@ export async function listDiscoverManga(ops: {
   kind: AniListDiscoverKind;
   limit?: number;
   page?: number;
+  /** Global genre pill — filters core rows (popular, latest, …). */
+  tagFilter?: MangaGenreTagKey;
 }): Promise<MangaListItem[]> {
   const limit = ops.limit ?? 24;
   const page = ops.page ?? 1;
-  const cacheKey = `${ops.kind}:${limit}:${page}`;
+  const cacheKey = `${ops.kind}:${ops.tagFilter ?? ""}:${limit}:${page}`;
 
   const cached = listCache.get(cacheKey);
   if (cached && Date.now() - cached.at < LIST_TTL_MS && cached.items.length > 0) {
@@ -140,9 +146,12 @@ export async function listDiscoverManga(ops: {
   if (pending) return pending;
 
   const run = (async () => {
-    const includedTags = isGenreKind(ops.kind)
-      ? [MANGA_GENRE_TAGS[ops.kind]]
-      : undefined;
+    const includedTags =
+      ops.tagFilter != null
+        ? [MANGA_GENRE_TAGS[ops.tagFilter]]
+        : isGenreKind(ops.kind)
+          ? [MANGA_GENRE_TAGS[ops.kind]]
+          : undefined;
 
     const mdPromise = listManga({
       order: mdOrderFor(ops.kind),
@@ -156,6 +165,8 @@ export async function listDiscoverManga(ops: {
       kind: ops.kind,
       limit,
       page,
+      genre:
+        ops.tagFilter != null ? anilistGenreLabel(ops.tagFilter) : undefined,
     }).catch(() => [] as AniListMangaHit[]);
 
     const [anilist, mdPool] = await Promise.all([alPromise, mdPromise]);

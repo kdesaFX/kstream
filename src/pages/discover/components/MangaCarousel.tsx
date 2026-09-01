@@ -10,6 +10,7 @@ import {
   MangaCarouselKind,
   useMangaDiscoverMedia,
 } from "@/pages/discover/hooks/useMangaDiscoverMedia";
+import type { MangaGenreTagKey } from "@/backend/manga/mangaTags";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 const SKELETON_COUNT = 10;
@@ -24,6 +25,7 @@ export function MangaCarousel({
   onShowDetails,
   priority = false,
   dedupePriority,
+  tagFilter,
 }: {
   kind: MangaCarouselKind;
   enabled: boolean;
@@ -34,6 +36,8 @@ export function MangaCarousel({
   /** First rows fetch immediately; later rows wait until they are near the viewport. */
   priority?: boolean;
   dedupePriority?: number;
+  /** Active genre pill — filters this row to one genre. */
+  tagFilter?: MangaGenreTagKey;
 }) {
   const { t } = useTranslation();
   const { ref: lazyRef, hasIntersected } =
@@ -47,11 +51,13 @@ export function MangaCarousel({
   const { media: rawMedia, hasLoaded, error } = useMangaDiscoverMedia(
     kind,
     shouldFetch,
+    tagFilter,
   );
   const media = useDedupedMangaCarouselMedia(dedupePriority, rawMedia, {
     enabled: shouldFetch,
     hasLoaded,
     kind,
+    tagFilter,
   });
   const { isMobile } = useIsMobile();
   const isScrollingRef = useRef(false);
@@ -82,8 +88,12 @@ export function MangaCarousel({
     };
   }, [enabled, priority, hasIntersected, lazyRef]);
 
-  const categorySlug = `manga-${kind}`;
-  const title = t(`discover.carousel.title.manga.${kind}`);
+  const categorySlug = `manga-${kind}${tagFilter ? `-${tagFilter}` : ""}`;
+  const title = tagFilter
+    ? t(`discover.carousel.title.manga.genre.${kind}`, {
+        genre: t(`discover.genres.manga.${tagFilter}`),
+      })
+    : t(`discover.carousel.title.manga.${kind}`);
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {

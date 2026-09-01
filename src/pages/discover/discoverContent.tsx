@@ -2,6 +2,10 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { WideContainer } from "@/components/layout/WideContainer";
+import {
+  isMangaGenreTagKey,
+  type MangaGenreTagKey,
+} from "@/backend/manga/mangaTags";
 import { useMangaProgressStore } from "@/stores/mangaProgress";
 import { mangaProgressHasMeaningfulRead } from "@/stores/mangaProgress/utils";
 import { useDiscoverStore } from "@/stores/discover";
@@ -357,7 +361,13 @@ export function DiscoverContent() {
     const eagerCount = shouldCapDiscover ? MID_DISCOVER_CAROUSEL_CAP : 1;
     const rowPriority = () => carousels.length < eagerCount;
 
-    if (mangaRecSources.length > 0) {
+    const mangaTagFilter: MangaGenreTagKey | undefined =
+      selectedGenreId && isMangaGenreTagKey(selectedGenreId)
+        ? selectedGenreId
+        : undefined;
+
+    // Because You Read — All only (not under a genre chip)
+    if (mangaRecSources.length > 0 && !mangaTagFilter) {
       carousels.push(
         <MangaRecommendationsCarousel
           key="manga-recommendations"
@@ -371,11 +381,13 @@ export function DiscoverContent() {
       );
     }
 
-    const kinds: MangaCarouselKind[] = [
+    const coreKinds: MangaCarouselKind[] = [
       "popular",
       "latest",
       "topRated",
       "recentlyAdded",
+    ];
+    const genreKinds: MangaGenreTagKey[] = [
       "action",
       "romance",
       "fantasy",
@@ -384,11 +396,16 @@ export function DiscoverContent() {
       "sliceOfLife",
     ];
 
+    const kinds: MangaCarouselKind[] = mangaTagFilter
+      ? coreKinds
+      : [...coreKinds, ...genreKinds];
+
     for (const kind of kinds) {
       carousels.push(
         <MangaCarousel
-          key={`manga-${kind}`}
+          key={`manga-${kind}${mangaTagFilter ? `-${mangaTagFilter}` : ""}`}
           kind={kind}
+          tagFilter={mangaTagFilter}
           priority={rowPriority()}
           enabled={isMangaTab}
           carouselRefs={carouselRefs}
@@ -398,7 +415,10 @@ export function DiscoverContent() {
       );
     }
 
-    return capCarousels(carousels, "manga-dedupe");
+    return capCarousels(
+      carousels,
+      `manga-dedupe-${mangaTagFilter ?? "all"}`,
+    );
   };
 
   return (

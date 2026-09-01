@@ -343,6 +343,24 @@ describe("languagesByQuality", () => {
       "720": ["en", "hi", "ta"],
     });
   });
+
+  it("does not stack foreign dubs on a single-source ladder tier", () => {
+    expect(
+      languagesByQuality({
+        available: ["720", "1080"],
+        currentLanguage: "en",
+        currentSourceId: "tqq",
+        alternates: [
+          option("720", "nova", ["hi"]),
+          option("720", "reyna", ["ta"]),
+          option("1080", "nova", ["hi"]),
+        ],
+      }),
+    ).toEqual({
+      "720": ["en"],
+      "1080": ["en"],
+    });
+  });
 });
 describe("selectableQualityTiers", () => {
   it("offers tiers another source can serve alongside the current ladder", () => {
@@ -356,6 +374,12 @@ describe("selectableQualityTiers", () => {
     expect(selectableQualityTiers(["720"], [option("720", "reyna")])).toEqual([
       "720",
     ]);
+  });
+
+  it("keeps tiers that were seen earlier in the session", () => {
+    expect(
+      selectableQualityTiers(["720"], [option("480", "reyna")], ["1080"]),
+    ).toEqual(["1080", "720", "480"]);
   });
 });
 

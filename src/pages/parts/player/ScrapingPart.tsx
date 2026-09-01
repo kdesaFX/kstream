@@ -23,7 +23,10 @@ import {
   useListCenter,
   useScrape,
 } from "@/hooks/useProviderScrape";
-import { playerStatus } from "@/stores/player/slices/source";
+import {
+  playerStatus,
+  resolveFailedSourceMediaKey,
+} from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 
 export interface ScrapingProps {
@@ -111,15 +114,8 @@ export function ScrapingPart(props: ScrapingProps) {
     };
   }, [sourceOrder, sources]);
 
-  const started = useRef<string | null>(null);
   useEffect(() => {
-    const mediaKey =
-      props.media.type === "movie"
-        ? `movie-${props.media.tmdbId}`
-        : `show-${props.media.tmdbId}-${props.media.season.number}-${props.media.episode.number}`;
-    const currentKey = `${props.startFromSourceId ?? "default"}:${mediaKey}`;
-    if (started.current === currentKey) return;
-    started.current = currentKey;
+    let cancelled = false;
 
     (async () => {
       let output = props.startFromSourceId
@@ -128,7 +124,7 @@ export function ScrapingPart(props: ScrapingProps) {
 
       // First scrape after a cold open often races waking proxies and returns
       // null even though sources exist. One automatic retry covers most of it.
-      if (!output && !props.startFromSourceId && isMounted()) {
+      if (!output && !props.startFromSourceId && isMounted() && !cancelled) {
         const { ensureSameOriginProxiesWarm } = await import(
           "@/backend/providers/providers"
         );
@@ -136,7 +132,7 @@ export function ScrapingPart(props: ScrapingProps) {
         await new Promise<void>((r) => {
           window.setTimeout(r, 800);
         });
-        if (!isMounted()) return;
+        if (!isMounted() || cancelled) return;
         output = await startScraping(props.media);
       }
 
@@ -144,7 +140,7 @@ export function ScrapingPart(props: ScrapingProps) {
       // re-run every provider (including ones already marked failed) and loop
       // on dead sources like Nova. Resume exhaustion should surface not-found.
 
-      if (!isMounted()) return;
+      if (!isMounted() || cancelled) return;
       props.onResult?.(
         resultRef.current.sources,
         resultRef.current.sourceOrder,
@@ -158,12 +154,16 @@ export function ScrapingPart(props: ScrapingProps) {
       );
       props.onGetStream?.(output);
     })().catch((error) => {
-      if (!isMounted()) return;
+      if (!isMounted() || cancelled) return;
+      const mediaKey = resolveFailedSourceMediaKey(
+        usePlayerStore.getState().meta,
+        props.media,
+      );
       // Treat scraping failure as fatal error
       // Mark current source as failed if we have one
       const failedId = sourceId || currentSource;
       if (failedId) {
-        addFailedSource(failedId);
+        addFailedSource(failedId, mediaKey ?? undefined);
       }
       // Set error and status to trigger PlaybackErrorPart
       usePlayerStore.setState((s) => {
@@ -175,6 +175,10 @@ export function ScrapingPart(props: ScrapingProps) {
         s.status = playerStatus.PLAYBACK_ERROR;
       });
     });
+
+    return () => {
+      cancelled = true;
+    };
     // currentSource/sourceId change as the race runs — do not re-fire scrape.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startScraping, resumeScraping, props.startFromSourceId, props.media]);

@@ -80,6 +80,7 @@ export function QualityView({
   const isIosHls = useIsIosHls();
   const sourceType = usePlayerStore((s) => s.source?.type);
   const availableQualities = usePlayerStore((s) => s.qualities);
+  const rememberedQualityTiers = usePlayerStore((s) => s.rememberedQualityTiers);
   const alternateQualityOptions = usePlayerStore((s) => s.qualityStreamOptions);
   const currentQuality = usePlayerStore((s) => s.currentQuality);
   const currentSourceId = usePlayerStore((s) => s.sourceId);
@@ -103,8 +104,13 @@ export function QualityView({
   }, [lastChosenQuality, currentQuality]);
 
   const selectableQualities = useMemo(
-    () => selectableQualityTiers(availableQualities, alternateQualityOptions),
-    [availableQualities, alternateQualityOptions],
+    () =>
+      selectableQualityTiers(
+        availableQualities,
+        alternateQualityOptions,
+        rememberedQualityTiers,
+      ),
+    [availableQualities, alternateQualityOptions, rememberedQualityTiers],
   );
 
   const alternateSourceNames = useMemo(
@@ -132,11 +138,13 @@ export function QualityView({
           currentAudioTrack?.language ||
           null,
         alternates: alternateQualityOptions,
+        currentSourceId,
       }),
     [
       alternateQualityOptions,
       availableQualities,
       currentAudioTrack?.language,
+      currentSourceId,
       source?.audioLanguage,
     ],
   );

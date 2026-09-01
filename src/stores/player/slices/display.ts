@@ -1,5 +1,6 @@
 import { DisplayInterface } from "@/components/player/display/displayInterface";
 import { playerStatus } from "@/stores/player/slices/source";
+import { mergeQualityTiers } from "@/stores/player/utils/qualities";
 import { MakeSlice } from "@/stores/player/slices/types";
 
 export interface DisplaySlice {
@@ -88,7 +89,17 @@ export const createDisplaySlice: MakeSlice<DisplaySlice> = (set, get) => ({
     );
     newDisplay.on("qualities", (qualities) => {
       set((s) => {
-        s.qualities = qualities;
+        const incoming = qualities.filter((q) => q !== "unknown");
+        if (!incoming.length) return;
+
+        // Native HLS / video-element inference reports one tier at a time.
+        // Accumulate so switching 1080→720 does not erase 1080 from the menu.
+        s.qualities = mergeQualityTiers(s.qualities, incoming);
+        s.rememberedQualityTiers = mergeQualityTiers(
+          s.rememberedQualityTiers,
+          s.qualities,
+          incoming,
+        );
       });
     });
     newDisplay.on("changedquality", (quality) => {

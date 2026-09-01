@@ -10,6 +10,20 @@ export const MANGA_GENRE_TAGS = {
 
 export type MangaGenreTagKey = keyof typeof MANGA_GENRE_TAGS;
 
+/** Display order for manga genre pills (discover navigation). */
+export const MANGA_GENRE_OPTIONS: { id: MangaGenreTagKey; label: string }[] = [
+  { id: "action", label: "Action" },
+  { id: "romance", label: "Romance" },
+  { id: "fantasy", label: "Fantasy" },
+  { id: "comedy", label: "Comedy" },
+  { id: "drama", label: "Drama" },
+  { id: "sliceOfLife", label: "Slice of Life" },
+];
+
+export function isMangaGenreTagKey(value: string): value is MangaGenreTagKey {
+  return Object.prototype.hasOwnProperty.call(MANGA_GENRE_TAGS, value);
+}
+
 const GENRE_NAMES = new Set(
   Object.keys(MANGA_GENRE_TAGS).map((k) => {
     if (k === "sliceOfLife") return "Slice of Life";

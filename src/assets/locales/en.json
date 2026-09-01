@@ -1695,7 +1695,15 @@
       "editorpicks": "Editor Picks"
     },
     "genres": {
-      "all": "All"
+      "all": "All",
+      "manga": {
+        "action": "Action",
+        "romance": "Romance",
+        "fantasy": "Fantasy",
+        "comedy": "Comedy",
+        "drama": "Drama",
+        "sliceOfLife": "Slice of Life"
+      }
     },
     "carousel": {
       "title": {
@@ -1736,7 +1744,13 @@
           "fantasy": "Fantasy Manga",
           "comedy": "Comedy Manga",
           "drama": "Drama Manga",
-          "sliceOfLife": "Slice of Life Manga"
+          "sliceOfLife": "Slice of Life Manga",
+          "genre": {
+            "popular": "Popular {{genre}} Manga",
+            "topRated": "Top Rated {{genre}} Manga",
+            "latest": "Latest {{genre}} Updates",
+            "recentlyAdded": "Recently Added {{genre}}"
+          }
         }
       },
       "change": "Change",

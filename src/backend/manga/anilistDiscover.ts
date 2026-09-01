@@ -219,6 +219,11 @@ export function anilistGenreForKind(
   return GENRE_LABEL[kind];
 }
 
+/** AniList genre label for a MangaDex tag key (discover pill filter). */
+export function anilistGenreLabel(key: MangaGenreTagKey): string {
+  return GENRE_LABEL[key];
+}
+
 /**
  * Fast CORS-friendly manga catalog. Covers come from AniList's CDN at
  * extraLarge — much sharper than MangaDex's default 256px thumbs.
@@ -227,11 +232,13 @@ export async function listAniListManga(ops: {
   kind: AniListDiscoverKind;
   limit?: number;
   page?: number;
+  /** When set, filters every row by this AniList genre label. */
+  genre?: string;
 }): Promise<AniListMangaHit[]> {
   const limit = ops.limit ?? 24;
   const page = ops.page ?? 1;
   const sort = anilistSortForKind(ops.kind);
-  const genre = anilistGenreForKind(ops.kind);
+  const genre = ops.genre ?? anilistGenreForKind(ops.kind);
   const allowAdult = shouldAllowMatureTitles();
   const cacheKey = [ops.kind, sort, genre ?? "", limit, page, allowAdult].join(
     ":",

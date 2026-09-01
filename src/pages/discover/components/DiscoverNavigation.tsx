@@ -1,8 +1,9 @@
 import classNames from "classnames";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useWindowSize } from "react-use";
 
+import { MANGA_GENRE_OPTIONS } from "@/backend/manga/mangaTags";
 import { Icon, Icons } from "@/components/Icon";
 import {
   MediaType,
@@ -44,10 +45,25 @@ export function DiscoverNavigation({
   const [genresExpanded, setGenresExpanded] = useState(false);
 
   const showGenreBar =
-    selectedCategory === "movies" || selectedCategory === "tvshows";
+    selectedCategory === "movies" ||
+    selectedCategory === "tvshows" ||
+    selectedCategory === "manga";
+  const isManga = selectedCategory === "manga";
   const mediaType: MediaType =
     selectedCategory === "tvshows" ? "tv" : "movie";
-  const { genres } = useDiscoverOptions(mediaType);
+  const { genres: tmdbGenres } = useDiscoverOptions(mediaType);
+  const genres = useMemo(() => {
+    if (isManga) {
+      return MANGA_GENRE_OPTIONS.map((genre) => ({
+        id: genre.id,
+        name: t(`discover.genres.manga.${genre.id}`, { defaultValue: genre.label }),
+      }));
+    }
+    return tmdbGenres.map((genre) => ({
+      id: genre.id.toString(),
+      name: genre.name,
+    }));
+  }, [isManga, tmdbGenres, t]);
   const tabs = CATEGORIES.filter(
     (c) => c !== "manga" || enableMangaDiscover,
   );
@@ -61,7 +77,7 @@ export function DiscoverNavigation({
   // If a selected genre would be hidden while collapsed, expand so it stays visible.
   useEffect(() => {
     if (!selectedGenreId || !hasOverflow || genresExpanded) return;
-    const index = genres.findIndex((g) => g.id.toString() === selectedGenreId);
+    const index = genres.findIndex((g) => g.id === selectedGenreId);
     if (index >= visibleCount) setGenresExpanded(true);
   }, [
     selectedGenreId,
@@ -122,7 +138,7 @@ export function DiscoverNavigation({
             </button>
 
             {shownGenres.map((genre) => {
-              const id = genre.id.toString();
+              const id = genre.id;
               const active = selectedGenreId === id;
               return (
                 <button

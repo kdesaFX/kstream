@@ -137,6 +137,22 @@ export function qualityToString(quality: SourceQuality): string {
   return qualityNameMap[quality];
 }
 
+/** Union quality tiers without duplicates, best-first. */
+export function mergeQualityTiers(
+  ...lists: Array<SourceQuality[] | readonly SourceQuality[]>
+): SourceQuality[] {
+  const seen = new Set<SourceQuality>();
+  const out: SourceQuality[] = [];
+  for (const list of lists) {
+    for (const quality of list) {
+      if (quality === "unknown" || seen.has(quality)) continue;
+      seen.add(quality);
+      out.push(quality);
+    }
+  }
+  return out.sort((a, b) => qualitySorting[b] - qualitySorting[a]);
+}
+
 /** Highest tier present in a list (e.g. HLS ladder or quality menu rows). */
 export function highestAvailableQuality(
   qualities: SourceQuality[],

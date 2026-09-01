@@ -6,7 +6,11 @@ import { getProviders } from "@/backend/providers/providers";
 import { getMediaKey, playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import { streamsToAudioOptions } from "@/stores/player/utils/audioStreams";
-import { streamsToQualityOptions } from "@/stores/player/utils/qualityStreams";
+import {
+  streamPeakQualityRank,
+  streamsToQualityOptions,
+} from "@/stores/player/utils/qualityStreams";
+import { highestAvailableQuality } from "@/stores/player/utils/qualities";
 import {
   isDeferredRegionalSource,
   missingRegionalLanguages,
@@ -90,6 +94,28 @@ export function orderCandidates(
   return buildDiscoveryCandidates(sourceIds, have);
 }
 
+function currentPeakQualityRank(): number {
+  const store = usePlayerStore.getState();
+  const tiers = [
+    ...store.qualities,
+    ...store.qualityStreamOptions.map((option) => option.quality),
+    ...store.rememberedQualityTiers,
+  ];
+  if (store.currentQuality && store.currentQuality !== "unknown") {
+    tiers.push(store.currentQuality);
+  }
+  const peak = highestAvailableQuality(tiers);
+  if (!peak || peak === "unknown") return 0;
+  const rankMap: Record<string, number> = {
+    "360": 1,
+    "480": 2,
+    "720": 3,
+    "1080": 4,
+    "4k": 5,
+  };
+  return rankMap[peak] ?? 0;
+}
+
 async function registerStreams(
   streams: Stream[],
   sourceId: string,
@@ -97,9 +123,16 @@ async function registerStreams(
   mediaKey: string,
 ): Promise<void> {
   const have = currentLanguages();
+  const peakRank = currentPeakQualityRank();
   const missing = streams.filter((stream) => {
     const lang = stream.audioLanguage?.trim();
-    return lang && !have.has(lang);
+    if (!lang || have.has(lang)) return false;
+    // Regional dubs scraped at much lower tiers are not alternates for what
+    // you're watching — they belong in quality/source pickers, not Languages.
+    if (peakRank > 0 && streamPeakQualityRank(stream) < peakRank - 1) {
+      return false;
+    }
+    return true;
   });
   if (missing.length && isExtensionActiveCached()) {
     try {
