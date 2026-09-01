@@ -3,6 +3,10 @@ const SOURCE_NAME_ALIASES: Record<string, string> = {
   peestream: "kdesa",
   way2movies: "brandon",
   cornclick: "brian",
+  sevenmovies: "bagel",
+  vidlink: "ethan",
+  castletv: "zaden",
+  nova: "albert",
   tqq: "TQQ",
 };
 

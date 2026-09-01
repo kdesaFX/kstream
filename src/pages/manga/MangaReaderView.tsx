@@ -6,6 +6,12 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { getChapterPages, getMangaDetails, prefetchChapterPages } from "@/backend/manga/catalog";
 import {
+  canUseMangaOffline,
+  downloadDesktopMangaChapter,
+  getDesktopOfflineMangaPages,
+  hasDesktopOfflineMangaChapter,
+} from "@/backend/manga/mangaDesktopOffline";
+import {
   decodeMangaId,
   isDirectLoadableChapterId,
   isWeebCentralId,
@@ -28,6 +34,7 @@ import { ExternalListButtons } from "@/components/media/ExternalListButtons";
 import { useMangaProgressStore } from "@/stores/mangaProgress";
 import { mangaProgressHasMeaningfulRead } from "@/stores/mangaProgress/utils";
 import { usePreferencesStore } from "@/stores/preferences";
+import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 
 import { MangaChapterPicker } from "./MangaChapterPicker";
 import { MangaLanguagePicker } from "./MangaLanguagePicker";
@@ -98,6 +105,9 @@ export function MangaReaderView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [offlineSaved, setOfflineSaved] = useState(false);
+  const [offlineSaving, setOfflineSaving] = useState(false);
+  const isDesktop = useIsDesktopApp();
   const touchStartX = useRef<number | null>(null);
   const retried = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -290,6 +300,18 @@ export function MangaReaderView() {
       }
       try {
         mangaMark("reader-pages-start");
+        if (canUseMangaOffline()) {
+          const offlinePages = await getDesktopOfflineMangaPages(id);
+          if (offlinePages?.length) {
+            pagesLoadedRef.current = true;
+            needsDetailsRetryRef.current = false;
+            setPages(offlinePages);
+            if (!silent) setPageIndex(0);
+            setOfflineSaved(true);
+            if (!silent) setLoading(false);
+            return;
+          }
+        }
         const urls = await getChapterPages(id, pageFallback(), force);
         if (urls.length === 0) {
           if (!silent) {
@@ -320,6 +342,9 @@ export function MangaReaderView() {
         needsDetailsRetryRef.current = false;
         setPages(urls);
         if (!silent) setPageIndex(0);
+        if (canUseMangaOffline()) {
+          void hasDesktopOfflineMangaChapter(id).then(setOfflineSaved);
+        }
         mangaMark("reader-pages-end");
         mangaMeasure("reader-pages", "reader-pages-start", "reader-pages-end");
       } catch (e) {
@@ -348,6 +373,7 @@ export function MangaReaderView() {
     pagesLoadedRef.current = false;
     needsDetailsRetryRef.current = false;
     retried.current = false;
+    setOfflineSaved(false);
 
     const cached = readPersistedPageCache(chapterId);
     if (cached?.length) {
@@ -356,6 +382,18 @@ export function MangaReaderView() {
       setLoading(false);
       pagesLoadedRef.current = true;
       void loadPages(chapterId, true, true);
+      return;
+    }
+    if (canUseMangaOffline()) {
+      void getDesktopOfflineMangaPages(chapterId).then((offline) => {
+        if (!offline?.length) return;
+        setPages(offline);
+        setPageIndex(0);
+        setLoading(false);
+        pagesLoadedRef.current = true;
+        setOfflineSaved(true);
+        void loadPages(chapterId, true, true);
+      });
       return;
     }
     setPages([]);
@@ -582,6 +620,35 @@ export function MangaReaderView() {
     }
   };
 
+  const saveChapterOffline = useCallback(async () => {
+    if (!chapterId || !pages.length || offlineSaving) return;
+    setOfflineSaving(true);
+    try {
+      await downloadDesktopMangaChapter({
+        chapterId,
+        mangaId,
+        title: details?.title ?? titleHint,
+        chapterLabel: chapterMeta?.chapter ?? chapterNumberHint ?? undefined,
+        pages,
+      });
+      setOfflineSaved(true);
+    } catch {
+      setError(t("manga.reader.offlineSaveFailed"));
+    } finally {
+      setOfflineSaving(false);
+    }
+  }, [
+    chapterId,
+    pages,
+    offlineSaving,
+    mangaId,
+    details?.title,
+    titleHint,
+    chapterMeta?.chapter,
+    chapterNumberHint,
+    t,
+  ]);
+
   const title = details?.title ?? t("manga.reader.loading");
 
   return (
@@ -639,6 +706,20 @@ export function MangaReaderView() {
               variant="reader"
               titles={[details.title, ...(details.alternateTitles ?? [])]}
             />
+          ) : null}
+          {isDesktop && canUseMangaOffline() && pages.length > 0 ? (
+            <button
+              type="button"
+              className="text-xs px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-50"
+              disabled={offlineSaving || offlineSaved}
+              onClick={() => void saveChapterOffline()}
+            >
+              {offlineSaving
+                ? t("manga.reader.offlineSaving")
+                : offlineSaved
+                  ? t("manga.reader.offlineSaved")
+                  : t("manga.reader.offlineSave")}
+            </button>
           ) : null}
           <button
             type="button"

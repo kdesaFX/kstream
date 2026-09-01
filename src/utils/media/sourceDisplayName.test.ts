@@ -8,11 +8,15 @@ describe("resolveSourceDisplayName", () => {
     expect(resolveSourceDisplayName("peestream", "PeeStream")).toBe("kdesa");
     expect(resolveSourceDisplayName("way2movies", "Way2Movies")).toBe("brandon");
     expect(resolveSourceDisplayName("cornclick", "CornClick")).toBe("brian");
+    expect(resolveSourceDisplayName("sevenmovies", "7Movies")).toBe("bagel");
+    expect(resolveSourceDisplayName("vidlink", "VidLink")).toBe("ethan");
+    expect(resolveSourceDisplayName("castletv", "CastleTV")).toBe("zaden");
+    expect(resolveSourceDisplayName("nova", "Nova")).toBe("albert");
     expect(resolveSourceDisplayName("tqq", "TQQ (Anime)")).toBe("TQQ");
   });
 
   it("falls back to provider name then id", () => {
-    expect(resolveSourceDisplayName("nova", "Nova")).toBe("Nova");
-    expect(resolveSourceDisplayName("nova")).toBe("nova");
+    expect(resolveSourceDisplayName("reyna", "Reyna")).toBe("Reyna");
+    expect(resolveSourceDisplayName("reyna")).toBe("reyna");
   });
 });
