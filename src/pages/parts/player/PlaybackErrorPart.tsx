@@ -45,6 +45,8 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
   const enableAutoResumeOnPlaybackError = usePreferencesStore(
     (s) => s.enableAutoResumeOnPlaybackError,
   );
+  const hasPlayedOnce = usePlayerStore((s) => s.mediaPlaying.hasPlayedOnce);
+  const isPaused = usePlayerStore((s) => s.mediaPlaying.isPaused);
 
   // Mark the failed source/embed and handle UI when a playback error occurs
   useEffect(() => {
@@ -105,6 +107,7 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
       enableAutoResumeOnPlaybackError &&
       !props.autoResumeExhausted &&
       props.currentSourceId &&
+      !(hasPlayedOnce && isPaused) &&
       (props.onRetrySource || props.onResume),
   );
 
@@ -115,7 +118,8 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
       !hasAutoResumed.current &&
       enableAutoResumeOnPlaybackError &&
       !props.autoResumeExhausted &&
-      props.currentSourceId
+      props.currentSourceId &&
+      !(hasPlayedOnce && isPaused)
     ) {
       hasAutoResumed.current = true;
       if (currentEmbedId && props.onRetrySource) {
@@ -134,6 +138,8 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
     props.onResume,
     props.onRetrySource,
     currentEmbedId,
+    hasPlayedOnce,
+    isPaused,
   ]);
 
   const handleOpenSourcePicker = () => {

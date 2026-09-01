@@ -257,6 +257,7 @@ export interface SourceSlice {
   registerQualityStreamOptions(options: QualityStreamOption[]): void;
   clearQualityStreamOptions(): void;
   switchQualityStream(quality: SourceQuality): void;
+  switchQualityStreamOption(optionId: string): void;
   /** Put back the pre-hop stream. Returns false when there's nothing to undo. */
   restoreQualityHopFallback(): boolean;
   /** Switch HLS in-manifest audio; clears cross-source stream selection. */
@@ -635,6 +636,9 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     if (store.status !== playerStatus.PLAYING) return;
     if (!store.meta || !store.sourceId) return;
     if (store.wrongRuntimeSkips >= MAX_WRONG_RUNTIME_SKIPS) return;
+    // Late duration metadata while the viewer deliberately paused a working
+    // stream used to re-scrape and jump to unrelated sources.
+    if (store.mediaPlaying.isPaused && store.mediaPlaying.hasPlayedOnce) return;
 
     const verdict = runtimeVerdict(store.meta, durationSeconds);
     if (verdict === "ok") {
@@ -752,12 +756,20 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     });
   },
   switchQualityStream(quality) {
-    const store = get();
-    const option = store.qualityStreamOptions.find(
+    const option = get().qualityStreamOptions.find(
       (candidate) => candidate.quality === quality,
     );
     if (!option) return;
+    get().switchQualityStreamOption(option.id);
+  },
+  switchQualityStreamOption(optionId) {
+    const store = get();
+    const option = store.qualityStreamOptions.find(
+      (candidate) => candidate.id === optionId,
+    );
+    if (!option) return;
 
+    const quality = option.quality;
     const startAt = store.progress.time;
     const previousAutomatic =
       useQualityStore.getState().quality.automaticQuality;

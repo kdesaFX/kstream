@@ -181,6 +181,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   let policyMuted = false;
   let unmuteGestureCleanup: (() => void) | null = null;
   let userPausedAt = 0;
+  /** True after the first `play` event for the current attachment. */
+  let hasStartedPlayback = false;
   /** Set when a tap on the video turned sound on, so it can't also pause. */
   let soundUnmutedAt = 0;
   /**
@@ -287,6 +289,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         paused: vid.paused,
         autoplayPending: shouldAutoplayAfterLoad,
         loading: uiLoading,
+        hasPlayedOnce: hasStartedPlayback,
         msRemaining: streamStartDeadline - Date.now(),
       });
       if (verdict === "waiting") return;
@@ -1029,11 +1032,13 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       element.addEventListener(type, handler, { signal });
 
     setupSource(videoElement, source);
+    hasStartedPlayback = false;
     // Attaching the stream is the moment its clock starts. load() is too early:
     // processVideoElement tears the element down and re-attaches afterwards.
     armStreamStartWatchdog();
 
     onMedia("play", () => {
+      hasStartedPlayback = true;
       emit("play", undefined);
       emitLoading(false);
     });

@@ -3,6 +3,7 @@ import { RefObject, useCallback, useEffect, useRef, useState } from "react";
 
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
 import { prepareStream } from "@/backend/extension/streams";
+import { validateRunOutput } from "@/components/player/utils/validateScrapedStream";
 import {
   getCachedMetadata,
   setCachedMetadata,
@@ -384,20 +385,16 @@ export function useScrape() {
         (id) => !failedSources.includes(id),
       );
 
-      // Resuming past the last source leaves nothing behind it, and an empty
-      // order makes runAll return null — which the UI reports as "we couldn't
-      // find that" even though sources ahead of the resume point were never
-      // tried. Wrap around to those instead of claiming the title is gone.
-      if (filteredSourceOrder.length === 0) {
+      // Resuming past the last source leaves nothing behind it on a cold scrape.
+      // Playback retries must not wrap back to cornclick / sources already tried.
+      const isPlaybackRetry = Boolean(startFromSourceId);
+      if (filteredSourceOrder.length === 0 && !isPlaybackRetry) {
         filteredSourceOrder = baseSourceOrder.filter(
           (id) => !failedSources.includes(id),
         );
       }
 
-      // Every source has failed at least once (a manual retry, or a title
-      // nothing carries). The order is an allow-list now, so an empty one
-      // would report "not found" without making a single request.
-      if (filteredSourceOrder.length === 0) {
+      if (filteredSourceOrder.length === 0 && !isPlaybackRetry) {
         filteredSourceOrder = [...baseSourceOrder];
       }
 
@@ -435,30 +432,6 @@ export function useScrape() {
       const minimumResolutionScore =
         minimumResolutionThreshold[preferredMinimumResolution] ?? 0;
 
-      startScrape();
-
-      if (minimumResolutionScore <= 0) {
-        const output = await providers.runAll({
-          media,
-          sourceOrder: filteredSourceOrder,
-          embedOrder: filteredEmbedOrder,
-          restrictToOrder: true,
-          events: {
-            init: initEvent,
-            start: startEvent,
-            update: updateEvent,
-            discoverEmbeds: discoverEmbedsEvent,
-          },
-        });
-        if (output && isExtensionActiveCached())
-          await prepareStream(output.stream);
-        return getResult(output);
-      }
-
-      let remainingSourceOrder = [...filteredSourceOrder];
-      let bestFallbackOutput: RunOutput | null = null;
-      let bestFallbackScore = -1;
-
       const markSourceRejected = (sourceId: string, reason: string) => {
         updateEvent({
           id: sourceId,
@@ -468,18 +441,63 @@ export function useScrape() {
         });
       };
 
+      const runEvents = {
+        init: initEvent,
+        start: startEvent,
+        update: updateEvent,
+        discoverEmbeds: discoverEmbedsEvent,
+      };
+
+      const acceptValidatedOutput = async (
+        output: RunOutput,
+      ): Promise<RunOutput | null> => {
+        const check = await validateRunOutput(output);
+        if (check.ok) {
+          const accepted = { ...output, stream: check.stream };
+          if (isExtensionActiveCached()) await prepareStream(check.stream);
+          return accepted;
+        }
+        markSourceRejected(output.sourceId, check.reason);
+        return null;
+      };
+
+      startScrape();
+
+      if (minimumResolutionScore <= 0) {
+        let remainingSourceOrder = [...filteredSourceOrder];
+        while (remainingSourceOrder.length > 0) {
+          const output = await providers.runAll({
+            media,
+            sourceOrder: remainingSourceOrder,
+            embedOrder: filteredEmbedOrder,
+            restrictToOrder: true,
+            events: runEvents,
+          });
+          if (!output) break;
+          const accepted = await acceptValidatedOutput(output);
+          if (accepted) return getResult(accepted);
+          const currentSourceIndex = remainingSourceOrder.indexOf(
+            output.sourceId,
+          );
+          if (currentSourceIndex === -1) break;
+          remainingSourceOrder = remainingSourceOrder.slice(
+            currentSourceIndex + 1,
+          );
+        }
+        return getResult(null);
+      }
+
+      let remainingSourceOrder = [...filteredSourceOrder];
+      let bestFallbackOutput: RunOutput | null = null;
+      let bestFallbackScore = -1;
+
       while (remainingSourceOrder.length > 0) {
         const output = await providers.runAll({
           media,
           sourceOrder: remainingSourceOrder,
           embedOrder: filteredEmbedOrder,
           restrictToOrder: true,
-          events: {
-            init: initEvent,
-            start: startEvent,
-            update: updateEvent,
-            discoverEmbeds: discoverEmbedsEvent,
-          },
+          events: runEvents,
         });
 
         if (!output) break;
@@ -491,8 +509,16 @@ export function useScrape() {
         }
 
         if (sourceScore >= minimumResolutionScore) {
-          if (isExtensionActiveCached()) await prepareStream(output.stream);
-          return getResult(output);
+          const accepted = await acceptValidatedOutput(output);
+          if (accepted) return getResult(accepted);
+          const currentSourceIndex = remainingSourceOrder.indexOf(
+            output.sourceId,
+          );
+          if (currentSourceIndex === -1) break;
+          remainingSourceOrder = remainingSourceOrder.slice(
+            currentSourceIndex + 1,
+          );
+          continue;
         }
 
         markSourceRejected(
@@ -509,10 +535,11 @@ export function useScrape() {
         );
       }
 
-      if (bestFallbackOutput && isExtensionActiveCached()) {
-        await prepareStream(bestFallbackOutput.stream);
+      if (bestFallbackOutput) {
+        const accepted = await acceptValidatedOutput(bestFallbackOutput);
+        if (accepted) return getResult(accepted);
       }
-      return getResult(bestFallbackOutput);
+      return getResult(null);
     },
     [
       initEvent,

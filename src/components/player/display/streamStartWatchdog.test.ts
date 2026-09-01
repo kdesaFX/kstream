@@ -88,6 +88,19 @@ describe("stream start watchdog", () => {
     ).toBe("timeout");
   });
 
+  it("does not fault a stream the viewer paused after it started", () => {
+    expect(
+      streamStartVerdict({
+        readyState: 2,
+        paused: true,
+        autoplayPending: false,
+        loading: true,
+        hasPlayedOnce: true,
+        msRemaining: 0,
+      }),
+    ).toBe("not-starting");
+  });
+
   it("faults a stream still showing a spinner with nothing left to start it", () => {
     // Swapping quality or source while paused leaves the spinner up with no
     // autoplay pending. Treating that as parked hung the player forever.

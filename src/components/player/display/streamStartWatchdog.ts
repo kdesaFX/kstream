@@ -11,6 +11,8 @@ export interface StreamStartCheck {
   autoplayPending: boolean;
   /** True while the UI shows a spinner rather than the play button. */
   loading: boolean;
+  /** True once the viewer has started playback at least once this load. */
+  hasPlayedOnce?: boolean;
   /** Milliseconds left before the stream is considered dead. */
   msRemaining: number;
 }
@@ -32,6 +34,8 @@ export function streamStartVerdict(
   check: StreamStartCheck,
 ): StreamStartVerdict {
   if (check.readyState >= READY_TO_PLAY) return "alive";
+  // User paused after playback started — not a startup failure.
+  if (check.hasPlayedOnce && check.paused) return "not-starting";
   // Parked behind the play button, so the viewer acts next and a stream that
   // hasn't buffered isn't a failure yet. A spinner is the opposite promise:
   // nothing else is going to resolve it, so keep the deadline running or the
