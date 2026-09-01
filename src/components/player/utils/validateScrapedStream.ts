@@ -67,8 +67,11 @@ export async function validateStream(
     return validateHlsPlaylistUrl(stream.playlist, mergeStreamHeaders(stream));
   }
   if (stream.type === "file") {
-    const bad = isKnownBadStreamUrl(stream.url);
-    if (bad) return { ok: false, reason: bad };
+    for (const file of Object.values(stream.qualities)) {
+      if (!file?.url) continue;
+      const bad = isKnownBadStreamUrl(file.url);
+      if (bad) return { ok: false, reason: bad };
+    }
   }
   return { ok: true };
 }
