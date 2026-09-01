@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   isKnownBadStreamUrl,
   validatePlaylistBody,
+  validateStream,
 } from "@/components/player/utils/validateScrapedStream";
 
 describe("validateScrapedStream", () => {
@@ -26,6 +27,17 @@ describe("validateScrapedStream", () => {
       ok: false,
       reason: "HTML error page",
     });
+  });
+
+  it("skips pre-play probe for origin-gated playlists", async () => {
+    const result = await validateStream({
+      id: "w2m-0",
+      type: "hls",
+      playlist:
+        "https://scraper.way2movies.fun/netmirror/hls/playlist.m3u8?id=1",
+      flags: [],
+    } as any);
+    expect(result).toEqual({ ok: true });
   });
 
   it("rejects empty bodies", () => {

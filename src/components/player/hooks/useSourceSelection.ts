@@ -165,6 +165,7 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
 
   const [request, run] = useAsyncFn(async () => {
     if (!sourceId || !meta) return null;
+    usePlayerStore.getState().clearFailedSource(sourceId);
     setEmbedId(null);
     const scrapeMedia = metaToScrapeMedia(meta);
 

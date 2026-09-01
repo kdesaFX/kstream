@@ -105,7 +105,7 @@ function isWay2MoviesPlaylist(playlist: string): boolean {
   }
 }
 
-function requiresSameOriginProxy(playlist: string): boolean {
+export function requiresSameOriginProxy(playlist: string): boolean {
   return (
     isReynaOrbitPlaylist(playlist) ||
     isNovaEdgePlaylist(playlist) ||

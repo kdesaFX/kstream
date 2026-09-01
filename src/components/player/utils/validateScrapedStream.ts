@@ -1,5 +1,6 @@
 import { RunOutput, Stream } from "@p-stream/providers";
 
+import { requiresSameOriginProxy } from "@/components/player/utils/convertRunoutputToSource";
 import { createM3U8ProxyUrl } from "@/components/player/utils/proxy";
 
 const VALIDATE_TIMEOUT_MS = 8_000;
@@ -64,6 +65,14 @@ export async function validateStream(
   stream: Stream,
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (stream.type === "hls") {
+    const bad = isKnownBadStreamUrl(stream.playlist);
+    if (bad) return { ok: false, reason: bad };
+    // Way2 / Nova / Reyna playlists 403 bare page fetches and rate-limit under
+    // burst auto-resume. The scraper already returned a hit; playback stamps
+    // Origin/Referer through /api/m3u8-proxy.
+    if (requiresSameOriginProxy(stream.playlist)) {
+      return { ok: true };
+    }
     return validateHlsPlaylistUrl(stream.playlist, mergeStreamHeaders(stream));
   }
   if (stream.type === "file") {

@@ -242,6 +242,7 @@ export interface SourceSlice {
   clearTranslateTask(): void;
   addFailedSource(sourceId: string): void;
   addFailedEmbed(sourceId: string, embedId: string): void;
+  clearFailedSource(sourceId: string): void;
   clearFailedSources(mediaKey?: string): void;
   clearFailedEmbeds(mediaKey?: string): void;
   setResumeFromSourceId(sourceId: string | null): void;
@@ -586,6 +587,16 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.qualityStreamOptions = s.qualityStreamOptions.filter(
         (option) => option.sourceId !== sourceId,
       );
+    });
+  },
+  clearFailedSource(sourceId: string) {
+    const mediaKey = getMediaKey(get().meta);
+    if (!mediaKey) return;
+
+    set((s) => {
+      const list = s.failedSourcesPerMedia[mediaKey];
+      if (!list?.includes(sourceId)) return;
+      s.failedSourcesPerMedia[mediaKey] = list.filter((id) => id !== sourceId);
     });
   },
   addFailedEmbed(sourceId: string, embedId: string) {
