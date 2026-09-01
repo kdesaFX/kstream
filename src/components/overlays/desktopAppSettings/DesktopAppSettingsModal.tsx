@@ -130,7 +130,9 @@ export function DesktopAppSettingsModal({ id = MODAL_ID }: { id?: string }) {
             className="text-type-secondary text-lg mt-0.5 shrink-0"
           />
           <p className="text-type-secondary text-sm leading-relaxed">
-            {t("desktopApp.settings.smartScreenNote")}
+            {originMode === "bundled"
+              ? t("desktopApp.settings.schoolNote")
+              : t("desktopApp.settings.smartScreenNote")}
           </p>
         </div>
 

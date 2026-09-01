@@ -714,7 +714,7 @@
   "desktopApp": {
     "settings": {
       "title": "App settings",
-      "description": "The desktop app loads a local copy of kstream with native scraping — no Cloudflare needed for the UI.",
+      "description": "The desktop app runs kstream from your PC — the UI loads locally on 127.0.0.1, so school filters can't block the app shell. Streaming still needs network access for sources and metadata.",
       "url": "URL",
       "mode": "Mode",
       "origin": "UI origin",
@@ -722,6 +722,7 @@
       "version": "Desktop version",
       "originBundled": "Bundled (local)",
       "originRemote": "Remote site",
+      "schoolNote": "The app UI runs locally on your laptop. GoGuardian can still block some stream hosts or TMDB — install at home on Wi‑Fi if your school blocks the download page.",
       "smartScreenNote": "Unsigned builds may show a Windows SmartScreen warning. Choose More info, then Run anyway.",
       "close": "Close"
     }
