@@ -86,12 +86,29 @@ export async function lookupAniListExternal(
   type: AniListMediaType,
 ): Promise<AniListExternalIds | null> {
   const seen = new Set<string>();
-  for (const raw of titles) {
+  const queue: string[] = [];
+  const enqueue = (raw?: string | null) => {
     const title = raw?.trim();
-    if (!title) continue;
+    if (!title) return;
     const key = title.toLowerCase();
-    if (seen.has(key)) continue;
+    if (seen.has(key)) return;
     seen.add(key);
+    queue.push(title);
+    const colon = title.indexOf(":");
+    if (colon > 0) {
+      const short = title.slice(0, colon).trim();
+      if (short.length >= 4) enqueue(short);
+    }
+    const dash = title.indexOf(" - ");
+    if (dash > 0) {
+      const short = title.slice(0, dash).trim();
+      if (short.length >= 4) enqueue(short);
+    }
+  };
+
+  for (const raw of titles) enqueue(raw);
+
+  for (const title of queue) {
     const ids = await searchOne(title, type).catch(() => null);
     if (ids) return ids;
   }

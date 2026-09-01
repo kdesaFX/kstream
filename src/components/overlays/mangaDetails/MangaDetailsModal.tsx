@@ -157,11 +157,14 @@ export function MangaDetailsModal({ id }: { id: string }) {
     if (!shouldShow || !mangaId) return undefined;
     preloadMangaReaderView();
     let cancelled = false;
+    let receivedPartial = false;
+    setFailed(null);
     setChaptersPending(true);
     // Negative hero margin used to clip the title above scrollTop=0 — reset.
     scrollBodyRef.current?.scrollTo({ top: 0 });
     getMangaDetails(mangaId, preferredLanguage, (partial) => {
       if (cancelled) return;
+      receivedPartial = true;
       setLoaded({ mangaId, details: partial });
       // MD returned first — keep the chapters section in a loading state when
       // empty OR suspiciously thin so licensed stubs don't flash as "done".
@@ -173,10 +176,12 @@ export function MangaDetailsModal({ id }: { id: string }) {
         if (cancelled) return;
         setLoaded({ mangaId, details: d });
         setChaptersPending(false);
+        setFailed(null);
       })
       .catch((e) => {
-        if (!cancelled) {
-          setChaptersPending(false);
+        if (cancelled) return;
+        setChaptersPending(false);
+        if (!receivedPartial) {
           setFailed({
             mangaId,
             message: e instanceof Error ? e.message : "Failed to load",
@@ -268,11 +273,22 @@ export function MangaDetailsModal({ id }: { id: string }) {
   );
 
   const openReader = (chapterId?: string) => {
+    if (!details) return;
     const target = chapterId ?? startChapterId;
-    if (!details || !target) return;
     hide();
-    navigate(mangaChapterLink(details.id, details.title, target));
+    if (target) {
+      navigate(mangaChapterLink(details.id, details.title, target));
+      return;
+    }
+    // Chapters still resolving — reader waits for merge then picks first/resume.
+    navigate(mangaMediaLink(details.id, details.title));
   };
+
+  const readDisabled =
+    Boolean(details) &&
+    !chaptersPending &&
+    !startChapterId &&
+    (details?.chapters.length ?? 0) === 0;
 
   const handleShareClick = () => {
     if (!details) return;
@@ -376,7 +392,7 @@ export function MangaDetailsModal({ id }: { id: string }) {
               ) : null}
 
               {isLoading ? <MangaDetailsSkeleton /> : null}
-              {error ? (
+              {error && !details ? (
                 <div className="p-10 text-center text-red-400">{error}</div>
               ) : null}
               {details ? (
@@ -465,25 +481,26 @@ export function MangaDetailsModal({ id }: { id: string }) {
 
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center gap-4">
-                          {startChapterId ? (
-                            <Button
-                              onClick={() => openReader()}
-                              theme="purple"
-                              className={classNames(
-                                "flex-1 sm:flex-initial sm:w-auto",
-                                "gap-2 h-12 rounded-lg px-4 py-2 my-1 transition-transform hover:scale-105 duration-100",
-                                "text-md text-white flex items-center justify-center",
-                              )}
-                            >
-                              <Icon icon={Icons.BOOK} className="text-white" />
-                              <span className="text-white text-sm pr-1">
-                                {resume &&
-                                mangaProgressHasMeaningfulRead(resume)
+                          <Button
+                            onClick={() => openReader()}
+                            theme="purple"
+                            disabled={readDisabled}
+                            className={classNames(
+                              "flex-1 sm:flex-initial sm:w-auto",
+                              "gap-2 h-12 rounded-lg px-4 py-2 my-1 transition-transform hover:scale-105 duration-100",
+                              "text-md text-white flex items-center justify-center",
+                            )}
+                          >
+                            <Icon icon={Icons.BOOK} className="text-white" />
+                            <span className="text-white text-sm pr-1">
+                              {chaptersPending && !startChapterId
+                                ? t("manga.details.loadingChapters")
+                                : resume &&
+                                    mangaProgressHasMeaningfulRead(resume)
                                   ? t("manga.details.continue")
                                   : t("manga.details.read")}
-                              </span>
-                            </Button>
-                          ) : null}
+                            </span>
+                          </Button>
                           <button
                             type="button"
                             onClick={handleShareClick}

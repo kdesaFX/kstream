@@ -12,6 +12,7 @@ import type {
   MangaChapterGroup,
   MangaDetails,
 } from "@/backend/manga/types";
+import { fetchMirrorChaptersFromServer } from "@/backend/manga/sources/serverResolve";
 import { resolveWeebCentralChapters } from "@/backend/manga/weebcentral";
 
 const fallbackCache = new Map<string, Map<string, string[]>>();
@@ -97,15 +98,33 @@ export async function resolveReadableChapters(
     };
   }
 
-  const [wcChapters, ckChapters] = await Promise.all([
-    resolveWeebCentralChapters(
-      details.title,
-      details.alternateTitles ?? [],
-    ).catch(() => null),
-    resolveComickChapters(details.title, details.alternateTitles ?? []).catch(
-      () => null,
-    ),
-  ]);
+  const alternateTitles = details.alternateTitles ?? [];
+  const serverMirror = await fetchMirrorChaptersFromServer(
+    details.title,
+    alternateTitles,
+    language,
+  );
+
+  let wcChapters: MangaChapter[] | null = null;
+  let ckChapters: MangaChapter[] | null = null;
+
+  if (serverMirror?.chapters.length) {
+    wcChapters = serverMirror.chapters.filter(
+      (ch) => ch.source === "weebcentral",
+    );
+    ckChapters = serverMirror.chapters.filter((ch) => ch.source === "comick");
+    if (wcChapters.length === 0) wcChapters = null;
+    if (ckChapters.length === 0) ckChapters = null;
+  }
+
+  if (!wcChapters && !ckChapters) {
+    [wcChapters, ckChapters] = await Promise.all([
+      resolveWeebCentralChapters(details.title, alternateTitles).catch(
+        () => null,
+      ),
+      resolveComickChapters(details.title, alternateTitles).catch(() => null),
+    ]);
+  }
 
   // When MangaDex is licensed-hollow, prefer the bigger mirror catalog as the
   // spine and only keep MD chapters that actually have pages.

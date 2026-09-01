@@ -5,6 +5,7 @@
 import proxyHandler from "../api/proxy";
 import m3u8ProxyHandler from "../api/m3u8-proxy";
 import tsProxyHandler from "../api/ts-proxy";
+import mangaChaptersHandler from "../api/manga-chapters";
 import mangaPagesHandler from "../api/manga-pages";
 import {
   serveWindowsInstaller,
@@ -51,6 +52,12 @@ export default {
     }
     if (pathname === "/api/manga/pages" || pathname === "/api/manga/pages/") {
       return withSecurityHeaders(await mangaPagesHandler(request));
+    }
+    if (
+      pathname === "/api/manga/chapters" ||
+      pathname === "/api/manga/chapters/"
+    ) {
+      return withSecurityHeaders(await mangaChaptersHandler(request));
     }
 
     // Windows installer: R2 CDN (avoids slow GitHub → Azure redirect chain).

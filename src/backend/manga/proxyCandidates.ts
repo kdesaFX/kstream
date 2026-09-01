@@ -1,7 +1,7 @@
 import { getProxyUrls, proxiedDestinationUrl, resolveProxyUrl } from "@/utils/hosting/proxyUrls";
 
 const STORAGE_KEY = "__kstream:mangaProxy";
-const PROXY_ATTEMPT_MS = 4500;
+const PROXY_ATTEMPT_MS = 9000;
 const DIRECT_ATTEMPT_MS = 15000;
 
 /** Hosts that never work as direct browser fetches on the deployed site. */
@@ -69,6 +69,7 @@ export function buildMangaProxyCandidates(destinationUrl: string): string[] {
 }
 
 function attemptTimeoutMs(target: string): number {
+  if (target.includes("full-chapter-list")) return 22000;
   return target.includes("destination=") ? PROXY_ATTEMPT_MS : DIRECT_ATTEMPT_MS;
 }
 

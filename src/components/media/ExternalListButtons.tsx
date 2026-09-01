@@ -46,28 +46,35 @@ export function ExternalListButtons({
   const anilistHref = anilistPageUrl(type, ids.anilistId);
   const malHref = ids.malId ? malPageUrl(type, ids.malId) : null;
 
+  const linkClass =
+    variant === "reader"
+      ? "flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20"
+      : undefined;
+
   if (variant === "reader") {
     return (
       <div className="flex items-center gap-1.5">
-        <button
-          type="button"
+        <a
+          href={anilistHref}
+          target="_blank"
+          rel="noopener noreferrer"
           title={t("media.external.anilist")}
           aria-label={t("media.external.anilist")}
-          onClick={() => openExternal(anilistHref)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20"
+          className={`${linkClass} h-8 w-8`}
         >
           <Icon icon={Icons.ANILIST} className="text-lg" />
-        </button>
+        </a>
         {malHref ? (
-          <button
-            type="button"
+          <a
+            href={malHref}
+            target="_blank"
+            rel="noopener noreferrer"
             title={t("media.external.mal")}
             aria-label={t("media.external.mal")}
-            onClick={() => openExternal(malHref)}
-            className="flex h-8 items-center justify-center rounded-lg bg-white/10 px-2 text-white hover:bg-white/20"
+            className={`${linkClass} h-8 px-2`}
           >
             <Icon icon={Icons.MAL} className="text-base" />
-          </button>
+          </a>
         ) : null}
       </div>
     );
