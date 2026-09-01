@@ -90,8 +90,27 @@ function isNovaEdgePlaylist(playlist: string): boolean {
   }
 }
 
+/**
+ * Way2Movies netmirror playlists and nested segments live on
+ * scraper.way2movies.fun, which origin-gates to beta.way2movies.live.
+ */
+function isWay2MoviesPlaylist(playlist: string): boolean {
+  try {
+    const host = new URL(playlist).hostname.toLowerCase();
+    return (
+      host === "scraper.way2movies.fun" || host.endsWith(".way2movies.fun")
+    );
+  } catch {
+    return false;
+  }
+}
+
 function requiresSameOriginProxy(playlist: string): boolean {
-  return isReynaOrbitPlaylist(playlist) || isNovaEdgePlaylist(playlist);
+  return (
+    isReynaOrbitPlaylist(playlist) ||
+    isNovaEdgePlaylist(playlist) ||
+    isWay2MoviesPlaylist(playlist)
+  );
 }
 
 export function shouldUseSameOriginStreamProxy(playlist?: string): boolean {
