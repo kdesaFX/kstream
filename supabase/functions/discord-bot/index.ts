@@ -82,6 +82,18 @@ Deno.serve(async (req) => {
     const env = await loadEnv();
 
     if (interaction.type === 2) {
+      if (isDeferredSourceIntelCommand(interaction)) {
+        const work = runSourceIntelDeferred(interaction, env).catch((err) => {
+          console.error(err);
+        });
+        try {
+          // deno-lint-ignore no-explicit-any
+          (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+        } catch {
+          /* ignore */
+        }
+        return jsonResponse({ type: 5, data: { flags: 64 } });
+      }
       return jsonResponse(await handleCommand(interaction, env));
     }
 

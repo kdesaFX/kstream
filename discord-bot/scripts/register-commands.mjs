@@ -66,6 +66,78 @@ const commands = [
     name: "setup-server",
     description: "Create rules, welcome, updates, support channels (admin)",
   },
+  {
+    name: "scan-channel",
+    description: "Index streaming/source links from a channel (staff)",
+    options: [
+      {
+        name: "channel",
+        description: "Channel to scan (defaults to current)",
+        type: 7,
+        required: false,
+      },
+      {
+        name: "limit",
+        description: "Max messages to read (50–2000, default 500)",
+        type: 4,
+        required: false,
+        min_value: 50,
+        max_value: 2000,
+      },
+    ],
+  },
+  {
+    name: "scan-server",
+    description: "Scan up to 12 text channels for source links (staff)",
+    options: [
+      {
+        name: "limit",
+        description: "Max messages per channel (default 300)",
+        type: 4,
+        required: false,
+        min_value: 50,
+        max_value: 1000,
+      },
+    ],
+  },
+  {
+    name: "source-links",
+    description: "Show recently indexed source links (staff)",
+    options: [
+      {
+        name: "domain",
+        description: "Filter by domain substring",
+        type: 3,
+        required: false,
+      },
+      {
+        name: "limit",
+        description: "How many links (5–25, default 15)",
+        type: 4,
+        required: false,
+        min_value: 5,
+        max_value: 25,
+      },
+    ],
+  },
+  {
+    name: "ingest-links",
+    description: "Paste URLs from a thread (e.g. FMHY) to index (staff)",
+    options: [
+      {
+        name: "text",
+        description: "Message or thread text containing links",
+        type: 3,
+        required: true,
+      },
+      {
+        name: "label",
+        description: "Source label (e.g. fmhy-project-updates)",
+        type: 3,
+        required: false,
+      },
+    ],
+  },
 ];
 
 async function main() {

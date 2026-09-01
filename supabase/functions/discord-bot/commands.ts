@@ -16,6 +16,12 @@ import {
   openSupportTicket,
 } from "./tickets.ts";
 import { handleSetupServer, handleUpdate } from "./setup.ts";
+import {
+  handleIngestLinks,
+  handleSourceLinks,
+  isDeferredSourceIntelCommand,
+  runSourceIntelDeferred,
+} from "./sourceIntel.ts";
 
 export { handleClaimMemberRole, handleClaimUpdatesRole, handleTicketButton };
 
@@ -38,6 +44,10 @@ export async function handleCommand(
       return handleUpdate(interaction, env, user);
     case "setup-server":
       return handleSetupServer(interaction, env, user);
+    case "source-links":
+      return handleSourceLinks(interaction, env);
+    case "ingest-links":
+      return handleIngestLinks(interaction, env);
     default:
       return ephemeral("Unknown command.");
   }
