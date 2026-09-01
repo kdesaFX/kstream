@@ -742,10 +742,10 @@
   "onboarding": {
     "defaultConfirm": {
       "cancel": "Cancel",
-      "confirm": "Use default setup",
-      "description": "The default setup does not have the best streams. You'll be missing out on the best sources!",
-      "tip": "It's recommended to set up the extension and/or FED API!",
-      "title": "Are you sure?"
+      "confirm": "Continue in browser",
+      "description": "kstream runs in your browser with built-in proxies on kdesa.stream. No extension required for the main source list.",
+      "tip": "Optional: add a Febbox token below for premium sources, or install the desktop app on Windows.",
+      "title": "Continue in browser?"
     },
     "extension": {
       "back": "Go back",
@@ -784,19 +784,21 @@
       "title": "Let's make a new proxy"
     },
     "start": {
-      "explainer": "To get the best streams possible, you will need to choose which streaming method you want to use.",
+      "explainer": "Pick how you want to watch. The site works in your browser — no extension needed for the usual sources.",
       "moreInfo": {
         "button": "Which setup should I choose?",
         "title": "Understanding a setup",
         "explainer": {
-          "intro": "kstream doesn't host videos. It relies on third-party websites for content, so you need to choose how it connects to those sites.",
+          "intro": "kstream doesn't host videos. It finds streams on third-party sites and plays them through kdesa.stream.",
           "options": "Your Options:",
-          "extension": "Extension",
-          "extensionDescription": "The extension gives you access to the most sources. It acts as a local proxy and can handle sites that need special cookies or headers to load.",
-          "proxy": "Proxy",
-          "proxyDescription": "The proxy scrapes media from other websites. It bypasses browser restrictions (like CORS) to allow scraping.",
+          "browser": "Browser (recommended)",
+          "browserDescription": "Works out of the box in Firefox, Chrome, and Edge. Same sources as before — CastleTV, 7Movies, Way2Movies, and the rest — routed through kstream's built-in proxy.",
+          "extension": "Browser extension (optional)",
+          "extensionDescription": "Optional power-user add-on. Can help with a few IP-locked sources (e.g. PeeStream) and direct header injection. Not required for the main catalog.",
+          "proxy": "Custom proxy",
+          "proxyDescription": "Self-hosted proxy if you want your own egress IP. Rarely needed now that kdesa.stream handles proxying.",
           "default": "Default Setup",
-          "defaultDescription": "Uses kstream's built-in proxy. It's the easiest option but might be slower due to shared bandwidth.",
+          "defaultDescription": "Same as browser — uses kstream's built-in Cloudflare proxy.",
           "fedapi": {
             "fedapi": "Additional: Febbox token",
             "fedapiDescription": "Bring your own FREE Febbox account to gain access to FED API, the best sources with 4K quality, Dolby Atmos, skip intro and the fastest load times! Highly recommended option!"
@@ -808,33 +810,40 @@
           "subtitle": "Recommended Configurations:",
           "desktop": {
             "title": "Desktop:",
-            "description": "Extension (or app)"
+            "description": "Browser (no setup), or the Windows app"
           },
           "iOS": {
             "title": "iOS:",
-            "description": "Custom proxy"
+            "description": "Browser"
           },
           "android": {
             "title": "Android:",
-            "description": "Extension"
+            "description": "Browser"
           }
         }
       },
       "options": {
         "or": "or",
         "default": {
-          "text": "I don't want good quality streams, use the default setup."
+          "text": "Continue in browser — no extension needed."
+        },
+        "browser": {
+          "action": "Start watching",
+          "description": "Use kstream in your browser. All main sources work through kdesa.stream with no install.",
+          "quality": "Recommended",
+          "title": "Continue in browser"
         },
         "extension": {
           "action": "Install extension",
-          "description": "Install browser extension and gain access to additional sources! Remember to enable it for this site.",
-          "quality": "Best quality + More sources",
-          "title": "Browser extension"
+          "description": "Optional. May help with a handful of IP-locked sources; not needed for the usual catalog.",
+          "quality": "Optional",
+          "title": "Browser extension",
+          "advancedLink": "Advanced: optional browser extension for power users. <link>Install extension</link>"
         },
         "desktopapp": {
           "action": "Install Desktop app",
-          "description": "Install desktop app and gain access to additional sources! Simple and easy to use!",
-          "quality": "Best quality + Even more sources",
+          "description": "Native Windows app with built-in fetcher and MKV support.",
+          "quality": "Optional on Windows",
           "title": "kstream Desktop app"
         },
         "proxy": {

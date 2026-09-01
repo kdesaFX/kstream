@@ -1,23 +1,18 @@
 import { Trans, useTranslation } from "react-i18next";
 import { useEffect } from "react";
 
-import { isExtensionActiveCached } from "@/backend/extension/messaging";
-import { Button } from "@/components/buttons/Button";
 import { Icon, Icons } from "@/components/Icon";
 import { Stepper } from "@/components/layout/Stepper";
 import { BiggerCenterContainer } from "@/components/layout/ThinContainer";
 import { VerticalLine } from "@/components/layout/VerticalLine";
 import {
   FancyModal,
-  Modal,
-  ModalCard,
   useModal,
 } from "@/components/overlays/Modal";
 import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { Divider } from "@/components/utils/Divider";
 import { Ol } from "@/components/utils/Ol";
 import {
-  Heading1,
   Heading2,
   Heading3,
   Paragraph,
@@ -37,7 +32,6 @@ import { PageTitle } from "@/pages/parts/util/PageTitle";
 import { conf } from "@/setup/config";
 import { usePreferencesStore } from "@/stores/preferences";
 import { isMobileOnboardingClient, isWindowsDesktopClient } from "@/utils/hosting/onboarding";
-import { getProxyUrls } from "@/utils/hosting/proxyUrls";
 import { HomeAd } from "@/pages/parts/home/HomeAd";
 
 import { DebridEdit, FebboxSetup } from "../parts/settings/ConnectionsPart";
@@ -53,12 +47,10 @@ function Item(props: { title: string; children: React.ReactNode }) {
 
 export function OnboardingPage() {
   const navigate = useNavigateOnboarding();
-  const skipModal = useModal("skip");
   const infoModal = useModal("info");
   const { openDownloadModal } = useDownloadModal();
   const { completeAndRedirect } = useRedirectBack();
   const { t } = useTranslation();
-  const noProxies = getProxyUrls().length === 0;
   const showDesktopApp = isWindowsDesktopClient();
 
   const febboxKey = usePreferencesStore((s) => s.febboxKey);
@@ -67,9 +59,8 @@ export function OnboardingPage() {
   const setdebridToken = usePreferencesStore((s) => s.setdebridToken);
   const debridService = usePreferencesStore((s) => s.debridService);
   const setdebridService = usePreferencesStore((s) => s.setdebridService);
-  const isFebboxSetup = febboxKey !== "";
 
-  // Mobile can't install the extension — finish with default setup immediately.
+  // Mobile can't run desktop setup — finish immediately.
   useEffect(() => {
     if (isMobileOnboardingClient()) completeAndRedirect();
   }, [completeAndRedirect]);
@@ -79,32 +70,6 @@ export function OnboardingPage() {
   return (
     <MinimalPageLayout>
       <PageTitle subpage k="global.pages.onboarding" />
-      <Modal id={skipModal.id}>
-        <ModalCard>
-          <Heading1 className="!mt-0 !mb-4 !text-2xl">
-            {t("onboarding.defaultConfirm.title")}
-          </Heading1>
-          <Paragraph className="!mt-1 !mb-0">
-            {t("onboarding.defaultConfirm.description")}
-          </Paragraph>
-          <Paragraph className="!mt-1 !mb-8">
-            {t("onboarding.defaultConfirm.tip")}
-          </Paragraph>
-          <div className="flex flex-col-reverse gap-3 md:flex-row md:justify-between">
-            <Button
-              theme={
-                isFebboxSetup || isExtensionActiveCached() ? "purple" : "danger"
-              }
-              onClick={() => completeAndRedirect()}
-            >
-              {t("onboarding.defaultConfirm.confirm")}
-            </Button>
-            <Button theme="secondary" onClick={skipModal.hide}>
-              {t("onboarding.defaultConfirm.cancel")}
-            </Button>
-          </div>
-        </ModalCard>
-      </Modal>
       <FancyModal
         id={infoModal.id}
         title={t("onboarding.start.moreInfo.title")}
@@ -144,18 +109,16 @@ export function OnboardingPage() {
           <div>
             <Ol
               items={[
-                <Item
-                  title={t("onboarding.start.moreInfo.explainer.extension")}
-                >
+                <Item title={t("onboarding.start.moreInfo.explainer.browser")}>
+                  {t("onboarding.start.moreInfo.explainer.browserDescription")}
+                </Item>,
+                <Item title={t("onboarding.start.moreInfo.explainer.extension")}>
                   {t(
                     "onboarding.start.moreInfo.explainer.extensionDescription",
                   )}
                 </Item>,
                 <Item title={t("onboarding.start.moreInfo.explainer.proxy")}>
                   {t("onboarding.start.moreInfo.explainer.proxyDescription")}
-                </Item>,
-                <Item title={t("onboarding.start.moreInfo.explainer.default")}>
-                  {t("onboarding.start.moreInfo.explainer.defaultDescription")}
                 </Item>,
               ].filter(Boolean)}
             />
@@ -198,19 +161,19 @@ export function OnboardingPage() {
         </Paragraph>
 
         {/* Desktop Cards */}
-        <div className="hidden md:flex w-full flex-row gap-3 pb-6">
+        <div className="hidden md:flex w-full flex-row gap-3 pb-2">
           {showDesktopApp ? (
             <>
-              <Card onClick={() => openDownloadModal()} className="w-1/3">
+              <Card onClick={() => openDownloadModal()} className="w-1/2">
                 <CardContent
-                  colorClass="!text-onboarding-best"
+                  colorClass="!text-onboarding-good"
                   title={t("onboarding.start.options.desktopapp.title")}
                   subtitle={t("onboarding.start.options.desktopapp.quality")}
                   description={t(
                     "onboarding.start.options.desktopapp.description",
                   )}
                 >
-                  <Link className="!text-onboarding-best">
+                  <Link className="!text-onboarding-good">
                     {t("onboarding.start.options.desktopapp.action")}
                   </Link>
                 </CardContent>
@@ -225,52 +188,28 @@ export function OnboardingPage() {
             </>
           ) : null}
           <Card
-            onClick={() => navigate("/onboarding/extension")}
-            className={showDesktopApp ? "w-1/3" : "w-1/2"}
+            onClick={() => completeAndRedirect()}
+            className={showDesktopApp ? "w-1/2" : "w-full"}
           >
             <CardContent
-              colorClass="!text-onboarding-good"
-              title={t("onboarding.start.options.extension.title")}
-              subtitle={t("onboarding.start.options.extension.quality")}
-              description={t("onboarding.start.options.extension.description")}
+              colorClass="!text-onboarding-best"
+              title={t("onboarding.start.options.browser.title")}
+              subtitle={t("onboarding.start.options.browser.quality")}
+              description={t("onboarding.start.options.browser.description")}
             >
-              <Link className="!text-onboarding-good">
-                {t("onboarding.start.options.extension.action")}
+              <Link className="!text-onboarding-best">
+                {t("onboarding.start.options.browser.action")}
               </Link>
-            </CardContent>
-          </Card>
-          <div className="hidden md:grid grid-rows-[1fr,auto,1fr] justify-center gap-4">
-            <VerticalLine className="items-end" />
-            <span className="text-xs uppercase font-bold">
-              {t("onboarding.start.options.or")}
-            </span>
-            <VerticalLine />
-          </div>
-          <Card
-            onClick={
-              isFebboxSetup && isExtensionActiveCached()
-                ? () => completeAndRedirect()
-                : skipModal.show
-            }
-            className={showDesktopApp ? "w-1/3" : "w-1/2"}
-          >
-            <CardContent
-              colorClass="!text-onboarding-bad"
-              title={t("onboarding.defaultConfirm.confirm")}
-              subtitle=""
-              description={t("onboarding.defaultConfirm.description")}
-            >
-              <Trans i18nKey="onboarding.start.options.default.text" />
             </CardContent>
           </Card>
         </div>
 
         {/* Mobile Cards */}
-        <div className="md:hidden flex w-full flex-col gap-3 pb-6">
+        <div className="md:hidden flex w-full flex-col gap-3 pb-2">
           {showDesktopApp ? (
             <Card onClick={() => openDownloadModal()} className="w-full">
               <MiniCardContent
-                colorClass="!text-onboarding-best"
+                colorClass="!text-onboarding-good"
                 title={t("onboarding.start.options.desktopapp.title")}
                 subtitle={t("onboarding.start.options.desktopapp.quality")}
                 description={t(
@@ -279,35 +218,30 @@ export function OnboardingPage() {
               />
             </Card>
           ) : null}
-          <Card
-            onClick={() => navigate("/onboarding/extension")}
-            className="md:w-1/3 md:h-full"
-          >
+          <Card onClick={() => completeAndRedirect()} className="w-full">
             <MiniCardContent
-              colorClass="!text-onboarding-good"
-              title={t("onboarding.start.options.extension.title")}
-              subtitle={t("onboarding.start.options.extension.quality")}
-              description={t("onboarding.start.options.extension.description")}
+              colorClass="!text-onboarding-best"
+              title={t("onboarding.start.options.browser.title")}
+              subtitle={t("onboarding.start.options.browser.quality")}
+              description={t("onboarding.start.options.browser.description")}
             />
           </Card>
-          {noProxies ? null : (
-            <Card
-              onClick={
-                isFebboxSetup && isExtensionActiveCached()
-                  ? () => completeAndRedirect()
-                  : skipModal.show
-              }
-              className="md:w-1/3"
-            >
-              <MiniCardContent
-                colorClass="!text-onboarding-bad"
-                title={t("onboarding.defaultConfirm.confirm")}
-                subtitle=""
-                description={t("onboarding.defaultConfirm.description")}
-              />
-            </Card>
-          )}
         </div>
+
+        <p className="text-sm text-type-secondary pb-6">
+          <Trans
+            i18nKey="onboarding.start.options.extension.advancedLink"
+            components={{
+              link: (
+                <button
+                  type="button"
+                  className="text-type-link hover:underline"
+                  onClick={() => navigate("/onboarding/extension")}
+                />
+              ),
+            }}
+          />
+        </p>
 
         {(conf().ALLOW_FEBBOX_KEY || conf().ALLOW_DEBRID_KEY) === true && (
           <Heading3 className="text-white font-bold mb-3 mt-6">
