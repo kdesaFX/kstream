@@ -1,15 +1,15 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, expect, it } from "vitest";
 
-import { createPlaybackRetryBudget } from "./playbackRetryBudget";
+import { createPlaybackRetryBudget, MAX_PLAYBACK_AUTO_RETRIES } from "./playbackRetryBudget";
 
 describe("playbackRetryBudget", () => {
   it("exhausts repeated recovery attempts for the same media", () => {
     const budget = createPlaybackRetryBudget();
     budget.setMedia("movie-767");
 
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      expect(budget.isExhausted(3)).toBe(false);
+    for (let attempt = 0; attempt < MAX_PLAYBACK_AUTO_RETRIES; attempt += 1) {
+      expect(budget.isExhausted(MAX_PLAYBACK_AUTO_RETRIES)).toBe(false);
       budget.recordAttempt();
 
       // A successful scrape can return another unplayable stream. Re-setting
@@ -17,8 +17,8 @@ describe("playbackRetryBudget", () => {
       budget.setMedia("movie-767");
     }
 
-    expect(budget.getAttemptCount()).toBe(3);
-    expect(budget.isExhausted(3)).toBe(true);
+    expect(budget.getAttemptCount()).toBe(MAX_PLAYBACK_AUTO_RETRIES);
+    expect(budget.isExhausted(MAX_PLAYBACK_AUTO_RETRIES)).toBe(true);
   });
 
   it("starts a fresh budget when the media changes", () => {

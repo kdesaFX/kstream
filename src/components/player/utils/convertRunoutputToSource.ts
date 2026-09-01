@@ -122,6 +122,8 @@ export function shouldUseSameOriginStreamProxy(playlist?: string): boolean {
 
 /**
  * Route HLS through /api/m3u8-proxy when the environment can't set Referer/Origin.
+ * Desktop browsers without the extension cannot play cross-origin HLS directly —
+ * always proxy when shouldUseSameOriginStreamProxy says so, even with no headers.
  */
 function maybeProxyHlsPlaylist(
   playlist: string,
@@ -129,16 +131,6 @@ function maybeProxyHlsPlaylist(
 ): string {
   if (!shouldUseSameOriginStreamProxy(playlist)) return playlist;
   if (isUrlAlreadyProxied(playlist)) return playlist;
-
-  // Mobile / Reyna: always proxy HLS (CDN CORS / referer locks).
-  // Browser without extension: proxy when the stream needs headers.
-  if (
-    !isMobileBrowser() &&
-    !requiresSameOriginProxy(playlist) &&
-    Object.keys(headers).length === 0
-  ) {
-    return playlist;
-  }
 
   return createM3U8ProxyUrl(playlist, headers, { requireProxy: true });
 }

@@ -1,3 +1,5 @@
+export const MAX_PLAYBACK_AUTO_RETRIES = 3;
+
 export interface PlaybackRetryBudget {
   setMedia(mediaKey: string): void;
   recordAttempt(): void;

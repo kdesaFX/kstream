@@ -23,6 +23,7 @@ import {
   useListCenter,
   useScrape,
 } from "@/hooks/useProviderScrape";
+import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
 import {
   playerStatus,
   resolveFailedSourceMediaKey,
@@ -39,6 +40,9 @@ export interface ScrapingProps {
   startFromSourceId?: string;
   /** Hide the full source carousel on automatic retries (wrong runtime, playback recovery). */
   compact?: boolean;
+  /** 1-based playback recovery attempt (when compact). */
+  retryAttempt?: number;
+  maxRetries?: number;
 }
 
 /**
@@ -100,6 +104,46 @@ export function ScrapingPart(props: ScrapingProps) {
   }, [sourceOrder, sources]);
 
   const displayOrder = useMemo(() => cards.map((card) => card.order), [cards]);
+
+  const compactStatusText = useMemo(() => {
+    if (!props.compact) return null;
+    const attempt = props.retryAttempt ?? 0;
+    const max = props.maxRetries ?? 0;
+    const pendingSource = sourceOrder.find((order) => {
+      const segment = sources[order.id];
+      return segment?.status === "pending";
+    });
+    const sourceLabel = pendingSource
+      ? resolveSourceDisplayName(
+          pendingSource.id,
+          sources[pendingSource.id]?.name,
+        )
+      : currentSource
+        ? resolveSourceDisplayName(
+            currentSource,
+            sources[currentSource]?.name,
+          )
+        : null;
+    if (attempt > 0 && max > 0 && sourceLabel) {
+      return t("player.scraping.retryNextSourceProgress", {
+        attempt,
+        max,
+        source: sourceLabel,
+      });
+    }
+    if (attempt > 0 && max > 0) {
+      return t("player.scraping.retryNextSourceAttempt", { attempt, max });
+    }
+    return t("player.scraping.retryNextSource");
+  }, [
+    props.compact,
+    props.retryAttempt,
+    props.maxRetries,
+    sourceOrder,
+    sources,
+    currentSource,
+    t,
+  ]);
 
   const renderedOnce = useListCenter(containerRef, listRef, displayOrder);
 
@@ -191,7 +235,7 @@ export function ScrapingPart(props: ScrapingProps) {
       {props.compact ? (
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center flex flex-col justify-center z-0">
           <Loading className="mb-8" />
-          <p>{t("player.scraping.retryNextSource")}</p>
+          <p>{compactStatusText}</p>
         </div>
       ) : null}
       {!props.compact && (!sourceOrder || sourceOrder.length === 0) ? (

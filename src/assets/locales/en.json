@@ -1123,6 +1123,8 @@
         "waiting": "Queued..."
       },
       "retryNextSource": "Looking for another source…",
+      "retryNextSourceAttempt": "Attempt {{attempt}} of {{max}} — looking for another source…",
+      "retryNextSourceProgress": "Attempt {{attempt}} of {{max}} — trying {{source}}…",
       "notFound": {
         "badge": "Not found",
         "detailsButton": "Show details",

@@ -8,7 +8,6 @@ import {
 } from "react-router-dom";
 import { useAsync } from "react-use";
 
-import { getProviders } from "@/backend/providers/providers";
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
 import { prepareStream } from "@/backend/extension/streams";
 import { DetailedMeta } from "@/backend/metadata/getmeta";
@@ -27,7 +26,7 @@ import { ResumePart } from "@/pages/parts/player/ResumePart";
 import { ScrapeErrorPart } from "@/pages/parts/player/ScrapeErrorPart";
 import { ScrapingPart } from "@/pages/parts/player/ScrapingPart";
 import { SourceSelectPart } from "@/pages/parts/player/SourceSelectPart";
-import { createPlaybackRetryBudget } from "@/pages/player/playbackRetryBudget";
+import { createPlaybackRetryBudget, MAX_PLAYBACK_AUTO_RETRIES } from "@/pages/player/playbackRetryBudget";
 import { useLastNonPlayerLink } from "@/stores/history";
 import {
   PlayerMeta,
@@ -391,6 +390,8 @@ export function RealPlayerView() {
             key={`scraping-${scrapeAttempt}-${paramsData}`}
             media={scrapeMedia}
             compact={wrongRuntimeSkips > 0 || playbackRetryCount > 0}
+            retryAttempt={playbackRetryCount}
+            maxRetries={MAX_PLAYBACK_AUTO_RETRIES}
             startFromSourceId={
               resumeFromSourceId || storeResumeFromSourceId || undefined
             }
@@ -421,7 +422,7 @@ export function RealPlayerView() {
           onRetrySource={handleRetrySource}
           currentSourceId={sourceId}
           autoResumeExhausted={playbackRetryBudget.current.isExhausted(
-            getProviders().listSources().length,
+            MAX_PLAYBACK_AUTO_RETRIES,
           )}
         />
       ) : null}
