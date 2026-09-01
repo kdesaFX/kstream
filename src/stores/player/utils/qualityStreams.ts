@@ -2,7 +2,10 @@ import type { Stream } from "@p-stream/providers";
 
 import { getCachedMetadata } from "@/backend/helpers/providerApi";
 import { convertProviderCaption } from "@/components/player/utils/captions";
-import { convertRunoutputToSource } from "@/components/player/utils/convertRunoutputToSource";
+import {
+  convertRunoutputToSource,
+  requiresSameOriginProxy,
+} from "@/components/player/utils/convertRunoutputToSource";
 import {
   createM3U8ProxyUrl,
   isUrlAlreadyProxied,
@@ -81,7 +84,7 @@ export function pickBestQualityStream(
  * seconds — a tight budget here means no alternate qualities at all. Latency
  * comes from racing the reads below instead.
  */
-const HLS_PROBE_TIMEOUT_MS = 10_000;
+const HLS_PROBE_TIMEOUT_MS = 6_000;
 
 export type QualityStreamOption = {
   id: string;
@@ -208,24 +211,27 @@ async function readHlsQualities(
 ): Promise<SourceQuality[]> {
   if (source.type !== "hls") return [];
 
-  const reads = [fetchHlsQualities(source.url)];
+  const headers = {
+    ...(source.preferredHeaders ?? {}),
+    ...(source.headers ?? {}),
+  };
+  const originGated = requiresSameOriginProxy(source.url);
 
-  // Extension-only streams can reject a normal page fetch even though the
-  // player loads them with injected headers. Read through the configured proxy
-  // alongside the direct attempt rather than after it — running these in
-  // sequence meant a stream had to clear two timeouts before giving up.
-  if (!isUrlAlreadyProxied(source.url)) {
+  const reads: Promise<SourceQuality[]>[] = [];
+
+  // Origin-gated playlists (Way2, Nova, Reyna) always 403 on a bare page
+  // fetch — skip the doomed direct attempt so quality discovery starts faster.
+  if (!originGated && !isUrlAlreadyProxied(source.url)) {
+    reads.push(fetchHlsQualities(source.url));
+  }
+
+  if (!isUrlAlreadyProxied(source.url) || originGated) {
     try {
       reads.push(
         fetchHlsQualities(
-          createM3U8ProxyUrl(
-            source.url,
-            {
-              ...(source.preferredHeaders ?? {}),
-              ...(source.headers ?? {}),
-            },
-            { requireProxy: true },
-          ),
+          createM3U8ProxyUrl(source.url, headers, {
+            requireProxy: originGated,
+          }),
         ),
       );
     } catch {
