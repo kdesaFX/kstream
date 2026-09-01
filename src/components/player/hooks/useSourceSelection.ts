@@ -79,12 +79,6 @@ export function useEmbedScraping(
   const progressItems = useProgressStore((s) => s.items);
   const router = useOverlayRouter(routerId);
   const { report } = useReportProviders();
-  const rememberSuccessfulSource = usePreferencesStore(
-    (s) => s.rememberSuccessfulSource,
-  );
-  const enableLastSuccessfulSource = usePreferencesStore(
-    (s) => s.enableLastSuccessfulSource,
-  );
   const preferredAudioLanguage = usePreferencesStore(
     (s) => s.preferredAudioLanguage,
   );
@@ -134,10 +128,8 @@ export function useEmbedScraping(
       convertProviderCaption(selectedStream.captions),
       getSavedProgress(progressItems, meta),
     );
-    // Save the last successful source when manually selected
-    if (enableLastSuccessfulSource) {
-      rememberSuccessfulSource(meta.tmdbId, sourceId);
-    }
+    // Save the last successful source only after playback actually starts
+    // (see PlayerView hasPlayedOnce effect). Pinning here locks dead streams.
     router.close();
     startAlternateAudioDiscovery(sourceId);
   }, [
@@ -147,8 +139,6 @@ export function useEmbedScraping(
     router,
     report,
     setCaption,
-    enableLastSuccessfulSource,
-    rememberSuccessfulSource,
     preferredAudioLanguage,
   ]);
 
@@ -169,12 +159,6 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
   const progressItems = useProgressStore((s) => s.items);
   const router = useOverlayRouter(routerId);
   const { report } = useReportProviders();
-  const rememberSuccessfulSource = usePreferencesStore(
-    (s) => s.rememberSuccessfulSource,
-  );
-  const enableLastSuccessfulSource = usePreferencesStore(
-    (s) => s.enableLastSuccessfulSource,
-  );
   const preferredAudioLanguage = usePreferencesStore(
     (s) => s.preferredAudioLanguage,
   );
@@ -223,10 +207,7 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
         getSavedProgress(progressItems, meta),
       );
       setSourceId(sourceId);
-      // Save the last successful source when manually selected
-      if (enableLastSuccessfulSource) {
-        rememberSuccessfulSource(meta.tmdbId, sourceId);
-      }
+      // Preferred source pinned after first real play (PlayerView).
       router.close();
       startAlternateAudioDiscovery(sourceId);
       return null;
@@ -290,23 +271,12 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
         convertProviderCaption(selectedStream.captions),
         getSavedProgress(progressItems, meta),
       );
-      // Save the last successful source when manually selected
-      if (enableLastSuccessfulSource) {
-        rememberSuccessfulSource(meta.tmdbId, sourceId);
-      }
+      // Preferred source pinned after first real play (PlayerView).
       router.close();
       startAlternateAudioDiscovery(sourceId);
     }
     return result.embeds;
-  }, [
-    sourceId,
-    meta,
-    router,
-    setCaption,
-    enableLastSuccessfulSource,
-    rememberSuccessfulSource,
-    preferredAudioLanguage,
-  ]);
+  }, [sourceId, meta, router, setCaption, preferredAudioLanguage]);
 
   return {
     run,

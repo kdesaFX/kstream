@@ -1090,7 +1090,7 @@
         "pending": "Checking...",
         "waiting": "Queued..."
       },
-      "retryNextSource": "That stream didn't work — trying the next source…",
+      "retryNextSource": "Looking for another source…",
       "notFound": {
         "badge": "Not found",
         "detailsButton": "Show details",

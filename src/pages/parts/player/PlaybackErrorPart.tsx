@@ -45,8 +45,12 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
   const enableAutoResumeOnPlaybackError = usePreferencesStore(
     (s) => s.enableAutoResumeOnPlaybackError,
   );
-  const hasPlayedOnce = usePlayerStore((s) => s.mediaPlaying.hasPlayedOnce);
   const isPaused = usePlayerStore((s) => s.mediaPlaying.isPaused);
+  // Real watch progress — not hasPlayedOnce. The HTML `play` event (and a
+  // stuck flag from the previous episode) used to look like "viewer paused a
+  // working stream" and freeze auto-resume on StreamStartTimeout forever.
+  const watchedSeconds = usePlayerStore((s) => s.progress.time);
+  const viewerPausedWorkingStream = isPaused && watchedSeconds > 2;
 
   // Mark the failed source/embed and handle UI when a playback error occurs
   useEffect(() => {
@@ -65,20 +69,28 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
         } else {
           addFailedSource(currentSourceId);
         }
-      }
 
-      if (!hasOpenedSettings.current && (!enableAutoResumeOnPlaybackError || props.autoResumeExhausted)) {
-        hasOpenedSettings.current = true;
-        // Forget this title's pin so the next try can move on.
-        // Only clear the global fallback if it was the source that just failed.
+        // Drop title/global pins immediately on fatal fail — even while
+        // auto-resume keeps hunting. Otherwise a scrape-or-once-working
+        // preferred source keeps locking every episode onto a dead stream.
         if (meta?.tmdbId) {
-          clearPreferredSourceForTitle(meta.tmdbId);
+          const preferred =
+            usePreferencesStore.getState().preferredSourceByTitle[
+              meta.tmdbId
+            ];
+          if (preferred === currentSourceId) {
+            clearPreferredSourceForTitle(meta.tmdbId);
+          }
         }
         const lastSuccessfulSource =
           usePreferencesStore.getState().lastSuccessfulSource;
         if (currentSourceId && lastSuccessfulSource === currentSourceId) {
           setLastSuccessfulSource(null);
         }
+      }
+
+      if (!hasOpenedSettings.current && (!enableAutoResumeOnPlaybackError || props.autoResumeExhausted)) {
+        hasOpenedSettings.current = true;
         settingsRouter.open();
         settingsRouter.navigate("/source");
       }
@@ -107,7 +119,7 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
       enableAutoResumeOnPlaybackError &&
       !props.autoResumeExhausted &&
       props.currentSourceId &&
-      !(hasPlayedOnce && isPaused) &&
+      !viewerPausedWorkingStream &&
       (props.onRetrySource || props.onResume),
   );
 
@@ -119,7 +131,7 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
       enableAutoResumeOnPlaybackError &&
       !props.autoResumeExhausted &&
       props.currentSourceId &&
-      !(hasPlayedOnce && isPaused)
+      !viewerPausedWorkingStream
     ) {
       hasAutoResumed.current = true;
       if (currentEmbedId && props.onRetrySource) {
@@ -138,8 +150,7 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
     props.onResume,
     props.onRetrySource,
     currentEmbedId,
-    hasPlayedOnce,
-    isPaused,
+    viewerPausedWorkingStream,
   ]);
 
   const handleOpenSourcePicker = () => {
@@ -159,7 +170,9 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
         <IconPill icon={Icons.WAND}>{t("player.playbackError.badge")}</IconPill>
         <Title>{t("player.playbackError.title")}</Title>
         <Paragraph>
-          {enableAutoResumeOnPlaybackError && !props.autoResumeExhausted
+          {enableAutoResumeOnPlaybackError &&
+          !props.autoResumeExhausted &&
+          !viewerPausedWorkingStream
             ? t("player.playbackError.autoResumeText")
             : t("player.playbackError.text")}
         </Paragraph>

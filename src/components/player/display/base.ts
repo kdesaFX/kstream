@@ -192,7 +192,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
    * frames; missing it is a playback error like any other, which lets the
    * normal recovery move on to the next source.
    */
-  const STREAM_START_TIMEOUT_MS = 30000;
+  const STREAM_START_TIMEOUT_MS = 12000;
   let streamStartTimer: ReturnType<typeof setInterval> | null = null;
   let streamStartDeadline = 0;
 

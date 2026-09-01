@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { streamStartVerdict } from "@/components/player/display/streamStartWatchdog";
 
-const TIMEOUT = 30000;
+const TIMEOUT = 12000;
 
 describe("stream start watchdog", () => {
   it("calls a stream dead once it never buffers in time", () => {

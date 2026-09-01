@@ -312,12 +312,9 @@ export function RealPlayerView() {
       if (out.embedId) {
         usePlayerStore.getState().setEmbedId(out.embedId);
       }
-      if (enableLastSuccessfulSource) {
-        rememberSuccessfulSource(
-          usePlayerStore.getState().meta?.tmdbId,
-          out.sourceId,
-        );
-      }
+      // Do not pin preferred/last-successful here — scrape ≠ playback. Pinning
+      // before the first frame locks titles onto dead streams and forces the
+      // "trying the next source" loop on every episode.
       setShouldStartFromBeginning(false);
 
       if (scrapeMedia) {
@@ -330,13 +327,27 @@ export function RealPlayerView() {
       shouldStartFromBeginning,
       setShouldStartFromBeginning,
       preferredAudioLanguage,
-      enableLastSuccessfulSource,
-      rememberSuccessfulSource,
       scrapeMedia,
       setScrapeNotFound,
       setResumeFromSourceIdInStore,
     ],
   );
+
+  // Pin preferred / last-successful only after a few seconds of real progress —
+  // not on scrape success, and not on the HTML `play` event (autoplay can fire
+  // that before any frames buffer, which used to lock titles onto dead streams).
+  const watchedSeconds = usePlayerStore((s) => s.progress.time);
+  const metaTmdbId = usePlayerStore((s) => s.meta?.tmdbId);
+  useEffect(() => {
+    if (!enableLastSuccessfulSource || !sourceId || watchedSeconds < 5) return;
+    rememberSuccessfulSource(metaTmdbId, sourceId);
+  }, [
+    enableLastSuccessfulSource,
+    watchedSeconds,
+    sourceId,
+    metaTmdbId,
+    rememberSuccessfulSource,
+  ]);
 
   return (
     <PlayerPart backUrl={backUrl} onMetaChange={metaChange}>

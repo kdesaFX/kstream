@@ -488,6 +488,10 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.mediaPlaying.isLoading = true;
       s.mediaPlaying.isPlaying = false;
       s.mediaPlaying.isPaused = true;
+      // New attachment — previous episode/source "played once" must not stick.
+      // Leaving it true blocks playback-error auto-resume (hasPlayedOnce &&
+      // isPaused) and can pin preferred sources before this stream works.
+      s.mediaPlaying.hasPlayedOnce = false;
       s.audioTracks = [];
       s.currentAudioTrack = null;
       if (stream.audioLanguage) {
