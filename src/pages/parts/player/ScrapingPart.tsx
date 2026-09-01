@@ -140,11 +140,9 @@ export function ScrapingPart(props: ScrapingProps) {
         output = await startScraping(props.media);
       }
 
-      // Resume-from-source can be stale (episode change) or land past the last
-      // provider — fall back to a full scrape instead of instant "not found".
-      if (!output && props.startFromSourceId && isMounted()) {
-        output = await startScraping(props.media);
-      }
+      // Do not fall back to a full scrape after a playback retry — that used to
+      // re-run every provider (including ones already marked failed) and loop
+      // on dead sources like Nova. Resume exhaustion should surface not-found.
 
       if (!isMounted()) return;
       props.onResult?.(

@@ -5,6 +5,7 @@ import {
   PlayerMeta,
   getMediaKey,
   playerStatus,
+  resolveFailedSourceMediaKey,
 } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 
@@ -112,6 +113,36 @@ describe("reportStreamDuration", () => {
     store.reportStreamDuration(20.5 * 60);
     expect(usePlayerStore.getState().status).toBe(playerStatus.SCRAPING);
     expect(usePlayerStore.getState().wrongRuntimeSkips).toBe(0);
+  });
+});
+
+describe("resolveFailedSourceMediaKey", () => {
+  it("derives the same key from scrape media when player meta is unset", () => {
+    const media = {
+      type: "show" as const,
+      title: EPISODE_META.title,
+      releaseYear: EPISODE_META.releaseYear,
+      tmdbId: EPISODE_META.tmdbId,
+      season: { number: 1, tmdbId: "season-1", title: "Season 1" },
+      episode: { number: 1, tmdbId: "episode-1", title: "First Period" },
+    };
+    expect(resolveFailedSourceMediaKey(null, media)).toBe(
+      getMediaKey(EPISODE_META),
+    );
+  });
+});
+
+describe("addFailedSource media key override", () => {
+  beforeEach(() => {
+    usePlayerStore.getState().reset();
+  });
+
+  it("records failures under an explicit media key", () => {
+    const mediaKey = getMediaKey(EPISODE_META)!;
+    usePlayerStore.getState().addFailedSource("nova", mediaKey);
+    expect(usePlayerStore.getState().failedSourcesPerMedia[mediaKey]).toEqual([
+      "nova",
+    ]);
   });
 });
 

@@ -107,6 +107,20 @@ export function getBucketStat(
   return byBucket[bucket];
 }
 
+/**
+ * Auto-scrape should not touch sources goon measured at 0% in the browser —
+ * they waste time and loop on playback recovery. Manual source pick still
+ * allows them.
+ */
+export function excludeZeroHitFromAutoScrape(
+  sourceIds: string[],
+  ctx: SourceOrderContext,
+  matrix: SourceScoreMatrix = SOURCE_SCORE_MATRIX,
+): string[] {
+  if (ctx.env !== "browser") return sourceIds;
+  return sourceIds.filter((id) => !hasProvenZeroHit(id, ctx, matrix));
+}
+
 /** True when goon-test measured 0% hit for this env × bucket. */
 export function hasProvenZeroHit(
   sourceId: string,

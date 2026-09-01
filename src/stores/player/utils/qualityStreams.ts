@@ -12,6 +12,7 @@ import {
 } from "@/components/player/utils/proxy";
 import type { CaptionListItem } from "@/stores/player/slices/source";
 import { resolutionHeightToQuality } from "@/stores/player/utils/qualities";
+import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
 import type {
   SourceQuality,
   SourceSliceSource,
@@ -114,9 +115,8 @@ export type QualityTierChoice =
     };
 
 export function sourceDisplayName(sourceId: string): string {
-  return (
-    getCachedMetadata().find((meta) => meta.id === sourceId)?.name ?? sourceId
-  );
+  const meta = getCachedMetadata().find((entry) => entry.id === sourceId);
+  return resolveSourceDisplayName(sourceId, meta?.name);
 }
 
 export function parseHlsQualities(playlist: string): SourceQuality[] {

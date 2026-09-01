@@ -38,9 +38,15 @@
     }
   }
 
+  function isPlayerPath(path) {
+    if (!path) return false;
+    if (path.indexOf("/media/") === 0) return true;
+    if (path.indexOf("/manga/") === 0) return true;
+    return false;
+  }
+
   function isPopunderPath(path) {
-    if (!path || path.indexOf("/media/") === 0) return false;
-    if (path.indexOf("/manga/") === 0) return false;
+    if (!path || isPlayerPath(path)) return false;
     if (path === "/") return true;
     if (path === "/browse" || path.indexOf("/browse/") === 0) return true;
     if (path === "/read-history") return true;
@@ -93,6 +99,7 @@
 
     var nativeOpen = window.open;
     window.open = function popunderGuard(url, target, features) {
+      if (isPlayerPath(window.location.pathname || "/")) return null;
       if (isSuspiciousPopunderUrl(url)) {
         // One popunder per tab session — block every further ad open.
         if (hasSpentPopunder()) return null;

@@ -137,6 +137,15 @@ export function qualityToString(quality: SourceQuality): string {
   return qualityNameMap[quality];
 }
 
+/** Highest tier present in a list (e.g. HLS ladder or quality menu rows). */
+export function highestAvailableQuality(
+  qualities: SourceQuality[],
+): SourceQuality | null {
+  const candidates = qualities.filter((q) => q !== "unknown");
+  if (!candidates.length) return null;
+  return sortedQualities.find((q) => candidates.includes(q)) ?? null;
+}
+
 const exactHeightMap: Record<number, SourceQuality> = {
   360: "360",
   480: "480",

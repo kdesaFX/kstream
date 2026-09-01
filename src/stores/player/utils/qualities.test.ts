@@ -1,7 +1,10 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, expect, it } from "vitest";
 
-import { getPreferredQuality } from "@/stores/player/utils/qualities";
+import {
+  getPreferredQuality,
+  highestAvailableQuality,
+} from "@/stores/player/utils/qualities";
 
 describe("getPreferredQuality", () => {
   it("falls back to a level the newly selected source actually has", () => {
@@ -20,5 +23,15 @@ describe("getPreferredQuality", () => {
         lastChosenQuality: "480",
       }),
     ).toBe("480");
+  });
+});
+
+describe("highestAvailableQuality", () => {
+  it("returns the best tier present", () => {
+    expect(highestAvailableQuality(["360", "720", "480"])).toBe("720");
+  });
+
+  it("ignores unknown", () => {
+    expect(highestAvailableQuality(["unknown", "480"])).toBe("480");
   });
 });

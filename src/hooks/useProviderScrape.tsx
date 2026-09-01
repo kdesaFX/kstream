@@ -1,4 +1,10 @@
-import { FullScraperEvents, RunOutput, ScrapeMedia } from "@p-stream/providers";
+import {
+  FullScraperEvents,
+  NotFoundError,
+  RunOutput,
+  ScrapeMedia,
+  SourcererOutput,
+} from "@p-stream/providers";
 import { RefObject, useCallback, useEffect, useRef, useState } from "react";
 
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
@@ -16,7 +22,7 @@ import {
   type ScrapingItems,
   type ScrapingSegment,
 } from "@/hooks/scrapeEvents";
-import { getMediaKey } from "@/stores/player/slices/source";
+import { resolveFailedSourceMediaKey } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import {
   getPreferredSourceForTitle,
@@ -27,9 +33,11 @@ import { excludeDeferredFromPrimary } from "@/utils/media/regionalSources";
 import {
   orderSourceIdsForPlayback,
   detectPlaybackEnv,
+  excludeZeroHitFromAutoScrape,
   hasProvenZeroHit,
   prioritizeConfiguredSources,
 } from "@/utils/media/sourceOrder";
+import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
 
 export type { ScrapingItems, ScrapingSegment } from "@/hooks/scrapeEvents";
 
@@ -67,6 +75,88 @@ function getRunOutputBestResolutionScore(output: RunOutput): number {
   );
 }
 
+const WAY2_SOLO_SOURCE_ID = "way2movies";
+const WAY2_SOLO_RETRY_DELAY_MS = 2000;
+
+function sourcererToRunOutput(
+  sourceId: string,
+  result: SourcererOutput,
+): RunOutput | null {
+  const raw = result.stream;
+  const streams = !raw ? [] : Array.isArray(raw) ? raw : [raw];
+  if (!streams.length) return null;
+  return {
+    sourceId,
+    stream: streams[0],
+    streams,
+  };
+}
+
+function shouldTryWay2SoloFirst(
+  sourceOrder: string[],
+  preferredSourceId: string | null,
+): boolean {
+  const index = sourceOrder.indexOf(WAY2_SOLO_SOURCE_ID);
+  if (index === -1) return false;
+  if (preferredSourceId === WAY2_SOLO_SOURCE_ID) return true;
+  // Way2 needs ~15s and rate-limits under parallel bursts — give it a clean
+  // solo attempt when it would race near the front anyway.
+  return index < 2;
+}
+
+async function tryWay2moviesSoloFirst(opts: {
+  providers: ReturnType<typeof getProviders>;
+  media: ScrapeMedia;
+  events: {
+    start: (id: string) => void;
+    update: (evt: ScraperEvent<"update">) => void;
+  };
+  sourceOrder: string[];
+  preferredSourceId: string | null;
+}): Promise<{ output: RunOutput | null; remainingOrder: string[] }> {
+  const remainingOrder = opts.sourceOrder.filter(
+    (id) => id !== WAY2_SOLO_SOURCE_ID,
+  );
+  if (!shouldTryWay2SoloFirst(opts.sourceOrder, opts.preferredSourceId)) {
+    return { output: null, remainingOrder: opts.sourceOrder };
+  }
+
+  opts.events.start(WAY2_SOLO_SOURCE_ID);
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (attempt > 0) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, WAY2_SOLO_RETRY_DELAY_MS);
+      });
+    }
+    try {
+      const result = await opts.providers.runSourceScraper({
+        id: WAY2_SOLO_SOURCE_ID,
+        media: opts.media,
+        events: opts.events,
+      });
+      const output = sourcererToRunOutput(WAY2_SOLO_SOURCE_ID, result);
+      if (output) return { output, remainingOrder };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  if (lastError) {
+    const notFound = lastError instanceof NotFoundError;
+    opts.events.update({
+      id: WAY2_SOLO_SOURCE_ID,
+      percentage: 100,
+      status: notFound ? "notfound" : "failure",
+      reason:
+        lastError instanceof Error ? lastError.message : "Way2Movies failed",
+      error: notFound ? undefined : (lastError as Error),
+    });
+  }
+
+  return { output: null, remainingOrder };
+}
+
 type ScraperEvent<Event extends keyof FullScraperEvents> = Parameters<
   NonNullable<FullScraperEvents[Event]>
 >[0];
@@ -90,7 +180,7 @@ function useBaseScrape() {
           if (next[id]) continue;
           const source = getCachedMetadata().find((s) => s.id === id);
           next[id] = {
-            name: source?.name ?? id,
+            name: resolveSourceDisplayName(id, source?.name ?? id),
             id,
             status: "waiting",
             percentage: 0,
@@ -102,7 +192,7 @@ function useBaseScrape() {
         .map((v) => {
           const source = getCachedMetadata().find((s) => s.id === v);
           const out: ScrapingSegment = {
-            name: source?.name ?? v,
+            name: resolveSourceDisplayName(v, source?.name ?? v),
             id: v,
             status: "waiting",
             percentage: 0,
@@ -169,7 +259,10 @@ function useBaseScrape() {
           );
           next[v.id] = {
             embedId: v.embedScraperId,
-            name: source?.name ?? v.embedScraperId,
+            name: resolveSourceDisplayName(
+              v.embedScraperId,
+              source?.name ?? v.embedScraperId,
+            ),
             id: v.id,
             status: "waiting",
             percentage: 0,
@@ -295,18 +388,7 @@ export function useScrape() {
       const playerState = usePlayerStore.getState();
 
       // Get media-specific failed sources/embeds
-      // Try to get media key from player state first, fallback to deriving from ScrapeMedia
-      let mediaKey = getMediaKey(playerState.meta);
-      if (!mediaKey) {
-        // Derive media key from ScrapeMedia if meta is not set yet
-        if (media.type === "movie") {
-          mediaKey = `movie-${media.tmdbId}`;
-        } else if (media.type === "show" && media.season && media.episode) {
-          mediaKey = `show-${media.tmdbId}-${media.season.tmdbId}-${media.episode.tmdbId}`;
-        } else if (media.type === "show") {
-          mediaKey = `show-${media.tmdbId}`;
-        }
-      }
+      const mediaKey = resolveFailedSourceMediaKey(playerState.meta, media);
       const failedSources = mediaKey
         ? playerState.failedSourcesPerMedia[mediaKey] || []
         : [];
@@ -346,6 +428,10 @@ export function useScrape() {
       baseSourceOrder = prioritizeConfiguredSources(
         orderSourceIdsForPlayback(baseSourceOrder, sourceOrderCtx),
         { hasDebridToken: Boolean(debridToken?.trim()) },
+      );
+      baseSourceOrder = excludeZeroHitFromAutoScrape(
+        baseSourceOrder,
+        sourceOrderCtx,
       );
 
       // Prefer the source that worked for this title.
@@ -400,9 +486,10 @@ export function useScrape() {
         );
       }
 
-      if (filteredSourceOrder.length === 0 && !isPlaybackRetry) {
-        filteredSourceOrder = [...baseSourceOrder];
-      }
+      const recordFailedSource = (sourceId: string) => {
+        if (!mediaKey) return;
+        usePlayerStore.getState().addFailedSource(sourceId, mediaKey);
+      };
 
       // Collect failed embed IDs for this media and always exclude them.
       // (Previously only applied when custom embed order was enabled, so TQQ
@@ -464,10 +551,36 @@ export function useScrape() {
           return accepted;
         }
         markSourceRejected(output.sourceId, check.reason);
+        if (hasProvenZeroHit(output.sourceId, sourceOrderCtx)) {
+          recordFailedSource(output.sourceId);
+        }
         return null;
       };
 
       startScrape();
+
+      const preferredSourceId = enableLastSuccessfulSource
+        ? getPreferredSourceForTitle(
+            preferredSourceByTitle,
+            media.tmdbId,
+            lastSuccessfulSource,
+          )
+        : null;
+
+      const trySoloWay2 = async (order: string[]) => {
+        const solo = await tryWay2moviesSoloFirst({
+          providers,
+          media,
+          events: runEvents,
+          sourceOrder: order,
+          preferredSourceId,
+        });
+        if (solo.output) {
+          const accepted = await acceptValidatedOutput(solo.output);
+          if (accepted) return { accepted, order: solo.remainingOrder };
+        }
+        return { accepted: null, order: solo.remainingOrder };
+      };
 
       // Playback resume landed past the last source, or every remaining source
       // was already marked failed. runAll never runs in that case, which used to
@@ -493,7 +606,9 @@ export function useScrape() {
       }
 
       if (minimumResolutionScore <= 0) {
-        let remainingSourceOrder = [...filteredSourceOrder];
+        const soloFirst = await trySoloWay2(filteredSourceOrder);
+        if (soloFirst.accepted) return getResult(soloFirst.accepted);
+        let remainingSourceOrder = soloFirst.order;
         while (remainingSourceOrder.length > 0) {
           const output = await providers.runAll({
             media,
@@ -516,7 +631,9 @@ export function useScrape() {
         return getResult(null);
       }
 
-      let remainingSourceOrder = [...filteredSourceOrder];
+      const soloFirst = await trySoloWay2(filteredSourceOrder);
+      if (soloFirst.accepted) return getResult(soloFirst.accepted);
+      let remainingSourceOrder = soloFirst.order;
       let bestFallbackOutput: RunOutput | null = null;
       let bestFallbackScore = -1;
 

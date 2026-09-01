@@ -1,6 +1,7 @@
 import { t } from "i18next";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCopyToClipboard } from "react-use";
+import { useLocation } from "react-router-dom";
 
 import { getSeasonDetails } from "@/backend/metadata/tmdb";
 import { getNetworkContent } from "@/backend/metadata/traktApi";
@@ -15,6 +16,7 @@ import { fetchImdbRating } from "@/utils/services/imdbRating";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import { scrapeRottenTomatoes } from "@/utils/services/rottenTomatoesScraper";
 import { HomeAd } from "@/pages/parts/home/HomeAd";
+import { areBannerAdsAllowedOnPath } from "@/utils/ads/adsRoutePolicy";
 
 import { DetailsContentProps } from "../../types";
 import { EpisodeCarousel } from "../carousels/EpisodeCarousel";
@@ -27,6 +29,8 @@ import { DetailsBody } from "../sections/DetailsBody";
 import { DetailsInfo } from "../sections/DetailsInfo";
 
 export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
+  const location = useLocation();
+  const showAds = areBannerAdsAllowedOnPath(location.pathname);
   const [imdbData, setImdbData] = useState<any>(null);
   const [rtData, setRtData] = useState<any>(null);
   const [providerData, setProviderData] = useState<string | undefined>(
@@ -536,7 +540,7 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
               />
             </div>
             <div className="w-full lg:w-auto flex justify-center lg:justify-end lg:pt-10 lg:sticky lg:top-4">
-              <HomeAd slot="details" />
+              {showAds ? <HomeAd slot="details" /> : null}
             </div>
           </div>
         )}

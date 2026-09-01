@@ -25,6 +25,7 @@ import {
   excludeDeferredFromPrimary,
   isDeferredRegionalSource,
 } from "@/utils/media/regionalSources";
+import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
 
 function Section({
   title,
@@ -198,7 +199,10 @@ export function PreferencesPart(props: {
     );
     return [...orderedPrimary, ...trailing].map((id) => ({
       id,
-      name: allSources.find((s) => s.id === id)?.name || id,
+      name: resolveSourceDisplayName(
+        id,
+        allSources.find((s) => s.id === id)?.name || id,
+      ),
       disabled: !currentDeviceSources.find((s) => s.id === id),
     }));
   }, [props.sourceOrder, allSources, primarySourceIds, hasDebridToken]);

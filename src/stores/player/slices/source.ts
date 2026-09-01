@@ -247,7 +247,7 @@ export interface SourceSlice {
     targetLanguage: string,
   ): Promise<void>;
   clearTranslateTask(): void;
-  addFailedSource(sourceId: string): void;
+  addFailedSource(sourceId: string, mediaKey?: string): void;
   addFailedEmbed(sourceId: string, embedId: string): void;
   clearFailedSource(sourceId: string): void;
   clearFailedSources(mediaKey?: string): void;
@@ -298,6 +298,22 @@ export function getMediaKey(meta: PlayerMeta | null): string | null {
 
   // Fallback if show data is incomplete
   return `${meta.type}-${meta.tmdbId}`;
+}
+
+/** Media key for failed-source tracking — matches scrape + player meta. */
+export function resolveFailedSourceMediaKey(
+  meta: PlayerMeta | null,
+  media?: ScrapeMedia | null,
+): string | null {
+  const fromMeta = getMediaKey(meta);
+  if (fromMeta) return fromMeta;
+  if (!media) return null;
+  if (media.type === "movie") return `movie-${media.tmdbId}`;
+  if (media.type === "show" && media.season && media.episode) {
+    return `show-${media.tmdbId}-${media.season.tmdbId}-${media.episode.tmdbId}`;
+  }
+  if (media.type === "show") return `show-${media.tmdbId}`;
+  return null;
 }
 
 /**
@@ -413,6 +429,9 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
         // short-circuits anime mirrors (TQQ) and jumps to later sources.
         s.resumeFromSourceId = null;
         s.wrongRuntimeSkips = 0;
+        // Stale hop state must not restore a prior manual quality lock on the
+        // next episode or reload.
+        s.qualityHopFallback = null;
       }
 
       if (newMediaKey && oldMediaKey && oldMediaKey !== newMediaKey) {
@@ -581,9 +600,9 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.caption.asTrack = asTrack;
     });
   },
-  addFailedSource(sourceId: string) {
+  addFailedSource(sourceId: string, mediaKeyOverride?: string) {
     const store = get();
-    const mediaKey = getMediaKey(store.meta);
+    const mediaKey = mediaKeyOverride ?? getMediaKey(store.meta);
     if (!mediaKey) return; // Skip tracking if no media is set
 
     set((s) => {
@@ -839,7 +858,11 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     // with Auto + climb; extension / direct URLs keep the hard lock.
     const softHop =
       option.source.type === "hls" && isUrlAlreadyProxied(option.source.url);
-    useQualityStore.getState().setAutomaticQuality(softHop);
+    // Proxied ladders need Auto + soft climb; never force Auto off here —
+    // that was wiping the user's persisted preference on every source hop.
+    if (softHop) {
+      useQualityStore.getState().setAutomaticQuality(true);
+    }
     useQualityStore.getState().setLastChosenQuality(quality);
 
     // Asking for a different tier is not the same as the current stream dying,

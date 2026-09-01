@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  excludeZeroHitFromAutoScrape,
   getMediaBucket,
   orderSourceIdsForPlayback,
   prioritizeConfiguredSources,
@@ -200,5 +201,48 @@ describe("prioritizeConfiguredSources", () => {
     expect(
       prioritizeConfiguredSources(ids, { hasDebridToken: false }),
     ).toEqual(["vidlink", "fsonline"]);
+  });
+});
+
+describe("excludeZeroHitFromAutoScrape", () => {
+  const westernMeta = {
+    genreIds: [28],
+    originalLanguage: "en",
+    originCountry: ["US"],
+  };
+
+  const deadMatrix: SourceScoreMatrix = {
+    updatedAt: "test",
+    animeOnly: [],
+    scores: {
+      sevenmovies: {
+        browser: { show: { hit: 100, hitMs: 3000, score: 330 } },
+      },
+      nova: {
+        browser: { show: { hit: 0, hitMs: 0, score: 0 } },
+      },
+    },
+  };
+
+  it("drops 0% browser sources from auto-scrape", () => {
+    const ctx = { env: "browser" as const, mediaType: "show" as const, meta: westernMeta };
+    expect(
+      excludeZeroHitFromAutoScrape(
+        ["sevenmovies", "nova", "way2movies"],
+        ctx,
+        deadMatrix,
+      ),
+    ).toEqual(["sevenmovies", "way2movies"]);
+  });
+
+  it("keeps 0% sources on extension/desktop auto-scrape", () => {
+    const ctx = { env: "extension" as const, mediaType: "show" as const, meta: westernMeta };
+    expect(
+      excludeZeroHitFromAutoScrape(
+        ["sevenmovies", "nova"],
+        ctx,
+        deadMatrix,
+      ),
+    ).toEqual(["sevenmovies", "nova"]);
   });
 });

@@ -5,6 +5,7 @@ import { Icon, Icons } from "@/components/Icon";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { conf } from "@/setup/config";
 import { useAdsStore, areAdsBlocked } from "@/stores/ads";
+import { areBannerAdsAllowedOnPath } from "@/utils/ads/adsRoutePolicy";
 
 const LOAD_TIMEOUT_MS = 10000;
 const PRIMARY_BANNER_GIF_SRC = "/ads/primary-banner.gif";
@@ -256,7 +257,7 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
   );
   const [readyToLoad, setReadyToLoad] = useState(false);
   const location = useLocation();
-  const isWatchPage = location.pathname.startsWith("/media/");
+  const isWatchPage = !areBannerAdsAllowedOnPath(location.pathname);
 
   // Don't compete with LCP — wait until near view or idle.
   useEffect(() => {
@@ -345,6 +346,7 @@ function AdSlotInner({ cfg }: { cfg: SlotConfig }) {
 
   return (
     <div
+      data-kstream-ad-slot="1"
       className="relative max-w-full rounded-lg ring-1 ring-white/20 bg-black/30 transition-opacity duration-500"
       style={{
         width: `${wrapperMaxWidth}px`,
@@ -401,7 +403,10 @@ function PrimaryGifBanner({ img, href }: { img: string; href: string }) {
   if (dismissed) return null;
 
   return (
-    <div className="relative mx-auto w-full max-w-[min(100%,728px)] rounded-[0.95rem] bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group">
+    <div
+      data-kstream-ad-slot="1"
+      className="relative mx-auto w-full max-w-[min(100%,728px)] rounded-[0.95rem] bg-black/35 ring-1 ring-white/15 transition-opacity duration-500 group"
+    >
       <button
         onClick={dismiss}
         type="button"
@@ -448,6 +453,9 @@ export function HomeTopAds() {
   const cfg = conf();
   const adsDisabled = useAdsStore((s) => s.adsDisabled);
   const { isMobile } = useIsMobile();
+  const location = useLocation();
+
+  if (!areBannerAdsAllowedOnPath(location.pathname)) return null;
 
   const topLeft = useMemo(
     () =>
@@ -506,6 +514,9 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
   const cfg = conf();
   const adsDisabled = useAdsStore((s) => s.adsDisabled);
   const { isMobile } = useIsMobile();
+  const location = useLocation();
+
+  if (!areBannerAdsAllowedOnPath(location.pathname)) return null;
 
   const primarySlot = useMemo(
     () =>

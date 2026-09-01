@@ -14,11 +14,21 @@ import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import {
+  highestAvailableQuality,
+  qualityToString,
+  type SourceQuality,
+} from "@/stores/player/utils/qualities";
+import {
   getPreferredSourceForTitle,
   usePreferencesStore,
 } from "@/stores/preferences";
 import { isAnimeSourceId, isAnimeTitle } from "@/utils/media/anime";
-import { orderSourcesForPlayback, detectPlaybackEnv } from "@/utils/media/sourceOrder";
+import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
+import {
+  filterConfiguredSources,
+  orderSourcesForPlayback,
+  detectPlaybackEnv,
+} from "@/utils/media/sourceOrder";
 
 export interface SourceSelectionViewProps {
   id: string;
@@ -43,7 +53,10 @@ export function EmbedOption(props: {
   const embedName = useMemo(() => {
     if (!props.embedId) return unknownEmbedName;
     const sourceMeta = getCachedMetadata().find((s) => s.id === props.embedId);
-    return sourceMeta?.name ?? unknownEmbedName;
+    return resolveSourceDisplayName(
+      props.embedId,
+      sourceMeta?.name ?? unknownEmbedName,
+    );
   }, [props.embedId, unknownEmbedName]);
 
   const { run, errored, loading, notFound } = useEmbedScraping(
@@ -90,7 +103,7 @@ export function EmbedSelectionView({ sourceId, id }: EmbedSelectionViewProps) {
   const sourceName = useMemo(() => {
     if (!sourceId) return "...";
     const sourceMeta = getCachedMetadata().find((s) => s.id === sourceId);
-    return sourceMeta?.name ?? "...";
+    return resolveSourceDisplayName(sourceId, sourceMeta?.name ?? "...");
   }, [sourceId]);
 
   const lastSourceId = useRef<string | null>(null);
@@ -167,6 +180,9 @@ export function SourceSelectionView({
   const metaOriginalLanguage = usePlayerStore((s) => s.meta?.originalLanguage);
   const metaOriginCountry = usePlayerStore((s) => s.meta?.originCountry);
   const currentSourceId = usePlayerStore((s) => s.sourceId);
+  const currentQuality = usePlayerStore((s) => s.currentQuality);
+  const ladderQualities = usePlayerStore((s) => s.qualities);
+  const qualityStreamOptions = usePlayerStore((s) => s.qualityStreamOptions);
   const setResumeFromSourceId = usePlayerStore((s) => s.setResumeFromSourceId);
   const setStatus = usePlayerStore((s) => s.setStatus);
   const preferredSourceOrder = usePreferencesStore((s) => s.sourceOrder);
@@ -183,13 +199,17 @@ export function SourceSelectionView({
   const manualSourceSelection = usePreferencesStore(
     (s) => s.manualSourceSelection,
   );
+  const debridToken = usePreferencesStore((s) => s.debridToken);
 
   const sources = useMemo(() => {
     if (!metaType) return [];
     // Match scrape ordering source of truth (live device providers), not MetaPart cache alone
-    const allSources = getProviders()
-      .listSources()
-      .filter((v) => v.mediaTypes?.includes(metaType));
+    let orderedSources = filterConfiguredSources(
+      getProviders()
+        .listSources()
+        .filter((v) => v.mediaTypes?.includes(metaType)),
+      { hasDebridToken: Boolean(debridToken?.trim()) },
+    );
 
     const prioritizeSource = enableLastSuccessfulSource
       ? getPreferredSourceForTitle(
@@ -199,11 +219,9 @@ export function SourceSelectionView({
         )
       : null;
 
-    let orderedSources = allSources;
-
     if (enableSourceOrder && preferredSourceOrder.length > 0) {
-      const preferred: typeof allSources = [];
-      const remaining = [...allSources];
+      const preferred: typeof orderedSources = [];
+      const remaining = [...orderedSources];
 
       if (prioritizeSource) {
         const lastSourceIndex = remaining.findIndex(
@@ -275,6 +293,7 @@ export function SourceSelectionView({
     lastSuccessfulSource,
     preferredSourceByTitle,
     enableLastSuccessfulSource,
+    debridToken,
   ]);
 
   const handleFindNextSource = () => {
@@ -285,6 +304,19 @@ export function SourceSelectionView({
     router.close();
     // Set status to SCRAPING to trigger scraping from next source
     setStatus(playerStatus.SCRAPING);
+  };
+
+  const sourceQualityLabel = (sourceId: string): string | null => {
+    if (sourceId !== currentSourceId) return null;
+    const tiers: SourceQuality[] = [...ladderQualities];
+    for (const option of qualityStreamOptions) {
+      if (option.sourceId === sourceId) tiers.push(option.quality);
+    }
+    if (currentQuality && currentQuality !== "unknown") {
+      tiers.push(currentQuality);
+    }
+    const peak = highestAvailableQuality(tiers);
+    return peak ? qualityToString(peak) : null;
   };
 
   return (
@@ -308,7 +340,9 @@ export function SourceSelectionView({
         {t("player.menus.sources.title")}
       </Menu.BackLink>
       <Menu.Section className="pb-4">
-        {sources.map((v) => (
+        {sources.map((v) => {
+          const qualityLabel = sourceQualityLabel(v.id);
+          return (
           <SelectableLink
             key={v.id}
             onClick={() => {
@@ -316,10 +350,18 @@ export function SourceSelectionView({
               router.navigate("/source/embeds");
             }}
             selected={v.id === currentSourceId}
+            rightSide={
+              qualityLabel ? (
+                <span className="text-video-context-type-secondary text-sm tabular-nums">
+                  {qualityLabel}
+                </span>
+              ) : undefined
+            }
           >
-            {v.name}
+            {resolveSourceDisplayName(v.id, v.name)}
           </SelectableLink>
-        ))}
+          );
+        })}
       </Menu.Section>
     </>
   );

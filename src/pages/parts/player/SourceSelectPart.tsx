@@ -17,6 +17,7 @@ import {
 } from "@/stores/preferences";
 import { orderSourcesForPlayback, detectPlaybackEnv, filterConfiguredSources } from "@/utils/media/sourceOrder";
 import { isDeferredRegionalSource } from "@/utils/media/regionalSources";
+import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
 
 // Embed option component
 function EmbedOption(props: {
@@ -31,7 +32,10 @@ function EmbedOption(props: {
   const embedName = useMemo(() => {
     if (!props.embedId) return unknownEmbedName;
     const sourceMeta = getCachedMetadata().find((s) => s.id === props.embedId);
-    return sourceMeta?.name ?? unknownEmbedName;
+    return resolveSourceDisplayName(
+      props.embedId,
+      sourceMeta?.name ?? unknownEmbedName,
+    );
   }, [props.embedId, unknownEmbedName]);
 
   const { run, errored, loading, notFound } = useEmbedScraping(
@@ -83,7 +87,7 @@ function EmbedSelectionView(props: {
   const sourceName = useMemo(() => {
     if (!props.sourceId) return "...";
     const sourceMeta = getCachedMetadata().find((s) => s.id === props.sourceId);
-    return sourceMeta?.name ?? "...";
+    return resolveSourceDisplayName(sourceId, sourceMeta?.name ?? "...");
   }, [props.sourceId]);
 
   const lastSourceId = useRef<string | null>(null);
@@ -273,7 +277,7 @@ export function SourceSelectPart(props: { media: ScrapeMedia }) {
                 key={v.id}
                 onClick={() => setSelectedSourceId(v.id)}
               >
-                {v.name}
+                {resolveSourceDisplayName(v.id, v.name)}
               </SelectableLink>
             ))}
           </Menu.Section>

@@ -12,6 +12,10 @@ import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { ErrorContainer, ErrorLayout } from "@/pages/layouts/ErrorLayout";
 import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
+import {
+  detectPlaybackEnv,
+  hasProvenZeroHit,
+} from "@/utils/media/sourceOrder";
 
 import { ErrorCardInModal } from "../errors/ErrorCard";
 
@@ -62,8 +66,18 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
           : playbackError.type === "htmlvideo";
 
       if (isFatalError) {
+        const playbackCtx = {
+          env: detectPlaybackEnv(),
+          mediaType:
+            meta?.type === "show" ? ("show" as const) : ("movie" as const),
+          meta,
+        };
+        const skipMirrors =
+          currentSourceId != null &&
+          hasProvenZeroHit(currentSourceId, playbackCtx);
         if (
           !currentEmbedId &&
+          !skipMirrors &&
           usePlayerStore.getState().tryShiftSourceMirror()
         ) {
           return;

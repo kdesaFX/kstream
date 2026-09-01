@@ -41,6 +41,7 @@ import { useHistoryListener } from "@/stores/history";
 import { useClearModalsOnNavigation } from "@/stores/interface/overlayStack";
 import { LanguageProvider } from "@/stores/language";
 import { conf } from "@/setup/config";
+import { purgeBannerAds } from "@/utils/ads/purgeBannerAds";
 import { PlayerView, SettingsPage, MangaReaderView, preloadPlayerView, preloadSettingsPage } from "@/setup/routePreload";
 
 const AboutPage = lazy(() =>
@@ -197,6 +198,13 @@ function App() {
 
   useEffect(() => {
     window.__kstreamLoadPopunder?.();
+    if (
+      location.pathname.startsWith("/media/") ||
+      location.pathname.startsWith("/manga/")
+    ) {
+      purgeBannerAds();
+      window.__kstreamUnloadPopunder?.();
+    }
   }, [location.pathname]);
 
   useEffect(() => {

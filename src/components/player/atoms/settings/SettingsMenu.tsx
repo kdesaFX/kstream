@@ -17,6 +17,7 @@ import { usePlayerStore } from "@/stores/player/store";
 import { qualityToString } from "@/stores/player/utils/qualities";
 import { useSubtitleStore } from "@/stores/subtitles";
 import { isAnimeTitle } from "@/utils/media/anime";
+import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
 import { getPrettyLanguageNameFromLocale } from "@/utils/locale/language";
 
 function audioFlagCode(language?: string): string | undefined {
@@ -76,12 +77,13 @@ export function SettingsMenu({ id }: { id: string }) {
     (status !== playerStatus.PLAYING && !source);
   const sourceName = useMemo(() => {
     if (!currentSourceId) return "...";
-    // Compact label for the cramped settings grid only — lists/scrape keep full names.
-    if (currentSourceId === "tqq") return "TQQ";
     const sourceMeta = getCachedMetadata().find(
       (src) => src.id === currentSourceId,
     );
-    return sourceMeta?.name ?? "...";
+    return resolveSourceDisplayName(
+      currentSourceId,
+      sourceMeta?.name ?? "...",
+    );
   }, [currentSourceId]);
   const embedName = useMemo(() => {
     if (!currentEmbedId) return undefined;
