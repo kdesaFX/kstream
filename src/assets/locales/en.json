@@ -723,6 +723,11 @@
       "originBundled": "Bundled (local)",
       "originRemote": "Remote site",
       "schoolNote": "The app UI runs locally on your laptop. GoGuardian can still block some stream hosts or TMDB — install at home on Wi‑Fi if your school blocks the download page.",
+      "networkCheckTitle": "Network check",
+      "networkCheckRun": "Run check",
+      "networkCheckRunning": "Checking…",
+      "networkCheckOk": "OK ({{ms}}ms)",
+      "networkCheckFail": "Blocked",
       "smartScreenNote": "Unsigned builds may show a Windows SmartScreen warning. Choose More info, then Run anyway.",
       "close": "Close"
     }

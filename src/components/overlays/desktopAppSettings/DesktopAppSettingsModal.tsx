@@ -16,6 +16,19 @@ export type DesktopAppInfo = {
   version: string;
 };
 
+type NetworkCheckResult = {
+  testedAt: string;
+  tests: Array<{
+    id: string;
+    label: string;
+    ok: boolean;
+    optional?: boolean;
+    status?: number;
+    ms?: number;
+    error?: string;
+  }>;
+};
+
 const MODAL_ID = "desktop-app-settings";
 
 async function fetchDesktopAppInfo(): Promise<DesktopAppInfo | null> {
@@ -52,6 +65,10 @@ export function DesktopAppSettingsModal({ id = MODAL_ID }: { id?: string }) {
   const isDesktop = useIsDesktopApp();
   const [info, setInfo] = useState<DesktopAppInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [networkCheck, setNetworkCheck] = useState<NetworkCheckResult | null>(
+    null,
+  );
+  const [networkChecking, setNetworkChecking] = useState(false);
 
   // Backup for any leftover dispatchEvent callers
   useEffect(() => {
@@ -74,6 +91,23 @@ export function DesktopAppSettingsModal({ id = MODAL_ID }: { id?: string }) {
       cancelled = true;
     };
   }, [modal.isShown]);
+
+  async function handleNetworkCheck() {
+    const ipc = window.__KSTREAM_DESKTOP_IPC__;
+    if (!ipc?.invoke) return;
+    setNetworkChecking(true);
+    setNetworkCheck(null);
+    try {
+      const res = await ipc.invoke("runNetworkCheck");
+      if (res && typeof res === "object" && Array.isArray(res.tests)) {
+        setNetworkCheck(res as NetworkCheckResult);
+      }
+    } catch {
+      setNetworkCheck(null);
+    } finally {
+      setNetworkChecking(false);
+    }
+  }
 
   const originMode =
     info?.originMode ||
@@ -136,7 +170,55 @@ export function DesktopAppSettingsModal({ id = MODAL_ID }: { id?: string }) {
           </p>
         </div>
 
-        <div className="flex justify-end">
+        {isDesktop ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-type-dimmed text-sm font-medium">
+                {t("desktopApp.settings.networkCheckTitle")}
+              </p>
+              <Button
+                theme="secondary"
+                className="shrink-0"
+                disabled={networkChecking}
+                onClick={() => void handleNetworkCheck()}
+              >
+                {networkChecking
+                  ? t("desktopApp.settings.networkCheckRunning")
+                  : t("desktopApp.settings.networkCheckRun")}
+              </Button>
+            </div>
+            {networkCheck?.tests?.length ? (
+              <ul className="rounded-xl bg-largeCard-background bg-opacity-50 p-3 space-y-2 text-sm">
+                {networkCheck.tests.map((test) => (
+                  <li
+                    key={test.id}
+                    className="flex items-start justify-between gap-3"
+                  >
+                    <span className="text-type-secondary">{test.label}</span>
+                    <span
+                      className={
+                        test.ok
+                          ? "text-green-400 shrink-0"
+                          : test.optional
+                            ? "text-type-dimmed shrink-0"
+                            : "text-red-400 shrink-0"
+                      }
+                    >
+                      {test.ok
+                        ? t("desktopApp.settings.networkCheckOk", {
+                            ms: test.ms ?? 0,
+                          })
+                        : test.error ||
+                          t("desktopApp.settings.networkCheckFail")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="flex justify-end gap-3">
           <Button theme="purple" onClick={modal.hide}>
             {t("desktopApp.settings.close")}
           </Button>
