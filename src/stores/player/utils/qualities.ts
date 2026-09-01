@@ -141,9 +141,17 @@ export function qualityToString(quality: SourceQuality): string {
 export function highestAvailableQuality(
   qualities: SourceQuality[],
 ): SourceQuality | null {
-  const candidates = qualities.filter((q) => q !== "unknown");
-  if (!candidates.length) return null;
-  return sortedQualities.find((q) => candidates.includes(q)) ?? null;
+  let best: SourceQuality | null = null;
+  let bestScore = -1;
+  for (const quality of qualities) {
+    if (quality === "unknown") continue;
+    const score = qualitySorting[quality];
+    if (score > bestScore) {
+      bestScore = score;
+      best = quality;
+    }
+  }
+  return best;
 }
 
 const exactHeightMap: Record<number, SourceQuality> = {

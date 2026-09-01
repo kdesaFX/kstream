@@ -454,8 +454,7 @@ export function HomeTopAds() {
   const adsDisabled = useAdsStore((s) => s.adsDisabled);
   const { isMobile } = useIsMobile();
   const location = useLocation();
-
-  if (!areBannerAdsAllowedOnPath(location.pathname)) return null;
+  const bannerAllowed = areBannerAdsAllowedOnPath(location.pathname);
 
   const topLeft = useMemo(
     () =>
@@ -493,6 +492,7 @@ export function HomeTopAds() {
     [cfg.ENABLE_SECONDARY_AD, cfg.SECONDARY_AD_ZONE_ID],
   );
 
+  if (!bannerAllowed) return null;
   if (areAdsBlocked(adsDisabled)) return null;
   if (!topLeft && !bottomLeft && !secondarySlot) return null;
 
@@ -515,8 +515,7 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
   const adsDisabled = useAdsStore((s) => s.adsDisabled);
   const { isMobile } = useIsMobile();
   const location = useLocation();
-
-  if (!areBannerAdsAllowedOnPath(location.pathname)) return null;
+  const bannerAllowed = areBannerAdsAllowedOnPath(location.pathname);
 
   const primarySlot = useMemo(
     () =>
@@ -534,6 +533,7 @@ export function HomeAd({ slot = "primary" }: { slot?: AdSlot } = {}) {
     ],
   );
 
+  if (!bannerAllowed) return null;
   if (areAdsBlocked(adsDisabled)) return null;
 
   if (slot === "primary") {

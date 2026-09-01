@@ -205,12 +205,6 @@ describe("prioritizeConfiguredSources", () => {
 });
 
 describe("excludeZeroHitFromAutoScrape", () => {
-  const westernMeta = {
-    genreIds: [28],
-    originalLanguage: "en",
-    originCountry: ["US"],
-  };
-
   const deadMatrix: SourceScoreMatrix = {
     updatedAt: "test",
     animeOnly: [],

@@ -87,7 +87,7 @@ function EmbedSelectionView(props: {
   const sourceName = useMemo(() => {
     if (!props.sourceId) return "...";
     const sourceMeta = getCachedMetadata().find((s) => s.id === props.sourceId);
-    return resolveSourceDisplayName(sourceId, sourceMeta?.name ?? "...");
+    return resolveSourceDisplayName(props.sourceId, sourceMeta?.name ?? "...");
   }, [props.sourceId]);
 
   const lastSourceId = useRef<string | null>(null);
