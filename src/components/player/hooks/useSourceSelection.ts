@@ -17,12 +17,12 @@ import { convertRunoutputToSource } from "@/components/player/utils/convertRunou
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { getMediaKey, metaToScrapeMedia } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
-import {
-  pickPreferredAudioStream,
-  streamsToAudioOptions,
-} from "@/stores/player/utils/audioStreams";
+import { streamsToAudioOptions } from "@/stores/player/utils/audioStreams";
 import { discoverAlternateAudioLanguages } from "@/stores/player/utils/discoverAlternateAudio";
-import { streamsToQualityOptions } from "@/stores/player/utils/qualityStreams";
+import {
+  pickBestQualityStream,
+  streamsToQualityOptions,
+} from "@/stores/player/utils/qualityStreams";
 import { usePreferencesStore } from "@/stores/preferences";
 import { useProgressStore } from "@/stores/progress";
 
@@ -54,10 +54,16 @@ function startAlternateAudioDiscovery(sourceId: string) {
 function registerCurrentQualityOptions(
   streams: Parameters<typeof streamsToQualityOptions>[0],
   sourceId: string,
-  embedId?: string | null,
+  embedId: string | null | undefined,
+  preferredLanguage: string | null | undefined,
 ) {
   const mediaKey = getMediaKey(usePlayerStore.getState().meta);
   if (!mediaKey) return;
+  if (streams?.length) {
+    usePlayerStore
+      .getState()
+      .registerSourceMirrors(sourceId, streams, preferredLanguage);
+  }
   void streamsToQualityOptions(streams, sourceId, embedId).then((options) => {
     const store = usePlayerStore.getState();
     if (getMediaKey(store.meta) !== mediaKey) return;
@@ -109,8 +115,11 @@ export function useEmbedScraping(
     report([
       scrapeSourceOutputToProviderMetric(meta, sourceId, null, "success", null),
     ]);
-    const selectedStream = pickPreferredAudioStream(
-      result.stream,
+    const embedStreams = Array.isArray(result.stream)
+      ? result.stream
+      : [result.stream];
+    const selectedStream = pickBestQualityStream(
+      embedStreams,
       preferredAudioLanguage,
     );
     if (isExtensionActiveCached()) await prepareStream(selectedStream);
@@ -120,9 +129,14 @@ export function useEmbedScraping(
     usePlayerStore
       .getState()
       .registerAudioStreamOptions(
-        streamsToAudioOptions(result.stream, sourceId, embedId),
+        streamsToAudioOptions(embedStreams, sourceId, embedId),
       );
-    registerCurrentQualityOptions(result.stream, sourceId, embedId);
+    registerCurrentQualityOptions(
+      embedStreams,
+      sourceId,
+      embedId,
+      preferredAudioLanguage,
+    );
     setSource(
       convertRunoutputToSource({ stream: selectedStream }),
       convertProviderCaption(selectedStream.captions),
@@ -189,8 +203,11 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
     ]);
 
     if (result.stream) {
-      const selectedStream = pickPreferredAudioStream(
-        result.stream,
+      const streams = Array.isArray(result.stream)
+        ? result.stream
+        : [result.stream];
+      const selectedStream = pickBestQualityStream(
+        streams,
         preferredAudioLanguage,
       );
       if (isExtensionActiveCached()) await prepareStream(selectedStream);
@@ -199,9 +216,14 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
       usePlayerStore
         .getState()
         .registerAudioStreamOptions(
-          streamsToAudioOptions(result.stream, sourceId, null),
+          streamsToAudioOptions(streams, sourceId, null),
         );
-      registerCurrentQualityOptions(result.stream, sourceId, null);
+      registerCurrentQualityOptions(
+        streams,
+        sourceId,
+        null,
+        preferredAudioLanguage,
+      );
       setSource(
         convertRunoutputToSource({ stream: selectedStream }),
         convertProviderCaption(selectedStream.captions),
@@ -245,8 +267,11 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
           null,
         ),
       ]);
-      const selectedStream = pickPreferredAudioStream(
-        embedResult.stream,
+      const embedStreams = Array.isArray(embedResult.stream)
+        ? embedResult.stream
+        : [embedResult.stream];
+      const selectedStream = pickBestQualityStream(
+        embedStreams,
         preferredAudioLanguage,
       );
       setSourceId(sourceId);
@@ -257,15 +282,16 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
         .getState()
         .registerAudioStreamOptions(
           streamsToAudioOptions(
-            embedResult.stream,
+            embedStreams,
             sourceId,
             result.embeds[0].embedId,
           ),
         );
       registerCurrentQualityOptions(
-        embedResult.stream,
+        embedStreams,
         sourceId,
         result.embeds[0].embedId,
+        preferredAudioLanguage,
       );
       setSource(
         convertRunoutputToSource({ stream: selectedStream }),

@@ -14,6 +14,67 @@ import type {
   SourceSliceSource,
 } from "@/stores/player/utils/qualities";
 
+const QUALITY_RANK: Record<SourceQuality, number> = {
+  unknown: 0,
+  "360": 1,
+  "480": 2,
+  "720": 3,
+  "1080": 4,
+  "4k": 5,
+};
+
+/** Highest labeled tier on a file stream; HLS mirrors rely on provider order. */
+export function streamPeakQualityRank(stream: Stream): number {
+  if (stream.type === "file") {
+    let max = 0;
+    for (const quality of Object.keys(stream.qualities) as SourceQuality[]) {
+      if (stream.qualities[quality]?.url) {
+        max = Math.max(max, QUALITY_RANK[quality] ?? 0);
+      }
+    }
+    return max;
+  }
+  return 0;
+}
+
+/** Best-first order for scrape validation and playback (Nova ships mirrors best-first). */
+export function orderStreamsForPlayback(
+  streams: Stream[],
+  preferredLanguage?: string | null,
+): Stream[] {
+  const preferred = preferredLanguage?.trim();
+  const indexed = streams.map((stream, index) => ({ stream, index }));
+  return indexed
+    .sort((a, b) => {
+      const langA = a.stream.audioLanguage?.trim();
+      const langB = b.stream.audioLanguage?.trim();
+      if (preferred) {
+        const matchA = langA === preferred ? 1 : 0;
+        const matchB = langB === preferred ? 1 : 0;
+        if (matchA !== matchB) return matchB - matchA;
+      }
+      const rankDiff =
+        streamPeakQualityRank(b.stream) - streamPeakQualityRank(a.stream);
+      if (rankDiff !== 0) return rankDiff;
+      return a.index - b.index;
+    })
+    .map((entry) => entry.stream);
+}
+
+export function pickBestQualityStream(
+  streams: Stream[],
+  preferredLanguage?: string | null,
+  fallback?: Stream,
+): Stream {
+  if (!streams.length) {
+    if (!fallback) throw new Error("pickBestQualityStream: no streams");
+    return fallback;
+  }
+  return (
+    orderStreamsForPlayback(streams, preferredLanguage)[0] ?? fallback ?? streams[0]
+  );
+}
+
 /**
  * A safety net, not a latency control. The playlist is a few KB, but the CORS
  * proxy has to fetch it from a cold origin first, which regularly takes several
@@ -238,10 +299,10 @@ export async function streamsToQualityOptions(
   embedId?: string | null,
 ): Promise<QualityStreamOption[]> {
   if (!streams?.length) return [];
-  const optionGroups = await Promise.all(
-    streams.map((stream) => streamToQualityOptions(stream, sourceId, embedId)),
-  );
-  return mergeQualityStreamOptions([], optionGroups.flat());
+  // Nova and similar sources return many mirror URLs. Probing every mirror
+  // hammers the proxy and fills the quality menu with duplicate rows.
+  const primary = pickBestQualityStream(streams);
+  return streamToQualityOptions(primary, sourceId, embedId);
 }
 
 /** Every tier the menu can act on, whether it needs a source hop or not. */
@@ -296,6 +357,7 @@ export function choicesForQualityTier(opts: {
   currentLanguage?: string | null;
 }): QualityTierChoice[] {
   const out: QualityTierChoice[] = [];
+  const seenAlternateKeys = new Set<string>();
 
   if (opts.available.includes(opts.quality) && opts.currentSourceId) {
     const raw = opts.currentLanguage?.trim().toLowerCase();
@@ -318,6 +380,10 @@ export function choicesForQualityTier(opts: {
     ) {
       continue;
     }
+    const langKey = option.languages.join(",");
+    const dedupeKey = `${option.sourceId}:${option.quality}:${langKey}`;
+    if (seenAlternateKeys.has(dedupeKey)) continue;
+    seenAlternateKeys.add(dedupeKey);
     out.push({ kind: "alternate", option });
   }
 

@@ -115,6 +115,7 @@ async function registerStreams(
       streamsToAudioOptions(missing, sourceId, embedId),
     );
   }
+  store.registerSourceMirrors(sourceId, streams, null);
   void streamsToQualityOptions(streams, sourceId, embedId).then((options) => {
     if (!stillSameMedia(mediaKey)) return;
     usePlayerStore.getState().registerQualityStreamOptions(options);

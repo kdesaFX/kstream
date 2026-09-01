@@ -2,6 +2,7 @@ import { RunOutput, Stream } from "@p-stream/providers";
 
 import { requiresSameOriginProxy } from "@/components/player/utils/convertRunoutputToSource";
 import { createM3U8ProxyUrl } from "@/components/player/utils/proxy";
+import { orderStreamsForPlayback } from "@/stores/player/utils/qualityStreams";
 
 const VALIDATE_TIMEOUT_MS = 8_000;
 const VALIDATE_RANGE = "bytes=0-4095";
@@ -102,7 +103,7 @@ export async function validateRunOutput(
   }
 
   const reasons: string[] = [];
-  for (const stream of streams) {
+  for (const stream of orderStreamsForPlayback(streams)) {
     const result = await validateStream(stream);
     if (result.ok) return { ok: true, stream };
     reasons.push(result.reason);

@@ -1,7 +1,9 @@
 /* eslint-disable no-console */
-import { ScrapeMedia } from "@p-stream/providers";
+import { ScrapeMedia, Stream } from "@p-stream/providers";
 
 import { downloadCaption } from "@/backend/helpers/subs";
+import { convertProviderCaption } from "@/components/player/utils/captions";
+import { convertRunoutputToSource } from "@/components/player/utils/convertRunoutputToSource";
 import { TTMLCue } from "@/components/player/utils/ttml";
 import { MakeSlice } from "@/stores/player/slices/types";
 import {
@@ -19,6 +21,7 @@ import {
 } from "@/stores/player/utils/qualities";
 import { mergeQualityStreamOptions } from "@/stores/player/utils/qualityStreams";
 import type { QualityStreamOption } from "@/stores/player/utils/qualityStreams";
+import { pickBestQualityStream } from "@/stores/player/utils/qualityStreams";
 import { isUrlAlreadyProxied } from "@/components/player/utils/proxy";
 import { useQualityStore } from "@/stores/quality";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -213,6 +216,8 @@ export interface SourceSlice {
     translateTask: TranslateTask | null;
   };
   meta: PlayerMeta | null;
+  /** Extra mirror URLs from the same scrape (e.g. Nova edge workers). */
+  sourceMirrorStreams: Record<string, Stream[]>;
   failedSourcesPerMedia: Record<string, string[]>; // mediaKey -> array of failed sourceIds
   failedEmbedsPerMedia: Record<string, Record<string, string[]>>; // mediaKey -> sourceId -> array of failed embedIds
   resumeFromSourceId: string | null;
@@ -256,6 +261,12 @@ export interface SourceSlice {
   clearAudioStreamOptions(): void;
   switchAudioStream(optionId: string): void;
   registerQualityStreamOptions(options: QualityStreamOption[]): void;
+  registerSourceMirrors(
+    sourceId: string,
+    streams: Stream[],
+    preferredLanguage?: string | null,
+  ): void;
+  tryShiftSourceMirror(): boolean;
   clearQualityStreamOptions(): void;
   switchQualityStream(quality: SourceQuality): void;
   switchQualityStreamOption(optionId: string): void;
@@ -339,6 +350,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   audioTracks: [],
   audioStreamOptions: [],
   qualityStreamOptions: [],
+  sourceMirrorStreams: {},
   captionList: [],
   isLoadingExternalSubtitles: false,
   externalSubtitlesMediaKey: null,
@@ -765,6 +777,38 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       );
     });
   },
+  registerSourceMirrors(sourceId, streams, preferredLanguage) {
+    if (!streams.length) return;
+    const primary = pickBestQualityStream(streams, preferredLanguage);
+    const mirrors = streams.filter((stream) => stream.id !== primary.id);
+    set((s) => {
+      if (mirrors.length) {
+        s.sourceMirrorStreams[sourceId] = mirrors;
+      } else {
+        delete s.sourceMirrorStreams[sourceId];
+      }
+    });
+  },
+  tryShiftSourceMirror() {
+    const store = get();
+    const sourceId = store.sourceId;
+    if (!sourceId || store.embedId) return false;
+    const mirrors = store.sourceMirrorStreams[sourceId];
+    if (!mirrors?.length) return false;
+
+    const [next, ...rest] = mirrors;
+    set((s) => {
+      s.sourceMirrorStreams[sourceId] = rest;
+      s.interface.error = undefined;
+      s.status = playerStatus.PLAYING;
+    });
+    store.setSource(
+      convertRunoutputToSource({ stream: next }),
+      convertProviderCaption(next.captions),
+      store.progress.time,
+    );
+    return true;
+  },
   clearQualityStreamOptions() {
     set((s) => {
       s.qualityStreamOptions = [];
@@ -866,6 +910,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.audioTracks = [];
       s.audioStreamOptions = [];
       s.qualityStreamOptions = [];
+      s.sourceMirrorStreams = {};
       s.captionList = [];
       s.isLoadingExternalSubtitles = false;
       s.externalSubtitlesMediaKey = null;

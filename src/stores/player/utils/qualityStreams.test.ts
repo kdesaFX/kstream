@@ -10,10 +10,13 @@ import {
   hasMultipleQualityChoices,
   languagesByQuality,
   mergeQualityStreamOptions,
+  orderStreamsForPlayback,
   parseHlsQualities,
+  pickBestQualityStream,
   QualityStreamOption,
   rememberIdentifiedQualities,
   selectableQualityTiers,
+  streamPeakQualityRank,
   streamToQualityOptions,
 } from "@/stores/player/utils/qualityStreams";
 import type { SourceQuality } from "@/stores/player/utils/qualities";
@@ -206,7 +209,63 @@ describe("mergeQualityStreamOptions", () => {
   });
 });
 
+describe("pickBestQualityStream", () => {
+  function hls(id: string): Stream {
+    return {
+      id,
+      type: "hls",
+      playlist: `https://example.com/${id}.m3u8`,
+      captions: [],
+      flags: [],
+      audioLanguage: "en",
+    } as unknown as Stream;
+  }
+
+  function file(qualities: Record<string, string>): Stream {
+    return {
+      id: "file-1",
+      type: "file",
+      qualities: Object.fromEntries(
+        Object.entries(qualities).map(([q, url]) => [q, { type: "mp4", url }]),
+      ),
+      captions: [],
+      flags: [],
+      audioLanguage: "en",
+    } as unknown as Stream;
+  }
+
+  it("keeps provider order for HLS mirrors when tiers are unknown", () => {
+    const streams = [hls("best"), hls("mirror-2"), hls("mirror-3")];
+    expect(pickBestQualityStream(streams).id).toBe("best");
+  });
+
+  it("prefers the highest labeled file tier", () => {
+    const low = file({ "720": "https://example.com/720.mp4" });
+    const high = {
+      ...file({ "1080": "https://example.com/1080.mp4" }),
+      id: "file-1080",
+    } as Stream;
+    expect(pickBestQualityStream([low, high]).id).toBe("file-1080");
+  });
+});
+
 describe("choicesForQualityTier", () => {
+  it("dedupes duplicate source rows at the same tier", () => {
+    const choices = choicesForQualityTier({
+      quality: "720",
+      available: ["480"],
+      alternates: [
+        option("720", "nova", ["en"]),
+        option("720", "nova", ["en"]),
+        option("720", "cornclick", ["en"]),
+      ],
+      currentSourceId: "7movies",
+      currentLanguage: "en",
+    });
+
+    expect(choices.filter((c) => c.kind === "alternate")).toHaveLength(2);
+  });
+
   it("lists the current ladder and every alternate at the tier", () => {
     const choices = choicesForQualityTier({
       quality: "720",

@@ -62,6 +62,12 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
           : playbackError.type === "htmlvideo";
 
       if (isFatalError) {
+        if (
+          !currentEmbedId &&
+          usePlayerStore.getState().tryShiftSourceMirror()
+        ) {
+          return;
+        }
         if (currentEmbedId) {
           // Multi-mirror sources (e.g. TQQ quints) must not ban the whole source
           // after one/two bad mirrors — only mark the mirror itself failed.

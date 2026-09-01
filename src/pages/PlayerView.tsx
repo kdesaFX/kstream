@@ -36,11 +36,13 @@ import {
 } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 import {
-  pickPreferredAudioStream,
   streamsToAudioOptions,
 } from "@/stores/player/utils/audioStreams";
 import { discoverAlternateAudioLanguages } from "@/stores/player/utils/discoverAlternateAudio";
-import { streamsToQualityOptions } from "@/stores/player/utils/qualityStreams";
+import {
+  pickBestQualityStream,
+  streamsToQualityOptions,
+} from "@/stores/player/utils/qualityStreams";
 import { usePreferencesStore } from "@/stores/preferences";
 import { getProgressPercentage, useProgressStore } from "@/stores/progress";
 import { needsOnboarding } from "@/utils/hosting/onboarding";
@@ -64,10 +66,14 @@ function startAlternateAudioDiscovery(
 function registerCurrentQualityOptions(
   streams: NonNullable<RunOutput["streams"]>,
   sourceId: string,
-  embedId?: string | null,
+  embedId: string | null | undefined,
+  preferredLanguage: string | null | undefined,
 ) {
   const mediaKey = getMediaKey(usePlayerStore.getState().meta);
   if (!mediaKey) return;
+  usePlayerStore
+    .getState()
+    .registerSourceMirrors(sourceId, streams, preferredLanguage);
   void streamsToQualityOptions(streams, sourceId, embedId).then((options) => {
     const store = usePlayerStore.getState();
     if (getMediaKey(store.meta) !== mediaKey) return;
@@ -282,7 +288,7 @@ export function RealPlayerView() {
       if (startAtParam) startAt = parseTimestamp(startAtParam) ?? undefined;
 
       const availableStreams = out.streams?.length ? out.streams : [out.stream];
-      const selectedStream = pickPreferredAudioStream(
+      const selectedStream = pickBestQualityStream(
         availableStreams,
         preferredAudioLanguage,
         out.stream,
@@ -301,6 +307,7 @@ export function RealPlayerView() {
         availableStreams,
         out.sourceId,
         out.embedId,
+        preferredAudioLanguage,
       );
 
       playMedia(
