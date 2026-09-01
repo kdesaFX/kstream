@@ -10,13 +10,11 @@ import {
   hasMultipleQualityChoices,
   languagesByQuality,
   mergeQualityStreamOptions,
-  orderStreamsForPlayback,
   parseHlsQualities,
   pickBestQualityStream,
   QualityStreamOption,
   rememberIdentifiedQualities,
   selectableQualityTiers,
-  streamPeakQualityRank,
   streamToQualityOptions,
 } from "@/stores/player/utils/qualityStreams";
 import type { SourceQuality } from "@/stores/player/utils/qualities";

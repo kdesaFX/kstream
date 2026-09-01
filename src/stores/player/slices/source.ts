@@ -19,9 +19,11 @@ import {
   SourceSliceSource,
   selectQuality,
 } from "@/stores/player/utils/qualities";
-import { mergeQualityStreamOptions } from "@/stores/player/utils/qualityStreams";
-import type { QualityStreamOption } from "@/stores/player/utils/qualityStreams";
-import { pickBestQualityStream } from "@/stores/player/utils/qualityStreams";
+import {
+  mergeQualityStreamOptions,
+  pickBestQualityStream,
+  type QualityStreamOption,
+} from "@/stores/player/utils/qualityStreams";
 import { isUrlAlreadyProxied } from "@/components/player/utils/proxy";
 import { useQualityStore } from "@/stores/quality";
 import { usePreferencesStore } from "@/stores/preferences";
