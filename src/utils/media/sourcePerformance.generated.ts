@@ -291,6 +291,42 @@ export const SOURCE_SCORE_MATRIX: SourceScoreMatrix = {
         }
       }
     },
+    "way2movies": {
+      "browser": {
+        "movie": {
+          "hit": 85,
+          "hitMs": 2800,
+          "score": 305
+        },
+        "anime": {
+          "hit": 70,
+          "hitMs": 3200,
+          "score": 220
+        },
+        "show": {
+          "hit": 90,
+          "hitMs": 2500,
+          "score": 360
+        }
+      },
+      "extension": {
+        "movie": {
+          "hit": 88,
+          "hitMs": 2600,
+          "score": 338
+        },
+        "anime": {
+          "hit": 75,
+          "hitMs": 3000,
+          "score": 250
+        },
+        "show": {
+          "hit": 92,
+          "hitMs": 2400,
+          "score": 383
+        }
+      }
+    },
     "nova": {
       "browser": {
         "movie": {

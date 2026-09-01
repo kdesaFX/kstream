@@ -3,6 +3,10 @@ import { RunOutput, Stream } from "@p-stream/providers";
 import { requiresSameOriginProxy } from "@/components/player/utils/convertRunoutputToSource";
 import { createM3U8ProxyUrl } from "@/components/player/utils/proxy";
 import { orderStreamsForPlayback } from "@/stores/player/utils/qualityStreams";
+import {
+  hasProvenZeroHit,
+  type SourceOrderContext,
+} from "@/utils/media/sourceOrder";
 
 const VALIDATE_TIMEOUT_MS = 8_000;
 const VALIDATE_RANGE = "bytes=0-4095";
@@ -64,14 +68,18 @@ export async function validateHlsPlaylistUrl(
 
 export async function validateStream(
   stream: Stream,
+  opts?: { strictProxyPlaylist?: boolean },
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (stream.type === "hls") {
     const bad = isKnownBadStreamUrl(stream.playlist);
     if (bad) return { ok: false, reason: bad };
     // Way2 / Nova / Reyna playlists 403 bare page fetches and rate-limit under
     // burst auto-resume. The scraper already returned a hit; playback stamps
-    // Origin/Referer through /api/m3u8-proxy.
-    if (requiresSameOriginProxy(stream.playlist)) {
+    // Origin/Referer through /api/m3u8-proxy — unless goon shows 0% hit here.
+    if (
+      requiresSameOriginProxy(stream.playlist) &&
+      !opts?.strictProxyPlaylist
+    ) {
       return { ok: true };
     }
     return validateHlsPlaylistUrl(stream.playlist, mergeStreamHeaders(stream));
@@ -89,10 +97,14 @@ export async function validateStream(
 /** Pick the first stream variant that looks playable. */
 export async function validateRunOutput(
   output: RunOutput,
+  ctx?: SourceOrderContext,
 ): Promise<
   | { ok: true; stream: Stream }
   | { ok: false; reason: string; sourceId: string }
 > {
+  const strictProxyPlaylist =
+    ctx != null && hasProvenZeroHit(output.sourceId, ctx);
+
   const streams = output.streams?.length
     ? output.streams
     : output.stream
@@ -104,7 +116,7 @@ export async function validateRunOutput(
 
   const reasons: string[] = [];
   for (const stream of orderStreamsForPlayback(streams)) {
-    const result = await validateStream(stream);
+    const result = await validateStream(stream, { strictProxyPlaylist });
     if (result.ok) return { ok: true, stream };
     reasons.push(result.reason);
   }

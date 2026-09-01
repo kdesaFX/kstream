@@ -90,6 +90,48 @@ function rankValue(
   return null;
 }
 
+/** Goon matrix entry for env × bucket (no cross-bucket fallback). */
+export function getBucketStat(
+  matrix: SourceScoreMatrix,
+  sourceId: string,
+  env: PlaybackEnv,
+  bucket: MediaBucket,
+): SourceBucketStats | number | null | undefined {
+  const byEnv = matrix.scores[sourceId];
+  if (!byEnv) return undefined;
+
+  const envKey: PlaybackEnv = env === "desktop" ? "extension" : env;
+  const byBucket = byEnv[envKey] ?? byEnv.browser ?? byEnv.extension;
+  if (!byBucket) return undefined;
+
+  return byBucket[bucket];
+}
+
+/** True when goon-test measured 0% hit for this env × bucket. */
+export function hasProvenZeroHit(
+  sourceId: string,
+  ctx: SourceOrderContext,
+  matrix: SourceScoreMatrix = SOURCE_SCORE_MATRIX,
+): boolean {
+  const bucket = getMediaBucket(ctx.mediaType, ctx.meta);
+  const stat = getBucketStat(matrix, sourceId, ctx.env, bucket);
+  if (stat == null) return false;
+  if (typeof stat === "number") return stat === 0;
+  return stat.hit === 0;
+}
+
+function isProvenZeroHit(
+  matrix: SourceScoreMatrix,
+  sourceId: string,
+  env: PlaybackEnv,
+  bucket: MediaBucket,
+): boolean {
+  const stat = getBucketStat(matrix, sourceId, env, bucket);
+  if (stat == null) return false;
+  if (typeof stat === "number") return stat === 0;
+  return stat.hit === 0;
+}
+
 function scoreFor(
   matrix: SourceScoreMatrix,
   sourceId: string,
@@ -172,6 +214,10 @@ function sortByScore(
   specialistIds?: Set<string>,
 ): string[] {
   const ordered = [...ids].sort((a, b) => {
+    const za = isProvenZeroHit(matrix, a, env, bucket);
+    const zb = isProvenZeroHit(matrix, b, env, bucket);
+    if (za !== zb) return za ? 1 : -1;
+
     const sa = scoreFor(matrix, a, env, bucket);
     const sb = scoreFor(matrix, b, env, bucket);
     const na = sa == null ? -1 : sa;
@@ -188,7 +234,9 @@ function sortByScore(
   });
 
   const firstUnscored = ordered.findIndex(
-    (id) => scoreFor(matrix, id, env, bucket) == null,
+    (id) =>
+      scoreFor(matrix, id, env, bucket) == null &&
+      !isProvenZeroHit(matrix, id, env, bucket),
   );
   if (firstUnscored >= INITIAL_SOURCE_RACE_SIZE) {
     const [candidate] = ordered.splice(firstUnscored, 1);

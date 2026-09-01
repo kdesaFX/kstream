@@ -27,6 +27,7 @@ import { excludeDeferredFromPrimary } from "@/utils/media/regionalSources";
 import {
   orderSourceIdsForPlayback,
   detectPlaybackEnv,
+  hasProvenZeroHit,
   prioritizeConfiguredSources,
 } from "@/utils/media/sourceOrder";
 
@@ -337,12 +338,13 @@ export function useScrape() {
       }
 
       // Goon-test stats: order by env (browser/extension/desktop) × media bucket.
+      const sourceOrderCtx = {
+        env: detectPlaybackEnv(),
+        mediaType: media.type === "show" ? ("show" as const) : ("movie" as const),
+        meta: playerState.meta,
+      };
       baseSourceOrder = prioritizeConfiguredSources(
-        orderSourceIdsForPlayback(baseSourceOrder, {
-          env: detectPlaybackEnv(),
-          mediaType: media.type === "show" ? "show" : "movie",
-          meta: playerState.meta,
-        }),
+        orderSourceIdsForPlayback(baseSourceOrder, sourceOrderCtx),
         { hasDebridToken: Boolean(debridToken?.trim()) },
       );
 
@@ -355,7 +357,11 @@ export function useScrape() {
           media.tmdbId,
           lastSuccessfulSource,
         );
-        if (prioritizeSource && baseSourceOrder.includes(prioritizeSource)) {
+        if (
+          prioritizeSource &&
+          baseSourceOrder.includes(prioritizeSource) &&
+          !hasProvenZeroHit(prioritizeSource, sourceOrderCtx)
+        ) {
           const anime = isAnimeTitle(playerState.meta);
           if (!anime || isAnimeSourceId(prioritizeSource)) {
             baseSourceOrder = [
@@ -451,7 +457,7 @@ export function useScrape() {
       const acceptValidatedOutput = async (
         output: RunOutput,
       ): Promise<RunOutput | null> => {
-        const check = await validateRunOutput(output);
+        const check = await validateRunOutput(output, sourceOrderCtx);
         if (check.ok) {
           const accepted = { ...output, stream: check.stream };
           if (isExtensionActiveCached()) await prepareStream(check.stream);

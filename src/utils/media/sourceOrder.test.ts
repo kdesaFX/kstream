@@ -127,6 +127,29 @@ describe("orderSourceIdsForPlayback", () => {
     ]);
   });
 
+  it("demotes goon 0% hit sources below unknowns on shows", () => {
+    const deadMatrix: SourceScoreMatrix = {
+      updatedAt: "test",
+      animeOnly: [],
+      scores: {
+        sevenmovies: {
+          browser: { show: { hit: 100, hitMs: 3000, score: 330 } },
+        },
+        nova: {
+          browser: { show: { hit: 0, hitMs: 0, score: 0 } },
+        },
+      },
+    };
+    const order = orderSourceIdsForPlayback(
+      ["nova", "sevenmovies", "way2movies"],
+      { env: "browser", mediaType: "show", meta: westernMeta },
+      deadMatrix,
+    );
+    expect(order[0]).toBe("sevenmovies");
+    expect(order.indexOf("way2movies")).toBeLessThan(order.indexOf("nova"));
+    expect(order[order.length - 1]).toBe("nova");
+  });
+
   it("on anime, ranks by anime hit rate and only lets specialists win ties", () => {
     const ids = ["myanime", "fsonline", "oneembed", "tqq", "reyna"];
     const animeOrder = orderSourceIdsForPlayback(

@@ -164,6 +164,33 @@ export function useEmbedScraping(
   };
 }
 
+const SCRAPE_RETRY_SOURCES = new Set(["way2movies"]);
+const SCRAPE_RETRY_DELAY_MS = 2000;
+
+async function runSourceScraperWithRetry(
+  sourceId: string,
+  media: ReturnType<typeof metaToScrapeMedia>,
+) {
+  let lastError: unknown;
+  const attempts = SCRAPE_RETRY_SOURCES.has(sourceId) ? 2 : 1;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await getProviders().runSourceScraper({
+        id: sourceId,
+        media,
+      });
+    } catch (err) {
+      lastError = err;
+      if (attempt + 1 < attempts) {
+        await new Promise((resolve) => {
+          setTimeout(resolve, SCRAPE_RETRY_DELAY_MS);
+        });
+      }
+    }
+  }
+  throw lastError;
+}
+
 export function useSourceScraping(sourceId: string | null, routerId: string) {
   const meta = usePlayerStore((s) => s.meta);
   const setSource = usePlayerStore((s) => s.setSource);
@@ -185,10 +212,7 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
 
     let result: SourcererOutput | undefined;
     try {
-      result = await getProviders().runSourceScraper({
-        id: sourceId,
-        media: scrapeMedia,
-      });
+      result = await runSourceScraperWithRetry(sourceId, scrapeMedia);
     } catch (err) {
       console.error(`Failed to scrape ${sourceId}`, err);
       const notFound = err instanceof NotFoundError;
