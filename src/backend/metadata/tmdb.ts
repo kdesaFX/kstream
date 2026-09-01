@@ -5,6 +5,13 @@ import { mangaIdToUrlId } from "@/backend/manga/ids";
 import { conf } from "@/setup/config";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
+import {
+  canUseDesktopTmdbCache,
+  getDesktopTmdbCache,
+  getStaleDesktopTmdbCache,
+  setDesktopTmdbCache,
+} from "@/backend/metadata/tmdbDesktopCache";
+import { isDesktopApp } from "@/hooks/useIsDesktopApp";
 import { SimpleCache } from "@/utils/common/cache";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import {
@@ -324,6 +331,14 @@ export async function get<T>(url: string, params?: object): Promise<T> {
     return cachedResult as T;
   }
 
+  if (canUseDesktopTmdbCache()) {
+    const desktopCached = await getDesktopTmdbCache<T>(cacheKey);
+    if (desktopCached) {
+      tmdbCache.set(cacheKey, desktopCached, 3600);
+      return desktopCached;
+    }
+  }
+
   // directly writing parameters, otherwise it will start the first parameter in the proxied request as "&" instead of "?" because it doesnt understand its proxied
   const fullUrl = new URL(tmdbBaseUrl1 + url);
   const allParams = {
@@ -340,58 +355,72 @@ export async function get<T>(url: string, params?: object): Promise<T> {
 
   let result: T;
 
-  await acquireTmdbSlot();
   try {
-    if (proxy && shouldProxyTmdb) {
-      try {
-        const proxiedUrl = proxiedDestinationUrl(fullUrl.toString(), [proxy]);
-        if (proxiedUrl) {
-          const proxied = await mwFetch<T>(proxiedUrl, {
-            headers: tmdbHeaders,
-            signal: abortOnTimeout(5000),
-          });
-          // A mistyped `/api/proxy/?…` returns SPA HTML; ofetch yields a string
-          // and would skip the direct fallback if we treated it as success.
-          if (proxied && typeof proxied === "object") {
-            result = proxied;
+    await acquireTmdbSlot();
+    try {
+      if (proxy && shouldProxyTmdb) {
+        try {
+          const proxiedUrl = proxiedDestinationUrl(fullUrl.toString(), [proxy]);
+          if (proxiedUrl) {
+            const proxied = await mwFetch<T>(proxiedUrl, {
+              headers: tmdbHeaders,
+              signal: abortOnTimeout(5000),
+            });
+            // A mistyped `/api/proxy/?…` returns SPA HTML; ofetch yields a string
+            // and would skip the direct fallback if we treated it as success.
+            if (proxied && typeof proxied === "object") {
+              result = proxied;
+            }
           }
+        } catch (err) {
+          console.error(err);
+          // Fall through to try direct connection
         }
-      } catch (err) {
-        console.error(err);
-        // Fall through to try direct connection
+      }
+
+      if (!result!) {
+        const primaryAttempt = (async (): Promise<T> => {
+          try {
+            return await mwFetch<T>(encodeURI(url), {
+              headers: tmdbHeaders,
+              baseURL: tmdbBaseUrl1,
+              params: allParams,
+              signal: abortOnTimeout(5000),
+            });
+          } catch (err) {
+            return await mwFetch<T>(encodeURI(url), {
+              headers: tmdbHeaders,
+              baseURL: tmdbBaseUrl2,
+              params: allParams,
+              signal: abortOnTimeout(30000),
+            });
+          }
+        })();
+
+        const valleyTarget = resolveValleyFallbackTarget(url);
+        result = valleyTarget
+          ? await raceWithValleyFallback(primaryAttempt, valleyTarget)
+          : await primaryAttempt;
+      }
+    } finally {
+      releaseTmdbSlot();
+    }
+  } catch (networkErr) {
+    if (canUseDesktopTmdbCache()) {
+      const stale = await getStaleDesktopTmdbCache<T>(cacheKey);
+      if (stale) {
+        tmdbCache.set(cacheKey, stale, 3600);
+        return stale;
       }
     }
-
-    if (!result!) {
-      const primaryAttempt = (async (): Promise<T> => {
-        try {
-          return await mwFetch<T>(encodeURI(url), {
-            headers: tmdbHeaders,
-            baseURL: tmdbBaseUrl1,
-            params: allParams,
-            signal: abortOnTimeout(5000),
-          });
-        } catch (err) {
-          return await mwFetch<T>(encodeURI(url), {
-            headers: tmdbHeaders,
-            baseURL: tmdbBaseUrl2,
-            params: allParams,
-            signal: abortOnTimeout(30000),
-          });
-        }
-      })();
-
-      const valleyTarget = resolveValleyFallbackTarget(url);
-      result = valleyTarget
-        ? await raceWithValleyFallback(primaryAttempt, valleyTarget)
-        : await primaryAttempt;
-    }
-  } finally {
-    releaseTmdbSlot();
+    throw networkErr;
   }
 
   // Cache the result for 1 hour (3600 seconds)
   tmdbCache.set(cacheKey, result, 3600);
+  if (isDesktopApp()) {
+    setDesktopTmdbCache(cacheKey, result);
+  }
   return result;
 }
 

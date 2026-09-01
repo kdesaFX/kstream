@@ -728,6 +728,8 @@
       "networkCheckRunning": "Checking…",
       "networkCheckOk": "OK ({{ms}}ms)",
       "networkCheckFail": "Blocked",
+      "metadataCache": "Metadata cache",
+      "metadataCacheRows": "{{count}} titles cached offline",
       "smartScreenNote": "Unsigned builds may show a Windows SmartScreen warning. Choose More info, then Run anyway.",
       "close": "Close"
     }

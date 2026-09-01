@@ -14,6 +14,7 @@ export type DesktopAppInfo = {
   originMode: string;
   installDir: string;
   version: string;
+  tmdbCache?: { enabled: boolean; rows: number };
 };
 
 type NetworkCheckResult = {
@@ -43,6 +44,13 @@ async function fetchDesktopAppInfo(): Promise<DesktopAppInfo | null> {
       originMode: String(res.originMode || ""),
       installDir: String(res.installDir || ""),
       version: String(res.version || ""),
+      tmdbCache:
+        res.tmdbCache && typeof res.tmdbCache === "object"
+          ? {
+              enabled: Boolean(res.tmdbCache.enabled),
+              rows: Number(res.tmdbCache.rows) || 0,
+            }
+          : undefined,
     };
   } catch {
     return null;
@@ -155,6 +163,14 @@ export function DesktopAppSettingsModal({ id = MODAL_ID }: { id?: string }) {
               label={t("desktopApp.settings.version")}
               value={info?.version || ""}
             />
+            {info?.tmdbCache?.enabled ? (
+              <InfoRow
+                label={t("desktopApp.settings.metadataCache")}
+                value={t("desktopApp.settings.metadataCacheRows", {
+                  count: info.tmdbCache.rows,
+                })}
+              />
+            ) : null}
           </div>
         )}
 
