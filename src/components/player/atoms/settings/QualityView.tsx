@@ -18,6 +18,7 @@ import {
 } from "@/stores/player/utils/qualities";
 import {
   alternateSourceLabels,
+  hasMultipleQualityChoices,
   languagesByQuality,
   selectableQualityTiers,
 } from "@/stores/player/utils/qualityStreams";
@@ -68,7 +69,13 @@ function useIsIosHls() {
   return result;
 }
 
-export function QualityView({ id }: { id: string }) {
+export function QualityView({
+  id,
+  onChooseQualityTier,
+}: {
+  id: string;
+  onChooseQualityTier?: (quality: SourceQuality) => void;
+}) {
   const router = useOverlayRouter(id);
   const isIosHls = useIsIosHls();
   const sourceType = usePlayerStore((s) => s.source?.type);
@@ -150,6 +157,33 @@ export function QualityView({ id }: { id: string }) {
     ],
   );
 
+  const openSourcePicker = useCallback(
+    (q: SourceQuality) => {
+      onChooseQualityTier?.(q);
+      router.navigate("/quality/sources");
+    },
+    [onChooseQualityTier, router],
+  );
+
+  const tierChoiceContext = useMemo(
+    () => ({
+      available: availableQualities,
+      alternates: alternateQualityOptions,
+      currentSourceId,
+      currentLanguage:
+        source?.audioLanguage?.trim() ||
+        currentAudioTrack?.language ||
+        null,
+    }),
+    [
+      alternateQualityOptions,
+      availableQualities,
+      currentAudioTrack?.language,
+      currentSourceId,
+      source?.audioLanguage,
+    ],
+  );
+
   const changeAutomatic = useCallback(() => {
     const newValue = !autoQuality;
     setAutomaticQuality(newValue);
@@ -196,6 +230,45 @@ export function QualityView({ id }: { id: string }) {
           const selected = v === currentQuality;
           const sourceName = alternateSourceNames[v];
           const languages = qualityLanguages[v] ?? [];
+          const selectable = selectableQualities.includes(v);
+          const multipleSources = hasMultipleQualityChoices(v, tierChoiceContext);
+
+          if (multipleSources) {
+            return (
+              <Menu.Link
+                key={v}
+                clickable={selectable}
+                disabled={!selectable}
+                onClick={selectable ? () => openSourcePicker(v) : undefined}
+                rightSide={
+                  <span className="text-white flex items-center font-medium">
+                    <QualityLanguageFlags languages={languages} />
+                    {selected ? (
+                      <Icon
+                        icon={Icons.CIRCLE_CHECK}
+                        className="text-xl text-video-context-type-accent ml-1.5"
+                      />
+                    ) : null}
+                    <Icon
+                      className="text-xl ml-1 -mr-1.5"
+                      icon={Icons.CHEVRON_RIGHT}
+                    />
+                  </span>
+                }
+              >
+                <Menu.LinkTitle
+                  textClass={
+                    selectable
+                      ? "text-video-context-type-main"
+                      : "text-video-context-type-main text-opacity-40"
+                  }
+                >
+                  {qualityToString(v)}
+                </Menu.LinkTitle>
+              </Menu.Link>
+            );
+          }
+
           const hasRightMeta = Boolean(
             languages.length || sourceName || selected,
           );
@@ -204,10 +277,8 @@ export function QualityView({ id }: { id: string }) {
             <SelectableLink
               key={v}
               selected={selected}
-              onClick={
-                selectableQualities.includes(v) ? () => change(v) : undefined
-              }
-              disabled={!selectableQualities.includes(v)}
+              onClick={selectable ? () => change(v) : undefined}
+              disabled={!selectable}
               rightSide={
                 hasRightMeta ? (
                   <span className="flex items-center">

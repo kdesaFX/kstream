@@ -14,6 +14,7 @@ import { Menu } from "@/components/player/internals/ContextMenu";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
 import { CaptionListItem } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
+import type { SourceQuality } from "@/stores/player/utils/qualities";
 
 import { AudioView } from "./settings/AudioView";
 import { CaptionSettingsView } from "./settings/CaptionSettingsView";
@@ -23,6 +24,7 @@ import { LanguageSubtitlesView } from "./settings/LanguageSubtitlesView";
 import { PlaybackSettingsView } from "./settings/PlaybackSettingsView";
 import { AdvancedColorView } from "./settings/AdvancedColorView";
 import { QualityView } from "./settings/QualityView";
+import { QualitySourceView } from "./settings/QualitySourceView";
 import { SettingsMenu } from "./settings/SettingsMenu";
 import { SkipSegmentsView } from "./settings/SkipSegmentsView";
 import { TranscriptView } from "./settings/TranscriptView";
@@ -33,6 +35,8 @@ import { VariantView } from "./settings/VariantView";
 function SettingsOverlay({ id }: { id: string }) {
   const [chosenSourceId, setChosenSourceId] = useState<string | null>(null);
   const [chosenLanguage, setChosenLanguage] = useState<string | null>(null);
+  const [chosenQualityTier, setChosenQualityTier] =
+    useState<SourceQuality | null>(null);
   const [captionToTranslate, setCaptionToTranslate] =
     useState<CaptionListItem | null>(null);
   const router = useOverlayRouter(id);
@@ -42,10 +46,12 @@ function SettingsOverlay({ id }: { id: string }) {
     if (!router.isRouterActive) {
       setChosenSourceId(null);
       setChosenLanguage(null);
+      setChosenQualityTier(null);
     }
     if (router.route === "/") {
       setChosenSourceId(null);
       setChosenLanguage(null);
+      setChosenQualityTier(null);
     }
   }, [router.isRouterActive, router.route]);
 
@@ -57,7 +63,14 @@ function SettingsOverlay({ id }: { id: string }) {
         </OverlayPage>
         <OverlayPage id={id} path="/quality" width={343} height={496}>
           <Menu.Card>
-            <QualityView id={id} />
+            <QualityView id={id} onChooseQualityTier={setChosenQualityTier} />
+          </Menu.Card>
+        </OverlayPage>
+        <OverlayPage id={id} path="/quality/sources" width={343} height={496}>
+          <Menu.Card>
+            {chosenQualityTier && (
+              <QualitySourceView id={id} quality={chosenQualityTier} />
+            )}
           </Menu.Card>
         </OverlayPage>
         <OverlayPage id={id} path="/audio" width={343} height={280}>

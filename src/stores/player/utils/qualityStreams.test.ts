@@ -5,7 +5,9 @@ import type { Stream } from "@p-stream/providers";
 
 import {
   alternateSourceLabels,
+  choicesForQualityTier,
   firstNonEmptyQualities,
+  hasMultipleQualityChoices,
   languagesByQuality,
   mergeQualityStreamOptions,
   parseHlsQualities,
@@ -183,27 +185,74 @@ describe("streamToQualityOptions", () => {
 });
 
 describe("mergeQualityStreamOptions", () => {
-  it("keeps the higher-ranked source for an existing tier", () => {
+  it("keeps every source at a tier instead of collapsing to one", () => {
     const primary = option("480", "mai-sakurajima");
     const alternate480 = option("480", "reyna");
     const alternate4k = option("4k", "reyna");
 
     expect(
       mergeQualityStreamOptions([primary], [alternate480, alternate4k]),
-    ).toEqual([primary, alternate4k]);
+    ).toEqual([primary, alternate480, alternate4k]);
   });
 
-  it("unions languages when another source also offers the same tier", () => {
+  it("dedupes by option id when the same entry is registered twice", () => {
     const english480 = option("480", "7movies", ["en"]);
     const hindi480 = option("480", "nova", ["hi"]);
     const hindi1080 = option("1080", "nova", ["hi"]);
 
     expect(
       mergeQualityStreamOptions([english480], [hindi480, hindi1080]),
-    ).toEqual([
-      { ...english480, languages: ["en", "hi"] },
-      hindi1080,
+    ).toEqual([english480, hindi480, hindi1080]);
+  });
+});
+
+describe("choicesForQualityTier", () => {
+  it("lists the current ladder and every alternate at the tier", () => {
+    const choices = choicesForQualityTier({
+      quality: "720",
+      available: ["480", "720"],
+      alternates: [option("720", "vidlink", ["en"]), option("1080", "nova")],
+      currentSourceId: "tqq",
+      currentLanguage: "en",
+    });
+
+    expect(choices).toHaveLength(2);
+    expect(choices[0]).toMatchObject({
+      kind: "current",
+      sourceId: "tqq",
+      languages: ["en"],
+    });
+    expect(choices[1]).toMatchObject({
+      kind: "alternate",
+      option: expect.objectContaining({ sourceId: "vidlink" }),
+    });
+  });
+
+  it("skips alternates from the current source when its ladder already has the tier", () => {
+    const choices = choicesForQualityTier({
+      quality: "720",
+      available: ["720"],
+      alternates: [option("720", "tqq")],
+      currentSourceId: "tqq",
+      currentLanguage: "en",
+    });
+
+    expect(choices).toEqual([
+      expect.objectContaining({ kind: "current", sourceId: "tqq" }),
     ]);
+  });
+});
+
+describe("hasMultipleQualityChoices", () => {
+  it("is true when more than one source can serve the tier", () => {
+    expect(
+      hasMultipleQualityChoices("720", {
+        available: ["720"],
+        alternates: [option("720", "vidlink")],
+        currentSourceId: "tqq",
+        currentLanguage: "en",
+      }),
+    ).toBe(true);
   });
 });
 
@@ -295,6 +344,17 @@ describe("alternateSourceLabels", () => {
         available: [],
         alternates: [option("1080", "tqq")],
         currentQuality: "720",
+        currentSourceId: "tqq",
+      }),
+    ).toEqual({});
+  });
+
+  it("shows no label when several alternates share a tier", () => {
+    expect(
+      alternateSourceLabels({
+        available: ["480"],
+        alternates: [option("1080", "reyna"), option("1080", "vidlink")],
+        currentQuality: "480",
         currentSourceId: "tqq",
       }),
     ).toEqual({});

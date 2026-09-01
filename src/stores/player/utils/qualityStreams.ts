@@ -35,6 +35,20 @@ export type QualityStreamOption = {
   captions: CaptionListItem[];
 };
 
+/** One selectable row when several sources share a quality tier. */
+export type QualityTierChoice =
+  | {
+      kind: "current";
+      quality: SourceQuality;
+      sourceId: string;
+      sourceName: string;
+      languages: string[];
+    }
+  | {
+      kind: "alternate";
+      option: QualityStreamOption;
+    };
+
 export function sourceDisplayName(sourceId: string): string {
   return (
     getCachedMetadata().find((meta) => meta.id === sourceId)?.name ?? sourceId
@@ -247,6 +261,8 @@ export function selectableQualityTiers(
  * genuinely can't serve it: not in its ladder, not the tier playing right now,
  * and not something it registered itself. A label also occupies the slot the
  * selected tick draws in, so labelling the current row would hide the tick.
+ * When several alternates share a tier, no single label is shown — the source
+ * picker sub-menu lists them instead.
  */
 export function alternateSourceLabels(opts: {
   available: SourceQuality[];
@@ -254,41 +270,77 @@ export function alternateSourceLabels(opts: {
   currentQuality: SourceQuality | null;
   currentSourceId: string | null;
 }): Partial<Record<SourceQuality, string>> {
-  const labels: Partial<Record<SourceQuality, string>> = {};
+  const byQuality = new Map<SourceQuality, QualityStreamOption[]>();
   for (const option of opts.alternates) {
     if (option.quality === opts.currentQuality) continue;
     if (opts.available.includes(option.quality)) continue;
     if (option.sourceId === opts.currentSourceId) continue;
-    labels[option.quality] = option.sourceName;
+    const list = byQuality.get(option.quality) ?? [];
+    list.push(option);
+    byQuality.set(option.quality, list);
+  }
+
+  const labels: Partial<Record<SourceQuality, string>> = {};
+  for (const [quality, options] of byQuality) {
+    if (options.length === 1) labels[quality] = options[0]!.sourceName;
   }
   return labels;
 }
 
-/** Prefer one provider per quality; the first (higher-ranked) source wins.
- *  Languages from later sources still merge in so the menu can flag every
- *  dub that actually exists at that tier. */
+/** Every source the user can pick at a given quality tier. */
+export function choicesForQualityTier(opts: {
+  quality: SourceQuality;
+  available: SourceQuality[];
+  alternates: QualityStreamOption[];
+  currentSourceId: string | null;
+  currentLanguage?: string | null;
+}): QualityTierChoice[] {
+  const out: QualityTierChoice[] = [];
+
+  if (opts.available.includes(opts.quality) && opts.currentSourceId) {
+    const raw = opts.currentLanguage?.trim().toLowerCase();
+    const languages =
+      raw && raw !== "unknown" && raw !== "und" ? [raw] : [];
+    out.push({
+      kind: "current",
+      quality: opts.quality,
+      sourceId: opts.currentSourceId,
+      sourceName: sourceDisplayName(opts.currentSourceId),
+      languages,
+    });
+  }
+
+  for (const option of opts.alternates) {
+    if (option.quality !== opts.quality) continue;
+    if (
+      option.sourceId === opts.currentSourceId &&
+      opts.available.includes(opts.quality)
+    ) {
+      continue;
+    }
+    out.push({ kind: "alternate", option });
+  }
+
+  return out;
+}
+
+export function hasMultipleQualityChoices(
+  quality: SourceQuality,
+  opts: Omit<Parameters<typeof choicesForQualityTier>[0], "quality">,
+): boolean {
+  return choicesForQualityTier({ ...opts, quality }).length > 1;
+}
+
+/** Dedupe by option id so multiple sources can share a tier. */
 export function mergeQualityStreamOptions(
   existing: QualityStreamOption[],
   incoming: QualityStreamOption[],
 ): QualityStreamOption[] {
-  const byQuality = new Map<SourceQuality, QualityStreamOption>();
-  const mergeOne = (option: QualityStreamOption) => {
-    const prev = byQuality.get(option.quality);
-    if (!prev) {
-      byQuality.set(option.quality, {
-        ...option,
-        languages: uniqueLanguages(option.languages),
-      });
-      return;
-    }
-    byQuality.set(option.quality, {
-      ...prev,
-      languages: uniqueLanguages([...prev.languages, ...option.languages]),
-    });
-  };
-  for (const option of existing) mergeOne(option);
-  for (const option of incoming) mergeOne(option);
-  return Array.from(byQuality.values());
+  const byId = new Map<string, QualityStreamOption>();
+  for (const option of [...existing, ...incoming]) {
+    byId.set(option.id, option);
+  }
+  return Array.from(byId.values());
 }
 
 function uniqueLanguages(languages: string[]): string[] {
