@@ -123,6 +123,11 @@ const WatchHistory = lazy(() =>
 const LegalPage = lazy(() =>
   import("@/pages/Legal").then((m) => ({ default: m.LegalPage })),
 );
+const OfflineLibraryPage = lazy(() =>
+  import("@/pages/offline/OfflineLibraryPage").then((m) => ({
+    default: m.OfflineLibraryPage,
+  })),
+);
 
 /** Re-export intent preloads for callers that already import from App. */
 export { preloadPlayerView, preloadSettingsPage } from "@/setup/routePreload";
@@ -454,6 +459,14 @@ function App() {
             element={
               <Suspense fallback={null}>
                 <MyAlgorithmPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/offline"
+            element={
+              <Suspense fallback={null}>
+                <OfflineLibraryPage />
               </Suspense>
             }
           />

@@ -708,8 +708,20 @@
       "discover": "Discover",
       "savedTitles": "Saved Titles",
       "development": "Development",
-      "desktop": "App Settings"
+      "desktop": "App Settings",
+      "offlineDownloads": "Offline downloads"
     }
+  },
+  "offlineLibrary": {
+    "title": "Offline downloads",
+    "loading": "Loading downloads…",
+    "empty": "Nothing downloaded yet. Start playback on a title, open Download, then choose Download for offline use.",
+    "downloading": "Downloading…",
+    "ready": "Ready",
+    "error": "Failed",
+    "play": "Play",
+    "stop": "Stop",
+    "delete": "Remove"
   },
   "desktopApp": {
     "settings": {
@@ -897,6 +909,9 @@
         "headersHint": "Required Referer/Origin headers are included in the copied commands when available.",
         "unable": "No playable source is loaded yet. Start playback, then open Download again to copy the stream link or file URL.",
         "offlineButton": "Download for Offline Use",
+        "offlineStarting": "Starting download…",
+        "offlineStarted": "Download started",
+        "offlineFailed": "Couldn't start offline download",
         "or": "or",
         "original": {
           "cardTitle": "Original File",

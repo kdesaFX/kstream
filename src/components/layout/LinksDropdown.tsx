@@ -301,6 +301,11 @@ export function LinksDropdown(props: {
             {t("navigation.menu.settings")}
           </DropdownLink>
           {isDesktopApp && (
+            <DropdownLink href="/offline" icon={Icons.DOWNLOAD}>
+              {t("navigation.menu.offlineDownloads")}
+            </DropdownLink>
+          )}
+          {isDesktopApp && (
             <DropdownLink
               onClick={() => {
                 setOpen(false);

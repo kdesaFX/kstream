@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useCopyToClipboard } from "react-use";
 
+import { startDesktopVideoDownload } from "@/backend/video/videoDesktopOffline";
 import { fetchGridData } from "@/sdk";
 import type { GridData } from "@/sdk";
 import { Button } from "@/components/buttons/Button";
@@ -18,6 +19,7 @@ import {
   unwrapProxiedMediaUrl,
 } from "@/components/player/utils/proxy";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
+import { useIsDesktopApp } from "@/hooks/useIsDesktopApp";
 import { usePlayerStore } from "@/stores/player/store";
 // I swear
 
@@ -237,10 +239,45 @@ function StreamLinkView({
 }) {
   const router = useOverlayRouter(id);
   const { t } = useTranslation();
+  const isDesktop = useIsDesktopApp();
+  const meta = usePlayerStore((s) => s.meta);
   const { url: downloadUrl, headers, sourceType } = useDownloadSource();
   const [, copyToClipboard] = useCopyToClipboard();
   const selectedCaption = usePlayerStore((s) => s.caption?.selected);
   const [copied, setCopied] = useState<CopyKind>(null);
+  const [offlineState, setOfflineState] = useState<
+    "idle" | "starting" | "done" | "error"
+  >("idle");
+
+  const offlineTitle = useMemo(() => {
+    if (!meta) return "Download";
+    if (meta.type === "show" && meta.episode) {
+      const season = meta.season?.number;
+      return season != null
+        ? `${meta.title} S${season}E${meta.episode.number}`
+        : `${meta.title} E${meta.episode.number}`;
+    }
+    return meta.title;
+  }, [meta]);
+
+  const startOfflineDownload = useCallback(async () => {
+    if (!downloadUrl || offlineState === "starting") return;
+    setOfflineState("starting");
+    try {
+      await startDesktopVideoDownload({
+        url: downloadUrl,
+        headers,
+        title: offlineTitle,
+        poster: meta?.poster,
+        type: meta?.type,
+        seasonNumber: meta?.season?.number ?? null,
+        episodeNumber: meta?.episode?.number ?? null,
+      });
+      setOfflineState("done");
+    } catch {
+      setOfflineState("error");
+    }
+  }, [downloadUrl, headers, meta, offlineState, offlineTitle]);
 
   const ytDlpCommand = useMemo(
     () => (downloadUrl ? buildYtDlpCommand(downloadUrl, headers) : ""),
@@ -299,6 +336,29 @@ function StreamLinkView({
             }
           />
         </Menu.Paragraph>
+
+        {isDesktop ? (
+          <>
+            <Button
+              className="w-full"
+              theme="purple"
+              disabled={!downloadUrl || offlineState === "starting"}
+              onClick={(event) => {
+                event.preventDefault();
+                void startOfflineDownload();
+              }}
+            >
+              {offlineState === "starting"
+                ? t("player.menus.downloads.offlineStarting")
+                : offlineState === "done"
+                  ? t("player.menus.downloads.offlineStarted")
+                  : offlineState === "error"
+                    ? t("player.menus.downloads.offlineFailed")
+                    : t("player.menus.downloads.offlineButton")}
+            </Button>
+            <Menu.Divider />
+          </>
+        ) : null}
 
         <Button
           className="w-full"

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
@@ -16,6 +16,7 @@ function pushPresence(body: Record<string, unknown>) {
  */
 export function DesktopChromeBridge() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isWatchPage = location.pathname.startsWith("/media/");
 
   useEffect(() => {
@@ -35,6 +36,14 @@ export function DesktopChromeBridge() {
       state.display?.pause();
     });
   }, []);
+
+  useEffect(() => {
+    const ipc = window.__KSTREAM_DESKTOP_IPC__;
+    if (!ipc?.onOpenOffline) return;
+    return ipc.onOpenOffline(() => {
+      navigate("/offline");
+    });
+  }, [navigate]);
 
   return null;
 }

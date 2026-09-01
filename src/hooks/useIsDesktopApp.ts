@@ -5,6 +5,7 @@ declare global {
     __KSTREAM_DESKTOP_IPC__?: {
       invoke: (name: string, body?: unknown) => Promise<any>;
       onPauseForClose?: (cb: () => void) => () => void;
+      onOpenOffline?: (cb: () => void) => () => void;
     };
     desktopApi?: {
       startDownload(data: {
@@ -14,9 +15,12 @@ declare global {
         subtitleText?: string;
         duration?: number;
         type?: string;
+        mediaType?: string;
+        seasonNumber?: number | null;
+        episodeNumber?: number | null;
         headers?: Record<string, string>;
-      }): void;
-      openOffline(): void;
+      }): Promise<{ ok: boolean; id?: string }>;
+      openOffline(): Promise<{ success: boolean }>;
     };
   }
 }
