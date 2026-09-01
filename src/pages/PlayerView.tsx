@@ -148,6 +148,8 @@ export function RealPlayerView() {
   });
   useEffect(() => {
     reset();
+    setResumeFromSourceId(null);
+    setResumeFromSourceIdInStore(null);
     openedWatchPartyRef.current = false;
     playbackRetryBudget.current.setMedia(paramsData);
     setScrapeAttempt(0);
@@ -155,7 +157,7 @@ export function RealPlayerView() {
     return () => {
       reset();
     };
-  }, [paramsData, reset]);
+  }, [paramsData, reset, setResumeFromSourceIdInStore]);
 
   // Auto-open watch party menu if URL contains watchparty parameter
   useEffect(() => {

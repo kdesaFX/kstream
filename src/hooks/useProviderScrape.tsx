@@ -463,6 +463,29 @@ export function useScrape() {
 
       startScrape();
 
+      // Playback resume landed past the last source, or every remaining source
+      // was already marked failed. runAll never runs in that case, which used to
+      // yield SOURCE ORDER (0) and a bogus "not found" with no providers tried.
+      if (filteredSourceOrder.length === 0) {
+        if (baseSourceOrder.length > 0) {
+          initEvent({ sourceIds: baseSourceOrder });
+          const resumeIndex = startFromSourceId
+            ? baseSourceOrder.indexOf(startFromSourceId)
+            : -1;
+          for (let index = 0; index < baseSourceOrder.length; index++) {
+            const id = baseSourceOrder[index]!;
+            if (failedSources.includes(id)) {
+              markSourceRejected(id, "Previously failed");
+            } else if (resumeIndex !== -1 && index <= resumeIndex) {
+              markSourceRejected(id, "Already tried");
+            } else {
+              markSourceRejected(id, "No sources left to try");
+            }
+          }
+        }
+        return getResult(null);
+      }
+
       if (minimumResolutionScore <= 0) {
         let remainingSourceOrder = [...filteredSourceOrder];
         while (remainingSourceOrder.length > 0) {

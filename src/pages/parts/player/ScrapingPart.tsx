@@ -140,6 +140,12 @@ export function ScrapingPart(props: ScrapingProps) {
         output = await startScraping(props.media);
       }
 
+      // Resume-from-source can be stale (episode change) or land past the last
+      // provider — fall back to a full scrape instead of instant "not found".
+      if (!output && props.startFromSourceId && isMounted()) {
+        output = await startScraping(props.media);
+      }
+
       if (!isMounted()) return;
       props.onResult?.(
         resultRef.current.sources,
