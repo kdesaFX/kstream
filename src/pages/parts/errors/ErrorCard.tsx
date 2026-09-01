@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@/components/buttons/Button";
+import { Button, ButtonPlain } from "@/components/buttons/Button";
 import { Icon, Icons } from "@/components/Icon";
 import { Modal } from "@/components/overlays/Modal";
 import { DisplayError } from "@/components/player/display/displayInterface";
@@ -33,6 +33,8 @@ export function ErrorCard(props: {
   error: AnyError;
   componentStack?: string;
   onClose: () => void;
+  /** Use router-free buttons (required inside the root ErrorBoundary). */
+  plainActions?: boolean;
 }) {
   const [hasCopied, setHasCopied] = useState(false);
   const hasCopiedUnsetDebounce = useRef<ReturnType<typeof setTimeout> | null>(
@@ -84,40 +86,63 @@ export function ErrorCard(props: {
     hasCopiedUnsetDebounce.current = setTimeout(() => setHasCopied(false), 2e3);
   }
 
+  const copyLabel = hasCopied ? (
+    <>
+      <Icon icon={Icons.CHECKMARK} className="text-xs" />
+      <span className="hidden min-[400px]:inline-block ml-3">
+        {t("actions.copied")}
+      </span>
+    </>
+  ) : (
+    <>
+      <Icon icon={Icons.COPY} className="text-2xl" />
+      <span className="hidden min-[400px]:inline-block ml-3">
+        {t("player.playbackError.copyDebugInfo")}
+      </span>
+    </>
+  );
+
   return (
     // I didn't put a <Transition> here because it'd fade out, then jump height weirdly
     <div className="bg-errors-card w-full rounded-lg p-6 text-left">
       <div className="border-errors-border flex items-center justify-between border-b pb-2">
         <span className="font-medium text-white">{t("errors.details")}</span>
         <div className="flex items-center justify-center gap-3">
-          <Button
-            theme="secondary"
-            padding="p-2 h-10 min-w-[40px] md:px-4"
-            onClick={() => copyError()}
-          >
-            {hasCopied ? (
-              <>
-                <Icon icon={Icons.CHECKMARK} className="text-xs" />
-                <span className="hidden min-[400px]:inline-block ml-3">
-                  {t("actions.copied")}
-                </span>
-              </>
-            ) : (
-              <>
-                <Icon icon={Icons.COPY} className="text-2xl" />
-                <span className="hidden min-[400px]:inline-block ml-3">
-                  {t("player.playbackError.copyDebugInfo")}
-                </span>
-              </>
-            )}
-          </Button>
-          <Button
-            theme="secondary"
-            padding="p-2 md:px-2"
-            onClick={props.onClose}
-          >
-            <Icon icon={Icons.X} className="text-2xl" />
-          </Button>
+          {props.plainActions ? (
+            <>
+              <ButtonPlain
+                theme="secondary"
+                className="p-2 h-10 min-w-[40px] md:px-4"
+                onClick={() => copyError()}
+              >
+                {copyLabel}
+              </ButtonPlain>
+              <ButtonPlain
+                theme="secondary"
+                className="p-2 md:px-2"
+                onClick={props.onClose}
+              >
+                <Icon icon={Icons.X} className="text-2xl" />
+              </ButtonPlain>
+            </>
+          ) : (
+            <>
+              <Button
+                theme="secondary"
+                padding="p-2 h-10 min-w-[40px] md:px-4"
+                onClick={() => copyError()}
+              >
+                {copyLabel}
+              </Button>
+              <Button
+                theme="secondary"
+                padding="p-2 md:px-2"
+                onClick={props.onClose}
+              >
+                <Icon icon={Icons.X} className="text-2xl" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
       {headline ? (
@@ -155,6 +180,7 @@ export function ErrorCardInPlainModal(props: {
           error={props.error}
           componentStack={props.componentStack}
           onClose={props.onClose}
+          plainActions
         />
       </div>
     </div>

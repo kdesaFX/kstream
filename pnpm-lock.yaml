@@ -46,8 +46,8 @@ importers:
         specifier: ^1.8.0
         version: 1.8.0
       '@p-stream/providers':
-        specifier: github:kdesaFX/providers#9e067d1
-        version: git+https://git@github.com:kdesaFX/providers.git#9e067d1
+        specifier: github:kdesaFX/providers#88dc534
+        version: git+https://git@github.com:kdesaFX/providers.git#88dc534
       '@plasmohq/messaging':
         specifier: ^0.6.2
         version: 0.6.2(react@18.3.1)
@@ -1847,8 +1847,8 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@p-stream/providers@git+https://git@github.com:kdesaFX/providers.git#9e067d1':
-    resolution: {commit: 9e067d1, repo: git@github.com:kdesaFX/providers.git, type: git}
+  '@p-stream/providers@git+https://git@github.com:kdesaFX/providers.git#88dc534':
+    resolution: {commit: 88dc534, repo: git@github.com:kdesaFX/providers.git, type: git}
     version: 3.2.0
 
   '@pkgjs/parseargs@0.11.0':
@@ -7173,7 +7173,7 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@p-stream/providers@git+https://git@github.com:kdesaFX/providers.git#9e067d1':
+  '@p-stream/providers@git+https://git@github.com:kdesaFX/providers.git#88dc534':
     dependencies:
       abort-controller: 3.0.0
       cheerio: 1.0.0-rc.12

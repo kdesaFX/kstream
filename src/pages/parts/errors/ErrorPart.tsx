@@ -54,17 +54,14 @@ export function ErrorPart(props: { error: any; errorInfo: any }) {
                 </a>
               </Paragraph>
             ) : (
-              <Paragraph>{props.error.toString()}</Paragraph>
+              <Paragraph>
+                {props.error instanceof Error
+                  ? `${props.error.name}: ${props.error.message}`
+                  : String(props.error ?? "Unknown error")}
+              </Paragraph>
             )}
 
-            <ErrorCardInPlainModal
-              show={showErrorCard}
-              onClose={() => setShowErrorCard(false)}
-              error={props.error}
-              componentStack={props.errorInfo?.componentStack}
-            />
-
-            <div className="flex gap-3">
+            <div className="flex flex-wrap justify-center gap-3">
               <ButtonPlain
                 theme="secondary"
                 className="mt-6 p-2.5 md:px-12"
@@ -92,6 +89,14 @@ export function ErrorPart(props: { error: any; errorInfo: any }) {
           </ErrorContainer>
         </ErrorLayout>
       </div>
+
+      {/* Portal-style overlay outside the centered column so details aren't clipped. */}
+      <ErrorCardInPlainModal
+        show={showErrorCard}
+        onClose={() => setShowErrorCard(false)}
+        error={props.error}
+        componentStack={props.errorInfo?.componentStack}
+      />
     </div>
   );
 }
