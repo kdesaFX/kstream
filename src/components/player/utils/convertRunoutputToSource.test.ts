@@ -1,4 +1,5 @@
 /* eslint-disable import/no-extraneous-dependencies */
+import { Stream } from "@p-stream/providers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { convertRunoutputToSource } from "./convertRunoutputToSource";
@@ -34,12 +35,15 @@ describe("convertRunoutputToSource HLS proxying", () => {
   });
 
   it("proxies headerless HLS on desktop Firefox without the extension", () => {
-    const out = convertRunoutputToSource({
-      stream: {
-        type: "hls",
-        playlist: "https://cdn.example.com/movie/master.m3u8",
-      } as Parameters<typeof convertRunoutputToSource>[0]["stream"],
-    });
+    const stream = {
+      id: "test-hls",
+      type: "hls",
+      playlist: "https://cdn.example.com/movie/master.m3u8",
+      captions: [],
+      flags: [],
+    } as unknown as Stream;
+
+    const out = convertRunoutputToSource({ stream });
 
     expect(out.type).toBe("hls");
     if (out.type !== "hls") return;
