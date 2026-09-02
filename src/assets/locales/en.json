@@ -370,6 +370,10 @@
     "bookmarks": {
       "sectionTitle": "Bookmarks",
       "showAll": "Show all",
+      "empty": {
+        "title": "No saved titles yet",
+        "description": "You haven’t bookmarked anything. On any movie, show, or manga, tap the bookmark icon to save it here for later."
+      },
       "groups": {
         "dropdown": {
           "placeholderButton": "Add to group",
@@ -741,6 +745,7 @@
       "home": "Home",
       "movies": "Movies",
       "tv": "TV",
+      "manga": "Manga",
       "bookmarks": "Saved",
       "search": "Search",
       "settings": "Settings"

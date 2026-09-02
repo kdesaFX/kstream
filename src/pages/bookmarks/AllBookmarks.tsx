@@ -20,7 +20,6 @@ import { useModal } from "@/components/overlays/Modal";
 import { UserIcon, UserIcons } from "@/components/UserIcon";
 import { Heading1 } from "@/components/utils/Text";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
-import { useRandomTranslation } from "@/hooks/useRandomTranslation";
 import { SubPageLayout } from "@/pages/layouts/SubPageLayout";
 import { HomeAd } from "@/pages/parts/home/HomeAd";
 import { useAuthStore } from "@/stores/auth";
@@ -48,8 +47,6 @@ interface AllBookmarksProps {
 
 export function AllBookmarks({ onShowDetails }: AllBookmarksProps) {
   const { t } = useTranslation();
-  const { t: randomT } = useRandomTranslation();
-  const emptyText = randomT(`home.search.empty`);
   const navigate = useNavigate();
   const progressItems = useProgressStore((s) => s.items);
   const bookmarks = useBookmarkStore((s) => s.bookmarks);
@@ -268,12 +265,23 @@ export function AllBookmarks({ onShowDetails }: AllBookmarksProps) {
     return (
       <SubPageLayout>
         <WideContainer>
-          <div className="flex flex-col items-center justify-center translate-y-1/2">
-            <p className="text-[18.5px] pb-3">{emptyText}</p>
+          <div className="flex min-h-[55vh] flex-col items-center justify-center px-6 text-center">
+            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/10">
+              <Icon
+                icon={Icons.BOOKMARK_OUTLINE}
+                className="text-3xl text-white/45"
+              />
+            </div>
+            <Heading1 className="!mb-2 text-2xl font-bold text-white">
+              {t("home.bookmarks.empty.title")}
+            </Heading1>
+            <p className="max-w-md text-base leading-relaxed text-type-secondary">
+              {t("home.bookmarks.empty.description")}
+            </p>
             <Button
               theme="purple"
               onClick={() => navigate("/")}
-              className="mt-4"
+              className="mt-6"
             >
               {t("notFound.goHome")}
             </Button>

@@ -96,7 +96,7 @@ export function DiscoverNavigation({
 
   return (
     <div className="pb-4 w-full max-w-screen-xl mx-auto">
-      <div className="relative flex justify-center">
+      <div id="discover-nav" className="relative flex justify-center scroll-mt-20">
         <div className="flex space-x-4">
           {tabs.map((category) => (
             <button

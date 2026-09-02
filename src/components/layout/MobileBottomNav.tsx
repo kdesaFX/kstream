@@ -6,12 +6,24 @@ import { Icon, Icons } from "@/components/Icon";
 import { navControlSurface } from "@/components/layout/navControl";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useDiscoverStore } from "@/stores/discover";
+import { usePreferencesStore } from "@/stores/preferences";
+import { scrollToElement } from "@/utils/common/scroll";
 
-type TabId = "home" | "movies" | "tv" | "bookmarks" | "search" | "settings";
+type TabId =
+  | "home"
+  | "movies"
+  | "tv"
+  | "manga"
+  | "bookmarks"
+  | "search"
+  | "settings";
+
+/** Clear the fixed mobile header so Movies / TV / Manga tabs stay visible. */
+const DISCOVER_SCROLL_OFFSET = 80;
 
 function focusNavSearch() {
   window.scrollTo({ top: 0, behavior: "smooth" });
-    window.setTimeout(() => {
+  window.setTimeout(() => {
     document
       .querySelector<HTMLInputElement>('input[name="kstream-nav-search"]')
       ?.focus();
@@ -19,9 +31,31 @@ function focusNavSearch() {
 }
 
 function scrollToDiscover() {
-  document
-    .getElementById("discover-section")
-    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const target =
+    document.getElementById("discover-nav") ??
+    document.getElementById("discover-section");
+  scrollToElement(target, {
+    behavior: "smooth",
+    offset: DISCOVER_SCROLL_OFFSET,
+  });
+}
+
+function goToDiscoverCategory(
+  category: "movies" | "tvshows" | "manga",
+  pathname: string,
+  navigate: ReturnType<typeof useNavigate>,
+  setSelectedCategory: (c: "movies" | "tvshows" | "manga") => void,
+) {
+  setSelectedCategory(category);
+  if (pathname !== "/") {
+    navigate("/");
+    window.setTimeout(scrollToDiscover, 300);
+    // Lazy discover may mount after navigation — re-aim once nav exists.
+    window.setTimeout(scrollToDiscover, 700);
+  } else {
+    scrollToDiscover();
+    window.setTimeout(scrollToDiscover, 400);
+  }
 }
 
 export function shouldShowMobileBottomNav(pathname: string): boolean {
@@ -41,6 +75,7 @@ export function MobileBottomNav() {
   const navigate = useNavigate();
   const selectedCategory = useDiscoverStore((s) => s.selectedCategory);
   const setSelectedCategory = useDiscoverStore((s) => s.setSelectedCategory);
+  const enableMangaDiscover = usePreferencesStore((s) => s.enableMangaDiscover);
 
   if (!isMobile || !shouldShowMobileBottomNav(location.pathname)) {
     return null;
@@ -52,6 +87,7 @@ export function MobileBottomNav() {
     if (location.pathname.startsWith("/bookmarks")) return "bookmarks";
     if (location.pathname.startsWith("/browse")) return "search";
     if (onHome && selectedCategory === "tvshows") return "tv";
+    if (onHome && selectedCategory === "manga") return "manga";
     if (onHome && selectedCategory === "movies") return "movies";
     return "home";
   })();
@@ -77,13 +113,12 @@ export function MobileBottomNav() {
       label: t("navigation.mobile.movies"),
       icon: Icons.CLAPPER_BOARD,
       onClick: () => {
-        setSelectedCategory("movies");
-        if (location.pathname !== "/") {
-          navigate("/");
-          window.setTimeout(scrollToDiscover, 300);
-        } else {
-          scrollToDiscover();
-        }
+        goToDiscoverCategory(
+          "movies",
+          location.pathname,
+          navigate,
+          setSelectedCategory,
+        );
       },
     },
     {
@@ -91,15 +126,31 @@ export function MobileBottomNav() {
       label: t("navigation.mobile.tv"),
       icon: Icons.TV,
       onClick: () => {
-        setSelectedCategory("tvshows");
-        if (location.pathname !== "/") {
-          navigate("/");
-          window.setTimeout(scrollToDiscover, 300);
-        } else {
-          scrollToDiscover();
-        }
+        goToDiscoverCategory(
+          "tvshows",
+          location.pathname,
+          navigate,
+          setSelectedCategory,
+        );
       },
     },
+    ...(enableMangaDiscover
+      ? [
+          {
+            id: "manga" as const,
+            label: t("navigation.mobile.manga"),
+            icon: Icons.BOOK,
+            onClick: () => {
+              goToDiscoverCategory(
+                "manga",
+                location.pathname,
+                navigate,
+                setSelectedCategory,
+              );
+            },
+          },
+        ]
+      : []),
     {
       id: "bookmarks",
       label: t("navigation.mobile.bookmarks"),
@@ -127,6 +178,8 @@ export function MobileBottomNav() {
     },
   ];
 
+  const tabCount = tabs.length;
+
   return (
     <nav
       aria-label={t("navigation.mobile.label")}
@@ -134,7 +187,8 @@ export function MobileBottomNav() {
     >
       <div
         className={classNames(
-          "pointer-events-auto mx-auto flex max-w-sm items-center justify-between gap-0 rounded-full px-1.5 py-1",
+          "pointer-events-auto mx-auto flex items-center justify-between gap-0 rounded-full px-1.5 py-1",
+          tabCount >= 7 ? "max-w-md" : "max-w-sm",
           navControlSurface,
           "border border-white/10 shadow-[0_6px_24px_rgba(0,0,0,0.4)]",
           "mb-[max(0.5rem,env(safe-area-inset-bottom))]",
@@ -151,13 +205,17 @@ export function MobileBottomNav() {
               title={tab.label}
               onClick={tab.onClick}
               className={classNames(
-                "tabbable flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[transform,background-color,color] duration-200",
+                "tabbable flex shrink-0 items-center justify-center rounded-full transition-[transform,background-color,color] duration-200",
+                tabCount >= 7 ? "h-8 w-8" : "h-9 w-9",
                 active
                   ? "bg-white/15 text-white"
                   : "text-white/65 hover:bg-white/10 hover:text-white active:scale-95",
               )}
             >
-              <Icon icon={tab.icon} className="text-[1rem]" />
+              <Icon
+                icon={tab.icon}
+                className={tabCount >= 7 ? "text-[0.9rem]" : "text-[1rem]"}
+              />
             </button>
           );
         })}
