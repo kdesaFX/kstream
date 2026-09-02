@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   isKnownBadStreamUrl,
   validatePlaylistBody,
+  validateRunOutput,
   validateStream,
 } from "@/components/player/utils/validateScrapedStream";
 
@@ -45,5 +46,21 @@ describe("validateScrapedStream", () => {
       ok: false,
       reason: "empty playlist",
     });
+  });
+
+  it("trusts castletv without playlist probe", async () => {
+    const result = await validateRunOutput({
+      sourceId: "castletv",
+      stream: {
+        id: "castle-0",
+        type: "hls",
+        playlist: "https://example.com/gated/playlist.m3u8",
+        flags: [],
+      },
+    } as any);
+    expect(result.ok).toBe(true);
+    if (result.ok && result.stream.type === "hls") {
+      expect(result.stream.playlist).toContain("playlist.m3u8");
+    }
   });
 });

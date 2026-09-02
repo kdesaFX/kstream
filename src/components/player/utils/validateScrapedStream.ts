@@ -8,6 +8,9 @@ import {
   type SourceOrderContext,
 } from "@/utils/media/sourceOrder";
 
+/** Playlist probes false-negative on these; manual source pick plays them fine. */
+export const TRUSTED_PLAYBACK_SOURCE_IDS = new Set(["castletv"]);
+
 const VALIDATE_TIMEOUT_MS = 8_000;
 const VALIDATE_RANGE = "bytes=0-4095";
 
@@ -112,6 +115,11 @@ export async function validateRunOutput(
       : [];
   if (!streams.length) {
     return { ok: false, reason: "no streams", sourceId: output.sourceId };
+  }
+
+  if (TRUSTED_PLAYBACK_SOURCE_IDS.has(output.sourceId)) {
+    const stream = orderStreamsForPlayback(streams)[0];
+    if (stream) return { ok: true, stream };
   }
 
   const reasons: string[] = [];

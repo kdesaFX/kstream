@@ -29,6 +29,11 @@ import {
   usePreferencesStore,
 } from "@/stores/preferences";
 import { isAnimeSourceId, isAnimeTitle } from "@/utils/media/anime";
+import {
+  CASTLETV_SOURCE_ID,
+  isIndianTitle,
+  prioritizeIndianSources,
+} from "@/utils/media/indianSources";
 import { excludeDeferredFromPrimary } from "@/utils/media/regionalSources";
 import {
   orderSourceIdsForPlayback,
@@ -77,6 +82,7 @@ function getRunOutputBestResolutionScore(output: RunOutput): number {
 
 const WAY2_SOLO_SOURCE_ID = "way2movies";
 const WAY2_SOLO_RETRY_DELAY_MS = 2000;
+const CASTLE_SOLO_RETRY_DELAY_MS = 1500;
 
 function sourcererToRunOutput(
   sourceId: string,
@@ -150,6 +156,67 @@ async function tryWay2moviesSoloFirst(opts: {
       status: notFound ? "notfound" : "failure",
       reason:
         lastError instanceof Error ? lastError.message : "Way2Movies failed",
+      error: notFound ? undefined : (lastError as Error),
+    });
+  }
+
+  return { output: null, remainingOrder };
+}
+
+function shouldTryCastleSoloFirst(
+  sourceOrder: string[],
+  meta: ReturnType<typeof usePlayerStore.getState>["meta"],
+): boolean {
+  if (!isIndianTitle(meta)) return false;
+  return sourceOrder.includes(CASTLETV_SOURCE_ID);
+}
+
+async function tryCastleTvSoloFirst(opts: {
+  providers: ReturnType<typeof getProviders>;
+  media: ScrapeMedia;
+  events: {
+    start: (id: string) => void;
+    update: (evt: ScraperEvent<"update">) => void;
+  };
+  sourceOrder: string[];
+  meta: ReturnType<typeof usePlayerStore.getState>["meta"];
+}): Promise<{ output: RunOutput | null; remainingOrder: string[] }> {
+  const remainingOrder = opts.sourceOrder.filter(
+    (id) => id !== CASTLETV_SOURCE_ID,
+  );
+  if (!shouldTryCastleSoloFirst(opts.sourceOrder, opts.meta)) {
+    return { output: null, remainingOrder: opts.sourceOrder };
+  }
+
+  opts.events.start(CASTLETV_SOURCE_ID);
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (attempt > 0) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, CASTLE_SOLO_RETRY_DELAY_MS);
+      });
+    }
+    try {
+      const result = await opts.providers.runSourceScraper({
+        id: CASTLETV_SOURCE_ID,
+        media: opts.media,
+        events: opts.events,
+      });
+      const output = sourcererToRunOutput(CASTLETV_SOURCE_ID, result);
+      if (output) return { output, remainingOrder };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  if (lastError) {
+    const notFound = lastError instanceof NotFoundError;
+    opts.events.update({
+      id: CASTLETV_SOURCE_ID,
+      percentage: 100,
+      status: notFound ? "notfound" : "failure",
+      reason:
+        lastError instanceof Error ? lastError.message : "CastleTV failed",
       error: notFound ? undefined : (lastError as Error),
     });
   }
@@ -429,6 +496,10 @@ export function useScrape() {
         orderSourceIdsForPlayback(baseSourceOrder, sourceOrderCtx),
         { hasDebridToken: Boolean(debridToken?.trim()) },
       );
+      baseSourceOrder = prioritizeIndianSources(
+        baseSourceOrder,
+        playerState.meta,
+      );
       baseSourceOrder = excludeZeroHitFromAutoScrape(
         baseSourceOrder,
         sourceOrderCtx,
@@ -582,6 +653,45 @@ export function useScrape() {
         return { accepted: null, order: solo.remainingOrder };
       };
 
+      const trySoloCastle = async (order: string[]) => {
+        const solo = await tryCastleTvSoloFirst({
+          providers,
+          media,
+          events: runEvents,
+          sourceOrder: order,
+          meta: playerState.meta,
+        });
+        if (solo.output) {
+          const accepted = await acceptValidatedOutput(solo.output);
+          if (accepted) return { accepted, order: solo.remainingOrder };
+        }
+        return { accepted: null, order: solo.remainingOrder };
+      };
+
+      const runParallelScrape = async (order: string[]) => {
+        let remainingSourceOrder = order;
+        while (remainingSourceOrder.length > 0) {
+          const output = await providers.runAll({
+            media,
+            sourceOrder: remainingSourceOrder,
+            embedOrder: filteredEmbedOrder,
+            restrictToOrder: true,
+            events: runEvents,
+          });
+          if (!output) break;
+          const accepted = await acceptValidatedOutput(output);
+          if (accepted) return getResult(accepted);
+          const currentSourceIndex = remainingSourceOrder.indexOf(
+            output.sourceId,
+          );
+          if (currentSourceIndex === -1) break;
+          remainingSourceOrder = remainingSourceOrder.slice(
+            currentSourceIndex + 1,
+          );
+        }
+        return getResult(null);
+      };
+
       // Playback resume landed past the last source, or every remaining source
       // was already marked failed. runAll never runs in that case, which used to
       // yield SOURCE ORDER (0) and a bogus "not found" with no providers tried.
@@ -606,32 +716,16 @@ export function useScrape() {
       }
 
       if (minimumResolutionScore <= 0) {
-        const soloFirst = await trySoloWay2(filteredSourceOrder);
+        const castleSolo = await trySoloCastle(filteredSourceOrder);
+        if (castleSolo.accepted) return getResult(castleSolo.accepted);
+        const soloFirst = await trySoloWay2(castleSolo.order);
         if (soloFirst.accepted) return getResult(soloFirst.accepted);
-        let remainingSourceOrder = soloFirst.order;
-        while (remainingSourceOrder.length > 0) {
-          const output = await providers.runAll({
-            media,
-            sourceOrder: remainingSourceOrder,
-            embedOrder: filteredEmbedOrder,
-            restrictToOrder: true,
-            events: runEvents,
-          });
-          if (!output) break;
-          const accepted = await acceptValidatedOutput(output);
-          if (accepted) return getResult(accepted);
-          const currentSourceIndex = remainingSourceOrder.indexOf(
-            output.sourceId,
-          );
-          if (currentSourceIndex === -1) break;
-          remainingSourceOrder = remainingSourceOrder.slice(
-            currentSourceIndex + 1,
-          );
-        }
-        return getResult(null);
+        return runParallelScrape(soloFirst.order);
       }
 
-      const soloFirst = await trySoloWay2(filteredSourceOrder);
+      const castleSolo = await trySoloCastle(filteredSourceOrder);
+      if (castleSolo.accepted) return getResult(castleSolo.accepted);
+      const soloFirst = await trySoloWay2(castleSolo.order);
       if (soloFirst.accepted) return getResult(soloFirst.accepted);
       let remainingSourceOrder = soloFirst.order;
       let bestFallbackOutput: RunOutput | null = null;
