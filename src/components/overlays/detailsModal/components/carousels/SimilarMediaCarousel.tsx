@@ -8,6 +8,7 @@ import { CarouselNavButtons } from "@/pages/discover/components/CarouselNavButto
 import { useSimilarMedia } from "@/pages/discover/hooks/useSimilarMedia";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { MediaItem } from "@/utils/media/mediaTypes";
+import { formatVoteAverage } from "@/utils/media/discoverMediaItem";
 
 interface SimilarMediaCarouselProps {
   mediaId: string;
@@ -101,6 +102,7 @@ export function SimilarMediaCarousel({
                       ? new Date(media.first_air_date)
                       : undefined,
                   adult: media.adult === true,
+                  voteAverage: formatVoteAverage(media.vote_average),
                 };
                 return (
                   <div

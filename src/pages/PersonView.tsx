@@ -20,6 +20,7 @@ import { WatchedMediaCard } from "@/components/media/WatchedMediaCard";
 import { Heading1 } from "@/components/utils/Text";
 import { SubPageLayout } from "@/pages/layouts/SubPageLayout";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
+import { formatVoteAverage } from "@/utils/media/discoverMediaItem";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 function creditYear(c: TMDBPersonCreditItem): number | undefined {
@@ -59,6 +60,7 @@ function creditToMediaItem(c: TMDBPersonCreditItem): MediaItem {
       : undefined,
     type: c.media_type === "tv" ? "show" : "movie",
     adult: c.adult === true,
+    voteAverage: formatVoteAverage(c.vote_average),
   };
 }
 

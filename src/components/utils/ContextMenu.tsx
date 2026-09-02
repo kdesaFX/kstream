@@ -1,6 +1,14 @@
 import classNames from "classnames";
 import { ReactNode, useEffect } from "react";
 
+let activeDismiss: (() => void) | null = null;
+
+/** Close whichever context menu is currently open (if any). */
+export function dismissOpenContextMenu() {
+  activeDismiss?.();
+  activeDismiss = null;
+}
+
 export interface ContextMenuProps {
   x: number;
   y: number;
@@ -17,14 +25,30 @@ export function ContextMenu({
   className,
 }: ContextMenuProps) {
   useEffect(() => {
-    const handleClick = () => onClose();
-    // Delay attaching the listener to prevent the current click event from immediately closing the menu
+    dismissOpenContextMenu();
+    activeDismiss = onClose;
+
+    const handleDismiss = () => onClose();
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    // Capture-phase contextmenu closes other cards' menus before their handlers
+    // run (those handlers call stopPropagation, which blocks bubble listeners).
     const timer = setTimeout(() => {
-      document.addEventListener("click", handleClick);
+      document.addEventListener("click", handleDismiss);
+      document.addEventListener("contextmenu", handleDismiss, true);
+      document.addEventListener("keydown", handleEscape);
+      window.addEventListener("scroll", handleDismiss, true);
     }, 10);
+
     return () => {
       clearTimeout(timer);
-      document.removeEventListener("click", handleClick);
+      document.removeEventListener("click", handleDismiss);
+      document.removeEventListener("contextmenu", handleDismiss, true);
+      document.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("scroll", handleDismiss, true);
+      if (activeDismiss === onClose) activeDismiss = null;
     };
   }, [onClose]);
 

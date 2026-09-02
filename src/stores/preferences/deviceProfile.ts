@@ -211,6 +211,40 @@ export function healMidDiscoverPreference(s: {
   }
 }
 
+/** True after the user picks Low/Mid/High in Optimize (not the legacy default). */
+export function hasManuallyChosenDeviceProfile(state: {
+  lastAppliedDeviceProfile?: DeviceProfile | null;
+  deviceProfileSnapshot?: DeviceProfileSnapshot | null;
+}): boolean {
+  const profile = state.lastAppliedDeviceProfile;
+  if (profile === "low" || profile === "mid") return true;
+  if (profile === "high" && state.deviceProfileSnapshot != null) return true;
+  return false;
+}
+
+/**
+ * Users who never opened Optimize should get the full High build.
+ * Older installs persisted lastApplied "high" without a snapshot — treat as unset.
+ */
+export function healDefaultHighDeviceProfile<
+  T extends DeviceProfileFlags & {
+    lastAppliedDeviceProfile?: DeviceProfile | null;
+    deviceProfileSnapshot?: DeviceProfileSnapshot | null;
+  },
+>(merged: T): void {
+  if (
+    merged.lastAppliedDeviceProfile === "high" &&
+    merged.deviceProfileSnapshot == null
+  ) {
+    merged.lastAppliedDeviceProfile = null;
+  }
+
+  if (hasManuallyChosenDeviceProfile(merged)) return;
+
+  applyDeviceProfileFlags(merged, HIGH_DEVICE_PROFILE);
+  merged.lastAppliedDeviceProfile = null;
+}
+
 export function deviceProfilesMatch(
   a: DeviceProfileFlags,
   b: DeviceProfileFlags,

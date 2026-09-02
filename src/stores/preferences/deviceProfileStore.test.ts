@@ -54,7 +54,7 @@ describe("device profile store", () => {
     expect(after.posterQuality).toBe("standard");
     expect(after.backdropQuality).toBe("high");
     expect(after.proxyArtwork).toBe(false);
-    expect(after.lastAppliedDeviceProfile).toBe("high");
+    expect(after.lastAppliedDeviceProfile).toBeNull();
     expect(after.deviceProfileSnapshot).toBeNull();
   });
 

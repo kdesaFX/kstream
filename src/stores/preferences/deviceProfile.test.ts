@@ -12,6 +12,7 @@ import {
   inferDeviceProfile,
   recommendDeviceProfile,
   healMidDiscoverPreference,
+  healDefaultHighDeviceProfile,
   type DeviceProfileFlags,
 } from "@/stores/preferences/deviceProfile";
 
@@ -131,5 +132,31 @@ describe("device profiles", () => {
     expect(
       recommendDeviceProfile({ hardwareConcurrency: 12, deviceMemory: 16 }),
     ).toBe("high");
+  });
+
+  it("heals legacy default-high and stale low-perf to full High when never optimized", () => {
+    const merged = {
+      ...sample(),
+      lastAppliedDeviceProfile: "high" as const,
+      deviceProfileSnapshot: null,
+      enableLowPerformanceMode: true,
+      enableDiscover: false,
+      posterQuality: "low" as const,
+    };
+    healDefaultHighDeviceProfile(merged);
+    expect(merged.lastAppliedDeviceProfile).toBeNull();
+    expect(deviceProfilesMatch(merged, HIGH_DEVICE_PROFILE)).toBe(true);
+  });
+
+  it("keeps a manually chosen low profile", () => {
+    const merged = {
+      ...sample(),
+      ...LOW_DEVICE_PROFILE,
+      lastAppliedDeviceProfile: "low" as const,
+      deviceProfileSnapshot: { ...HIGH_DEVICE_PROFILE },
+    };
+    healDefaultHighDeviceProfile(merged);
+    expect(merged.lastAppliedDeviceProfile).toBe("low");
+    expect(merged.enableDiscover).toBe(false);
   });
 });

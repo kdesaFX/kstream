@@ -2,8 +2,8 @@ import React, { useMemo, useRef } from "react";
 
 import { MediaCard } from "@/components/media/MediaCard";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import type { DiscoverMedia } from "@/pages/discover/types/discover";
 import { MediaItem } from "@/utils/media/mediaTypes";
+import { discoverMediaToMediaItem } from "@/utils/media/discoverMediaItem";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
 import { useDedupedCarouselMedia } from "./useDedupedCarouselMedia";
@@ -20,32 +20,6 @@ interface PersonalRecommendationsCarouselProps {
   enabled?: boolean;
   dedupePriority?: number;
   genreId?: string | null;
-}
-
-function getPosterUrl(posterPath: string): string {
-  if (!posterPath) return "/placeholder.png";
-  if (posterPath.startsWith("http")) return posterPath;
-  return `https://image.tmdb.org/t/p/w342${posterPath}`;
-}
-
-function discoverMediaToCardMedia(
-  item: DiscoverMedia,
-  isTVShow: boolean,
-): MediaItem {
-  return {
-    id: item.id.toString(),
-    title: item.title || item.name || "",
-    poster: getPosterUrl(item.poster_path),
-    type: isTVShow ? "show" : "movie",
-    year: isTVShow
-      ? item.first_air_date
-        ? parseInt(item.first_air_date.split("-")[0]!, 10)
-        : undefined
-      : item.release_date
-        ? parseInt(item.release_date.split("-")[0]!, 10)
-        : undefined,
-    adult: item.adult === true,
-  };
 }
 
 export function PersonalRecommendationsCarousel({
@@ -153,7 +127,7 @@ export function PersonalRecommendationsCarousel({
                 >
                   <MediaCard
                     linkable
-                    media={discoverMediaToCardMedia(item, isTVShow)}
+                    media={discoverMediaToMediaItem(item, isTVShow)}
                     onShowDetails={onShowDetails}
                   />
                 </div>

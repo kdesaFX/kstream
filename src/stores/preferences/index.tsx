@@ -6,6 +6,7 @@ import {
   applyDeviceProfileFlags,
   captureDeviceProfileSnapshot,
   flagsForDeviceProfile,
+  healDefaultHighDeviceProfile,
   healMidDiscoverPreference,
   HIGH_DEVICE_PROFILE,
   type BackdropQuality,
@@ -207,7 +208,7 @@ export const usePreferencesStore = create(
       proxyArtwork: false,
       posterQuality: "standard",
       backdropQuality: "high",
-      lastAppliedDeviceProfile: "high",
+      lastAppliedDeviceProfile: null,
       deviceProfileSnapshot: null,
       enableNativeSubtitles: false,
       enableAutoSubtitleSync: false,
@@ -592,7 +593,7 @@ export const usePreferencesStore = create(
           s.proxyArtwork = false;
           s.posterQuality = "standard";
           s.backdropQuality = "high";
-          s.lastAppliedDeviceProfile = "high";
+          s.lastAppliedDeviceProfile = null;
           s.deviceProfileSnapshot = null;
           s.enablePauseOverlay = false;
           s.enableNativeSubtitles = false;
@@ -663,6 +664,7 @@ export const usePreferencesStore = create(
         }
 
         healMidDiscoverPreference(merged);
+        healDefaultHighDeviceProfile(merged);
 
         // Goated was renamed to Reyna — rewrite saved prefs so scrapes still hit it.
         const renameSourceId = (id: string) => (id === "goated" ? "reyna" : id);

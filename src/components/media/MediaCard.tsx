@@ -21,6 +21,7 @@ import { MediaItem } from "@/utils/media/mediaTypes";
 import { preloadPlayerView } from "@/setup/routePreload";
 
 import { MediaBookmarkButton } from "./MediaBookmark";
+import { dismissOpenContextMenu } from "@/components/utils/ContextMenu";
 import { IconPatch } from "../buttons/IconPatch";
 import { Icon, Icons } from "../Icon";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
@@ -175,6 +176,10 @@ function MediaCardContent({
   );
   const matureLocked = isMatureMedia(media) && !enableMatureTitles;
   const posterUrl = resolveCardArtworkUrl(media.poster);
+  const ratingLabel =
+    media.voteAverage != null && media.voteAverage > 0
+      ? media.voteAverage.toFixed(1)
+      : null;
 
   // Simple intersection observer for lazy loading images
   const { targetRef, isVisible: isIntersecting } = useLazyVisible(eager);
@@ -280,25 +285,39 @@ function MediaCardContent({
                 </span>
               </div>
             ) : null}
-            {series || badge ? (
-              <div
-                className={[
-                  "absolute right-2 top-2 rounded-md bg-mediaCard-badge px-2 py-1 transition-colors",
-                ].join(" ")}
-              >
-                <p
-                  className={[
-                    "text-center text-xs font-bold text-mediaCard-badgeText transition-colors",
-                    closable ? "" : "group-hover:text-white",
-                  ].join(" ")}
-                >
-                  {series
-                    ? t("media.episodeDisplay", {
-                        season: series.season || 1,
-                        episode: series.episode,
-                      })
-                    : badge}
-                </p>
+            {ratingLabel || series || badge ? (
+              <div className="absolute right-2 top-2 z-[1] flex flex-col items-end gap-1">
+                {ratingLabel ? (
+                  <div
+                    className="flex items-center gap-0.5 rounded-md bg-mediaCard-badge px-2 py-1 transition-colors"
+                    aria-label={t("media.ratingLabel", { value: ratingLabel })}
+                  >
+                    <Icon
+                      icon={Icons.RISING_STAR}
+                      className="text-[10px] text-yellow-400"
+                    />
+                    <p className="text-xs font-bold text-mediaCard-badgeText transition-colors">
+                      {ratingLabel}
+                    </p>
+                  </div>
+                ) : null}
+                {series || badge ? (
+                  <div className="rounded-md bg-mediaCard-badge px-2 py-1 transition-colors">
+                    <p
+                      className={[
+                        "text-center text-xs font-bold text-mediaCard-badgeText transition-colors",
+                        closable ? "" : "group-hover:text-white",
+                      ].join(" ")}
+                    >
+                      {series
+                        ? t("media.episodeDisplay", {
+                            season: series.season || 1,
+                            episode: series.episode,
+                          })
+                        : badge}
+                    </p>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -520,6 +539,7 @@ export function MediaCard(props: MediaCardProps) {
   const handleCardContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    dismissOpenContextMenu();
     setContextMenuPos({ x: e.clientX, y: e.clientY });
   };
 

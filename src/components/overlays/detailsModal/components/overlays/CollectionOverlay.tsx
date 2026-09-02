@@ -12,6 +12,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { CarouselNavButtons } from "@/pages/discover/components/CarouselNavButtons";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
+import { formatVoteAverage } from "@/utils/media/discoverMediaItem";
 import { MediaItem } from "@/utils/media/mediaTypes";
 
 // Simple carousel component for collection overlay
@@ -165,6 +166,7 @@ export function CollectionOverlay({
       release_date: movie.release_date
         ? new Date(movie.release_date)
         : undefined,
+      voteAverage: formatVoteAverage(movie.vote_average),
     };
   };
 

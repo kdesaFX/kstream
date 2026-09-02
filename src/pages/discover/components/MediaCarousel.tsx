@@ -19,6 +19,7 @@ import { useDiscoverStore } from "@/stores/discover";
 import { useProgressStore } from "@/stores/progress";
 import { progressHasMeaningfulWatch } from "@/stores/progress/utils";
 import { MediaItem } from "@/utils/media/mediaTypes";
+import { discoverMediaToMediaItem } from "@/utils/media/discoverMediaItem";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
 import { useDedupedCarouselMedia } from "./useDedupedCarouselMedia";
@@ -534,22 +535,7 @@ export function MediaCarousel({
                   <MediaCard
                     linkable
                     key={item.id}
-                    media={{
-                      id: item.id.toString(),
-                      title: item.title || item.name || "",
-                      poster: item.poster_path
-                        ? `https://image.tmdb.org/t/p/w342${item.poster_path}`
-                        : "/placeholder.png",
-                      type: isTVShow ? "show" : "movie",
-                      year: isTVShow
-                        ? item.first_air_date
-                          ? parseInt(item.first_air_date.split("-")[0], 10)
-                          : undefined
-                        : item.release_date
-                          ? parseInt(item.release_date.split("-")[0], 10)
-                          : undefined,
-                      adult: item.adult === true,
-                    }}
+                    media={discoverMediaToMediaItem(item, isTVShow)}
                     onShowDetails={onShowDetails}
                   />
                 </div>
