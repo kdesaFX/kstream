@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { Icons } from "@/components/Icon";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { usePlayerStore } from "@/stores/player/store";
-import { usePreferencesStore } from "@/stores/preferences";
 
 import { VideoPlayerButton } from "./Button";
 
@@ -25,15 +24,6 @@ export function InfoButton() {
     });
   };
 
-  const enableLowPerformanceMode = usePreferencesStore(
-    (state) => state.enableLowPerformanceMode,
-  );
-
-  if (enableLowPerformanceMode) {
-    return null;
-  }
-
-  // Don't render button if meta, tmdbId, or type is missing/invalid
   if (
     !meta?.tmdbId ||
     !meta.type ||

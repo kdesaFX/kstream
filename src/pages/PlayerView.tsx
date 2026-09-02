@@ -371,7 +371,7 @@ export function RealPlayerView() {
 
   return (
     <PlayerPart backUrl={backUrl} onMetaChange={metaChange}>
-      {status !== playerStatus.PLAYING ? <BlurEllipsis /> : null}
+      {status !== playerStatus.PLAYING ? <BlurEllipsis neutral /> : null}
       {status === playerStatus.IDLE ? (
         <MetaPart onGetMeta={handleMetaReceived} />
       ) : null}

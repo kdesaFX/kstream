@@ -3,7 +3,13 @@ import classNames from "classnames";
 import { FooterView } from "@/components/layout/Footer";
 import { Navigation } from "@/components/layout/Navigation";
 
-export function BlurEllipsis(props: { positionClass?: string }) {
+export function BlurEllipsis(props: {
+  positionClass?: string;
+  /** When true, skip theme accent glows (used on player during low-perf browse mode). */
+  neutral?: boolean;
+}) {
+  if (props.neutral) return null;
+
   return (
     <>
       {/* Blur elipsis */}

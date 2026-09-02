@@ -286,9 +286,6 @@ export function PlaybackSettingsView({ id }: { id: string }) {
   const display = usePlayerStore((s) => s.display);
   const enableAutoplay = usePreferencesStore((s) => s.enableAutoplay);
   const setEnableAutoplay = usePreferencesStore((s) => s.setEnableAutoplay);
-  const enableLowPerformanceMode = usePreferencesStore(
-    (s) => s.enableLowPerformanceMode,
-  );
   const videoBrightness = usePreferencesStore((s) => s.videoBrightness);
   const setVideoBrightness = usePreferencesStore((s) => s.setVideoBrightness);
   const volumeBoost = usePreferencesStore((s) => s.volumeBoost);
@@ -310,7 +307,7 @@ export function PlaybackSettingsView({ id }: { id: string }) {
   const backendUrl = useBackendUrl();
   const allowAutoplay = useMemo(() => isAutoplayAllowed(), []);
   const canShowAutoplay =
-    !isInWatchParty && allowAutoplay && !enableLowPerformanceMode;
+    !isInWatchParty && allowAutoplay;
 
   const saveAutoplaySetting = useCallback(
     async (value: boolean) => {

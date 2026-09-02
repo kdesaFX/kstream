@@ -193,6 +193,15 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
    * normal recovery move on to the next source.
    */
   const STREAM_START_TIMEOUT_MS = 12000;
+  const PROXIED_STREAM_START_TIMEOUT_MS = 20_000;
+
+  function streamStartTimeoutMs(src: LoadableSource): number {
+    if (src.type === "hls" && src.url.includes("/m3u8-proxy")) {
+      return PROXIED_STREAM_START_TIMEOUT_MS;
+    }
+    return STREAM_START_TIMEOUT_MS;
+  }
+
   let streamStartTimer: ReturnType<typeof setInterval> | null = null;
   let streamStartDeadline = 0;
 
@@ -249,8 +258,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   }
 
   function reportStreamStartTimeout(src: LoadableSource) {
+    const timeoutMs = streamStartTimeoutMs(src);
     const message = `Stream did not start playing within ${Math.round(
-      STREAM_START_TIMEOUT_MS / 1000,
+      timeoutMs / 1000,
     )}s`;
     if (src.type === "hls") {
       emit("error", {
@@ -276,7 +286,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   function armStreamStartWatchdog() {
     clearStreamStartWatchdog();
     if (!source) return;
-    streamStartDeadline = Date.now() + STREAM_START_TIMEOUT_MS;
+    streamStartDeadline = Date.now() + streamStartTimeoutMs(src);
     streamStartTimer = setInterval(() => {
       const vid = videoElement;
       const src = source;
@@ -1452,9 +1462,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       if (hadActiveSource && ops.source) {
         shouldAutoplayAfterLoad = wasPlaying;
       } else {
-        // Fresh start / resume: honor autoplay preference
-        shouldAutoplayAfterLoad =
-          usePreferencesStore.getState().enableAutoplay !== false;
+        // Always try to start after a scrape / source swap. enableAutoplay only
+        // controls auto-advance to the next episode, not initial playback.
+        shouldAutoplayAfterLoad = true;
       }
       setSource();
 

@@ -1,6 +1,7 @@
 import classNames from "classnames";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 
 import { syncDeviceProfileSettings } from "@/backend/accounts/settings";
 import { Button } from "@/components/buttons/Button";
@@ -16,6 +17,7 @@ import {
   recommendDeviceProfile,
   type DeviceProfile,
 } from "@/stores/preferences/deviceProfile";
+import { shouldUseBrowsePerformance } from "@/utils/performance/browseOnly";
 
 import { useOptimizeModal } from "./useOptimizeModal";
 
@@ -37,9 +39,11 @@ function profileLabel(profile: DeviceProfile) {
 
 export function OptimizeEffectsSync() {
   const lowPerf = usePreferencesStore((s) => s.enableLowPerformanceMode);
+  const { pathname } = useLocation();
   useEffect(() => {
-    document.documentElement.classList.toggle("reduce-visual-effects", lowPerf);
-  }, [lowPerf]);
+    const onBrowse = shouldUseBrowsePerformance(pathname, lowPerf);
+    document.documentElement.classList.toggle("reduce-visual-effects", onBrowse);
+  }, [lowPerf, pathname]);
   return null;
 }
 

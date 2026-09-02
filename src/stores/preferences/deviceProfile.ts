@@ -59,7 +59,7 @@ export const MID_DEVICE_PROFILE: DeviceProfileFlags = {
   backdropQuality: "standard",
 };
 
-/** School Chromebooks — Discover off is the main win. */
+/** School Chromebooks — Discover off is the main win. Never lowers stream quality. */
 export const LOW_DEVICE_PROFILE: DeviceProfileFlags = {
   enableThumbnails: false,
   enableAutoplay: false,
