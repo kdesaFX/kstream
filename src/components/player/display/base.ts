@@ -137,6 +137,41 @@ function pickBrowserAutoCapLevel(levels: Level[]): Level | null {
   return pickBestLevelAtOrBelow(levels, 1080);
 }
 
+const SESSION_GESTURE_KEY = "kstream:gesture";
+let sessionHadGesture = false;
+
+function markSessionGesture() {
+  sessionHadGesture = true;
+  try {
+    sessionStorage.setItem(SESSION_GESTURE_KEY, "1");
+  } catch {
+    // private mode / blocked storage
+  }
+}
+
+function hadSessionGesture(): boolean {
+  if (sessionHadGesture) return true;
+  try {
+    if (sessionStorage.getItem(SESSION_GESTURE_KEY) === "1") {
+      sessionHadGesture = true;
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
+function installSessionGestureTracking() {
+  if (typeof window === "undefined") return;
+  const mark = () => markSessionGesture();
+  ["pointerdown", "keydown", "touchstart"].forEach((name) => {
+    window.addEventListener(name, mark, { capture: true, passive: true });
+  });
+}
+
+installSessionGestureTracking();
+
 export function makeVideoElementDisplayInterface(): DisplayInterface {
   const { emit, on, off } = makeEmitter<DisplayInterfaceEvents>();
   let source: LoadableSource | null = null;
@@ -474,11 +509,15 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           // already interacted this session — i.e. they navigated here in-app
           // (next/previous episode, picked a title) — freezing on a play button
           // reads as "it's broken". Keep it rolling muted and unmute on their
-          // next gesture instead. Mobile always keeps the muted start.
+          // next gesture instead. Mobile always keeps the muted start. Resume
+          // mid-title and any prior in-tab click also qualify — long scrapes
+          // outlive transient userActivation.
+          const resumePlayback = startAt > 3;
           const hasInteracted =
-            typeof navigator !== "undefined" &&
-            !!navigator.userActivation?.hasBeenActive;
-          if (!isMobileBrowser() && !hasInteracted) {
+            hadSessionGesture() ||
+            (typeof navigator !== "undefined" &&
+              !!navigator.userActivation?.hasBeenActive);
+          if (!isMobileBrowser() && !hasInteracted && !resumePlayback) {
             shouldAutoplayAfterLoad = false;
             autoplayInFlight = false;
             clearPolicyMute(vid);
@@ -1459,11 +1498,13 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       source = ops.source;
       emitLoading(true);
       startAt = ops.startAt;
-      if (hadActiveSource && ops.source) {
-        shouldAutoplayAfterLoad = wasPlaying;
+      if (!ops.source) {
+        shouldAutoplayAfterLoad = false;
+      } else if (hadActiveSource) {
+        // Mid-stream swaps while paused at 0:00 respect pause. Resume points
+        // and fresh scrapes after a long wait should still autoplay.
+        shouldAutoplayAfterLoad = wasPlaying || ops.startAt > 3;
       } else {
-        // Always try to start after a scrape / source swap. enableAutoplay only
-        // controls auto-advance to the next episode, not initial playback.
         shouldAutoplayAfterLoad = true;
       }
       setSource();
