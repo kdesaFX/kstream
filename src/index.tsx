@@ -43,6 +43,7 @@ import {
   clearStaleChunkReloadGuard,
   reloadOnceForStaleChunk,
 } from "@/utils/staleChunkReload";
+import { isDeepLinkPlayerPath } from "@/utils/routing/playerEntryPath";
 
 import {
   extensionInfo,
@@ -198,7 +199,9 @@ function AuthWrapper() {
 
   const isCustomUrl = backendUrl !== userBackendUrl;
 
-  if (status.loading)
+  const isPlayerEntry = isDeepLinkPlayerPath();
+
+  if (status.loading && !isPlayerEntry)
     return <LoadingScreen type={status.hasAccount ? "user" : "lazy"} />;
   if (status.error)
     return (

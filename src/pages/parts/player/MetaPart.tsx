@@ -12,11 +12,8 @@ import { MWMediaType } from "@/backend/metadata/types/mw";
 import { getProviders } from "@/backend/providers/providers";
 import { Button } from "@/components/buttons/Button";
 import { Icons } from "@/components/Icon";
-import { IconPill } from "@/components/layout/IconPill";
-import { Loading } from "@/components/layout/Loading";
-import { Paragraph } from "@/components/text/Paragraph";
-import { Title } from "@/components/text/Title";
-import { ErrorContainer, ErrorLayout } from "@/pages/layouts/ErrorLayout";
+import { UnifiedScrapingLoader } from "@/components/player/internals/UnifiedScrapingLoader";
+import { PlayerStageMessage } from "@/components/player/internals/PlayerStageOverlay";
 import { conf } from "@/setup/config";
 
 export interface MetaPartProps {
@@ -48,8 +45,6 @@ export function MetaPart(props: MetaPartProps) {
       if (!info.hasPermission) throw new Error("extension-no-permission");
     }
 
-    // Cache provider metadata for scrape UI. Keep this soft-fail so a provider
-    // registry error (e.g. duplicate ranks) doesn't masquerade as a TMDB outage.
     try {
       setCachedMetadata([
         ...getProviders().listSources(),
@@ -59,7 +54,6 @@ export function MetaPart(props: MetaPartProps) {
       console.error("Failed to initialize providers for player:", err);
     }
 
-    // get media meta data
     let data: ReturnType<typeof decodeTMDBId> = null;
     try {
       if (!params.media) throw new Error("no media params");
@@ -75,14 +69,13 @@ export function MetaPart(props: MetaPartProps) {
     try {
       meta = await getMetaFromId(data.type, data.id, params.season);
     } catch (err) {
-      if ((err as any).status === 404) {
+      if ((err as { status?: number }).status === 404) {
         return null;
       }
       throw err;
     }
     if (!meta) return null;
 
-    // replace link with new link if youre not already on the right link
     let epId = params.episode;
     if (meta.meta.type === MWMediaType.SERIES) {
       const episodes = meta.meta.seasonData?.episodes ?? [];
@@ -106,102 +99,75 @@ export function MetaPart(props: MetaPartProps) {
 
   if (error && error.message === "extension-no-permission") {
     return (
-      <ErrorLayout>
-        <ErrorContainer>
-          <IconPill icon={Icons.WAND}>
-            {t("player.metadata.extensionPermission.badge")}
-          </IconPill>
-          <Title>{t("player.metadata.extensionPermission.title")}</Title>
-          <Paragraph>{t("player.metadata.extensionPermission.text")}</Paragraph>
-          <Button
-            onClick={() => {
-              sendPage({
-                page: "PermissionGrant",
-                redirectUrl: window.location.href,
-              });
-            }}
-            theme="purple"
-            padding="md:px-12 p-2.5"
-            className="mt-6"
-          >
-            {t("player.metadata.extensionPermission.button")}
-          </Button>
-        </ErrorContainer>
-      </ErrorLayout>
+      <PlayerStageMessage
+        badge={t("player.metadata.extensionPermission.badge")}
+        badgeIcon={Icons.WAND}
+        heading={t("player.metadata.extensionPermission.title")}
+        body={t("player.metadata.extensionPermission.text")}
+      >
+        <Button
+          onClick={() => {
+            sendPage({
+              page: "PermissionGrant",
+              redirectUrl: window.location.href,
+            });
+          }}
+          theme="purple"
+          padding="md:px-12 p-2.5"
+          className="w-full max-w-xs"
+        >
+          {t("player.metadata.extensionPermission.button")}
+        </Button>
+      </PlayerStageMessage>
     );
   }
 
   if (error && error.message === "legal") {
     return (
-      <ErrorLayout>
-        <ErrorContainer>
-          <IconPill icon={Icons.DRAGON}>
-            {t("player.metadata.legal.badge")}
-          </IconPill>
-          <Title>{t("player.metadata.legal.title")}</Title>
-          <Paragraph>{t("player.metadata.legal.text")}</Paragraph>
-          <Button
-            href="/"
-            theme="purple"
-            padding="md:px-12 p-2.5"
-            className="mt-6"
-          >
-            {t("player.metadata.failed.homeButton")}
-          </Button>
-        </ErrorContainer>
-      </ErrorLayout>
+      <PlayerStageMessage
+        badge={t("player.metadata.legal.badge")}
+        badgeIcon={Icons.DRAGON}
+        heading={t("player.metadata.legal.title")}
+        body={t("player.metadata.legal.text")}
+      >
+        <Button href="/" theme="purple" padding="md:px-12 p-2.5" className="w-full max-w-xs">
+          {t("player.metadata.failed.homeButton")}
+        </Button>
+      </PlayerStageMessage>
     );
   }
 
   if (error) {
     return (
-      <ErrorLayout>
-        <ErrorContainer>
-          <IconPill icon={Icons.WAND}>
-            {t("player.metadata.failed.badge")}
-          </IconPill>
-          <Title>{t("player.metadata.failed.title")}</Title>
-          <Paragraph>{t("player.metadata.failed.text")}</Paragraph>
-          <Button
-            href="/"
-            theme="purple"
-            padding="md:px-12 p-2.5"
-            className="mt-6"
-          >
-            {t("player.metadata.failed.homeButton")}
-          </Button>
-        </ErrorContainer>
-      </ErrorLayout>
+      <PlayerStageMessage
+        badge={t("player.metadata.failed.badge")}
+        heading={t("player.metadata.failed.title")}
+        body={t("player.metadata.failed.text")}
+      >
+        <Button href="/" theme="purple" padding="md:px-12 p-2.5" className="w-full max-w-xs">
+          {t("player.metadata.failed.homeButton")}
+        </Button>
+      </PlayerStageMessage>
     );
   }
 
   if (!value && !loading) {
     return (
-      <ErrorLayout>
-        <ErrorContainer>
-          <IconPill icon={Icons.WAND}>
-            {t("player.metadata.notFound.badge")}
-          </IconPill>
-          <Title>{t("player.metadata.notFound.title")}</Title>
-          <Paragraph>{t("player.metadata.notFound.text")}</Paragraph>
-          <Button
-            href="/"
-            theme="purple"
-            padding="md:px-12 p-2.5"
-            className="mt-6"
-          >
-            {t("player.metadata.notFound.homeButton")}
-          </Button>
-        </ErrorContainer>
-      </ErrorLayout>
+      <PlayerStageMessage
+        badge={t("player.metadata.notFound.badge")}
+        heading={t("player.metadata.notFound.title")}
+        body={t("player.metadata.notFound.text")}
+      >
+        <Button href="/" theme="purple" padding="md:px-12 p-2.5" className="w-full max-w-xs">
+          {t("player.metadata.notFound.homeButton")}
+        </Button>
+      </PlayerStageMessage>
     );
   }
 
   return (
-    <ErrorLayout>
-      <div className="flex items-center justify-center">
-        <Loading />
-      </div>
-    </ErrorLayout>
+    <div className="relative h-full w-full">
+      <UnifiedScrapingLoader statusKey="player.scraping.unified.starting" />
+    </div>
   );
 }

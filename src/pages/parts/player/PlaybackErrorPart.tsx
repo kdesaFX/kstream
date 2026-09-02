@@ -3,13 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/buttons/Button";
-import { Icons } from "@/components/Icon";
-import { IconPill } from "@/components/layout/IconPill";
 import { useModal } from "@/components/overlays/Modal";
-import { Paragraph } from "@/components/text/Paragraph";
-import { Title } from "@/components/text/Title";
+import { PlayerStageMessage } from "@/components/player/internals/PlayerStageOverlay";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
-import { ErrorContainer, ErrorLayout } from "@/pages/layouts/ErrorLayout";
 import { usePlayerStore } from "@/stores/player/store";
 import { usePreferencesStore } from "@/stores/preferences";
 import {
@@ -182,21 +178,29 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
   // we're about to paper over just flashes a full-screen error between the
   // dead stream and the search that replaces it, which reads as "it broke"
   // rather than "still working on it". Stay dark until the searcher is back.
+  const mediaTitle =
+    meta?.type === "show" && meta.episode
+      ? `${meta.title} · S${meta.season?.number ?? 1}E${meta.episode.number}`
+      : meta?.title;
+
   if (willAutoResume) return null;
 
   return (
-    <ErrorLayout>
-      <ErrorContainer>
-        <IconPill icon={Icons.WAND}>{t("player.playbackError.badge")}</IconPill>
-        <Title>{t("player.playbackError.title")}</Title>
-        <Paragraph>
-          {enableAutoResumeOnPlaybackError &&
+    <>
+      <PlayerStageMessage
+        poster={meta?.poster}
+        mediaTitle={mediaTitle}
+        badge={t("player.playbackError.badge")}
+        heading={t("player.playbackError.title")}
+        body={
+          enableAutoResumeOnPlaybackError &&
           !props.autoResumeExhausted &&
           !viewerPausedWorkingStream
             ? t("player.playbackError.autoResumeText")
-            : t("player.playbackError.text")}
-        </Paragraph>
-        <div className="flex gap-3">
+            : t("player.playbackError.text")
+        }
+      >
+        <div className="flex flex-wrap justify-center gap-3">
           {props.currentSourceId &&
             props.onResume &&
             (!enableAutoResumeOnPlaybackError || props.autoResumeExhausted) && (
@@ -204,7 +208,6 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
                 onClick={() => props.onResume!(props.currentSourceId!)}
                 theme="purple"
                 padding="md:px-12 p-2.5"
-                className="mt-6"
               >
                 {t("player.playbackError.resumeButton")}
               </Button>
@@ -213,26 +216,19 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
             onClick={handleOpenSourcePicker}
             theme="purple"
             padding="md:px-12 p-2.5"
-            className="mt-6"
           >
             {t("player.menus.sources.title")}
           </Button>
         </div>
-        <div className="flex gap-3">
-          <Button
-            onClick={() => modal.show()}
-            theme="danger"
-            padding="md:px-12 p-2.5"
-            className="mt-6"
-          >
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button onClick={() => modal.show()} theme="danger" padding="md:px-12 p-2.5">
             {t("errors.showError")}
           </Button>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap justify-center gap-3">
           <Button
             theme="secondary"
             padding="md:px-12 p-2.5"
-            className="mt-6"
             onClick={() => {
               try {
                 usePlayerStore.getState().reset();
@@ -247,7 +243,6 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
           <Button
             theme="secondary"
             padding="md:px-12 p-2.5"
-            className="mt-6"
             onClick={(e) => {
               e.preventDefault();
               window.location.reload();
@@ -256,13 +251,12 @@ export function PlaybackErrorPart(props: PlaybackErrorPartProps) {
             {t("errors.reloadPage")}
           </Button>
         </div>
-      </ErrorContainer>
-      {/* Error */}
+      </PlayerStageMessage>
       <ErrorCardInModal
         onClose={() => modal.hide()}
         error={playbackError}
         id={modal.id}
       />
-    </ErrorLayout>
+    </>
   );
 }
