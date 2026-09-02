@@ -42,8 +42,15 @@ import {
   excludeZeroHitFromAutoScrape,
   hasProvenZeroHit,
   prioritizeConfiguredSources,
+  type SourceOrderContext,
 } from "@/utils/media/sourceOrder";
 import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
+import {
+  hasWatchProgressForTitle,
+  shouldTryWay2SoloFirst,
+  WAY2_SOLO_SOURCE_ID,
+} from "@/utils/media/way2SoloFirst";
+import { useProgressStore } from "@/stores/progress";
 
 export type { ScrapingItems, ScrapingSegment } from "@/hooks/scrapeEvents";
 
@@ -81,7 +88,6 @@ function getRunOutputBestResolutionScore(output: RunOutput): number {
   );
 }
 
-const WAY2_SOLO_SOURCE_ID = "way2movies";
 const WAY2_SOLO_RETRY_DELAY_MS = 2000;
 const CASTLE_SOLO_RETRY_DELAY_MS = 1500;
 
@@ -99,18 +105,6 @@ function sourcererToRunOutput(
   };
 }
 
-function shouldTryWay2SoloFirst(
-  sourceOrder: string[],
-  preferredSourceId: string | null,
-): boolean {
-  const index = sourceOrder.indexOf(WAY2_SOLO_SOURCE_ID);
-  if (index === -1) return false;
-  if (preferredSourceId === WAY2_SOLO_SOURCE_ID) return true;
-  // Way2 needs ~15s and rate-limits under parallel bursts — give it a clean
-  // solo attempt when it would race near the front anyway.
-  return index < 2;
-}
-
 async function tryWay2moviesSoloFirst(opts: {
   providers: ReturnType<typeof getProviders>;
   media: ScrapeMedia;
@@ -120,17 +114,28 @@ async function tryWay2moviesSoloFirst(opts: {
   };
   sourceOrder: string[];
   preferredSourceId: string | null;
+  startFromSourceId?: string;
+  sourceOrderCtx: SourceOrderContext;
+  isReturningViewer: boolean;
+  onSoloExhausted?: () => void;
 }): Promise<{ output: RunOutput | null; remainingOrder: string[] }> {
   const remainingOrder = opts.sourceOrder.filter(
     (id) => id !== WAY2_SOLO_SOURCE_ID,
   );
-  if (!shouldTryWay2SoloFirst(opts.sourceOrder, opts.preferredSourceId)) {
+  if (
+    !shouldTryWay2SoloFirst(opts.sourceOrder, opts.preferredSourceId, {
+      startFromSourceId: opts.startFromSourceId,
+      sourceOrderCtx: opts.sourceOrderCtx,
+      isReturningViewer: opts.isReturningViewer,
+    })
+  ) {
     return { output: null, remainingOrder: opts.sourceOrder };
   }
 
   opts.events.start(WAY2_SOLO_SOURCE_ID);
+  const maxAttempts = opts.preferredSourceId === WAY2_SOLO_SOURCE_ID ? 2 : 1;
   let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     if (attempt > 0) {
       await new Promise((resolve) => {
         setTimeout(resolve, WAY2_SOLO_RETRY_DELAY_MS);
@@ -159,8 +164,16 @@ async function tryWay2moviesSoloFirst(opts: {
         lastError instanceof Error ? lastError.message : "Way2Movies failed",
       error: notFound ? undefined : (lastError as Error),
     });
+  } else {
+    opts.events.update({
+      id: WAY2_SOLO_SOURCE_ID,
+      percentage: 100,
+      status: "notfound",
+      reason: "No stream returned",
+    });
   }
 
+  opts.onSoloExhausted?.();
   return { output: null, remainingOrder };
 }
 
@@ -642,6 +655,11 @@ export function useScrape() {
             lastSuccessfulSource,
           )
         : null;
+      const isReturningViewer = hasWatchProgressForTitle(
+        useProgressStore.getState().items,
+        media,
+        playerState.meta,
+      );
 
       const trySoloWay2 = async (order: string[]) => {
         const solo = await tryWay2moviesSoloFirst({
@@ -650,6 +668,10 @@ export function useScrape() {
           events: runEvents,
           sourceOrder: order,
           preferredSourceId,
+          startFromSourceId,
+          sourceOrderCtx,
+          isReturningViewer,
+          onSoloExhausted: () => recordFailedSource(WAY2_SOLO_SOURCE_ID),
         });
         if (solo.output) {
           const accepted = await acceptValidatedOutput(solo.output);

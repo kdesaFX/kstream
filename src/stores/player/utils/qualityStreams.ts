@@ -82,6 +82,45 @@ export function pickBestQualityStream(
   );
 }
 
+/** Prefer the user's last manual quality tier when resuming the same title. */
+export function pickStreamForPlayback(
+  streams: Stream[],
+  opts: {
+    preferredLanguage?: string | null;
+    preferredQuality?: SourceQuality | null;
+    automaticQuality?: boolean;
+    fallback?: Stream;
+  },
+): Stream {
+  const ordered = orderStreamsForPlayback(streams, opts.preferredLanguage);
+  if (!ordered.length) {
+    if (!opts.fallback) throw new Error("pickStreamForPlayback: no streams");
+    return opts.fallback;
+  }
+
+  const quality = opts.preferredQuality;
+  if (
+    !quality ||
+    quality === "unknown" ||
+    opts.automaticQuality !== false
+  ) {
+    return ordered[0] ?? opts.fallback ?? streams[0];
+  }
+
+  const preferredRank = QUALITY_RANK[quality] ?? 0;
+  const atOrAbove = ordered.find(
+    (stream) => streamPeakQualityRank(stream) >= preferredRank,
+  );
+  if (atOrAbove) return atOrAbove;
+
+  const closestBelow = [...ordered]
+    .sort(
+      (a, b) => streamPeakQualityRank(b) - streamPeakQualityRank(a),
+    )
+    .find((stream) => streamPeakQualityRank(stream) <= preferredRank);
+  return closestBelow ?? ordered[0] ?? opts.fallback ?? streams[0];
+}
+
 /**
  * A safety net, not a latency control. The playlist is a few KB, but the CORS
  * proxy has to fetch it from a cold origin first, which regularly takes several

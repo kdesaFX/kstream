@@ -1143,6 +1143,7 @@
     "scraping": {
       "unified": {
         "starting": "Getting ready",
+        "buffering": "Buffering your stream",
         "searching": "Finding a source",
         "asking": "Asking {{source}}"
       },

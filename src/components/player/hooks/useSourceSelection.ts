@@ -20,10 +20,11 @@ import { usePlayerStore } from "@/stores/player/store";
 import { streamsToAudioOptions } from "@/stores/player/utils/audioStreams";
 import { discoverAlternateAudioLanguages } from "@/stores/player/utils/discoverAlternateAudio";
 import {
-  pickBestQualityStream,
+  pickStreamForPlayback,
   streamsToQualityOptions,
 } from "@/stores/player/utils/qualityStreams";
 import { usePreferencesStore } from "@/stores/preferences";
+import { useQualityStore } from "@/stores/quality";
 import { useProgressStore } from "@/stores/progress";
 
 function getSavedProgress(items: Record<string, any>, meta: any): number {
@@ -51,6 +52,20 @@ function startAlternateAudioDiscovery(sourceId: string) {
   });
 }
 
+function pickStreamFromScrape(
+  streams: Parameters<typeof pickStreamForPlayback>[0],
+  fallback?: Parameters<typeof pickStreamForPlayback>[1]["fallback"],
+) {
+  const qualityPrefs = useQualityStore.getState().quality;
+  const preferredAudioLanguage =
+    usePreferencesStore.getState().preferredAudioLanguage;
+  return pickStreamForPlayback(streams, {
+    preferredLanguage: preferredAudioLanguage,
+    preferredQuality: qualityPrefs.lastChosenQuality,
+    automaticQuality: qualityPrefs.automaticQuality,
+    fallback,
+  });
+}
 function registerCurrentQualityOptions(
   streams: Parameters<typeof streamsToQualityOptions>[0],
   sourceId: string,
@@ -118,10 +133,7 @@ export function useEmbedScraping(
     const embedStreams = Array.isArray(result.stream)
       ? result.stream
       : [result.stream];
-    const selectedStream = pickBestQualityStream(
-      embedStreams,
-      preferredAudioLanguage,
-    );
+    const selectedStream = pickStreamFromScrape(embedStreams);
     if (isExtensionActiveCached()) await prepareStream(selectedStream);
     setSourceId(sourceId);
     setEmbedId(embedId);
@@ -230,10 +242,7 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
       const streams = Array.isArray(result.stream)
         ? result.stream
         : [result.stream];
-      const selectedStream = pickBestQualityStream(
-        streams,
-        preferredAudioLanguage,
-      );
+      const selectedStream = pickStreamFromScrape(streams);
       if (isExtensionActiveCached()) await prepareStream(selectedStream);
       setEmbedId(null);
       setCaption(null);
@@ -294,10 +303,7 @@ export function useSourceScraping(sourceId: string | null, routerId: string) {
       const embedStreams = Array.isArray(embedResult.stream)
         ? embedResult.stream
         : [embedResult.stream];
-      const selectedStream = pickBestQualityStream(
-        embedStreams,
-        preferredAudioLanguage,
-      );
+      const selectedStream = pickStreamFromScrape(embedStreams);
       setSourceId(sourceId);
       setEmbedId(result.embeds[0].embedId);
       setCaption(null);

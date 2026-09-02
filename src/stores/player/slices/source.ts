@@ -890,6 +890,9 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   },
   switchQualityStreamOption(optionId) {
     const store = get();
+    if (!store.mediaPlaying.hasPlayedOnce && store.mediaPlaying.isLoading) {
+      return;
+    }
     const option = store.qualityStreamOptions.find(
       (candidate) => candidate.id === optionId,
     );

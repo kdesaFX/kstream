@@ -40,10 +40,11 @@ import {
 } from "@/stores/player/utils/audioStreams";
 import { discoverAlternateAudioLanguages } from "@/stores/player/utils/discoverAlternateAudio";
 import {
-  pickBestQualityStream,
+  pickStreamForPlayback,
   streamsToQualityOptions,
 } from "@/stores/player/utils/qualityStreams";
 import { usePreferencesStore } from "@/stores/preferences";
+import { useQualityStore } from "@/stores/quality";
 import { getProgressPercentage, useProgressStore } from "@/stores/progress";
 import { needsOnboarding } from "@/utils/hosting/onboarding";
 import { parseTimestamp } from "@/utils/format/timestamp";
@@ -328,11 +329,13 @@ export function RealPlayerView() {
       if (startAtParam) startAt = parseTimestamp(startAtParam) ?? undefined;
 
       const availableStreams = out.streams?.length ? out.streams : [out.stream];
-      const selectedStream = pickBestQualityStream(
-        availableStreams,
-        preferredAudioLanguage,
-        out.stream,
-      );
+      const qualityPrefs = useQualityStore.getState().quality;
+      const selectedStream = pickStreamForPlayback(availableStreams, {
+        preferredLanguage: preferredAudioLanguage,
+        preferredQuality: qualityPrefs.lastChosenQuality,
+        automaticQuality: qualityPrefs.automaticQuality,
+        fallback: out.stream,
+      });
 
       if (isExtensionActiveCached()) {
         await prepareStream(selectedStream);
@@ -363,10 +366,6 @@ export function RealPlayerView() {
       // before the first frame locks titles onto dead streams and forces the
       // "trying the next source" loop on every episode.
       setShouldStartFromBeginning(false);
-
-      if (scrapeMedia) {
-        startAlternateAudioDiscovery(scrapeMedia, out.sourceId);
-      }
     },
     [
       playMedia,
@@ -374,11 +373,17 @@ export function RealPlayerView() {
       shouldStartFromBeginning,
       setShouldStartFromBeginning,
       preferredAudioLanguage,
-      scrapeMedia,
       setScrapeNotFound,
       setResumeFromSourceIdInStore,
     ],
   );
+
+  // Discover alternate sources only after the first stream buffers — populating
+  // the quality menu mid-load invites switches that race the initial decoder.
+  useEffect(() => {
+    if (!hasPlayedOnce || !scrapeMedia || !sourceId) return;
+    startAlternateAudioDiscovery(scrapeMedia, sourceId);
+  }, [hasPlayedOnce, scrapeMedia, sourceId]);
 
   // Pin preferred / last-successful only after a few seconds of real progress —
   // not on scrape success, and not on the HTML `play` event (autoplay can fire
@@ -467,6 +472,7 @@ export function RealPlayerView() {
           title={preparingTitle}
           sourceOrder={[]}
           sources={{}}
+          statusKey="player.scraping.unified.buffering"
           className="z-20"
         />
       ) : null}
