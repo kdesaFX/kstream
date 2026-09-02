@@ -111,6 +111,7 @@ export function hasBakedBackground(pixels: LogoAlphaSource): boolean {
 export function probeUrlFor(url: string): string {
   return url
     .replace("/t/p/original/", "/t/p/w300/")
+    .replace("/t/p/w780/", "/t/p/w300/")
     .replace("/t/p/w500/", "/t/p/w300/");
 }
 

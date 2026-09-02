@@ -801,8 +801,8 @@ export async function getMediaLogo(
       MAX_LOGO_CANDIDATES,
     );
     for (const logo of candidates) {
-      // w500 is sharp at on-screen logo sizes; original PNGs are often multi-MB.
-      const logoUrl = `https://image.tmdb.org/t/p/w500${logo.file_path}`;
+      // w780 stays sharp on retina details modals without multi-MB originals.
+      const logoUrl = `https://image.tmdb.org/t/p/w780${logo.file_path}`;
       // eslint-disable-next-line no-await-in-loop
       if (!(await logoHasBakedBackground(logoUrl))) return logoUrl;
     }

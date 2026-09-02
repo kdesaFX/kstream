@@ -147,7 +147,7 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
       resizeObserver.observe(logoRef.current);
       return () => resizeObserver.disconnect();
     }
-  }, []);
+  }, [data.logoUrl, enableImageLogos]);
 
   useEffect(() => {
     const fetchNetworkData = async () => {
@@ -352,7 +352,7 @@ export function DetailsContent({ data, minimal = false }: DetailsContentProps) {
             <img
               src={data.logoUrl}
               alt={data.title}
-              className="max-w-[16rem] md:max-w-[20rem] lg:max-w-[30rem] max-h-[12rem] object-contain drop-shadow-lg bg-transparent"
+              className="max-w-[min(90vw,22rem)] md:max-w-[22rem] lg:max-w-[30rem] max-h-[min(32vh,16rem)] md:max-h-[22vh] w-auto h-auto object-contain object-left drop-shadow-lg bg-transparent"
               style={{ background: "none" }}
             />
           ) : (
