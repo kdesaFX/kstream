@@ -9,23 +9,12 @@ import { mediaItemToId } from "@/backend/metadata/tmdb";
 import { Button } from "@/components/buttons/Button";
 import { Modal, ModalCard, useModal } from "@/components/overlays/Modal";
 import { DotList } from "@/components/text/DotList";
-import {
-  ContextMenu,
-  ContextMenuDivider,
-  ContextMenuItem,
-} from "@/components/utils/ContextMenu";
+import { MediaCardContextMenu } from "@/components/media/MediaCardContextMenu";
 import { Flare } from "@/components/utils/Flare";
 import { Heading2 } from "@/components/utils/Text";
 import { useSearchQuery } from "@/hooks/useSearchQuery";
-import { useBookmarkStore } from "@/stores/bookmarks";
-import { useOverlayStack } from "@/stores/interface/overlayStack";
-import { PlayerMeta } from "@/stores/player/slices/source";
 import { usePreferencesStore } from "@/stores/preferences";
 import { lazyRootMarginFor } from "@/stores/preferences/deviceProfile";
-import {
-  createGroupString,
-  parseGroupString,
-} from "@/utils/media/bookmarkModifications";
 import { resolveCardArtworkUrl } from "@/utils/media/artwork";
 import { isMatureMedia } from "@/utils/media/mature";
 import { MediaItem } from "@/utils/media/mediaTypes";
@@ -34,8 +23,7 @@ import { preloadPlayerView } from "@/setup/routePreload";
 import { MediaBookmarkButton } from "./MediaBookmark";
 import { IconPatch } from "../buttons/IconPatch";
 import { Icon, Icons } from "../Icon";
-
-const EMPTY_GROUPS: string[] = [];
+import { useOverlayStack } from "@/stores/interface/overlayStack";
 
 /**
  * Observe once — stay loaded after first intersection. The node is held in
@@ -441,7 +429,9 @@ export function MediaCard(props: MediaCardProps) {
     [props.media],
   );
 
-  const canLink = props.linkable && !props.closable && isReleased();
+  const canLink = Boolean(
+    props.linkable && !props.closable && isReleased(),
+  );
 
   let link = "#";
   if (canLink) {
@@ -494,70 +484,6 @@ export function MediaCard(props: MediaCardProps) {
     x: number;
     y: number;
   } | null>(null);
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-
-  const modifyBookmarks = useBookmarkStore((s) => s.modifyBookmarks);
-  const addBookmarkWithGroups = useBookmarkStore(
-    (s) => s.addBookmarkWithGroups,
-  );
-
-  const isBookmarked = useBookmarkStore((s) => !!s.bookmarks[media.id]);
-  const currentGroups = useBookmarkStore(
-    (s) => s.bookmarks[media.id]?.group ?? EMPTY_GROUPS,
-  );
-
-  // Only pull the full bookmark map while the folder menu is open so saving
-  // a title elsewhere doesn't re-render every card on the page.
-  const bookmarksForMenu = useBookmarkStore((s) =>
-    contextMenuPos ? s.bookmarks : null,
-  );
-  const allGroups = useMemo(() => {
-    if (!bookmarksForMenu) return EMPTY_GROUPS;
-    const groupSet = new Set<string>();
-    Object.values(bookmarksForMenu).forEach((bookmark) => {
-      if (bookmark.group) {
-        bookmark.group.forEach((group) => groupSet.add(group));
-      }
-    });
-    return Array.from(groupSet);
-  }, [bookmarksForMenu]);
-
-  const meta: PlayerMeta | undefined = useMemo(() => {
-    if (media.type === "manga" || media.year === undefined) return undefined;
-    return {
-      type: media.type,
-      title: media.title,
-      tmdbId: media.id,
-      releaseYear: media.year,
-      poster: media.poster,
-    };
-  }, [media]);
-
-  const toggleGroup = (groupName: string) => {
-    let newGroups = [...currentGroups];
-    if (newGroups.includes(groupName)) {
-      newGroups = newGroups.filter((g) => g !== groupName);
-    } else {
-      newGroups.push(groupName);
-    }
-
-    if (isBookmarked) {
-      modifyBookmarks([media.id], { groups: newGroups });
-    } else if (meta) {
-      addBookmarkWithGroups(meta, newGroups);
-    }
-  };
-
-  const handleCreateFolder = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newFolderName.trim() || allGroups.length >= 30) return;
-
-    const newGroupString = createGroupString("BOOKMARK", newFolderName.trim());
-    toggleGroup(newGroupString);
-    setIsCreatingFolder(false);
-    setNewFolderName("");
-  };
 
   // Unreleased titles aren't linkable but still wear the 18+ cover, so they
   // still owe the viewer an explanation when tapped. Delete mode is the one
@@ -594,7 +520,6 @@ export function MediaCard(props: MediaCardProps) {
   const handleCardContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsCreatingFolder(false);
     setContextMenuPos({ x: e.clientX, y: e.clientY });
   };
 
@@ -611,110 +536,25 @@ export function MediaCard(props: MediaCardProps) {
     />
   );
 
-  const contextMenuEl = contextMenuPos && (
-    <ContextMenu
+  const contextMenuEl = contextMenuPos ? (
+    <MediaCardContextMenu
+      media={media}
       x={contextMenuPos.x}
       y={contextMenuPos.y}
+      link={link}
+      canLink={canLink}
+      percentage={props.percentage}
       onClose={() => setContextMenuPos(null)}
-    >
-      <div className="px-3 py-1 mb-1 text-xs text-white/50 font-bold uppercase tracking-wider">
-        {media.title || "Media"}
-      </div>
-      <ContextMenuDivider />
-      <ContextMenuItem onClick={handleShowDetails}>
-        <Icon icon={Icons.CIRCLE_EXCLAMATION} className="text-lg w-5" />
-        <span className="flex-1">{t("bookmarks.folders.moreInfo")}</span>
-      </ContextMenuItem>
-      {props.onEdit && (
-        <ContextMenuItem
-          onClick={() => {
-            setContextMenuPos(null);
-            props.onEdit?.();
-          }}
-        >
-          <Icon icon={Icons.EDIT} className="text-lg w-5" />
-          <span className="flex-1">{t("bookmarks.folders.editDetails")}</span>
-        </ContextMenuItem>
-      )}
-      <ContextMenuDivider />
-
-      <div className="px-3 py-2 text-xs text-white/50 font-bold uppercase tracking-wider flex justify-between items-center">
-        <span>{t("bookmarks.folders.title")}</span>
-        <span
-          className={allGroups.length >= 30 ? "text-semantic-rose-c100" : ""}
-        >
-          {allGroups.length} / 30
-        </span>
-      </div>
-
-      {allGroups.length === 0 && !isCreatingFolder && (
-        <div className="px-4 py-2 text-sm text-white/30 italic">
-          {t("bookmarks.folders.empty")}
-        </div>
-      )}
-
-      {allGroups.map((group: string) => {
-        const { name } = parseGroupString(group);
-        const isInGroup = currentGroups.includes(group);
-        return (
-          <ContextMenuItem key={group} onClick={() => toggleGroup(group)}>
-            <Icon
-              icon={isInGroup ? Icons.CHECKMARK : Icons.BOOKMARK}
-              className={classNames(
-                "text-lg w-5",
-                isInGroup ? "text-type-link" : "",
-              )}
-            />
-            <span
-              className={classNames(
-                "flex-1 truncate",
-                isInGroup ? "text-type-link font-medium" : "",
-              )}
-            >
-              {name}
-            </span>
-          </ContextMenuItem>
-        );
-      })}
-
-      {!isCreatingFolder ? (
-        <ContextMenuItem
-          onClick={() => setIsCreatingFolder(true)}
-          className="mt-1"
-          disabled={allGroups.length >= 30}
-        >
-          <Icon icon={Icons.PLUS} className="text-lg w-5" />
-          <span className="flex-1">{t("bookmarks.folders.createFolder")}</span>
-        </ContextMenuItem>
-      ) : (
-        <div className="px-3 py-2 mt-1 bg-white/5 rounded mx-1">
-          <form
-            onSubmit={handleCreateFolder}
-            className="flex gap-2 items-center"
-          >
-            <input
-              autoFocus
-              type="text"
-              placeholder={t("bookmarks.folders.folderNamePlaceholder")}
-              className="w-full bg-transparent outline-none text-sm text-white placeholder-white/30"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-              onContextMenu={(e) => e.stopPropagation()}
-            />
-            <button
-              type="submit"
-              className="text-type-link hover:text-white transition-colors"
-              disabled={!newFolderName.trim()}
-            >
-              <Icon icon={Icons.CHECKMARK} />
-            </button>
-          </form>
-        </div>
-      )}
-    </ContextMenu>
-  );
+      onShowDetails={handleShowDetails}
+      onEdit={
+        props.onEdit
+          ? () => {
+              props.onEdit?.();
+            }
+          : undefined
+      }
+    />
+  ) : null;
 
   // Only the covered titles need the dialog, and there can be hundreds of cards
   // on a page — each one carries a portal, so don't mount what can't open.

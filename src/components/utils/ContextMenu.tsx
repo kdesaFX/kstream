@@ -86,3 +86,26 @@ export function ContextMenuItem({
 export function ContextMenuDivider() {
   return <div className="h-px bg-white/10 my-1 w-full" />;
 }
+
+export function ContextMenuHeader({ children }: { children: ReactNode }) {
+  return (
+    <div className="px-3 py-1 mb-1 text-xs text-white/50 font-bold uppercase tracking-wider truncate">
+      {children}
+    </div>
+  );
+}
+
+export function ContextMenuSectionLabel({
+  children,
+  trailing,
+}: {
+  children: ReactNode;
+  trailing?: ReactNode;
+}) {
+  return (
+    <div className="px-3 py-2 text-xs text-white/50 font-bold uppercase tracking-wider flex justify-between items-center gap-2">
+      <span>{children}</span>
+      {trailing ? <span className="normal-case tracking-normal">{trailing}</span> : null}
+    </div>
+  );
+}

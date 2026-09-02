@@ -563,6 +563,18 @@
       "anilist": "Open on AniList",
       "mal": "Open on MyAnimeList"
     },
+    "contextMenu": {
+      "play": "Play",
+      "resume": "Resume watching",
+      "openReader": "Open reader",
+      "addBookmark": "Add to bookmarks",
+      "removeBookmark": "Remove bookmark",
+      "copyLink": "Copy link",
+      "copied": "Copied!",
+      "openNewTab": "Open in new tab",
+      "viewOnTmdb": "View on TMDB",
+      "removeWatching": "Remove from Continue Watching"
+    },
     "episodeShort": "E",
     "seasonShort": "S",
     "seasonWatched": "Are you sure you want to mark the season as watched?",
