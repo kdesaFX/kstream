@@ -124,12 +124,25 @@ function buildQueries(title: string, alternateTitles: string[]): string[] {
   add(title);
   add(title.replace(/-/g, " "));
   add(title.replace(/[!?,.'’:]/g, ""));
-  for (const alt of alternateTitles) {
-    add(alt);
+
+  const latinAlts = alternateTitles.filter((alt) => /[a-z]/i.test(alt));
+  // Prefer short romaji prefixes before long English names — WC's /search/data
+  // misses "My Dress-Up Darling" but finds "Sono Bisque Doll".
+  const romajiFirst = [...latinAlts].sort((a, b) => {
+    const score = (s: string) =>
+      /\b(wa|wo|ha|no|ga|ni|sono)\b/i.test(s) ? 1 : 0;
+    return score(b) - score(a);
+  });
+
+  for (const alt of romajiFirst) {
     const words = alt.replace(/[!?,.'’:]/g, " ").split(/\s+/).filter(Boolean);
     if (words.length >= 2) add(words.slice(0, 2).join(" "));
     if (words.length >= 3) add(words.slice(0, 3).join(" "));
   }
+  for (const alt of romajiFirst) {
+    add(alt);
+  }
+
   const words = title.replace(/[!?,.'’:]/g, " ").split(/\s+/).filter(Boolean);
   if (words.length >= 2) add(words.slice(0, 2).join(" "));
   if (words.length >= 3) add(words.slice(0, 3).join(" "));
@@ -220,10 +233,38 @@ async function wcGet(path: string, htmx = false): Promise<string> {
   return html;
 }
 
+async function searchWeebCentralSimple(query: string): Promise<SearchHit[]> {
+  const res = await fetch(`${WC_ORIGIN}/search/simple?location=main`, {
+    method: "POST",
+    headers: {
+      Accept: "*/*",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": DEFAULT_UA,
+    },
+    body: `text=${encodeURIComponent(query)}`,
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!res.ok) return [];
+  const html = await res.text();
+  if (/just a moment|cf-challenge|enable javascript/i.test(html)) {
+    return [];
+  }
+  return parseSearchResults(html);
+}
+
 async function searchWeebCentral(query: string): Promise<SearchHit[]> {
   const url = `/search/data?limit=16&text=${encodeURIComponent(query)}&sort=Best%20Match&order=Descending&official=Any&display_mode=Full%20Display`;
-  const html = await wcGet(url, true);
-  return parseSearchResults(html);
+  try {
+    const html = await wcGet(url, true);
+    const hits = parseSearchResults(html);
+    if (hits.length > 0) return hits;
+  } catch {
+    // fall through to simple search
+  }
+  // /search/data often returns "No results" for English titles (Dress-Up Darling)
+  // while /search/simple still finds the romaji series page.
+  return searchWeebCentralSimple(query);
 }
 
 async function loadWeebCentralChapters(

@@ -662,9 +662,36 @@ async function fetchWeebCentralSearchHits(
   if (cached && Date.now() - cached.at < SEARCH_TTL_MS) {
     return cached.hits;
   }
-  const url = `${ORIGIN}/search/data?limit=${limit}&text=${encodeURIComponent(q)}&sort=Best%20Match&order=Descending&official=Any&display_mode=Full%20Display`;
-  const html = await wcGet(url, true);
-  const parsed = parseSearchResults(html);
+  const dataUrl = `${ORIGIN}/search/data?limit=${limit}&text=${encodeURIComponent(q)}&sort=Best%20Match&order=Descending&official=Any&display_mode=Full%20Display`;
+  let parsed: WeebCentralSearchHit[] = [];
+  try {
+    const html = await wcGet(dataUrl, true);
+    parsed = parseSearchResults(html);
+  } catch {
+    parsed = [];
+  }
+  // English titles like "My Dress-Up Darling" often return "No results" from
+  // /search/data while /search/simple still finds the romaji series.
+  if (parsed.length === 0) {
+    try {
+      const simpleHtml = await fetchViaMangaProxies(
+        `${ORIGIN}/search/simple?location=main`,
+        async (target) =>
+          wcFetch<string>(target, {
+            method: "POST",
+            headers: {
+              ...wcHeaders(false),
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: `text=${encodeURIComponent(q)}`,
+          }),
+        (html) => typeof html === "string" && isUsableWeebCentralHtml(html),
+      );
+      parsed = parseSearchResults(simpleHtml);
+    } catch {
+      parsed = [];
+    }
+  }
   if (parsed.length > 0) {
     searchCache.set(key, { at: Date.now(), hits: parsed });
   }

@@ -183,7 +183,13 @@ export function MangaReaderView() {
 
   // Load manga details
   useEffect(() => {
-    if (!mangaId) return undefined;
+    if (!mediaParam) return undefined;
+    if (!mangaId) {
+      setDetailsReady(true);
+      setLoading(false);
+      setError(t("manga.reader.invalidLink", "This manga link is invalid."));
+      return undefined;
+    }
     let cancelled = false;
     loadGenerationRef.current += 1;
     skippedEmptyRef.current = new Set();
@@ -225,7 +231,7 @@ export function MangaReaderView() {
     return () => {
       cancelled = true;
     };
-  }, [mangaId, preferredLanguage]);
+  }, [mangaId, mediaParam, preferredLanguage, t]);
 
   // Redirect /manga/:id → first readable chapter or resume after meaningful read.
   // Wait for mirror merge — partial MangaDex stubs auto-skip all the way to the end.
@@ -237,7 +243,9 @@ export function MangaReaderView() {
       resume &&
       mangaProgressHasMeaningfulRead(resume) &&
       details.chapters.some((ch) => ch.id === resume.chapterId);
+    // Prefer WeebCentral over hollow Comick stubs (pages often CF-blocked).
     const firstReadable =
+      details.chapters.find((ch) => ch.source === "weebcentral")?.id ??
       details.chapters.find((ch) => isLikelyReadableChapter(ch))?.id ??
       details.chapters[0]?.id;
     const target = resumeStillValid ? resume.chapterId : firstReadable;
@@ -361,29 +369,9 @@ export function MangaReaderView() {
               needsDetailsRetryRef.current = true;
               return;
             }
-            skippedEmptyRef.current.add(id);
-            const idx = chapters.findIndex((c) => c.id === id);
-            const after = idx >= 0 ? chapters.slice(idx + 1) : chapters;
-            const nextReadable =
-              after.find(
-                (c) =>
-                  !skippedEmptyRef.current.has(c.id) &&
-                  isLikelyReadableChapter(c),
-              ) ??
-              after.find((c) => !skippedEmptyRef.current.has(c.id));
-            // Cap auto-skips so a hollow feed can't teleport to the finale.
-            if (
-              nextReadable &&
-              details &&
-              skippedEmptyRef.current.size <= 5
-            ) {
-              skipChapterResumeRef.current = true;
-              navigate(
-                mangaChapterLink(details.id, details.title, nextReadable.id),
-                { replace: true },
-              );
-              return;
-            }
+            // After mirrors are ready, never auto-skip a cascade of hollow
+            // Comick/MD stubs (Dress-Up Darling was teleporting to ch.6+).
+            // Let the reader show the empty state; Next still works.
             setError(t("manga.reader.emptyChapter"));
             setPages([]);
             pagesLoadedRef.current = false;
@@ -415,10 +403,8 @@ export function MangaReaderView() {
     [
       t,
       details,
-      chapters,
       detailsReady,
       pageFallback,
-      navigate,
     ],
   );
 
@@ -573,10 +559,12 @@ export function MangaReaderView() {
     };
   }, [mangaId, chapterId, pages.length, readerMode, resetVerticalScroll]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist progress only after pageIndex belongs to this chapter.
+  // Persist progress only after real pages belong to this chapter.
   useEffect(() => {
     if (!details || !chapterId || !currentChapter || pages.length === 0) return;
     if (pageChapterIdRef.current !== chapterId) return;
+    // Never seed resume from an empty/auto-landed stub or a single unopened page.
+    if (pageIndex === 0 && pages.length > 1) return;
     updateProgress({
       mangaId: details.id,
       title: details.title,

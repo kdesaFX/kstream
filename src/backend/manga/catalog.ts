@@ -99,13 +99,21 @@ export type ChapterPageFallback = {
   mangadexStub?: boolean;
 };
 
-async function fetchPagesViaApi(chapterId: string): Promise<string[] | null> {
+async function fetchPagesViaApi(
+  chapterId: string,
+  fallback?: ChapterPageFallback,
+): Promise<string[] | null> {
   if (typeof fetch === "undefined") return null;
   try {
-    const res = await fetch(
-      `/api/manga/pages?chapterId=${encodeURIComponent(chapterId)}`,
-      { signal: AbortSignal.timeout(9000) },
-    );
+    const params = new URLSearchParams({ chapterId });
+    if (fallback?.title) params.set("title", fallback.title);
+    if (fallback?.chapter?.trim()) params.set("chapter", fallback.chapter.trim());
+    if (fallback?.alternateTitles?.length) {
+      params.set("alts", fallback.alternateTitles.slice(0, 16).join("\n"));
+    }
+    const res = await fetch(`/api/manga/pages?${params.toString()}`, {
+      signal: AbortSignal.timeout(28000),
+    });
     if (!res.ok) return null;
     const data = (await res.json()) as { pages?: string[] };
     return data.pages?.length ? data.pages : null;
@@ -164,11 +172,11 @@ export async function getChapterPages(
 
   const tasks: PageSourceTask[] = [];
   if (!stub) {
-    tasks.push(() => fetchPagesViaApi(chapterId));
+    tasks.push(() => fetchPagesViaApi(chapterId, fallback));
     tasks.push(() => tryLoadPagesForId(chapterId, pageContext, force));
   }
   for (const alt of altIds) {
-    tasks.push(() => fetchPagesViaApi(alt));
+    tasks.push(() => fetchPagesViaApi(alt, fallback));
     tasks.push(() => tryLoadPagesForId(alt, pageContext, force));
   }
   if (fallback?.title && fallback.chapter?.trim()) {
