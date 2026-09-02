@@ -1,3 +1,4 @@
+/* eslint-disable import/no-extraneous-dependencies */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { openDesktopOAuthInBrowser } from "./desktopOAuth";
