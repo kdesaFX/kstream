@@ -15,6 +15,7 @@ import { MediaItem } from "@/utils/media/mediaTypes";
 
 const SKELETON_COUNT = 10;
 const EAGER_CARDS = 8;
+const PRIORITY_EAGER_CARDS = 14;
 const CARD_WRAPPER =
   "relative mt-4 group cursor-pointer user-select-none rounded-xl p-2 bg-transparent transition-colors duration-300 w-[10rem] md:w-[11.5rem] h-auto";
 
@@ -48,17 +49,23 @@ export function MangaCarousel({
   const [visibleLoad, setVisibleLoad] = useState(false);
   const shouldFetch =
     enabled && (priority || hasIntersected || visibleLoad);
-  const { media: rawMedia, hasLoaded, error } = useMangaDiscoverMedia(
+  const { media: rawMedia, hasLoaded, error, isLoading } = useMangaDiscoverMedia(
     kind,
     shouldFetch,
     tagFilter,
   );
-  const media = useDedupedMangaCarouselMedia(dedupePriority, rawMedia, {
-    enabled: shouldFetch,
-    hasLoaded,
-    kind,
-    tagFilter,
-  });
+  const { media, isBackfilling } = useDedupedMangaCarouselMedia(
+    dedupePriority,
+    rawMedia,
+    {
+      enabled: shouldFetch,
+      hasLoaded,
+      isLoading,
+      kind,
+      tagFilter,
+    },
+  );
+  const eagerCards = priority ? PRIORITY_EAGER_CARDS : EAGER_CARDS;
   const { isMobile } = useIsMobile();
   const isScrollingRef = useRef(false);
   const browser = !!window.chrome;
@@ -122,7 +129,13 @@ export function MangaCarousel({
     return <div ref={lazyRef} className="h-[20rem]" />;
   }
 
-  if (hasLoaded && (error || media.length === 0)) return null;
+  const shouldHide =
+    hasLoaded &&
+    !isLoading &&
+    !isBackfilling &&
+    media.length === 0 &&
+    (Boolean(error) || rawMedia.length === 0);
+  if (shouldHide) return null;
 
   return (
     <div ref={lazyRef}>
@@ -151,7 +164,7 @@ export function MangaCarousel({
                 >
                   <MediaCard
                     linkable
-                    eager={index < EAGER_CARDS}
+                    eager={index < eagerCards}
                     media={item}
                     onShowDetails={onShowDetails}
                   />

@@ -92,9 +92,10 @@ export function MangaRecommendationsCarousel({
       shouldFetch,
     );
 
-  const media = useDedupedMangaCarouselMedia(dedupePriority, rawMedia, {
+  const { media, isBackfilling } = useDedupedMangaCarouselMedia(dedupePriority, rawMedia, {
     enabled: shouldFetch,
     hasLoaded,
+    isLoading,
     kind: "recommendations",
   });
   const categorySlug = "manga-because-you-read";
@@ -134,7 +135,13 @@ export function MangaRecommendationsCarousel({
     return <div ref={lazyRef} className="h-[20rem]" />;
   }
 
-  if (hasLoaded && (error || media.length === 0)) return null;
+  const shouldHide =
+    hasLoaded &&
+    !isLoading &&
+    !isBackfilling &&
+    media.length === 0 &&
+    (Boolean(error) || rawMedia.length === 0);
+  if (shouldHide) return null;
 
   return (
     <div ref={lazyRef}>

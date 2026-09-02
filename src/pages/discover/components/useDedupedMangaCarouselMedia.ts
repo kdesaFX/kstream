@@ -21,12 +21,20 @@ export function useDedupedMangaCarouselMedia(
   options: {
     enabled?: boolean;
     hasLoaded?: boolean;
+    isLoading?: boolean;
     kind?: string;
     tagFilter?: MangaGenreTagKey;
   } = {},
-): MediaItem[] {
-  const { enabled = true, hasLoaded = true, kind = "", tagFilter } = options;
+): { media: MediaItem[]; isBackfilling: boolean } {
+  const {
+    enabled = true,
+    hasLoaded = true,
+    isLoading = false,
+    kind = "",
+    tagFilter,
+  } = options;
   const [backfill, setBackfill] = useState<MediaItem[]>([]);
+  const [isBackfilling, setIsBackfilling] = useState(false);
   const attemptsRef = useRef(0);
 
   useEffect(() => {
@@ -44,14 +52,21 @@ export function useDedupedMangaCarouselMedia(
   const media = useDedupedMedia(priority, pooled);
 
   useEffect(() => {
-    if (!enabled || !hasLoaded || priority === undefined) return;
-    if (media.length >= CAROUSEL_DISPLAY_TARGET) return;
-    if (attemptsRef.current >= 3) return;
+    if (!enabled || isLoading || !hasLoaded || priority === undefined) return;
+    if (media.length >= CAROUSEL_DISPLAY_TARGET) {
+      setIsBackfilling(false);
+      return;
+    }
+    if (attemptsRef.current >= 3) {
+      setIsBackfilling(false);
+      return;
+    }
 
     const round = attemptsRef.current + 1;
     attemptsRef.current = round;
 
     let cancelled = false;
+    setIsBackfilling(true);
 
     (async () => {
       try {
@@ -77,15 +92,26 @@ export function useDedupedMangaCarouselMedia(
         });
       } catch (err) {
         console.error("Manga carousel backfill failed:", err);
+      } finally {
+        if (!cancelled) setIsBackfilling(false);
       }
     })();
 
     return () => {
       cancelled = true;
+      setIsBackfilling(false);
     };
-  }, [enabled, hasLoaded, priority, kind, media.length, tagFilter]);
+  }, [
+    enabled,
+    isLoading,
+    hasLoaded,
+    priority,
+    kind,
+    media.length,
+    tagFilter,
+  ]);
 
-  return media;
+  return { media, isBackfilling };
 }
 
 // Keep the kind union visible to callers that cast carousel kind strings.

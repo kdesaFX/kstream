@@ -193,8 +193,35 @@ export async function listDiscoverManga(ops: {
       }
     }
 
+    const buildItems = (): MangaListItem[] => {
+      const out: MangaListItem[] = [];
+      const seen = new Set<string>();
+      for (const hit of anilist) {
+        const item = byAniTitle.get(hit.title);
+        if (!item || seen.has(item.id)) continue;
+        seen.add(item.id);
+        out.push(item);
+        if (out.length >= limit) break;
+      }
+      return fillFromMdPool(out, mdPool, anilist, limit);
+    };
+
+    let items = buildItems();
+
+    // Pool matches + MD backfill are enough for a full row — skip blocking on
+    // per-title MangaDex search (was adding up to 3.5s per carousel).
+    if (items.length >= Math.min(MIN_USABLE, limit)) {
+      if (needResolve.length > 0) {
+        void resolveDiscoverMangaIds(needResolve, 6, 3500).catch(() => undefined);
+      }
+      if (items.length > 0) {
+        listCache.set(cacheKey, { at: Date.now(), items });
+      }
+      return items;
+    }
+
     if (needResolve.length > 0) {
-      const ids = await resolveDiscoverMangaIds(needResolve, 6, 3500);
+      const ids = await resolveDiscoverMangaIds(needResolve, 6, 2000);
       for (const hit of needResolve) {
         const id = ids.get(hit.title);
         if (!id) continue;
@@ -202,19 +229,7 @@ export async function listDiscoverManga(ops: {
       }
     }
 
-    let items: MangaListItem[] = [];
-    const seen = new Set<string>();
-    for (const hit of anilist) {
-      const item = byAniTitle.get(hit.title);
-      if (!item || seen.has(item.id)) continue;
-      seen.add(item.id);
-      items.push(item);
-      if (items.length >= limit) break;
-    }
-
-    // Title mismatch / resolve budget → backfill from the MD pool so rows
-    // never collapse to zero (which hid every manga carousel).
-    items = fillFromMdPool(items, mdPool, anilist, limit);
+    items = buildItems();
 
     // Never cache empty — a poisoned empty entry blanked the tab for 15m.
     if (items.length > 0) {
@@ -235,15 +250,15 @@ export function discoverMangaToMediaItem(item: MangaListItem): MediaItem {
   return mangaToMediaItem(item);
 }
 
-/** Warm AniList + MD popular without blocking on id resolve. */
+/** Warm discover list cache (AniList + MD merged rows) without blocking UI. */
 export function prefetchDiscoverManga(): void {
-  const kinds: AniListDiscoverKind[] = ["popular", "latest", "topRated"];
+  const kinds: AniListDiscoverKind[] = [
+    "popular",
+    "latest",
+    "topRated",
+    "recentlyAdded",
+  ];
   for (const kind of kinds) {
-    void listAniListManga({ kind, limit: 24 }).catch(() => undefined);
+    void listDiscoverManga({ kind, limit: 24 }).catch(() => undefined);
   }
-  void listManga({
-    order: "followedCount",
-    limit: 48,
-    includeStats: false,
-  }).catch(() => undefined);
 }

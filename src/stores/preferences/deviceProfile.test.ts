@@ -51,6 +51,17 @@ describe("device profiles", () => {
     expect(drifted.enableFeatured).toBe(true);
   });
 
+  it("does not force Featured back on when only the carousel was turned off on Mid", () => {
+    const prefs = {
+      lastAppliedDeviceProfile: "mid" as const,
+      enableDiscover: true,
+      enableFeatured: false,
+    };
+    healMidDiscoverPreference(prefs);
+    expect(prefs.enableDiscover).toBe(true);
+    expect(prefs.enableFeatured).toBe(false);
+  });
+
   it("keeps TMDB API direct on mid while still proxying artwork", () => {
     expect(LOW_DEVICE_PROFILE.proxyTmdb).toBe(true);
     expect(MID_DEVICE_PROFILE.proxyTmdb).toBe(false);
@@ -146,6 +157,18 @@ describe("device profiles", () => {
     healDefaultHighDeviceProfile(merged);
     expect(merged.lastAppliedDeviceProfile).toBeNull();
     expect(deviceProfilesMatch(merged, HIGH_DEVICE_PROFILE)).toBe(true);
+  });
+
+  it("does not re-apply High flags when prefs already match High on reload", () => {
+    const merged = {
+      ...sample(),
+      lastAppliedDeviceProfile: null,
+      deviceProfileSnapshot: null,
+    };
+    const before = captureDeviceProfileSnapshot(merged);
+    healDefaultHighDeviceProfile(merged);
+    expect(deviceProfilesMatch(merged, before)).toBe(true);
+    expect(merged.lastAppliedDeviceProfile).toBeNull();
   });
 
   it("keeps a manually chosen low profile", () => {

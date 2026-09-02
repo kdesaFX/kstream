@@ -1,5 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
-import { useTranslation } from "react-i18next";
+import { useCallback, useMemo, useRef, type ReactNode } from "react";
 
 import { WideContainer } from "@/components/layout/WideContainer";
 import {
@@ -11,7 +10,6 @@ import { mangaProgressHasMeaningfulRead } from "@/stores/mangaProgress/utils";
 import { useDiscoverStore } from "@/stores/discover";
 import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { usePreferencesStore } from "@/stores/preferences";
-import { MID_DISCOVER_CAROUSEL_CAP } from "@/stores/preferences/deviceProfile";
 import { useProgressStore } from "@/stores/progress";
 import { progressHasMeaningfulWatch } from "@/stores/progress/utils";
 import { MediaItem } from "@/utils/media/mediaTypes";
@@ -29,49 +27,18 @@ import type { MangaCarouselKind } from "./hooks/useMangaDiscoverMedia";
 import { HomeAd } from "@/pages/parts/home/HomeAd";
 
 export function DiscoverContent() {
-  const { t } = useTranslation();
   const { selectedCategory, setSelectedCategory, selectedGenreId } =
     useDiscoverStore();
   const { showModal } = useOverlayStack();
   const enableMangaDiscover = usePreferencesStore((s) => s.enableMangaDiscover);
-  const enableLowPerformanceMode = usePreferencesStore(
-    (s) => s.enableLowPerformanceMode,
-  );
-  const posterQuality = usePreferencesStore((s) => s.posterQuality);
   const carouselRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const progressItems = useProgressStore((state) => state.items);
-  const [discoverExpanded, setDiscoverExpanded] = useState(false);
 
-  const shouldCapDiscover =
-    (enableLowPerformanceMode || posterQuality === "low") &&
-    !discoverExpanded;
-
-  const capCarousels = useCallback(
-    (carousels: ReactNode[], dedupeKey: string) => {
-      const needsCap =
-        shouldCapDiscover && carousels.length > MID_DISCOVER_CAROUSEL_CAP;
-      const visible = needsCap
-        ? carousels.slice(0, MID_DISCOVER_CAROUSEL_CAP)
-        : carousels;
-
-      return (
-        <CarouselDedupeProvider key={dedupeKey}>
-          {visible}
-          {needsCap ? (
-            <div className="flex justify-center px-4 py-6">
-              <button
-                type="button"
-                onClick={() => setDiscoverExpanded(true)}
-                className="rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm font-medium text-white hover:border-white/30 hover:bg-white/10"
-              >
-                {t("settings.optimize.showMoreDiscover")}
-              </button>
-            </div>
-          ) : null}
-        </CarouselDedupeProvider>
-      );
-    },
-    [shouldCapDiscover, t],
+  const wrapCarousels = useCallback(
+    (carousels: ReactNode[], dedupeKey: string) => (
+      <CarouselDedupeProvider key={dedupeKey}>{carousels}</CarouselDedupeProvider>
+    ),
+    [],
   );
 
   const isMoviesTab = selectedCategory === "movies";
@@ -81,7 +48,6 @@ export function DiscoverContent() {
   const handleCategoryChange = useCallback(
     (category: string) => {
       setSelectedCategory(category as "movies" | "tvshows" | "manga");
-      setDiscoverExpanded(false);
     },
     [setSelectedCategory],
   );
@@ -134,8 +100,7 @@ export function DiscoverContent() {
   const renderMoviesContent = () => {
     const carousels = [];
     let dedupe = 0;
-    const eagerCount = shouldCapDiscover ? MID_DISCOVER_CAROUSEL_CAP : 1;
-    const rowPriority = () => carousels.length < eagerCount;
+    const rowPriority = () => carousels.length < 1;
 
     // Because You Watched — All only (not under a genre chip)
     if (movieProgressItems.length > 0 && !selectedGenreId) {
@@ -238,7 +203,7 @@ export function DiscoverContent() {
       />,
     );
 
-    return capCarousels(
+    return wrapCarousels(
       carousels,
       `movies-dedupe-${selectedGenreId ?? "all"}`,
     );
@@ -248,8 +213,7 @@ export function DiscoverContent() {
   const renderTVShowsContent = () => {
     const carousels = [];
     let dedupe = 0;
-    const eagerCount = shouldCapDiscover ? MID_DISCOVER_CAROUSEL_CAP : 1;
-    const rowPriority = () => carousels.length < eagerCount;
+    const rowPriority = () => carousels.length < 1;
 
     // Because You Watched — All only (not under a genre chip)
     if (tvProgressItems.length > 0 && !selectedGenreId) {
@@ -352,14 +316,13 @@ export function DiscoverContent() {
       />,
     );
 
-    return capCarousels(carousels, `tv-dedupe-${selectedGenreId ?? "all"}`);
+    return wrapCarousels(carousels, `tv-dedupe-${selectedGenreId ?? "all"}`);
   };
 
   const renderMangaContent = () => {
     const carousels: ReactNode[] = [];
     let dedupe = 0;
-    const eagerCount = shouldCapDiscover ? MID_DISCOVER_CAROUSEL_CAP : 1;
-    const rowPriority = () => carousels.length < eagerCount;
+    const rowPriority = () => carousels.length < 1;
 
     const mangaTagFilter: MangaGenreTagKey | undefined =
       selectedGenreId && isMangaGenreTagKey(selectedGenreId)
@@ -415,17 +378,14 @@ export function DiscoverContent() {
       );
     }
 
-    return capCarousels(
+    return wrapCarousels(
       carousels,
       `manga-dedupe-${mangaTagFilter ?? "all"}`,
     );
   };
 
   return (
-    <div
-      className="relative min-h-screen"
-      key={`discover-${enableLowPerformanceMode ? "lp" : "full"}-${posterQuality}-${shouldCapDiscover ? "cap" : "all"}`}
-    >
+    <div className="relative min-h-screen">
       <DiscoverNavigation
         selectedCategory={selectedCategory}
         onCategoryChange={handleCategoryChange}

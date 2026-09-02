@@ -205,10 +205,13 @@ export function healMidDiscoverPreference(s: {
   enableDiscover?: boolean;
   enableFeatured?: boolean;
 }): void {
-  if (s.lastAppliedDeviceProfile === "mid") {
-    s.enableDiscover = true;
-    s.enableFeatured = true;
-  }
+  if (s.lastAppliedDeviceProfile !== "mid") return;
+  const discoverOff = s.enableDiscover === false;
+  const featuredOff = s.enableFeatured === false;
+  if (discoverOff) s.enableDiscover = true;
+  // Old Mid installs lost Discover + Featured together. Don't force Featured
+  // back on when the user only turned the carousel off in Appearance.
+  if (discoverOff && featuredOff) s.enableFeatured = true;
 }
 
 /** True after the user picks Low/Mid/High in Optimize (not the legacy default). */
@@ -240,6 +243,11 @@ export function healDefaultHighDeviceProfile<
   }
 
   if (hasManuallyChosenDeviceProfile(merged)) return;
+
+  if (deviceProfilesMatch(merged, HIGH_DEVICE_PROFILE)) {
+    merged.lastAppliedDeviceProfile = null;
+    return;
+  }
 
   applyDeviceProfileFlags(merged, HIGH_DEVICE_PROFILE);
   merged.lastAppliedDeviceProfile = null;

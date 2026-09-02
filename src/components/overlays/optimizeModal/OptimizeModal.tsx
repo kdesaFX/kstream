@@ -108,7 +108,7 @@ export function DeviceProfileCards({
 
 export function OptimizeModal() {
   const { t } = useTranslation();
-  const { modalId, closeOptimizeModal } = useOptimizeModal();
+  const { modalId, closeOptimizeModal, isOpen } = useOptimizeModal();
   const lastApplied = usePreferencesStore((s) => s.lastAppliedDeviceProfile);
   const snapshot = usePreferencesStore((s) => s.deviceProfileSnapshot);
   const applyDeviceProfile = usePreferencesStore((s) => s.applyDeviceProfile);
@@ -129,6 +129,15 @@ export function OptimizeModal() {
     null,
   );
   const [stepIndex, setStepIndex] = useState(0);
+
+  // FancyModal's X / backdrop only call hideModal — reset wizard state whenever
+  // the overlay closes so the next open starts on the profile cards, not "done".
+  useEffect(() => {
+    if (isOpen) return;
+    setPhase("pick");
+    setActiveProfile(null);
+    setStepIndex(0);
+  }, [isOpen]);
 
   const steps = activeProfile
     ? DEVICE_PROFILE_APPLY_STEPS[activeProfile]
