@@ -46,6 +46,7 @@ import { usePreferencesStore } from "@/stores/preferences";
 import { getProgressPercentage, useProgressStore } from "@/stores/progress";
 import { needsOnboarding } from "@/utils/hosting/onboarding";
 import { parseTimestamp } from "@/utils/format/timestamp";
+import { triggerOfflineDownloadFromPlayerStore } from "@/utils/media/triggerPlayerOfflineDownload";
 
 import { BlurEllipsis } from "./layouts/SubPageLayout";
 
@@ -100,6 +101,8 @@ export function RealPlayerView() {
   );
   useRybbitWatchingEvent();
   const [startAtParam] = useQueryParam("t");
+  const [offlineDownloadParam, setOfflineDownloadParam] =
+    useQueryParam("offlineDownload");
   const [scrapeAttempt, setScrapeAttempt] = useState(0);
   const {
     status,
@@ -127,6 +130,7 @@ export function RealPlayerView() {
   );
   const router = useOverlayRouter("settings");
   const openedWatchPartyRef = useRef<boolean>(false);
+  const offlineDownloadTriggeredRef = useRef(false);
   const playbackRetryBudget = useRef(createPlaybackRetryBudget());
   const [playbackRetryCount, setPlaybackRetryCount] = useState(0);
   const wrongRuntimeSkips = usePlayerStore((s) => s.wrongRuntimeSkips);
@@ -150,6 +154,7 @@ export function RealPlayerView() {
     setResumeFromSourceId(null);
     setResumeFromSourceIdInStore(null);
     openedWatchPartyRef.current = false;
+    offlineDownloadTriggeredRef.current = false;
     playbackRetryBudget.current.setMedia(paramsData);
     setScrapeAttempt(0);
     setPlaybackRetryCount(0);
@@ -172,6 +177,22 @@ export function RealPlayerView() {
       }
     }
   }, [status, router]);
+
+  // Start offline download once playback is ready (from context menu ?offlineDownload=1)
+  useEffect(() => {
+    if (offlineDownloadTriggeredRef.current) return;
+    if (status !== playerStatus.PLAYING) return;
+    if (offlineDownloadParam !== "1") return;
+
+    offlineDownloadTriggeredRef.current = true;
+    void triggerOfflineDownloadFromPlayerStore()
+      .catch((err) => {
+        console.error("offline download from context menu failed", err);
+      })
+      .finally(() => {
+        setOfflineDownloadParam(null);
+      });
+  }, [status, offlineDownloadParam, setOfflineDownloadParam]);
 
   const metaChange = useCallback(
     (meta: PlayerMeta) => {

@@ -573,7 +573,18 @@
       "copied": "Copied!",
       "openNewTab": "Open in new tab",
       "viewOnTmdb": "View on TMDB",
-      "removeWatching": "Remove from Continue Watching"
+      "removeWatching": "Remove from Continue Watching",
+      "downloadOffline": "Download for offline",
+      "resetProgress": "Reset progress",
+      "clearSourceLock": "Clear saved source ({{source}})",
+      "watchPartyInvite": "Start watch party & copy invite",
+      "watchPartyCopied": "Invite link copied!",
+      "quickLists": {
+        "title": "Quick lists",
+        "watchLater": "Watch Later",
+        "favorites": "Favorites",
+        "rewatch": "Rewatch"
+      }
     },
     "episodeShort": "E",
     "seasonShort": "S",

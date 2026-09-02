@@ -544,6 +544,7 @@ export function MediaCard(props: MediaCardProps) {
       link={link}
       canLink={canLink}
       percentage={props.percentage}
+      series={props.series}
       onClose={() => setContextMenuPos(null)}
       onShowDetails={handleShowDetails}
       onEdit={
