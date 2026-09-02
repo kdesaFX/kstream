@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { WideContainer } from "@/components/layout/WideContainer";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { useRandomTranslation } from "@/hooks/useRandomTranslation";
 import { useSearchQuery } from "@/hooks/useSearchQuery";
 import { FeaturedCarousel } from "@/pages/discover/components/FeaturedCarousel";
@@ -85,6 +86,7 @@ export function HomePage() {
   const enableLowPerformanceMode = usePreferencesStore(
     (state) => state.enableLowPerformanceMode,
   );
+  const { isMobile } = useIsMobile();
   const homeSectionOrder = usePreferencesStore(
     (state) => state.homeSectionOrder,
   );
@@ -236,9 +238,8 @@ export function HomePage() {
     <HomeLayout
       showBg={s.searching}
       showLightbar={!enableFeatured}
-      // Classic hero owns the big search at rest; once results show the hero
-      // collapses, so put search back in the nav (Low/Mid Featured-off).
-      showNavSearch={enableFeatured || s.searching}
+      showNavSearch={s.searching || !enableFeatured || !isMobile}
+      minimalMobileNav={isMobile && enableFeatured && !s.searching}
     >
       <div className="relative mb-2">
         <Helmet>

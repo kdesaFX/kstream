@@ -171,6 +171,8 @@ export interface NavigationProps {
   doBackground?: boolean;
   clearBackground?: boolean;
   showSearch?: boolean;
+  /** Logo + account only — used over the mobile featured hero. */
+  minimalMobile?: boolean;
 }
 
 export function Navigation(props: NavigationProps) {
@@ -306,7 +308,12 @@ export function Navigation(props: NavigationProps) {
               >
                 <BrandPill clickable header />
               </Link>
-              <div className="flex items-center gap-1.5 ssm:gap-2 md:gap-3 shrink-0">
+              <div
+                className={classNames(
+                  "flex items-center gap-1.5 ssm:gap-2 md:gap-3 shrink-0",
+                  props.minimalMobile ? "hidden" : "",
+                )}
+              >
                 {showDownload ? (
                   <button
                     type="button"
@@ -362,7 +369,7 @@ export function Navigation(props: NavigationProps) {
               </div>
             </div>
 
-            {props.showSearch ? (
+            {props.showSearch && !props.minimalMobile ? (
               <div className="pointer-events-auto z-[55] flex min-w-0 justify-center px-0.5 ssm:px-1">
                 <NavSearchBar
                   lightOverHero={Boolean(props.clearBackground)}
@@ -375,14 +382,19 @@ export function Navigation(props: NavigationProps) {
 
             <div
               ref={rightRef}
-              className="pointer-events-auto flex items-center justify-end gap-2 md:gap-3 shrink-0 min-w-0"
+              className={classNames(
+                "pointer-events-auto flex items-center justify-end shrink-0 min-w-0",
+                props.minimalMobile ? "gap-1" : "gap-2 md:gap-3",
+              )}
             >
-              <div className="hidden sm:flex items-center gap-1.5 md:gap-2 shrink-0">
-                <HomeRemoveAdsToggle />
-                <HomeOptimizeToggle />
-                <HomeLayoutCustomizerToggle />
-              </div>
-              {!loggedIn ? (
+              {!props.minimalMobile ? (
+                <div className="hidden sm:flex items-center gap-1.5 md:gap-2 shrink-0">
+                  <HomeRemoveAdsToggle />
+                  <HomeOptimizeToggle />
+                  <HomeLayoutCustomizerToggle />
+                </div>
+              ) : null}
+              {!props.minimalMobile && !loggedIn ? (
                 <Link
                   to="/login"
                   className="tabbable rounded-full text-base shrink-0"

@@ -735,6 +735,15 @@
       "development": "Development",
       "desktop": "App Settings",
       "offlineDownloads": "Offline downloads"
+    },
+    "mobile": {
+      "label": "Main navigation",
+      "home": "Home",
+      "movies": "Movies",
+      "tv": "TV",
+      "bookmarks": "Saved",
+      "search": "Search",
+      "settings": "Settings"
     }
   },
   "offlineLibrary": {

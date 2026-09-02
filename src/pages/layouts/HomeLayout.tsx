@@ -10,6 +10,8 @@ export function HomeLayout(props: {
   showLightbar?: boolean;
   /** Hide sticky nav search when the page hero already owns a large search. */
   showNavSearch?: boolean;
+  /** Logo + account only on mobile featured home. */
+  minimalMobileNav?: boolean;
   children: React.ReactNode;
 }) {
   const { isMobile } = useIsMobile();
@@ -38,6 +40,7 @@ export function HomeLayout(props: {
         clearBackground={clearBackground}
         noLightbar={!showLightbar}
         showSearch={showNavSearch}
+        minimalMobile={props.minimalMobileNav}
       />
       {props.children}
     </FooterView>

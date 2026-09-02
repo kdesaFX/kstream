@@ -32,6 +32,7 @@ import {
 import { fetchImdbRating } from "@/utils/services/imdbRating";
 
 import { RandomMovieButton } from "./RandomMovieButton";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 export type { FeaturedMedia } from "@/pages/discover/lib/featuredHero";
 export { mangaToFeatured } from "@/pages/discover/lib/featuredHero";
@@ -126,8 +127,8 @@ function featuredCarouselHeightClass(opts: {
   // Fixed rem heights only — vh/dvh change when mobile chrome shows/hides and
   // shove every WideContainer below the hero (CLS ≈ 1 in Web Analytics).
   if (opts.searching) return "h-24";
-  if (opts.shorter) return "h-[40rem] md:h-[48rem]";
-  return "h-[40rem] md:h-[52rem]";
+  if (opts.shorter) return "h-[44rem] md:h-[48rem]";
+  return "h-[44rem] md:h-[52rem]";
 }
 
 function FeaturedCarouselSkeleton({
@@ -225,6 +226,7 @@ export function FeaturedCarousel({
   const userLanguage = useLanguageStore((s) => s.language);
   const formattedLanguage = getTmdbLanguageCode(userLanguage);
   const { width: windowWidth } = useWindowSize();
+  const { isMobile } = useIsMobile();
   const [releaseInfo, setReleaseInfo] = useState<TraktReleaseResponse | null>(
     null,
   );
@@ -720,7 +722,7 @@ export function FeaturedCarousel({
         type="button"
         onClick={handlePrevSlide}
         className={classNames(
-          "absolute left-4 top-[38%] -translate-y-1/2 z-20 p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors",
+          "absolute left-4 top-[38%] -translate-y-1/2 z-20 p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors max-md:hidden",
           searchClasses,
         )}
         aria-label="Previous slide"
@@ -731,7 +733,7 @@ export function FeaturedCarousel({
         type="button"
         onClick={handleNextSlide}
         className={classNames(
-          "absolute right-4 top-[38%] -translate-y-1/2 z-20 p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors",
+          "absolute right-4 top-[38%] -translate-y-1/2 z-20 p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors max-md:hidden",
           searchClasses,
         )}
         aria-label="Next slide"
@@ -742,7 +744,8 @@ export function FeaturedCarousel({
       {/* Navigation Dots */}
       <div
         className={classNames(
-          "absolute bottom-8 left-1/2 -translate-x-1/2 z-[19] flex gap-2",
+          "absolute left-1/2 -translate-x-1/2 z-[19] flex gap-2",
+          isMobile ? "bottom-36" : "bottom-8",
           searchClasses,
         )}
       >
@@ -786,29 +789,57 @@ export function FeaturedCarousel({
       {/* Content Overlay */}
       <div
         className={classNames(
-          "absolute inset-0 flex items-end pb-20 z-10 transition-opacity duration-150",
+          "absolute inset-0 flex items-end z-10 transition-opacity duration-150",
+          isMobile ? "pb-32" : "pb-20",
           searchClasses,
         )}
         style={{ opacity: contentOpacity }}
       >
-        <div className="container mx-auto px-8 lg:px-4 w-full">
-          <div className="max-w-3xl">
+        <div
+          className={classNames(
+            "container mx-auto w-full",
+            isMobile ? "px-4" : "px-8 lg:px-4",
+          )}
+        >
+          <div
+            className={classNames(
+              "max-w-3xl",
+              isMobile ? "mx-auto text-center" : "",
+            )}
+          >
             {logoUrl && enableImageLogos ? (
               <img
                 src={logoUrl}
                 alt={mediaTitle}
                 width={352}
                 height={160}
-                className="max-w-[14rem] md:max-w-[22rem] max-h-[20vh] w-auto h-auto object-contain drop-shadow-lg bg-transparent mb-6"
+                className={classNames(
+                  "max-h-[20vh] w-auto h-auto object-contain drop-shadow-lg bg-transparent",
+                  isMobile
+                    ? "mx-auto mb-4 max-w-[min(80vw,16rem)] max-h-[14vh]"
+                    : "mb-6 max-w-[14rem] md:max-w-[22rem]",
+                )}
                 style={{ background: "none" }}
               />
             ) : (
-              <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 min-h-[2.5rem] md:min-h-[3.75rem]">
+              <h1
+                className={classNames(
+                  "font-bold text-white min-h-[2.5rem] md:min-h-[3.75rem]",
+                  isMobile
+                    ? "mx-auto mb-3 max-w-[18rem] text-3xl leading-tight"
+                    : "mb-4 text-4xl md:text-6xl",
+                )}
+              >
                 {mediaTitle}
               </h1>
             )}
             {/* Rating (IMDb) and year/seasons */}
-            <div className="flex items-center gap-2 text-sm text-white/80 mb-4">
+            <div
+              className={classNames(
+                "flex flex-wrap items-center gap-2 text-sm text-white/80 mb-4",
+                isMobile ? "justify-center gap-3" : "",
+              )}
+            >
               {currentMedia.type === "manga" && (
                 <>
                   {currentMedia.mangaRating ? (
@@ -899,11 +930,21 @@ export function FeaturedCarousel({
                   </>
                 )}
             </div>
-            <p className="text-lg text-white mb-6 line-clamp-3 md:line-clamp-4">
+            <p
+              className={classNames(
+                "text-white mb-6",
+                isMobile
+                  ? "mx-auto max-w-md text-sm leading-relaxed line-clamp-3 text-white/85"
+                  : "text-lg line-clamp-3 md:line-clamp-4",
+              )}
+            >
               {currentMedia.overview}
             </p>
             <div
-              className="flex gap-4 justify-center items-center sm:justify-start"
+              className={classNames(
+                "flex items-center gap-3",
+                isMobile ? "justify-center" : "gap-4 justify-center sm:justify-start",
+              )}
               onMouseEnter={() => {
                 setIsAutoPlaying(false);
                 if (currentMedia.type !== "manga") preloadPlayerView();
@@ -925,36 +966,58 @@ export function FeaturedCarousel({
                       : `/media/tmdb-${currentMedia.type}-${currentMedia.id}-${mediaTitle?.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
                   )
                 }
-                className="tabbable cursor-pointer inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 w-full sm:w-auto text-base font-medium bg-pill-background bg-opacity-50 hover:bg-pill-backgroundHover backdrop-blur-lg transition-[transform,background-color] duration-100 hover:scale-105 active:scale-95"
+                className={classNames(
+                  "tabbable cursor-pointer inline-flex items-center justify-center gap-2 rounded-full font-medium transition-[transform,background-color] duration-100 hover:scale-105 active:scale-95",
+                  isMobile
+                    ? "h-12 min-w-[9.5rem] bg-white px-6 text-base text-black hover:bg-white/90"
+                    : "w-full sm:w-auto bg-pill-background bg-opacity-50 hover:bg-pill-backgroundHover backdrop-blur-lg px-6 py-3 text-base text-white",
+                )}
               >
                 <Icon
                   icon={currentMedia.type === "manga" ? Icons.FILE : Icons.PLAY}
-                  className="text-white"
+                  className={isMobile ? "text-black" : "text-white"}
                 />
-                <span className="text-white">
+                <span className={isMobile ? "text-black" : "text-white"}>
                   {currentMedia.type === "manga"
                     ? t("discover.featured.readNow")
                     : t("discover.featured.playNow")}
                 </span>
               </button>
-              <button
-                type="button"
-                onClick={() => onShowDetails(currentMedia)}
-                className="tabbable cursor-pointer inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 w-full sm:w-auto text-base font-medium bg-pill-background bg-opacity-50 hover:bg-pill-backgroundHover backdrop-blur-lg transition-[transform,background-color] duration-100 hover:scale-105 active:scale-95"
+              <div
+                className={classNames(
+                  "inline-flex items-center rounded-full backdrop-blur-lg",
+                  isMobile
+                    ? "gap-1 bg-pill-background/50 p-1"
+                    : "gap-4",
+                )}
               >
-                <Icon
-                  icon={Icons.CIRCLE_QUESTION}
-                  className="text-white scale-100"
-                />
-                <span className="text-white">
-                  {t("discover.featured.moreInfo")}
-                </span>
-              </button>
-              {currentMedia.type !== "manga" && (
+                <button
+                  type="button"
+                  onClick={() => onShowDetails(currentMedia)}
+                  className={classNames(
+                    "tabbable cursor-pointer inline-flex items-center justify-center gap-2 rounded-full font-medium transition-[transform,background-color] duration-100 hover:scale-105 active:scale-95",
+                    isMobile
+                      ? "h-10 w-10 bg-transparent text-white hover:bg-white/10"
+                      : "w-full sm:w-auto bg-pill-background bg-opacity-50 hover:bg-pill-backgroundHover px-6 py-3 text-base text-white",
+                  )}
+                  aria-label={t("discover.featured.moreInfo")}
+                >
+                  <Icon
+                    icon={Icons.CIRCLE_QUESTION}
+                    className="text-white scale-100"
+                  />
+                  {!isMobile ? (
+                    <span className="text-white">
+                      {t("discover.featured.moreInfo")}
+                    </span>
+                  ) : null}
+                </button>
+              </div>
+              {currentMedia.type !== "manga" && !isMobile ? (
                 <div className="hidden lg:block">
                   <RandomMovieButton />
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

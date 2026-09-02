@@ -1263,7 +1263,7 @@ export function SettingsPage() {
       <Transition
         animation="fade"
         show={state.changed}
-        className="bg-settings-saveBar-background border-t border-settings-card-border/50 py-4 transition-opacity w-full fixed bottom-0 flex justify-between flex-col md:flex-row px-8 items-start md:items-center gap-3 z-[999]"
+        className="bg-settings-saveBar-background border-t border-settings-card-border/50 py-4 transition-opacity w-full fixed bottom-0 md:bottom-0 flex justify-between flex-col md:flex-row px-8 items-start md:items-center gap-3 z-[999] max-md:bottom-[calc(5.25rem+env(safe-area-inset-bottom))]"
       >
         <p className="text-type-danger">{t("settings.unsaved")}</p>
         <div className="space-x-3 w-full md:w-auto flex">

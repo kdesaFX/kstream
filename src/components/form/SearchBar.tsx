@@ -102,6 +102,7 @@ export const SearchBarInput = forwardRef<HTMLInputElement, SearchBarProps>(
                 "select-none",
               )}
               placeholder={props.placeholder}
+              name="kstream-nav-search"
             />
 
             {showTooltip && !props.hideTooltip && (

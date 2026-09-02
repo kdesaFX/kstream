@@ -38,7 +38,7 @@ export function LazyDiscoverContent() {
   }, [shouldLoad]);
 
   return (
-    <div ref={hostRef}>
+    <div ref={hostRef} id="discover-section">
       {shouldLoad ? (
         <Suspense fallback={<DiscoverContentPlaceholder />}>
           <DiscoverContent />
