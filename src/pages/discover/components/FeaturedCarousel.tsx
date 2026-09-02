@@ -210,6 +210,8 @@ export function FeaturedCarousel({
   const [media, setMedia] = useState<FeaturedMedia[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [logoUrl, setLogoUrl] = useState<string | undefined>();
+  /** False while a logo fetch is in flight — hide title text to avoid cinejoy-style flash. */
+  const [logoReady, setLogoReady] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [imdbRatings, setImdbRatings] = useState<
@@ -381,6 +383,7 @@ export function FeaturedCarousel({
       const warmed = consumeHomeWarmup(effectiveCategory, formattedLanguage);
       if (warmed && warmed.length > 0) {
         setLogoUrl(undefined);
+        setLogoReady(false);
         setImdbRatings({});
         setReleaseInfo(null);
         setCurrentIndex(0);
@@ -391,6 +394,7 @@ export function FeaturedCarousel({
 
       setIsLoading(true);
       setLogoUrl(undefined);
+      setLogoReady(false);
       setImdbRatings({});
       setReleaseInfo(null);
       setCurrentIndex(0);
@@ -444,8 +448,6 @@ export function FeaturedCarousel({
     // Wait for fade out, then change index and fade in
     setTimeout(() => {
       setCurrentIndex((prev) => (prev - 1 + media.length) % media.length);
-      // Clear logo after index change so new logo can load
-      setLogoUrl(undefined);
       setTimeout(() => setContentOpacity(1), 100);
     }, 150);
 
@@ -468,8 +470,6 @@ export function FeaturedCarousel({
     // Wait for fade out, then change index and fade in
     setTimeout(() => {
       setCurrentIndex((prev) => (prev + 1) % media.length);
-      // Clear logo after index change so new logo can load
-      setLogoUrl(undefined);
       setTimeout(() => setContentOpacity(1), 100);
     }, 150);
 
@@ -510,66 +510,104 @@ export function FeaturedCarousel({
     setTouchEnd(null);
   };
 
-  // Fetch clear logo when current media changes
+  // Resolve clear logo: prefer URL bundled with hero payload (instant), else fetch fast.
   useEffect(() => {
-    if (!enrichmentReady) return undefined;
+    if (!enableImageLogos) {
+      setLogoUrl(undefined);
+      setLogoReady(true);
+      return undefined;
+    }
+
+    const current = media[currentIndex];
+    if (!current) {
+      setLogoUrl(undefined);
+      setLogoReady(true);
+      return undefined;
+    }
+
+    // Prefetched with detail+images — show as soon as the bitmap is decoded.
+    if (current.logoUrl) {
+      let cancelled = false;
+      setLogoReady(false);
+      const img = new Image();
+      img.decoding = "async";
+      const done = () => {
+        if (cancelled) return;
+        setLogoUrl(current.logoUrl);
+        setLogoReady(true);
+      };
+      img.onload = done;
+      img.onerror = done;
+      img.src = current.logoUrl;
+      if (img.complete) done();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Warmup / older cache entries may lack logoUrl — fetch without canvas probe.
+    if (!enrichmentReady) {
+      setLogoUrl(undefined);
+      setLogoReady(false);
+      return undefined;
+    }
+
+    if (logoFetchController.current) {
+      logoFetchController.current.abort();
+    }
+    logoFetchController.current = new AbortController();
+    const currentMediaId = current.id;
+    setLogoReady(false);
+    setLogoUrl(undefined);
 
     const fetchLogo = async () => {
-      // Cancel any in-progress logo fetch
-      if (logoFetchController.current) {
-        logoFetchController.current.abort();
-      }
-
-      // Create new abort controller for this fetch
-      logoFetchController.current = new AbortController();
-
-      const currentMediaId = media[currentIndex]?.id;
-      const current = media[currentIndex];
-      if (!currentMediaId || !current) {
-        setLogoUrl(undefined);
-        return;
-      }
-
       try {
-        // Manga has no TMDB id of its own — borrow the anime adaptation's
-        // clear logo when Image logos is on (same setting as movies/TV).
         let logo: string | undefined;
         if (current.type === "manga") {
-          logo =
-            current.logoUrl ??
-            (current.title
-              ? await getMangaAdaptationLogo(current.title)
-              : undefined);
+          logo = current.title
+            ? await getMangaAdaptationLogo(current.title)
+            : undefined;
         } else {
           logo = await getMediaLogo(
             currentMediaId.toString(),
             current.type === "movie"
               ? TMDBContentTypes.MOVIE
               : TMDBContentTypes.TV,
+            undefined,
+            { skipBackgroundCheck: true, size: "w500" },
           );
         }
-        // Only update if this is still the current media
-        if (media[currentIndex]?.id === currentMediaId) {
-          setLogoUrl(logo);
+        if (media[currentIndex]?.id !== currentMediaId) return;
+        if (logo) {
+          await new Promise<void>((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+            img.src = logo!;
+            if (img.complete) resolve();
+          });
         }
+        if (media[currentIndex]?.id !== currentMediaId) return;
+        setLogoUrl(logo);
+        setLogoReady(true);
       } catch (error: unknown) {
-        if (error instanceof Error && error.name === "AbortError") {
-          // Ignore abort errors
-          return;
-        }
+        if (error instanceof Error && error.name === "AbortError") return;
         console.error("Error fetching logo:", error);
-        setLogoUrl(undefined);
+        if (media[currentIndex]?.id === currentMediaId) {
+          setLogoUrl(undefined);
+          setLogoReady(true);
+        }
       }
     };
 
-    fetchLogo();
+    void fetchLogo();
 
     return () => {
       if (logoFetchController.current) {
         logoFetchController.current.abort();
       }
     };
-  }, [currentIndex, media, enrichmentReady]);
+  }, [currentIndex, media, enrichmentReady, enableImageLogos]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -590,8 +628,6 @@ export function FeaturedCarousel({
         // Wait for fade out, then change index and fade in
         setTimeout(() => {
           setCurrentIndex((prev) => (prev + 1) % media.length);
-          // Clear logo after index change so new logo can load
-          setLogoUrl(undefined);
           setTimeout(() => setContentOpacity(1), 100);
         }, 150);
       }, SLIDE_DURATION);
@@ -794,8 +830,6 @@ export function FeaturedCarousel({
               // Wait for fade out, then change index and fade in
               setTimeout(() => {
                 setCurrentIndex(index);
-                // Clear logo after index change so new logo can load
-                setLogoUrl(undefined);
                 setTimeout(() => setContentOpacity(1), 100);
               }, 150);
 
@@ -842,17 +876,29 @@ export function FeaturedCarousel({
               isMobile ? "mx-auto text-center" : "",
             )}
           >
-            {logoUrl && enableImageLogos ? (
+            {enableImageLogos && !logoReady ? (
+              <div
+                className={classNames(
+                  "w-auto bg-transparent",
+                  isMobile
+                    ? "mx-auto mb-4 max-w-[min(92vw,22rem)] h-[min(22vh,5.5rem)]"
+                    : "mb-6 h-[min(20vh,5rem)] max-w-[14rem] md:max-w-[22rem]",
+                )}
+                aria-hidden
+              />
+            ) : logoUrl && enableImageLogos ? (
               <img
                 src={logoUrl}
                 alt={mediaTitle}
                 width={480}
                 height={220}
+                decoding="async"
+                fetchPriority="high"
                 className={classNames(
-                  "w-auto h-auto object-contain bg-transparent",
+                  "no-fade w-auto h-auto object-contain bg-transparent",
                   isMobile
                     ? "mx-auto mb-4 max-w-[min(92vw,22rem)] max-h-[22vh] drop-shadow-[0_8px_28px_rgba(0,0,0,0.85)]"
-                    : "mb-6 max-h-[20vh] max-w-[14rem] drop-shadow-lg md:max-w-[22rem]",
+                    : "mb-6 max-h-[20vh] max-w-[14rem] drop-shadow-2xl md:max-w-[22rem]",
                 )}
                 style={{ background: "none" }}
               />
@@ -862,7 +908,7 @@ export function FeaturedCarousel({
                   "font-bold text-white min-h-[2.5rem] md:min-h-[3.75rem]",
                   isMobile
                     ? "mx-auto mb-3 max-w-[20rem] text-4xl leading-tight drop-shadow-[0_4px_18px_rgba(0,0,0,0.75)]"
-                    : "mb-4 text-4xl md:text-6xl",
+                    : "mb-4 text-4xl md:text-6xl drop-shadow-2xl",
                 )}
               >
                 {mediaTitle}

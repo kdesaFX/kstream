@@ -442,6 +442,18 @@ input[type="range"].styled-slider.slider-progress::-ms-fill-lower {
   @apply brightness-[500];
 }
 
+/*
+ * Cinejoy-style brand mark: stacked drop-shadows keep a white/teal logo
+ * legible over bright hero artwork without a frosted pill behind it.
+ */
+.logo-legible {
+  filter:
+    drop-shadow(0 0 1px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 1px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 3px rgba(0, 0, 0, 0.35))
+    drop-shadow(0 2px 12px rgba(255, 255, 255, 0.16));
+}
+
 /* Image fade-in on load */
 img:not(.no-fade):not([src=""]) {
   opacity: 0;

@@ -16,6 +16,33 @@ const PROBE_TIMEOUT_MS = 1500;
 /** Cap on how many alternates we decode before giving up on a logo. */
 export const MAX_LOGO_CANDIDATES = 4;
 
+export type TmdbLogoSize = "w300" | "w500" | "w780" | "original";
+
+export function buildTmdbLogoUrl(
+  filePath: string,
+  size: TmdbLogoSize = "w500",
+): string {
+  return `https://image.tmdb.org/t/p/${size}${filePath}`;
+}
+
+/**
+ * Sync pick for hero/carousel — first ranked non-JPEG logo, no canvas probe.
+ * Cinejoy-style: show the PNG immediately instead of waiting on background checks.
+ */
+export function pickFastLogoUrl(
+  logos: LogoImage[],
+  preferredLanguage: string,
+  size: TmdbLogoSize = "w500",
+): string | undefined {
+  const ranked = rankLogos(logos, preferredLanguage);
+  for (const logo of ranked) {
+    const path = logo.file_path;
+    if (!path || isAlwaysOpaqueFormat(path)) continue;
+    return buildTmdbLogoUrl(path, size);
+  }
+  return undefined;
+}
+
 export interface LogoImage {
   file_path?: string | null;
   iso_639_1?: string | null;

@@ -28,6 +28,7 @@ import { useRatingsStore } from "@/stores/ratings";
 import { useWatchHistoryStore } from "@/stores/watchHistory";
 import { shouldAllowMatureTitles } from "@/utils/media/mature";
 import { resolveCardArtworkUrl, tmdbBackdropSize } from "@/utils/media/artwork";
+import { pickFastLogoUrl } from "@/utils/media/logoBackground";
 
 export type FeaturedHeroCategory = "movies" | "tvshows" | "manga";
 
@@ -205,7 +206,8 @@ export async function fetchFeaturedHeroMedia(
       ids.map((id) =>
         get<any>(`/${mediaKind}/${id}`, {
           language,
-          append_to_response: "external_ids",
+          append_to_response: "external_ids,images",
+          include_image_language: `${language},en,null`,
         }).catch(() => null),
       ),
     );
@@ -217,6 +219,11 @@ export async function fetchFeaturedHeroMedia(
         ...item,
         type: mediaType as "movie" | "show",
         adult: item.adult === true,
+        // Prefetch logo URL with the detail payload so the hero never flashes
+        // plain title text while a second /images round-trip + canvas probe runs.
+        logoUrl:
+          pickFastLogoUrl(item.images?.logos ?? [], language, "w500") ??
+          undefined,
       }));
   };
 

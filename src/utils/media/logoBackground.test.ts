@@ -5,6 +5,7 @@ import {
   LogoAlphaSource,
   hasBakedBackground,
   isAlwaysOpaqueFormat,
+  pickFastLogoUrl,
   probeUrlFor,
   rankLogos,
 } from "@/utils/media/logoBackground";
@@ -66,6 +67,21 @@ describe("probeUrlFor", () => {
     expect(probeUrlFor("https://example.com/logo.png")).toBe(
       "https://example.com/logo.png",
     );
+  });
+});
+
+describe("pickFastLogoUrl", () => {
+  it("skips jpeg and returns the first transparent candidate", () => {
+    expect(
+      pickFastLogoUrl(
+        [
+          { file_path: "/baked.jpg", iso_639_1: "en" },
+          { file_path: "/clear.png", iso_639_1: "en" },
+        ],
+        "en",
+        "w500",
+      ),
+    ).toBe("https://image.tmdb.org/t/p/w500/clear.png");
   });
 });
 

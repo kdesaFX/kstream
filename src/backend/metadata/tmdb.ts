@@ -16,8 +16,11 @@ import { SimpleCache } from "@/utils/common/cache";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 import {
   MAX_LOGO_CANDIDATES,
+  buildTmdbLogoUrl,
   logoHasBakedBackground,
+  pickFastLogoUrl,
   rankLogos,
+  type TmdbLogoSize,
 } from "@/utils/media/logoBackground";
 import { MediaItem } from "@/utils/media/mediaTypes";
 import { tmdbIncludeAdult, filterOutMatureMedia } from "@/utils/media/mature";
@@ -778,6 +781,13 @@ export function formatTMDBSearchResult(
   };
 }
 
+export interface GetMediaLogoOptions {
+  /** Skip canvas baked-background probes (hero / carousel first paint). */
+  skipBackgroundCheck?: boolean;
+  /** TMDB image size. Hero uses w500 like cinejoy; details keep w780. */
+  size?: TmdbLogoSize;
+}
+
 /**
  * Fetches the clear logo for a movie or show from TMDB images endpoint.
  */
@@ -785,9 +795,11 @@ export async function getMediaLogo(
   id: string,
   type: TMDBContentTypes,
   language?: string,
+  options?: GetMediaLogoOptions,
 ): Promise<string | undefined> {
   const userLanguage = language || useLanguageStore.getState().language;
   const formattedLanguage = getTmdbLanguageCode(userLanguage);
+  const size = options?.size ?? "w780";
   const url =
     type === TMDBContentTypes.MOVIE
       ? `/movie/${id}/images`
@@ -796,13 +808,17 @@ export async function getMediaLogo(
     const data = await get<any>(url, {
       include_image_language: `${formattedLanguage},en,null`,
     });
+    if (options?.skipBackgroundCheck) {
+      return pickFastLogoUrl(data.logos ?? [], formattedLanguage, size);
+    }
     const candidates = rankLogos(data.logos ?? [], formattedLanguage).slice(
       0,
       MAX_LOGO_CANDIDATES,
     );
     for (const logo of candidates) {
+      if (!logo.file_path) continue;
       // w780 stays sharp on retina details modals without multi-MB originals.
-      const logoUrl = `https://image.tmdb.org/t/p/w780${logo.file_path}`;
+      const logoUrl = buildTmdbLogoUrl(logo.file_path, size);
       // eslint-disable-next-line no-await-in-loop
       if (!(await logoHasBakedBackground(logoUrl))) return logoUrl;
     }
