@@ -912,6 +912,7 @@
         "offlineStarting": "Starting download…",
         "offlineStarted": "Download started",
         "offlineFailed": "Couldn't start offline download",
+        "oauthDesktopHint": "Complete sign-in in your browser, then return to kstream.",
         "or": "or",
         "original": {
           "cardTitle": "Original File",

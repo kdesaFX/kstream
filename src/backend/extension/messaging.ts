@@ -19,6 +19,7 @@ declare global {
       invoke: (name: string, body?: unknown) => Promise<any>;
       onPauseForClose?: (cb: () => void) => () => void;
       onOpenOffline?: (cb: () => void) => () => void;
+      onAuthCallback?: (cb: (url: string) => void) => () => void;
     };
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { completeDesktopOAuthCallback } from "@/backend/supabase/desktopOAuth";
 import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 
@@ -44,6 +45,16 @@ export function DesktopChromeBridge() {
       navigate("/offline");
     });
   }, [navigate]);
+
+  useEffect(() => {
+    const ipc = window.__KSTREAM_DESKTOP_IPC__;
+    if (!ipc?.onAuthCallback) return;
+    return ipc.onAuthCallback((callbackUrl) => {
+      void completeDesktopOAuthCallback(callbackUrl).catch((err) => {
+        console.error("[kstream] desktop OAuth callback failed", err);
+      });
+    });
+  }, []);
 
   return null;
 }

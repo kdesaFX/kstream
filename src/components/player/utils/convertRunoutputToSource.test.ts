@@ -38,7 +38,7 @@ describe("convertRunoutputToSource HLS proxying", () => {
       stream: {
         type: "hls",
         playlist: "https://cdn.example.com/movie/master.m3u8",
-      },
+      } as Parameters<typeof convertRunoutputToSource>[0]["stream"],
     });
 
     expect(out.type).toBe("hls");

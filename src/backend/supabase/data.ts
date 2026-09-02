@@ -12,6 +12,11 @@ import type {
   WatchHistoryResponse,
 } from "@/backend/accounts/user";
 import type { WatchHistoryInput } from "@/backend/accounts/watchHistory";
+import {
+  canUseDesktopExternalOAuth,
+  DESKTOP_OAUTH_REDIRECT,
+  openDesktopOAuthInBrowser,
+} from "@/backend/supabase/desktopOAuth";
 import { getSupabase, tryGetSupabase } from "@/backend/supabase/client";
 import { prepareAvatarImage } from "@/utils/avatarImage";
 import {
@@ -784,6 +789,21 @@ async function signInWithOAuthProvider(provider: "google" | "discord") {
   } catch {
     // ignore storage failures
   }
+
+  if (canUseDesktopExternalOAuth()) {
+    const { data, error } = await getSupabase().auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: DESKTOP_OAUTH_REDIRECT,
+        skipBrowserRedirect: true,
+      },
+    });
+    if (error) throw error;
+    if (!data?.url) throw new Error("Could not start sign-in");
+    await openDesktopOAuthInBrowser(data.url);
+    return;
+  }
+
   const redirectTo = `${window.location.origin}/`;
   const { error } = await getSupabase().auth.signInWithOAuth({
     provider,
