@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   CASTLETV_SOURCE_ID,
+  excludeCastletvFromNonIndianAutoScrape,
   isIndianTitle,
   prioritizeIndianSources,
 } from "@/utils/media/indianSources";
@@ -36,5 +37,23 @@ describe("indianSources", () => {
     expect(
       prioritizeIndianSources(ids, { originCountry: ["US"], genreIds: [18] }),
     ).toEqual(ids);
+  });
+
+  it("drops castletv from auto-scrape on non-Indian titles", () => {
+    expect(
+      excludeCastletvFromNonIndianAutoScrape(
+        ["sevenmovies", CASTLETV_SOURCE_ID, "fsonline"],
+        { originCountry: ["US"], genreIds: [18] },
+      ),
+    ).toEqual(["sevenmovies", "fsonline"]);
+  });
+
+  it("keeps castletv in auto-scrape for Indian titles", () => {
+    expect(
+      excludeCastletvFromNonIndianAutoScrape(
+        ["sevenmovies", CASTLETV_SOURCE_ID],
+        { originCountry: ["IN"], genreIds: [10764] },
+      ),
+    ).toEqual(["sevenmovies", CASTLETV_SOURCE_ID]);
   });
 });

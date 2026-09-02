@@ -48,16 +48,23 @@ describe("validateScrapedStream", () => {
     });
   });
 
-  it("trusts castletv without playlist probe", async () => {
-    const result = await validateRunOutput({
-      sourceId: "castletv",
-      stream: {
-        id: "castle-0",
-        type: "hls",
-        playlist: "https://example.com/gated/playlist.m3u8",
-        flags: [],
+  it("trusts castletv without playlist probe on Indian titles", async () => {
+    const result = await validateRunOutput(
+      {
+        sourceId: "castletv",
+        stream: {
+          id: "castle-0",
+          type: "hls",
+          playlist: "https://example.com/gated/playlist.m3u8",
+          flags: [],
+        },
+      } as any,
+      {
+        env: "browser",
+        mediaType: "show",
+        meta: { originCountry: ["IN"], genreIds: [10764] },
       },
-    } as any);
+    );
     expect(result.ok).toBe(true);
     if (result.ok && result.stream.type === "hls") {
       expect(result.stream.playlist).toContain("playlist.m3u8");

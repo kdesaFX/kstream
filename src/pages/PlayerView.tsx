@@ -13,6 +13,7 @@ import { prepareStream } from "@/backend/extension/streams";
 import { DetailedMeta } from "@/backend/metadata/getmeta";
 import { usePlayer } from "@/components/player/hooks/usePlayer";
 import { usePlayerMeta } from "@/components/player/hooks/usePlayerMeta";
+import { UnifiedScrapingLoader } from "@/components/player/internals/UnifiedScrapingLoader";
 import { convertProviderCaption } from "@/components/player/utils/captions";
 import { convertRunoutputToSource } from "@/components/player/utils/convertRunoutputToSource";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
@@ -114,6 +115,9 @@ export function RealPlayerView() {
     setStatus,
   } = usePlayer();
   const sourceId = usePlayerStore((s) => s.sourceId);
+  const hasPlayedOnce = usePlayerStore((s) => s.mediaPlaying.hasPlayedOnce);
+  const isPlaybackLoading = usePlayerStore((s) => s.mediaPlaying.isLoading);
+  const storeMeta = usePlayerStore((s) => s.meta);
   const { setPlayerMeta, scrapeMedia } = usePlayerMeta();
   const backUrl = useLastNonPlayerLink();
   const manualSourceSelection = usePreferencesStore(
@@ -257,16 +261,18 @@ export function RealPlayerView() {
   const handleResumeScraping = useCallback(
     (startFromSourceId: string) => {
       playbackRetryBudget.current.recordAttempt();
-      // Remount ScrapingPart so stale in-flight scrapes cannot replay the dead
-      // source and so the per-mount dedup guard does not block a real retry.
       setScrapeAttempt((n) => n + 1);
       setResumeFromSourceId(startFromSourceId);
       setResumeFromSourceIdInStore(startFromSourceId);
-      setTimeout(() => {
-        setStatus(playerStatus.SCRAPING);
-      }, 0);
+      usePlayerStore.setState((s) => {
+        s.status = playerStatus.SCRAPING;
+        s.interface.error = undefined;
+        s.sourceId = null;
+        s.embedId = null;
+        s.mediaPlaying.hasPlayedOnce = false;
+      });
     },
-    [setStatus, setResumeFromSourceIdInStore],
+    [setResumeFromSourceIdInStore],
   );
 
   /** Retry scrape without skipping the current source (next TQQ mirror, etc.). */
@@ -275,10 +281,14 @@ export function RealPlayerView() {
     setScrapeAttempt((n) => n + 1);
     setResumeFromSourceId(null);
     setResumeFromSourceIdInStore(null);
-    setTimeout(() => {
-      setStatus(playerStatus.SCRAPING);
-    }, 0);
-  }, [setStatus, setResumeFromSourceIdInStore]);
+    usePlayerStore.setState((s) => {
+      s.status = playerStatus.SCRAPING;
+      s.interface.error = undefined;
+      s.sourceId = null;
+      s.embedId = null;
+      s.mediaPlaying.hasPlayedOnce = false;
+    });
+  }, [setResumeFromSourceIdInStore]);
 
   const prevWrongRuntimeSkips = useRef(0);
   useEffect(() => {
@@ -374,7 +384,13 @@ export function RealPlayerView() {
   // not on scrape success, and not on the HTML `play` event (autoplay can fire
   // that before any frames buffer, which used to lock titles onto dead streams).
   const watchedSeconds = usePlayerStore((s) => s.progress.time);
-  const metaTmdbId = usePlayerStore((s) => s.meta?.tmdbId);
+  const metaTmdbId = storeMeta?.tmdbId;
+  const preparingPlayback =
+    status === playerStatus.PLAYING && !hasPlayedOnce && isPlaybackLoading;
+  const preparingTitle =
+    storeMeta?.type === "show" && storeMeta.episode
+      ? `${storeMeta.title} · S${storeMeta.season?.number ?? 1}E${storeMeta.episode.number}`
+      : storeMeta?.title;
   useEffect(() => {
     if (!enableLastSuccessfulSource || !sourceId || watchedSeconds < 5) return;
     rememberSuccessfulSource(metaTmdbId, sourceId);
@@ -426,6 +442,11 @@ export function RealPlayerView() {
           data={errorData}
           onRetry={() => {
             setScrapeAttempt((n) => n + 1);
+            usePlayerStore.setState((s) => {
+              s.sourceId = null;
+              s.embedId = null;
+              s.interface.error = undefined;
+            });
             setStatus(playerStatus.SCRAPING);
           }}
         />
@@ -438,6 +459,15 @@ export function RealPlayerView() {
           autoResumeExhausted={playbackRetryBudget.current.isExhausted(
             MAX_PLAYBACK_AUTO_RETRIES,
           )}
+        />
+      ) : null}
+      {preparingPlayback ? (
+        <UnifiedScrapingLoader
+          poster={storeMeta?.poster}
+          title={preparingTitle}
+          sourceOrder={[]}
+          sources={{}}
+          className="z-20"
         />
       ) : null}
     </PlayerPart>

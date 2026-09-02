@@ -31,6 +31,7 @@ import {
 import { isAnimeSourceId, isAnimeTitle } from "@/utils/media/anime";
 import {
   CASTLETV_SOURCE_ID,
+  excludeCastletvFromNonIndianAutoScrape,
   isIndianTitle,
   prioritizeIndianSources,
 } from "@/utils/media/indianSources";
@@ -500,6 +501,10 @@ export function useScrape() {
         baseSourceOrder,
         playerState.meta,
       );
+      baseSourceOrder = excludeCastletvFromNonIndianAutoScrape(
+        baseSourceOrder,
+        playerState.meta,
+      );
       baseSourceOrder = excludeZeroHitFromAutoScrape(
         baseSourceOrder,
         sourceOrderCtx,
@@ -765,7 +770,8 @@ export function useScrape() {
           output.sourceId,
           `Below ${preferredMinimumResolution} minimum`,
         );
-        recordFailedSource(output.sourceId);
+        // Resolution-only misses are not dead streams — user may lower the floor
+        // or the source may serve adaptive HLS that mis-reports file tiers.
 
         const currentSourceIndex = remainingSourceOrder.indexOf(
           output.sourceId,

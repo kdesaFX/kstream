@@ -87,7 +87,20 @@ export function usePlayer() {
       setStatus(playerStatus.SCRAPING);
     },
     setScrapeNotFound() {
-      setStatus(playerStatus.SCRAPE_NOT_FOUND);
+      usePlayerStore.setState((s) => {
+        s.status = playerStatus.SCRAPE_NOT_FOUND;
+        s.sourceId = null;
+        s.embedId = null;
+        s.interface.error = undefined;
+        s.mediaPlaying.hasPlayedOnce = false;
+      });
+      const display = usePlayerStore.getState().display;
+      display?.load({
+        source: null,
+        startAt: 0,
+        automaticQuality: false,
+        preferredQuality: null,
+      });
     },
   };
 }

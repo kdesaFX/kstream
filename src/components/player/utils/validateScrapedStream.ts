@@ -3,13 +3,11 @@ import { RunOutput, Stream } from "@p-stream/providers";
 import { requiresSameOriginProxy } from "@/components/player/utils/convertRunoutputToSource";
 import { createM3U8ProxyUrl } from "@/components/player/utils/proxy";
 import { orderStreamsForPlayback } from "@/stores/player/utils/qualityStreams";
+import { isIndianTitle } from "@/utils/media/indianSources";
 import {
   hasProvenZeroHit,
   type SourceOrderContext,
 } from "@/utils/media/sourceOrder";
-
-/** Playlist probes false-negative on these; manual source pick plays them fine. */
-export const TRUSTED_PLAYBACK_SOURCE_IDS = new Set(["castletv"]);
 
 const VALIDATE_TIMEOUT_MS = 8_000;
 const VALIDATE_RANGE = "bytes=0-4095";
@@ -97,6 +95,15 @@ export async function validateStream(
   return { ok: true };
 }
 
+function shouldTrustWithoutPlaylistProbe(
+  sourceId: string,
+  ctx?: SourceOrderContext,
+): boolean {
+  // CastleTV HLS probes false-negative outside IndiaA; manual pick works fine.
+  // Only skip probes on Indian titles where we solo-first this source.
+  return sourceId === "castletv" && isIndianTitle(ctx?.meta);
+}
+
 /** Pick the first stream variant that looks playable. */
 export async function validateRunOutput(
   output: RunOutput,
@@ -117,7 +124,7 @@ export async function validateRunOutput(
     return { ok: false, reason: "no streams", sourceId: output.sourceId };
   }
 
-  if (TRUSTED_PLAYBACK_SOURCE_IDS.has(output.sourceId)) {
+  if (shouldTrustWithoutPlaylistProbe(output.sourceId, ctx)) {
     const stream = orderStreamsForPlayback(streams)[0];
     if (stream) return { ok: true, stream };
   }

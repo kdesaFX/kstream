@@ -175,6 +175,7 @@ export function SourceSelectionView({
   const metaOriginalLanguage = usePlayerStore((s) => s.meta?.originalLanguage);
   const metaOriginCountry = usePlayerStore((s) => s.meta?.originCountry);
   const currentSourceId = usePlayerStore((s) => s.sourceId);
+  const playerStatusValue = usePlayerStore((s) => s.status);
   const setResumeFromSourceId = usePlayerStore((s) => s.setResumeFromSourceId);
   const setStatus = usePlayerStore((s) => s.setStatus);
   const preferredSourceOrder = usePreferencesStore((s) => s.sourceOrder);
@@ -326,7 +327,10 @@ export function SourceSelectionView({
               onChoose?.(v.id);
               router.navigate("/source/embeds");
             }}
-            selected={v.id === currentSourceId}
+            selected={
+              v.id === currentSourceId &&
+              playerStatusValue === playerStatus.PLAYING
+            }
           >
             {resolveSourceDisplayName(v.id, v.name)}
           </SelectableLink>

@@ -29,3 +29,12 @@ export function prioritizeIndianSources(
     ...sourceIds.filter((id) => id !== CASTLETV_SOURCE_ID),
   ];
 }
+
+/** CastleTV is IndiaA — keep it out of the auto-scrape race on non-Indian titles. */
+export function excludeCastletvFromNonIndianAutoScrape(
+  sourceIds: string[],
+  meta: AnimeDetectionInput | null | undefined,
+): string[] {
+  if (isIndianTitle(meta)) return sourceIds;
+  return sourceIds.filter((id) => id !== CASTLETV_SOURCE_ID);
+}
