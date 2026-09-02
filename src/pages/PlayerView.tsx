@@ -132,7 +132,6 @@ export function RealPlayerView() {
   const openedWatchPartyRef = useRef<boolean>(false);
   const offlineDownloadTriggeredRef = useRef(false);
   const playbackRetryBudget = useRef(createPlaybackRetryBudget());
-  const [playbackRetryCount, setPlaybackRetryCount] = useState(0);
   const wrongRuntimeSkips = usePlayerStore((s) => s.wrongRuntimeSkips);
   const progressItems = useProgressStore((s) => s.items);
 
@@ -157,7 +156,6 @@ export function RealPlayerView() {
     offlineDownloadTriggeredRef.current = false;
     playbackRetryBudget.current.setMedia(paramsData);
     setScrapeAttempt(0);
-    setPlaybackRetryCount(0);
     return () => {
       reset();
     };
@@ -259,7 +257,6 @@ export function RealPlayerView() {
   const handleResumeScraping = useCallback(
     (startFromSourceId: string) => {
       playbackRetryBudget.current.recordAttempt();
-      setPlaybackRetryCount(playbackRetryBudget.current.getAttemptCount());
       // Remount ScrapingPart so stale in-flight scrapes cannot replay the dead
       // source and so the per-mount dedup guard does not block a real retry.
       setScrapeAttempt((n) => n + 1);
@@ -275,7 +272,6 @@ export function RealPlayerView() {
   /** Retry scrape without skipping the current source (next TQQ mirror, etc.). */
   const handleRetrySource = useCallback(() => {
     playbackRetryBudget.current.recordAttempt();
-    setPlaybackRetryCount(playbackRetryBudget.current.getAttemptCount());
     setScrapeAttempt((n) => n + 1);
     setResumeFromSourceId(null);
     setResumeFromSourceIdInStore(null);
@@ -410,9 +406,6 @@ export function RealPlayerView() {
           <ScrapingPart
             key={`scraping-${scrapeAttempt}-${paramsData}`}
             media={scrapeMedia}
-            compact={wrongRuntimeSkips > 0 || playbackRetryCount > 0}
-            retryAttempt={playbackRetryCount}
-            maxRetries={MAX_PLAYBACK_AUTO_RETRIES}
             startFromSourceId={
               resumeFromSourceId || storeResumeFromSourceId || undefined
             }

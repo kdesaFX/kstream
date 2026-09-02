@@ -1140,6 +1140,11 @@
       "title": "Failed to play video!"
     },
     "scraping": {
+      "unified": {
+        "starting": "Getting ready",
+        "searching": "Finding a source",
+        "asking": "Asking {{source}}"
+      },
       "items": {
         "failure": "Error occurred",
         "notFound": "Doesn't have the video.",
