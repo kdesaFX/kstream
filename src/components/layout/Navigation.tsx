@@ -398,7 +398,7 @@ export function Navigation(props: NavigationProps) {
                   <HomeLayoutCustomizerToggle />
                 </div>
               ) : null}
-              {!props.minimalMobile && !loggedIn ? (
+              {!loggedIn ? (
                 <Link
                   to="/login"
                   className="tabbable rounded-full text-base shrink-0"
@@ -408,7 +408,7 @@ export function Navigation(props: NavigationProps) {
                   <div
                     className={classNames(
                       "flex h-10 md:h-[2.67rem] items-center gap-2 rounded-full text-white shrink-0",
-                      "px-2.5 xl:px-3.5",
+                      props.minimalMobile ? "px-2.5" : "px-2.5 xl:px-3.5",
                       navControlSurface,
                       navControlHover,
                     )}
@@ -417,7 +417,12 @@ export function Navigation(props: NavigationProps) {
                       icon={Icons.USER}
                       className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none [&>svg]:block [&>svg]:h-5 [&>svg]:w-5"
                     />
-                    <span className="hidden ssm:inline font-semibold text-base whitespace-nowrap">
+                    <span
+                      className={classNames(
+                        "font-semibold text-base whitespace-nowrap",
+                        props.minimalMobile ? "inline text-sm" : "hidden ssm:inline",
+                      )}
+                    >
                       {t("navigation.menu.login")}
                     </span>
                   </div>

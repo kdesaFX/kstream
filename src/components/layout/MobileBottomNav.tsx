@@ -134,10 +134,10 @@ export function MobileBottomNav() {
     >
       <div
         className={classNames(
-          "pointer-events-auto mx-auto mb-3 flex max-w-lg items-center justify-between gap-0.5 rounded-full px-2 py-2",
+          "pointer-events-auto mx-auto flex max-w-sm items-center justify-between gap-0 rounded-full px-1.5 py-1",
           navControlSurface,
-          "border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.45)]",
-          "pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+          "border border-white/10 shadow-[0_6px_24px_rgba(0,0,0,0.4)]",
+          "mb-[max(0.5rem,env(safe-area-inset-bottom))]",
         )}
       >
         {tabs.map((tab) => {
@@ -151,13 +151,13 @@ export function MobileBottomNav() {
               title={tab.label}
               onClick={tab.onClick}
               className={classNames(
-                "tabbable flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-[transform,background-color,color] duration-200",
+                "tabbable flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[transform,background-color,color] duration-200",
                 active
-                  ? "bg-white/15 text-white scale-105"
-                  : "text-white/70 hover:bg-white/10 hover:text-white active:scale-95",
+                  ? "bg-white/15 text-white"
+                  : "text-white/65 hover:bg-white/10 hover:text-white active:scale-95",
               )}
             >
-              <Icon icon={tab.icon} className="text-[1.15rem]" />
+              <Icon icon={tab.icon} className="text-[1rem]" />
             </button>
           );
         })}
@@ -166,4 +166,5 @@ export function MobileBottomNav() {
   );
 }
 
-export const MOBILE_BOTTOM_NAV_PADDING = "pb-[calc(5.5rem+env(safe-area-inset-bottom))]";
+export const MOBILE_BOTTOM_NAV_PADDING =
+  "pb-[calc(4rem+env(safe-area-inset-bottom))]";

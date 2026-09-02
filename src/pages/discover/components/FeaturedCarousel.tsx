@@ -778,7 +778,7 @@ export function FeaturedCarousel({
       <div
         className={classNames(
           "absolute left-1/2 -translate-x-1/2 z-[19] flex gap-2",
-          isMobile ? "bottom-[7.75rem]" : "bottom-8",
+          isMobile ? "bottom-[6.25rem]" : "bottom-8",
           searchClasses,
         )}
       >
@@ -823,7 +823,9 @@ export function FeaturedCarousel({
       <div
         className={classNames(
           "absolute inset-0 flex items-end z-10 transition-opacity duration-150",
-          isMobile ? "pb-32" : "pb-20",
+          isMobile
+            ? "pb-[calc(5.75rem+env(safe-area-inset-bottom))]"
+            : "pb-20",
           searchClasses,
         )}
         style={{ opacity: contentOpacity }}
@@ -844,13 +846,13 @@ export function FeaturedCarousel({
               <img
                 src={logoUrl}
                 alt={mediaTitle}
-                width={352}
-                height={160}
+                width={480}
+                height={220}
                 className={classNames(
-                  "max-h-[20vh] w-auto h-auto object-contain drop-shadow-lg bg-transparent",
+                  "w-auto h-auto object-contain bg-transparent",
                   isMobile
-                    ? "mx-auto mb-4 max-w-[min(80vw,16rem)] max-h-[14vh]"
-                    : "mb-6 max-w-[14rem] md:max-w-[22rem]",
+                    ? "mx-auto mb-4 max-w-[min(92vw,22rem)] max-h-[22vh] drop-shadow-[0_8px_28px_rgba(0,0,0,0.85)]"
+                    : "mb-6 max-h-[20vh] max-w-[14rem] drop-shadow-lg md:max-w-[22rem]",
                 )}
                 style={{ background: "none" }}
               />
@@ -859,7 +861,7 @@ export function FeaturedCarousel({
                 className={classNames(
                   "font-bold text-white min-h-[2.5rem] md:min-h-[3.75rem]",
                   isMobile
-                    ? "mx-auto mb-3 max-w-[18rem] text-3xl leading-tight"
+                    ? "mx-auto mb-3 max-w-[20rem] text-4xl leading-tight drop-shadow-[0_4px_18px_rgba(0,0,0,0.75)]"
                     : "mb-4 text-4xl md:text-6xl",
                 )}
               >
