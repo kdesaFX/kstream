@@ -65,7 +65,7 @@ export function MobileBottomNav() {
     {
       id: "home",
       label: t("navigation.mobile.home"),
-      icon: Icons.WEB,
+      icon: Icons.HOME,
       onClick: () => {
         setSelectedCategory("movies");
         navigate("/");
@@ -89,7 +89,7 @@ export function MobileBottomNav() {
     {
       id: "tv",
       label: t("navigation.mobile.tv"),
-      icon: Icons.EPISODES,
+      icon: Icons.TV,
       onClick: () => {
         setSelectedCategory("tvshows");
         if (location.pathname !== "/") {

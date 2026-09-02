@@ -1846,10 +1846,13 @@
       "failed": "Couldn't load this row."
     },
     "featured": {
+      "play": "Play",
       "playNow": "Play Now",
       "readNow": "Read Now",
       "latestChapter": "Ch. {{chapter}}",
-      "moreInfo": "More Info"
+      "moreInfo": "More Info",
+      "addBookmark": "Add to bookmarks",
+      "removeBookmark": "Remove from bookmarks"
     },
     "randomMovie": {
       "button": "Watch Something Random",

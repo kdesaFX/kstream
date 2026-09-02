@@ -33,6 +33,8 @@ import { fetchImdbRating } from "@/utils/services/imdbRating";
 
 import { RandomMovieButton } from "./RandomMovieButton";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useBookmarkStore } from "@/stores/bookmarks";
+import type { PlayerMeta } from "@/stores/player/slices/source";
 
 export type { FeaturedMedia } from "@/pages/discover/lib/featuredHero";
 export { mangaToFeatured } from "@/pages/discover/lib/featuredHero";
@@ -262,6 +264,37 @@ export function FeaturedCarousel({
   );
 
   const currentMedia = media[currentIndex];
+  const bookmarkId =
+    currentMedia && currentMedia.type !== "manga"
+      ? String(currentMedia.id)
+      : "";
+  const isBookmarked = useBookmarkStore((s) =>
+    bookmarkId ? Boolean(s.bookmarks[bookmarkId]) : false,
+  );
+  const addBookmark = useBookmarkStore((s) => s.addBookmark);
+  const removeBookmark = useBookmarkStore((s) => s.removeBookmark);
+
+  const toggleFeaturedBookmark = () => {
+    if (!currentMedia || currentMedia.type === "manga") return;
+    const year =
+      typeof currentMedia.year === "number"
+        ? currentMedia.year
+        : Number(
+            String(currentMedia.release_date ?? "").slice(0, 4) || Number.NaN,
+          );
+    if (!Number.isFinite(year)) return;
+    const meta: PlayerMeta = {
+      type: currentMedia.type,
+      title: currentMedia.title ?? currentMedia.name ?? "",
+      tmdbId: String(currentMedia.id),
+      releaseYear: year,
+      poster: currentMedia.poster_path
+        ? `https://image.tmdb.org/t/p/w342${currentMedia.poster_path}`
+        : currentMedia.artUrl,
+    };
+    if (isBookmarked) removeBookmark(meta.tmdbId);
+    else addBookmark(meta);
+  };
 
   // Enable crossfades after the first hero paint window; neighbors wait too.
   useEffect(() => {
@@ -741,11 +774,11 @@ export function FeaturedCarousel({
         <Icon icon={Icons.CHEVRON_RIGHT} className="text-white w-8 h-8" />
       </button>
 
-      {/* Navigation Dots */}
+      {/* Navigation Dots — kept clear of the Play / + / i row on mobile */}
       <div
         className={classNames(
           "absolute left-1/2 -translate-x-1/2 z-[19] flex gap-2",
-          isMobile ? "bottom-36" : "bottom-8",
+          isMobile ? "bottom-[7.75rem]" : "bottom-8",
           searchClasses,
         )}
       >
@@ -776,10 +809,10 @@ export function FeaturedCarousel({
                 }, 5000);
               }
             }}
-            className={`w-2.5 h-2.5 rounded-full transition-all ${
+            className={`w-2 h-2 rounded-full transition-all ${
               index === currentIndex
                 ? "bg-white scale-125"
-                : "bg-white/50 hover:bg-white/75"
+                : "bg-white/40 hover:bg-white/70"
             }`}
             aria-label={`Go to slide ${index + 1}`}
           />
@@ -969,7 +1002,7 @@ export function FeaturedCarousel({
                 className={classNames(
                   "tabbable cursor-pointer inline-flex items-center justify-center gap-2 rounded-full font-medium transition-[transform,background-color] duration-100 hover:scale-105 active:scale-95",
                   isMobile
-                    ? "h-12 min-w-[9.5rem] bg-white px-6 text-base text-black hover:bg-white/90"
+                    ? "h-12 min-w-[8.5rem] bg-white px-7 text-[0.95rem] text-black hover:bg-white/90"
                     : "w-full sm:w-auto bg-pill-background bg-opacity-50 hover:bg-pill-backgroundHover backdrop-blur-lg px-6 py-3 text-base text-white",
                 )}
               >
@@ -980,39 +1013,57 @@ export function FeaturedCarousel({
                 <span className={isMobile ? "text-black" : "text-white"}>
                   {currentMedia.type === "manga"
                     ? t("discover.featured.readNow")
-                    : t("discover.featured.playNow")}
+                    : isMobile
+                      ? t("discover.featured.play")
+                      : t("discover.featured.playNow")}
                 </span>
               </button>
-              <div
-                className={classNames(
-                  "inline-flex items-center rounded-full backdrop-blur-lg",
-                  isMobile
-                    ? "gap-1 bg-pill-background/50 p-1"
-                    : "gap-4",
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => onShowDetails(currentMedia)}
-                  className={classNames(
-                    "tabbable cursor-pointer inline-flex items-center justify-center gap-2 rounded-full font-medium transition-[transform,background-color] duration-100 hover:scale-105 active:scale-95",
-                    isMobile
-                      ? "h-10 w-10 bg-transparent text-white hover:bg-white/10"
-                      : "w-full sm:w-auto bg-pill-background bg-opacity-50 hover:bg-pill-backgroundHover px-6 py-3 text-base text-white",
-                  )}
-                  aria-label={t("discover.featured.moreInfo")}
-                >
-                  <Icon
-                    icon={Icons.CIRCLE_QUESTION}
-                    className="text-white scale-100"
-                  />
-                  {!isMobile ? (
+              {isMobile ? (
+                <>
+                  {currentMedia.type !== "manga" ? (
+                    <button
+                      type="button"
+                      onClick={toggleFeaturedBookmark}
+                      className="tabbable flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-[transform,background-color] hover:bg-white/25 active:scale-95"
+                      aria-label={
+                        isBookmarked
+                          ? t("discover.featured.removeBookmark")
+                          : t("discover.featured.addBookmark")
+                      }
+                    >
+                      <Icon
+                        icon={isBookmarked ? Icons.BOOKMARK : Icons.PLUS}
+                        className="text-lg"
+                      />
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => onShowDetails(currentMedia)}
+                    className="tabbable flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-[transform,background-color] hover:bg-white/25 active:scale-95"
+                    aria-label={t("discover.featured.moreInfo")}
+                  >
+                    <Icon icon={Icons.CIRCLE_INFO} className="text-lg" />
+                  </button>
+                </>
+              ) : (
+                <div className="inline-flex items-center gap-4 rounded-full backdrop-blur-lg">
+                  <button
+                    type="button"
+                    onClick={() => onShowDetails(currentMedia)}
+                    className="tabbable cursor-pointer inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-pill-background bg-opacity-50 px-6 py-3 text-base font-medium text-white transition-[transform,background-color] duration-100 hover:scale-105 hover:bg-pill-backgroundHover active:scale-95"
+                    aria-label={t("discover.featured.moreInfo")}
+                  >
+                    <Icon
+                      icon={Icons.CIRCLE_QUESTION}
+                      className="text-white scale-100"
+                    />
                     <span className="text-white">
                       {t("discover.featured.moreInfo")}
                     </span>
-                  ) : null}
-                </button>
-              </div>
+                  </button>
+                </div>
+              )}
               {currentMedia.type !== "manga" && !isMobile ? (
                 <div className="hidden lg:block">
                   <RandomMovieButton />

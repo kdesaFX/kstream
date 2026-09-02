@@ -306,7 +306,11 @@ export function Navigation(props: NavigationProps) {
                 to="/"
                 onClick={() => window.scrollTo(0, 0)}
               >
-                <BrandPill clickable header />
+                <BrandPill
+                  clickable
+                  header
+                  minimal={Boolean(props.minimalMobile)}
+                />
               </Link>
               <div
                 className={classNames(
