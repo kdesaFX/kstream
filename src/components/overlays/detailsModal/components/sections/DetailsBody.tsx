@@ -146,8 +146,17 @@ export function DetailsBody({
 
   return (
     <div className="space-y-4">
-      {/* TMDB Rating and Year/Seasons */}
+      {/* Content rating, IMDb score, and release info */}
       <div className="flex flex-wrap items-center gap-2 text-sm text-white/80">
+          {data.rating ? (
+            <>
+              <span className="rounded border border-white/40 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-white">
+                {data.rating}
+              </span>
+              <span className="text-white/60">•</span>
+            </>
+          ) : null}
+
         {/* Quality Indicator */}
         {getQualityIndicator() && (
           <>

@@ -3,6 +3,10 @@ import { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 
 import {
+  pickUsMovieCertification,
+  pickUsTvContentRating,
+} from "@/backend/metadata/tmdbMaturity";
+import {
   getMediaBackdrop,
   getMediaDetails,
   getMediaLogo,
@@ -82,9 +86,7 @@ export function DetailsModal({
               voteAverage: movieDetails.vote_average,
               voteCount: movieDetails.vote_count,
               releaseDate: movieDetails.release_date,
-              rating: movieDetails.release_dates?.results?.find(
-                (r) => r.iso_3166_1 === "US",
-              )?.release_dates?.[0]?.certification,
+              rating: pickUsMovieCertification(movieDetails.release_dates?.results),
               type: "movie",
               id: movieDetails.id,
               imdbId: movieDetails.external_ids?.imdb_id,
@@ -119,9 +121,7 @@ export function DetailsModal({
               voteAverage: showDetails.vote_average,
               voteCount: showDetails.vote_count,
               releaseDate: showDetails.first_air_date,
-              rating: showDetails.content_ratings?.results?.find(
-                (r) => r.iso_3166_1 === "US",
-              )?.rating,
+              rating: pickUsTvContentRating(showDetails.content_ratings?.results),
               type: "show",
               id: showDetails.id,
               imdbId: showDetails.external_ids?.imdb_id,

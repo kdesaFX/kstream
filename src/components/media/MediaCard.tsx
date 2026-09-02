@@ -13,6 +13,7 @@ import { MediaCardContextMenu } from "@/components/media/MediaCardContextMenu";
 import { Flare } from "@/components/utils/Flare";
 import { Heading2 } from "@/components/utils/Text";
 import { useSearchQuery } from "@/hooks/useSearchQuery";
+import { useCardContentRating } from "@/hooks/useCardContentRating";
 import { usePreferencesStore } from "@/stores/preferences";
 import { lazyRootMarginFor } from "@/stores/preferences/deviceProfile";
 import { resolveCardArtworkUrl } from "@/utils/media/artwork";
@@ -176,13 +177,10 @@ function MediaCardContent({
   );
   const matureLocked = isMatureMedia(media) && !enableMatureTitles;
   const posterUrl = resolveCardArtworkUrl(media.poster);
-  const ratingLabel =
-    media.voteAverage != null && media.voteAverage > 0
-      ? media.voteAverage.toFixed(1)
-      : null;
 
   // Simple intersection observer for lazy loading images
   const { targetRef, isVisible: isIntersecting } = useLazyVisible(eager);
+  const contentRating = useCardContentRating(media, isIntersecting);
 
   // Show skeleton if forced or if media hasn't loaded yet (empty title/poster)
   const shouldShowSkeleton = forceSkeleton || (!media.title && !media.poster);
@@ -285,19 +283,17 @@ function MediaCardContent({
                 </span>
               </div>
             ) : null}
-            {ratingLabel || series || badge ? (
+            {contentRating || series || badge ? (
               <div className="absolute right-2 top-2 z-[1] flex flex-col items-end gap-1">
-                {ratingLabel ? (
+                {contentRating ? (
                   <div
-                    className="flex items-center gap-0.5 rounded-md bg-mediaCard-badge px-2 py-1 transition-colors"
-                    aria-label={t("media.ratingLabel", { value: ratingLabel })}
+                    className="rounded-md bg-mediaCard-badge px-2 py-1 transition-colors"
+                    aria-label={t("media.contentRatingLabel", {
+                      value: contentRating,
+                    })}
                   >
-                    <Icon
-                      icon={Icons.RISING_STAR}
-                      className="text-[10px] text-yellow-400"
-                    />
-                    <p className="text-xs font-bold text-mediaCard-badgeText transition-colors">
-                      {ratingLabel}
+                    <p className="text-center text-xs font-bold text-mediaCard-badgeText transition-colors">
+                      {contentRating}
                     </p>
                   </div>
                 ) : null}

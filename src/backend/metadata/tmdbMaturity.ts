@@ -17,6 +17,11 @@ type ReleaseDatesResponse = {
   }>;
 };
 
+type RatingLookup = {
+  rating: string | null;
+  mature: boolean;
+};
+
 const MATURE_TV_US = new Set(["TV-MA"]);
 /** GB 18, AU R18+, etc. */
 const MATURE_CERT_INTL = new Set(["18", "R18", "R18+"]);
@@ -39,43 +44,91 @@ export function isMatureMovieCertification(
   return MATURE_CERT_INTL.has(certification);
 }
 
-const tvMatureCache = new Map<number, boolean>();
-const movieMatureCache = new Map<number, boolean>();
+export function pickUsTvContentRating(
+  results: ContentRatingsResponse["results"] | undefined,
+): string | null {
+  const rating = results?.find((row) => row.iso_3166_1 === "US")?.rating?.trim();
+  return rating || null;
+}
 
-async function tvIsMature(id: number): Promise<boolean> {
-  const cached = tvMatureCache.get(id);
-  if (cached !== undefined) return cached;
+export function pickUsMovieCertification(
+  results: ReleaseDatesResponse["results"] | undefined,
+): string | null {
+  const us = results?.find((row) => row.iso_3166_1 === "US");
+  if (!us?.release_dates?.length) return null;
+  for (const entry of us.release_dates) {
+    const certification = entry.certification?.trim();
+    if (certification) return certification;
+  }
+  return null;
+}
+
+const tvLookupCache = new Map<number, RatingLookup>();
+const movieLookupCache = new Map<number, RatingLookup>();
+
+async function lookupTvRating(id: number): Promise<RatingLookup> {
+  const cached = tvLookupCache.get(id);
+  if (cached) return cached;
+
   try {
     const res = await get<ContentRatingsResponse>(`/tv/${id}/content_ratings`);
-    const mature =
-      res.results?.some((row) =>
-        isMatureTvContentRating(row.iso_3166_1, row.rating),
-      ) ?? false;
-    tvMatureCache.set(id, mature);
-    return mature;
+    const results = res.results ?? [];
+    const lookup: RatingLookup = {
+      rating: pickUsTvContentRating(results),
+      mature:
+        results.some((row) =>
+          isMatureTvContentRating(row.iso_3166_1, row.rating),
+        ) ?? false,
+    };
+    tvLookupCache.set(id, lookup);
+    return lookup;
   } catch {
-    tvMatureCache.set(id, false);
-    return false;
+    const lookup = { rating: null, mature: false };
+    tvLookupCache.set(id, lookup);
+    return lookup;
   }
 }
 
-async function movieIsMature(id: number): Promise<boolean> {
-  const cached = movieMatureCache.get(id);
-  if (cached !== undefined) return cached;
+async function lookupMovieRating(id: number): Promise<RatingLookup> {
+  const cached = movieLookupCache.get(id);
+  if (cached) return cached;
+
   try {
     const res = await get<ReleaseDatesResponse>(`/movie/${id}/release_dates`);
-    const mature =
-      res.results?.some((region) =>
-        region.release_dates?.some((entry) =>
-          isMatureMovieCertification(region.iso_3166_1, entry.certification),
-        ),
-      ) ?? false;
-    movieMatureCache.set(id, mature);
-    return mature;
+    const results = res.results ?? [];
+    const lookup: RatingLookup = {
+      rating: pickUsMovieCertification(results),
+      mature:
+        results.some((region) =>
+          region.release_dates?.some((entry) =>
+            isMatureMovieCertification(region.iso_3166_1, entry.certification),
+          ),
+        ) ?? false,
+    };
+    movieLookupCache.set(id, lookup);
+    return lookup;
   } catch {
-    movieMatureCache.set(id, false);
-    return false;
+    const lookup = { rating: null, mature: false };
+    movieLookupCache.set(id, lookup);
+    return lookup;
   }
+}
+
+async function tvIsMature(id: number): Promise<boolean> {
+  return (await lookupTvRating(id)).mature;
+}
+
+async function movieIsMature(id: number): Promise<boolean> {
+  return (await lookupMovieRating(id)).mature;
+}
+
+export async function getUsContentRating(
+  id: number,
+  type: "movie" | "show",
+): Promise<string | null> {
+  const lookup =
+    type === "show" ? await lookupTvRating(id) : await lookupMovieRating(id);
+  return lookup.rating;
 }
 
 /** TMDB search often leaves `adult: false` on TV-MA titles — look up ratings. */

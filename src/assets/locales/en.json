@@ -548,6 +548,7 @@
   "media": {
     "episodeDisplay": "S{{season}} - E{{episode}}",
     "ratingLabel": "{{value}} rating",
+    "contentRatingLabel": "Rated {{value}}",
     "unreleased": "Unreleased",
       "types": {
       "movie": "Movie",
