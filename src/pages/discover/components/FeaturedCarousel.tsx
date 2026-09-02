@@ -893,7 +893,6 @@ export function FeaturedCarousel({
                 width={480}
                 height={220}
                 decoding="async"
-                fetchPriority="high"
                 className={classNames(
                   "no-fade w-auto h-auto object-contain bg-transparent",
                   isMobile
