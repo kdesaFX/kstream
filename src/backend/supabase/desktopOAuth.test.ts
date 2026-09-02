@@ -10,11 +10,16 @@ describe("openDesktopOAuthInBrowser", () => {
     window.__KSTREAM_DESKTOP_IPC__ = {
       invoke: vi.fn(),
     };
-    vi.spyOn(window, "open").mockReturnValue({} as Window);
+    vi.spyOn(window, "open").mockReturnValue(null);
+    vi.stubGlobal("location", {
+      ...window.location,
+      assign: vi.fn(),
+    });
   });
 
   afterEach(() => {
     delete window.__KSTREAM_DESKTOP_IPC__;
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -26,18 +31,16 @@ describe("openDesktopOAuthInBrowser", () => {
 
     expect(invoke).toHaveBeenCalledWith("openExternalAuth", { url: oauthUrl });
     expect(window.open).not.toHaveBeenCalled();
+    expect(window.location.assign).not.toHaveBeenCalled();
   });
 
-  it("falls back to window.open on older desktop builds", async () => {
+  it("falls back to guarded navigation on older desktop builds", async () => {
     const invoke = vi.mocked(window.__KSTREAM_DESKTOP_IPC__!.invoke);
     invoke.mockRejectedValue(new Error("Blocked desktop channel: openExternalAuth"));
 
     await openDesktopOAuthInBrowser(oauthUrl);
 
-    expect(window.open).toHaveBeenCalledWith(
-      oauthUrl,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    expect(window.open).not.toHaveBeenCalled();
+    expect(window.location.assign).toHaveBeenCalledWith(oauthUrl);
   });
 });

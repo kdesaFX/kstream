@@ -1,7 +1,12 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import {
+  accountFromSession,
+  getCurrentSession,
+} from "@/backend/supabase/data";
 import { completeDesktopOAuthCallback } from "@/backend/supabase/desktopOAuth";
+import { useAuthStore } from "@/stores/auth";
 import { playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
 
@@ -50,11 +55,21 @@ export function DesktopChromeBridge() {
     const ipc = window.__KSTREAM_DESKTOP_IPC__;
     if (!ipc?.onAuthCallback) return;
     return ipc.onAuthCallback((callbackUrl) => {
-      void completeDesktopOAuthCallback(callbackUrl).catch((err) => {
-        console.error("[kstream] desktop OAuth callback failed", err);
-      });
+      void (async () => {
+        try {
+          await completeDesktopOAuthCallback(callbackUrl);
+          const session = await getCurrentSession();
+          if (session) {
+            const account = await accountFromSession(session);
+            if (account) useAuthStore.getState().setAccount(account);
+          }
+          navigate("/", { replace: true });
+        } catch (err) {
+          console.error("[kstream] desktop OAuth callback failed", err);
+        }
+      })();
     });
-  }, []);
+  }, [navigate]);
 
   return null;
 }

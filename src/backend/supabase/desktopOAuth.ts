@@ -17,21 +17,15 @@ function isBlockedDesktopChannelError(err: unknown): boolean {
   return message.includes("Blocked desktop channel");
 }
 
-/** Open OAuth in the system browser (Electron routes window.open the same way). */
-function openOAuthInSystemBrowser(oauthUrl: string): void {
-  const opened = window.open(oauthUrl, "_blank", "noopener,noreferrer");
-  if (opened) return;
-
-  const anchor = document.createElement("a");
-  anchor.href = oauthUrl;
-  anchor.target = "_blank";
-  anchor.rel = "noopener noreferrer";
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-
-  // Electron auth navigation guards intercept top-level OAuth navigations and
-  // hand them to the system browser when window.open is blocked.
+/**
+ * Last-resort OAuth open for desktop builds whose preload has not allowlisted
+ * openExternalAuth yet. Electron main-process guards intercept this navigation
+ * and forward it to the system browser without loading OAuth in-app.
+ *
+ * Never call window.open here — on legacy builds it can spawn an in-app Google
+ * window while openExternalAuth has already opened the system browser.
+ */
+function openOAuthViaNavigationGuard(oauthUrl: string): void {
   window.location.assign(oauthUrl);
 }
 
@@ -44,11 +38,11 @@ export async function openDesktopOAuthInBrowser(oauthUrl: string): Promise<void>
     return;
   } catch (err) {
     // Desktop builds before preload allowlisted openExternalAuth still route
-    // OAuth URLs to the system browser via window.open handlers.
+    // OAuth URLs to the system browser via main-process navigation guards.
     if (!isBlockedDesktopChannelError(err)) throw err;
   }
 
-  openOAuthInSystemBrowser(oauthUrl);
+  openOAuthViaNavigationGuard(oauthUrl);
 }
 
 /** Complete PKCE or implicit OAuth return from the system browser. */

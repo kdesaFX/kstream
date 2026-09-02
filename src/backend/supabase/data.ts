@@ -42,7 +42,7 @@ import {
   getDeviceClientId,
   suggestDeviceName,
 } from "@/utils/deviceClient";
-import { getClientPlatform } from "@/hooks/useIsDesktopApp";
+import { getClientPlatform, isDesktopApp } from "@/hooks/useIsDesktopApp";
 
 import { progressInputToMediaItem, mergeProgressPayload } from "./progressMerge";
 
@@ -790,7 +790,12 @@ async function signInWithOAuthProvider(provider: "google" | "discord") {
     // ignore storage failures
   }
 
-  if (canUseDesktopExternalOAuth()) {
+  if (isDesktopApp()) {
+    if (!canUseDesktopExternalOAuth()) {
+      throw new Error(
+        "Update the kstream desktop app to sign in with Google or Discord.",
+      );
+    }
     const { data, error } = await getSupabase().auth.signInWithOAuth({
       provider,
       options: {
