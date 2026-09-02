@@ -80,8 +80,10 @@ export function decodeHtmlEntities(value: string): string {
 export function normalizeMangaTitle(title: string): string {
   return title
     .toLowerCase()
+    // Keep letters from any script — ASCII-only stripping made JP/KR titles
+    // collapse to "" and collide in AniList↔MangaDex cover matching.
     .replace(/['’]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 }
 

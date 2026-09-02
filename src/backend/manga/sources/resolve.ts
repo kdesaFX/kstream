@@ -182,16 +182,16 @@ function enrichComickAlternates(
 }
 
 function languagesFromChapters(
-  details: MangaDetails,
+  _details: MangaDetails,
   chapters: MangaChapter[],
   activeLanguage: string,
 ): string[] {
-  const readable = new Set(chapters.map((ch) => ch.translatedLanguage));
   const out = new Set<string>();
-  for (const code of details.availableLanguages ?? []) {
-    if (code === activeLanguage && !readable.has(code)) continue;
-    out.add(code);
+  // Only languages that actually have chapter rows — MangaDex's
+  // availableTranslatedLanguages includes external/licensed stubs.
+  for (const ch of chapters) {
+    if (ch.translatedLanguage) out.add(ch.translatedLanguage);
   }
-  for (const code of readable) out.add(code);
+  if (activeLanguage) out.add(activeLanguage);
   return sortMangaLanguages([...out]);
 }

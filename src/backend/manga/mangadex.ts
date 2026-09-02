@@ -620,7 +620,6 @@ export async function getMangaDetails(
     chapters,
     chapterGroups: groups,
     availableLanguages: sortMangaLanguages([
-      ...(base.availableLanguages ?? []),
       ...chapters.map((ch) => ch.translatedLanguage),
     ]),
   };

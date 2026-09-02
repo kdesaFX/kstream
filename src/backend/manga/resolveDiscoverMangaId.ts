@@ -66,7 +66,7 @@ export async function resolveDiscoverMangaId(
       }
     }
 
-    const id = bestId && bestScore >= 60 ? bestId : null;
+    const id = bestId && bestScore >= 80 ? bestId : null;
     cache.set(key, { at: Date.now(), id });
     return id;
   })();

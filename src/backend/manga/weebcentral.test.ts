@@ -134,6 +134,14 @@ describe("weebcentral parsers", () => {
     );
   });
 
+  it("keeps non-latin titles distinct instead of collapsing to empty", () => {
+    expect(normalizeMangaTitle("オクターヴ")).toBe("オクターヴ");
+    expect(normalizeMangaTitle("オクターヴ")).not.toBe(
+      normalizeMangaTitle("ノラガミ"),
+    );
+    expect(normalizeMangaTitle("눈의 녹은 자리").length).toBeGreaterThan(0);
+  });
+
   it("rejects challenge pages so a blocked proxy cannot count as a hit", () => {
     expect(isUsableWeebCentralHtml("<article>nope</article>")).toBe(false);
     expect(isUsableWeebCentralHtml('{"error":"blocked"}')).toBe(false);

@@ -54,6 +54,8 @@ function indexMangaPool(pool: MangaListItem[]): Map<string, MangaListItem> {
   const byTitle = new Map<string, MangaListItem>();
   for (const item of pool) {
     const primary = normalizeMangaTitle(item.title);
+    // ASCII-only normalize turns JP-only titles into "" — never index those or
+    // every unmatched AniList hit collides onto the first empty key.
     if (primary && !byTitle.has(primary)) byTitle.set(primary, item);
     for (const alt of item.alternateTitles ?? []) {
       const key = normalizeMangaTitle(alt);
@@ -67,7 +69,9 @@ function matchPool(
   hit: AniListMangaHit,
   byTitle: Map<string, MangaListItem>,
 ): MangaListItem | undefined {
-  const keys = [hit.title, ...hit.alternateTitles].map(normalizeMangaTitle);
+  const keys = [hit.title, ...hit.alternateTitles]
+    .map(normalizeMangaTitle)
+    .filter(Boolean);
   for (const key of keys) {
     const found = byTitle.get(key);
     if (found) return found;
@@ -94,12 +98,16 @@ function findAniListArt(
   anilist: AniListMangaHit[],
 ): AniListMangaHit | undefined {
   const keys = new Set(
-    [item.title, ...(item.alternateTitles ?? [])].map(normalizeMangaTitle),
+    [item.title, ...(item.alternateTitles ?? [])]
+      .map(normalizeMangaTitle)
+      .filter(Boolean),
   );
+  if (keys.size === 0) return undefined;
   return anilist.find((hit) =>
-    [hit.title, ...hit.alternateTitles].some((t) =>
-      keys.has(normalizeMangaTitle(t)),
-    ),
+    [hit.title, ...hit.alternateTitles].some((t) => {
+      const key = normalizeMangaTitle(t);
+      return Boolean(key) && keys.has(key);
+    }),
   );
 }
 
