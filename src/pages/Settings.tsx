@@ -173,8 +173,10 @@ export function AccountSettings(props: {
         sessions={sessionsResult.value ?? []}
         onChange={execSessions}
       />
-      <AccountSecurityPart account={props.account} />
-      <AccountActionsPart />
+      <AccountSecurityPart account={props.account} onRefresh={execSessions} />
+      <div className="pt-8">
+        <AccountActionsPart />
+      </div>
     </>
   );
 }
@@ -205,6 +207,7 @@ export function SettingsPage() {
       const subSectionToCategory: Record<string, string> = {
         "source-order": "settings-preferences",
         "enable-mature-titles": "settings-appearance",
+        "settings-account-security": "settings-account",
       };
 
       // Check if it's a sub-section hash

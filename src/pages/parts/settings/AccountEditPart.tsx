@@ -25,7 +25,7 @@ export function AccountEditPart(props: {
   const profileEditModal = useModal("profile-edit");
 
   return (
-    <SettingsCard paddingClass="px-8 py-10" className="!mt-8">
+    <SettingsCard paddingClass="px-6 py-8 sm:px-8 sm:py-10" className="!mt-8">
       <ProfileEditModal
         id={profileEditModal.id}
         close={profileEditModal.hide}
@@ -36,8 +36,8 @@ export function AccountEditPart(props: {
         avatarUrl={props.avatarUrl}
         setAvatarUrl={props.setAvatarUrl}
       />
-      <div className="grid lg:grid-cols-[auto,1fr] gap-8">
-        <div>
+      <div className="grid gap-8 lg:grid-cols-[auto,minmax(0,1fr)] lg:items-start">
+        <div className="flex justify-center lg:justify-start">
           <Avatar
             profile={{
               colorA: props.colorA,
@@ -60,36 +60,28 @@ export function AccountEditPart(props: {
             }
           />
         </div>
-        <div>
-          <div className="flex flex-col md:flex-row md:gap-4 gap-4">
-            <div className="w-full">
-              <AuthInputBox
-                label={t("settings.account.accountDetails.nicknameLabel")}
-                placeholder={t(
-                  "settings.account.accountDetails.nicknamePlaceholder",
-                )}
-                value={props.nickname}
-                onChange={(value) => props.setNickname(value)}
-                className="w-full"
-              />
-            </div>
-            <div className="w-full">
-              <AuthInputBox
-                label={
-                  t("settings.account.accountDetails.deviceNameLabel") ??
-                  undefined
-                }
-                placeholder={
-                  t("settings.account.accountDetails.deviceNamePlaceholder") ??
-                  undefined
-                }
-                value={props.deviceName}
-                onChange={(value) => props.setDeviceName(value)}
-                className="w-full"
-              />
-            </div>
+        <div className="min-w-0">
+          <div className="grid gap-4 md:grid-cols-2">
+            <AuthInputBox
+              label={t("settings.account.accountDetails.nicknameLabel")}
+              placeholder={t(
+                "settings.account.accountDetails.nicknamePlaceholder",
+              )}
+              value={props.nickname}
+              onChange={(value) => props.setNickname(value)}
+              className="w-full"
+            />
+            <AuthInputBox
+              label={t("settings.account.accountDetails.deviceNameLabel")}
+              placeholder={t(
+                "settings.account.accountDetails.deviceNamePlaceholder",
+              )}
+              value={props.deviceName}
+              onChange={(value) => props.setDeviceName(value)}
+              className="w-full"
+            />
           </div>
-          <div className="flex space-x-3 mt-4">
+          <div className="mt-6 flex flex-wrap gap-3">
             <Button className="logout-button" theme="danger" onClick={logout}>
               {t("settings.account.accountDetails.logoutButton")}
             </Button>

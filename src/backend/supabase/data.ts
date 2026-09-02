@@ -703,42 +703,111 @@ export async function removeDevice(userId: string, clientId: string) {
   if (error) throw error;
 }
 
+export type LinkedIdentity = {
+  id: string;
+  provider: string;
+};
+
 export async function getAuthProviderInfo(): Promise<{
   hasPassword: boolean;
+  hasEmailIdentity: boolean;
   email: string | null;
   isGoogle: boolean;
   isDiscord: boolean;
+  identities: LinkedIdentity[];
+  canUnlinkProvider: boolean;
 }> {
   const { data } = await getSupabase().auth.getUser();
   const user = data.user;
   if (!user) {
     return {
       hasPassword: false,
+      hasEmailIdentity: false,
       email: null,
       isGoogle: false,
       isDiscord: false,
+      identities: [],
+      canUnlinkProvider: false,
     };
   }
-  const providers = user.app_metadata?.providers as string[] | undefined;
+  const identities: LinkedIdentity[] = (user.identities ?? [])
+    .map((identity) => ({
+      id: identity.identity_id ?? identity.id,
+      provider: identity.provider,
+    }))
+    .filter((identity) => Boolean(identity.id && identity.provider));
   const hasProvider = (name: string) =>
-    Boolean(
-      user.app_metadata?.provider === name ||
-        providers?.includes(name) ||
-        user.identities?.some((i) => i.provider === name),
-    );
+    identities.some((identity) => identity.provider === name);
   const isGoogle = hasProvider("google");
   const isDiscord = hasProvider("discord");
+  const hasEmailIdentity = hasProvider("email");
   return {
-    hasPassword: !isGoogle && !isDiscord && Boolean(user.email),
+    hasPassword: hasEmailIdentity,
+    hasEmailIdentity,
     email: user.email ?? null,
     isGoogle,
     isDiscord,
+    identities,
+    canUnlinkProvider: identities.length >= 2,
   };
+}
+
+export async function changeEmail(newEmail: string) {
+  const trimmed = newEmail.trim();
+  if (!trimmed) throw new Error("Enter a valid email address.");
+  const { error } = await getSupabase().auth.updateUser({ email: trimmed });
+  if (error) throw error;
 }
 
 export async function changePassword(newPassword: string) {
   const { error } = await getSupabase().auth.updateUser({ password: newPassword });
   if (error) throw error;
+}
+
+async function linkOAuthProvider(provider: "google" | "discord") {
+  const redirectTo = isDesktopApp()
+    ? DESKTOP_OAUTH_REDIRECT
+    : `${window.location.origin}/settings#settings-account-security`;
+
+  if (isDesktopApp() && canUseDesktopExternalOAuth()) {
+    const { data, error } = await getSupabase().auth.linkIdentity({
+      provider,
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true,
+      },
+    });
+    if (error) throw error;
+    if (!data?.url) throw new Error("Could not start account linking");
+    await openDesktopOAuthInBrowser(data.url);
+    return;
+  }
+
+  const { error } = await getSupabase().auth.linkIdentity({
+    provider,
+    options: { redirectTo },
+  });
+  if (error) throw error;
+}
+
+export async function linkGoogleAccount() {
+  await linkOAuthProvider("google");
+}
+
+export async function linkDiscordAccount() {
+  await linkOAuthProvider("discord");
+}
+
+export async function unlinkOAuthAccount(provider: "google" | "discord") {
+  const { data, error } = await getSupabase().auth.getUserIdentities();
+  if (error) throw error;
+  const identity = data.identities.find((entry) => entry.provider === provider);
+  if (!identity) throw new Error("That sign-in method is not linked.");
+  if (data.identities.length < 2) {
+    throw new Error("Keep at least one other sign-in method before disconnecting.");
+  }
+  const { error: unlinkError } = await getSupabase().auth.unlinkIdentity(identity);
+  if (unlinkError) throw unlinkError;
 }
 
 export async function signUpWithEmail(opts: {

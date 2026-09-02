@@ -3,11 +3,13 @@ import { getAuthProviderInfo } from "@/backend/supabase/data";
 export interface AuthStatusResponse {
   isLegacyPassphrase: boolean;
   hasPassword: boolean;
+  hasEmailIdentity: boolean;
   username: string | null;
   email: string | null;
   hasPasskey: boolean;
   isGoogle: boolean;
   isDiscord: boolean;
+  canUnlinkProvider: boolean;
 }
 
 export interface SessionResponse {
@@ -37,10 +39,12 @@ export async function getAuthStatus(
   return {
     isLegacyPassphrase: false,
     hasPassword: info.hasPassword,
+    hasEmailIdentity: info.hasEmailIdentity,
     username: info.email,
     email: info.email,
     hasPasskey: false,
     isGoogle: info.isGoogle,
     isDiscord: info.isDiscord,
+    canUnlinkProvider: info.canUnlinkProvider,
   };
 }

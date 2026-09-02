@@ -60,29 +60,29 @@ export function Device(props: {
 
   return (
     <SettingsCard
-      className="flex justify-between items-center gap-4"
+      className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       paddingClass="px-6 py-4"
     >
-      <div className="font-medium min-w-0">
+      <div className="min-w-0 flex-1">
         <SecondaryLabel>
           {t("settings.account.devices.deviceNameLabel")}
         </SecondaryLabel>
-        <p className="text-white truncate">
-          {props.name}
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="text-white">{props.name}</p>
           {props.isCurrent ? (
-            <span className="ml-2 text-xs font-semibold text-type-link">
-              {t("settings.account.devices.currentDevice") ?? "Current"}
+            <span className="inline-flex rounded-full bg-type-link/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-type-link">
+              {t("settings.account.devices.currentDevice")}
             </span>
           ) : null}
-        </p>
+        </div>
         {lastSeenLabel ? (
-          <p className="text-sm text-type-secondary mt-0.5">{lastSeenLabel}</p>
+          <p className="mt-1 text-sm text-type-secondary">{lastSeenLabel}</p>
         ) : null}
       </div>
       {!props.isCurrent ? (
         <Button
           theme="danger"
-          className="logout-button shrink-0"
+          className="logout-button w-full shrink-0 sm:w-auto"
           loading={result.loading}
           onClick={exec}
         >
@@ -135,13 +135,12 @@ export function DeviceListPart(props: {
   }, [sessions, currentSessionId, currentDeviceName, t]);
 
   return (
-    <div>
-      <Heading2 border className="mt-0 mb-6">
-        {t("settings.account.security.sessionsTitle") ?? "Sessions"}
+    <div className="pt-8">
+      <Heading2 border className="mb-6">
+        {t("settings.account.security.sessionsTitle")}
       </Heading2>
       <Paragraph className="!mt-0 mb-6 text-sm">
-        {t("settings.account.devices.description") ??
-          "Browsers and apps where you are signed in. Remove a device to forget it here — use Sign out everywhere to revoke every session."}
+        {t("settings.account.devices.description")}
       </Paragraph>
       {props.loading && deviceListSorted.length === 0 ? (
         <Loading />
@@ -150,12 +149,11 @@ export function DeviceListPart(props: {
       ) : deviceListSorted.length === 0 ? (
         <SettingsCard className="mb-4" paddingClass="px-6 py-4">
           <p className="text-type-secondary text-sm">
-            {t("settings.account.devices.empty") ??
-              "No other devices yet. Sign in from another browser to see it listed here."}
+            {t("settings.account.devices.empty")}
           </p>
         </SettingsCard>
       ) : (
-        <div className="space-y-3 mb-4">
+        <div className="mb-4 space-y-3">
           {deviceListSorted.map((session) => (
             <Device
               name={session.name}
@@ -171,8 +169,7 @@ export function DeviceListPart(props: {
       <SettingsCard>
         <div className="space-y-3">
           <Paragraph className="!mt-0 text-sm">
-            {t("settings.account.security.signOutEverywhereDescription") ??
-              "Sign out on every device where you are logged in to K-Stream."}
+            {t("settings.account.security.signOutEverywhereDescription")}
           </Paragraph>
           {signOutResult.error ? (
             <p className="text-authentication-errorText">
@@ -184,8 +181,7 @@ export function DeviceListPart(props: {
             loading={signOutResult.loading}
             onClick={() => executeSignOutEverywhere()}
           >
-            {t("settings.account.security.signOutEverywhere") ??
-              "Sign out everywhere"}
+            {t("settings.account.security.signOutEverywhere")}
           </Button>
         </div>
       </SettingsCard>

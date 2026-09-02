@@ -29,10 +29,12 @@ export function AccountActionsPart() {
   if (!account) return null;
 
   return (
-    <div>
-      <Heading2 border>{t("settings.account.actions.title")}</Heading2>
+    <div className="pt-8">
+      <Heading2 border className="mb-6">
+        {t("settings.account.actions.title")}
+      </Heading2>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
         {/* Account Migration Card */}
         <SolidSettingsCard
           paddingClass="px-6 py-8"
