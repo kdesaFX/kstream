@@ -227,3 +227,68 @@ describe("registerAudioStreamOptions", () => {
     );
   });
 });
+
+describe("switchAudioStream hop fallback", () => {
+  beforeEach(() => {
+    usePlayerStore.getState().reset();
+  });
+
+  it("keeps the working stream on probation when hopping languages", () => {
+    const working = {
+      type: "hls" as const,
+      url: "https://example.com/en.m3u8",
+      audioLanguage: "en",
+    };
+    usePlayerStore.setState((s) => {
+      s.source = working;
+      s.sourceId = "nova";
+      s.currentAudioStreamId = "nova:direct:0:en";
+      s.audioStreamOptions = [
+        {
+          id: "nova:direct:0:en",
+          language: "en",
+          label: "English",
+          sourceId: "nova",
+          embedId: null,
+          source: working,
+          captions: [],
+        },
+        {
+          id: "castletv:direct:1:te",
+          language: "te",
+          label: "Telugu",
+          sourceId: "castletv",
+          embedId: null,
+          source: {
+            type: "hls",
+            url: "https://example.com/te.m3u8",
+            audioLanguage: "te",
+          } as any,
+          captions: [],
+        },
+      ];
+    });
+
+    usePlayerStore.getState().switchAudioStream("castletv:direct:1:te");
+
+    const afterHop = usePlayerStore.getState();
+    expect(afterHop.sourceId).toBe("castletv");
+    expect(afterHop.qualityHopFallback?.previousAudioStreamId).toBe(
+      "nova:direct:0:en",
+    );
+    expect(afterHop.qualityHopFallback?.failedAudioOptionId).toBe(
+      "castletv:direct:1:te",
+    );
+
+    const restored = afterHop.restoreQualityHopFallback();
+    expect(restored).toBe(true);
+    const afterRestore = usePlayerStore.getState();
+    expect(afterRestore.sourceId).toBe("nova");
+    expect(afterRestore.currentAudioStreamId).toBe("nova:direct:0:en");
+    expect(
+      afterRestore.audioStreamOptions.some(
+        (o) => o.id === "castletv:direct:1:te",
+      ),
+    ).toBe(false);
+  });
+});

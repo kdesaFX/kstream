@@ -2,6 +2,7 @@ import { ScrapeMedia, Stream } from "@p-stream/providers";
 
 import { isExtensionActiveCached } from "@/backend/extension/messaging";
 import { prepareStream } from "@/backend/extension/streams";
+import { validateStream } from "@/components/player/utils/validateScrapedStream";
 import { getProviders } from "@/backend/providers/providers";
 import { getMediaKey, playerStatus } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
@@ -29,6 +30,15 @@ function delay(ms: number): Promise<void> {
   return new Promise<void>((resolve) => {
     window.setTimeout(resolve, ms);
   });
+}
+
+async function filterPlayableStreams(streams: Stream[]): Promise<Stream[]> {
+  const playable: Stream[] = [];
+  for (const stream of streams) {
+    const check = await validateStream(stream);
+    if (check.ok) playable.push(stream);
+  }
+  return playable;
 }
 
 function haveEnoughLanguages(languages: Set<string>): boolean {
@@ -122,9 +132,12 @@ async function registerStreams(
   embedId: string | null,
   mediaKey: string,
 ): Promise<void> {
+  const validated = await filterPlayableStreams(streams);
+  if (!validated.length) return;
+
   const have = currentLanguages();
   const peakRank = currentPeakQualityRank();
-  const missing = streams.filter((stream) => {
+  const missing = validated.filter((stream) => {
     const lang = stream.audioLanguage?.trim();
     if (!lang || have.has(lang)) return false;
     // Regional dubs scraped at much lower tiers are not alternates for what
@@ -148,8 +161,8 @@ async function registerStreams(
       streamsToAudioOptions(missing, sourceId, embedId),
     );
   }
-  store.registerSourceMirrors(sourceId, streams, null);
-  void streamsToQualityOptions(streams, sourceId, embedId).then((options) => {
+  store.registerSourceMirrors(sourceId, validated, null);
+  void streamsToQualityOptions(validated, sourceId, embedId).then((options) => {
     if (!stillSameMedia(mediaKey)) return;
     usePlayerStore.getState().registerQualityStreamOptions(options);
   });

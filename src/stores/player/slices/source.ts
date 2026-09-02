@@ -188,6 +188,10 @@ export interface QualityHopFallback {
   automaticQuality: boolean;
   startAt: number;
   expiresAt: number;
+  /** Audio menu selection before a cross-source language hop. */
+  previousAudioStreamId?: string | null;
+  /** Remove from the language menu if the hop fails to start playback. */
+  failedAudioOptionId?: string | null;
 }
 
 export interface SourceSlice {
@@ -537,10 +541,20 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.audioTracks = [];
       s.currentAudioTrack = null;
       if (stream.audioLanguage) {
-        const match = s.audioStreamOptions.find(
-          (o) => o.language === stream.audioLanguage,
-        );
-        s.currentAudioStreamId = match?.id ?? null;
+        const alreadyPicked = s.currentAudioStreamId;
+        const pickedStillMatches =
+          alreadyPicked &&
+          s.audioStreamOptions.some(
+            (o) =>
+              o.id === alreadyPicked &&
+              o.language === stream.audioLanguage?.trim(),
+          );
+        if (!pickedStillMatches) {
+          const match = s.audioStreamOptions.find(
+            (o) => o.language === stream.audioLanguage,
+          );
+          s.currentAudioStreamId = match?.id ?? null;
+        }
       }
     });
     const store = get();
@@ -789,10 +803,29 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     if (option.id === store.currentAudioStreamId) return;
 
     const startAt = store.progress.time;
+    const previousAutomatic =
+      useQualityStore.getState().quality.automaticQuality;
+    const fallback: QualityHopFallback | null = store.source
+      ? {
+          source: store.source,
+          captions: store.captionList,
+          sourceId: store.sourceId,
+          embedId: store.embedId,
+          quality: store.currentQuality,
+          automaticQuality: previousAutomatic,
+          startAt,
+          expiresAt: Date.now() + QUALITY_HOP_PROBATION_MS,
+          previousAudioStreamId: store.currentAudioStreamId,
+          failedAudioOptionId: option.id,
+        }
+      : null;
+
     set((s) => {
+      s.qualityHopFallback = fallback;
       s.currentAudioStreamId = option.id;
       s.sourceId = option.sourceId;
       s.embedId = option.embedId ?? null;
+      s.mediaPlaying.hasPlayedOnce = false;
     });
     usePreferencesStore.getState().setPreferredAudioLanguage(option.language);
     store.setSource(option.source, option.captions, startAt);
@@ -917,10 +950,16 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     // otherwise the restored stream gets asked for the same missing rung.
     useQualityStore.getState().setAutomaticQuality(fallback.automaticQuality);
     useQualityStore.getState().setLastChosenQuality(fallback.quality);
+    const failedAudioOptionId = fallback.failedAudioOptionId;
     set((s) => {
       s.sourceId = fallback.sourceId;
       s.embedId = fallback.embedId;
-      s.currentAudioStreamId = null;
+      s.currentAudioStreamId = fallback.previousAudioStreamId ?? null;
+      if (failedAudioOptionId) {
+        s.audioStreamOptions = s.audioStreamOptions.filter(
+          (o) => o.id !== failedAudioOptionId,
+        );
+      }
     });
     get().setSource(fallback.source, fallback.captions, fallback.startAt);
     return true;
