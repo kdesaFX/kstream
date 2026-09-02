@@ -286,7 +286,7 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   function armStreamStartWatchdog() {
     clearStreamStartWatchdog();
     if (!source) return;
-    streamStartDeadline = Date.now() + streamStartTimeoutMs(src);
+    streamStartDeadline = Date.now() + streamStartTimeoutMs(source);
     streamStartTimer = setInterval(() => {
       const vid = videoElement;
       const src = source;

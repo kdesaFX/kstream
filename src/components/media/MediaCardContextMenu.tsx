@@ -2,8 +2,7 @@ import classNames from "classnames";
 import { FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useAsync } from "react-use";
-import { useCopyToClipboard } from "react-use";
+import { useAsync, useCopyToClipboard } from "react-use";
 
 import { getBackendMeta } from "@/backend/accounts/meta";
 import { canUseVideoOffline } from "@/backend/video/videoDesktopOffline";
