@@ -334,9 +334,20 @@ export function usePersonalRecommendations({
     buildExcludeSet,
   ]);
 
+  // Compact fingerprint of inputs — avoid re-fetching when only object
+  // identity changes (e.g. genre backfill rewriting the same history keys).
+  const tasteSignature = buildSignature(
+    ratingItems,
+    preferences,
+    watchHistoryItems,
+    progressItems,
+  );
+
   useEffect(() => {
     if (enabled) fetch();
-  }, [enabled, fetch]);
+    // fetch closes over the latest store slices; signature is the real trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, isTVShow, tasteSignature]);
 
   const historyCount = getHistorySources(watchHistoryItems).filter(
     (h) => h.type === (isTVShow ? "show" : "movie"),

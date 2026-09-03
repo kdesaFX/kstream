@@ -15,4 +15,10 @@ describe("mediaTitleKey", () => {
     const b = mediaTitleKey({ id: "2", title: "Berserk", year: 1989 });
     expect(a).toBe(b);
   });
+
+  it("stays stable when year is missing instead of flipping later", () => {
+    expect(mediaTitleKey({ id: 42, title: "Ride Your Wave" })).toBe(
+      "ride your wave|#42",
+    );
+  });
 });

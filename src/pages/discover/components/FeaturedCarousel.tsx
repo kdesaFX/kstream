@@ -379,26 +379,28 @@ export function FeaturedCarousel({
     };
 
     const fetchFeaturedMedia = async () => {
-      // Prefer boot-warmup cache on first paint for this category/language.
+      // Boot warmup skips personalization (auth race). Use it for first paint
+      // only — always refresh with the algorithm when we have taste signal,
+      // otherwise hard refresh sticks on the generic Trakt/TMDB pool.
       const warmed = consumeHomeWarmup(effectiveCategory, formattedLanguage);
-      if (warmed && warmed.length > 0) {
+      const hasWarm = Boolean(warmed && warmed.length > 0);
+      if (hasWarm) {
         setLogoUrl(undefined);
         setLogoReady(false);
         setImdbRatings({});
         setReleaseInfo(null);
         setCurrentIndex(0);
         setContentOpacity(1);
-        applyMedia(warmed);
-        return;
+        applyMedia(warmed!);
+      } else {
+        setIsLoading(true);
+        setLogoUrl(undefined);
+        setLogoReady(false);
+        setImdbRatings({});
+        setReleaseInfo(null);
+        setCurrentIndex(0);
+        setContentOpacity(1);
       }
-
-      setIsLoading(true);
-      setLogoUrl(undefined);
-      setLogoReady(false);
-      setImdbRatings({});
-      setReleaseInfo(null);
-      setCurrentIndex(0);
-      setContentOpacity(1);
       if (logoFetchController.current) {
         logoFetchController.current.abort();
       }
@@ -421,7 +423,8 @@ export function FeaturedCarousel({
         applyMedia(items);
       } catch (error) {
         console.error("Error fetching featured media:", error);
-        if (!cancelled) {
+        // Keep warmup slides if the personalized refresh fails.
+        if (!cancelled && !hasWarm) {
           setMedia([]);
           setIsLoading(false);
         }

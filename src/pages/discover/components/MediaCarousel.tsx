@@ -328,11 +328,7 @@ export function MediaCarousel({
   // Prefer the most recently watched title. A manual Change pick sticks only
   // until something newer is watched (player→home used to re-roll at random).
   useEffect(() => {
-    if (
-      !showRecommendations ||
-      recommendationSources.length === 0 ||
-      selectedRecommendationId
-    ) {
+    if (!showRecommendations || recommendationSources.length === 0) {
       return;
     }
 
@@ -345,6 +341,10 @@ export function MediaCarousel({
       Boolean(persisted?.manual && persistedStill) &&
       (persistedStill?.updatedAt ?? 0) >= mostRecent.updatedAt;
     const pick = useManual && persistedStill ? persistedStill : mostRecent;
+
+    if (selectedRecommendationId === pick.id) {
+      return;
+    }
 
     setSelectedRecommendationId(pick.id);
     setSelectedRecommendationTitle(pick.title);

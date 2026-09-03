@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -55,8 +56,11 @@ export function mediaTitleKey(item: ClaimableMedia): string | null {
     yearFromDate(item.release_date) ||
     yearFromDate(item.first_air_date) ||
     (item.year != null && item.year > 0 ? String(item.year) : "");
-  // Always key by title; year disambiguates remakes when present.
-  return year ? `${title}|${year}` : `${title}|`;
+  // Year when known (remakes). Never use bare `title|` — that flips to
+  // `title|2020` when metadata gains a date and was thrashing claim→setVersion
+  // into React error #185 (max update depth) on hard refresh.
+  if (year) return `${title}|${year}`;
+  return `${title}|#${String(item.id)}`;
 }
 
 /**
@@ -98,7 +102,9 @@ export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
   const claimedIdsRef = useRef(new Map<string, number>());
   const claimedTitlesRef = useRef(new Map<string, number>());
   const [version, setVersion] = useState(0);
-  const notifyScheduledRef = useRef(false);
+  /** Set during claim (render); flushed in useEffect — never setState in render. */
+  const pendingNotifyRef = useRef(false);
+  const lastSnapshotRef = useRef("");
 
   const value = useMemo<CarouselDedupeContextValue>(
     () => ({
@@ -156,12 +162,23 @@ export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
           kept.push(id);
         }
 
-        if (changed && !notifyScheduledRef.current) {
-          notifyScheduledRef.current = true;
-          queueMicrotask(() => {
-            notifyScheduledRef.current = false;
-            setVersion((v) => v + 1);
-          });
+        if (changed) {
+          // Ignore no-op mutations that settle on the same ownership map
+          // (title-key flicker used to schedule endless setVersion).
+          const snapshot = [
+            [...claimedIds.entries()]
+              .map(([id, owner]) => `${id}:${owner}`)
+              .sort()
+              .join(","),
+            [...claimedTitles.entries()]
+              .map(([title, owner]) => `${title}:${owner}`)
+              .sort()
+              .join(","),
+          ].join("||");
+          if (snapshot !== lastSnapshotRef.current) {
+            lastSnapshotRef.current = snapshot;
+            pendingNotifyRef.current = true;
+          }
         }
 
         return kept;
@@ -169,6 +186,12 @@ export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
     }),
     [version],
   );
+
+  useEffect(() => {
+    if (!pendingNotifyRef.current) return;
+    pendingNotifyRef.current = false;
+    setVersion((v) => v + 1);
+  });
 
   return (
     <CarouselDedupeContext.Provider value={value}>
