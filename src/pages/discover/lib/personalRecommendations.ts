@@ -79,6 +79,8 @@ export interface HistorySource {
 export interface ProgressSource {
   tmdbId: string;
   type: "movie" | "show";
+  /** Most recent progress write — newer in-progress titles seed related first. */
+  updatedAt?: number;
 }
 
 export interface RatingSource {
@@ -438,6 +440,7 @@ export async function fetchPersonalRecommendations(
 
   const progressFiltered = progress
     .filter((p) => p.type === wantedType)
+    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
     .slice(0, MAX_CURRENT_FOR_RELATED);
 
   // Each media item seeds once, at its highest weight.

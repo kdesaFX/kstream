@@ -175,14 +175,18 @@ function buildSignature(
   ratingItems: Record<string, RatedMediaItem>,
   preferences: AlgorithmPreferences,
   watchHistoryItems: Record<string, unknown>,
-  progressItems: Record<string, unknown>,
+  progressItems: Record<string, { updatedAt?: number }>,
 ): string {
   const ratingsKey = Object.entries(ratingItems)
     .map(([id, r]) => `${id}:${r.rating}`)
     .sort()
     .join(",");
   const historyKey = Object.keys(watchHistoryItems).sort().join(",");
-  const progressKey = Object.keys(progressItems).sort().join(",");
+  // Include updatedAt so finishing a watch / returning home re-seeds related.
+  const progressKey = Object.entries(progressItems)
+    .map(([id, item]) => `${id}:${item.updatedAt ?? 0}`)
+    .sort()
+    .join(",");
   return [ratingsKey, historyKey, progressKey, JSON.stringify(preferences)].join(
     "|",
   );
@@ -221,7 +225,11 @@ export function usePersonalRecommendations({
 
     const history: HistorySource[] = getHistorySources(watchHistoryItems);
     const progress: ProgressSource[] = Object.entries(progressItems).map(
-      ([tmdbId, item]) => ({ tmdbId, type: item.type }),
+      ([tmdbId, item]) => ({
+        tmdbId,
+        type: item.type,
+        updatedAt: item.updatedAt,
+      }),
     );
 
     const ratings: RatingSource[] = Object.entries(ratingItems).map(

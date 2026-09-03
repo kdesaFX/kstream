@@ -97,7 +97,8 @@ export function MediaCarousel({
 }: MediaCarouselProps) {
   const { t } = useTranslation();
   const { width: windowWidth } = useWindowSize();
-  const { setLastView } = useDiscoverStore();
+  const { setLastView, recommendationSeeds, setRecommendationSeed } =
+    useDiscoverStore();
   const { isMobile } = useIsMobile();
   const browser = !!window.chrome;
 
@@ -116,11 +117,13 @@ export function MediaCarousel({
 
   // Get available providers and genres
   const mediaType: MediaType = isTVShow ? "tv" : "movie";
+  const seedMedia = isTVShow ? "tv" : "movie";
   const { providers, genres } = useDiscoverOptions(mediaType);
 
   // Get progress items for recommendations — only titles with real watch
   // time (same bar as Continue Watching), so a 10-second peek doesn't
-  // spawn a "Because You Watched" row.
+  // spawn a "Because You Watched" row. Newest first so remounts follow
+  // what was just watched instead of a random older niche/mainstream mix.
   const progressItems = useProgressStore((state) => state.items);
   const recommendationSources = React.useMemo(
     () =>
@@ -133,7 +136,9 @@ export function MediaCarousel({
         .map(([id, item]) => ({
           id,
           title: item.title || "",
-        })),
+          updatedAt: item.updatedAt ?? 0,
+        }))
+        .sort((a, b) => b.updatedAt - a.updatedAt),
     [progressItems, isTVShow],
   );
 
@@ -320,21 +325,42 @@ export function MediaCarousel({
     }
   }, [activeButton, visibleButtonIdSet]);
 
-  // Set initial recommendation source
+  // Prefer the most recently watched title. A manual Change pick sticks only
+  // until something newer is watched (player→home used to re-roll at random).
   useEffect(() => {
     if (
-      showRecommendations &&
-      recommendationSources.length > 0 &&
-      !selectedRecommendationId
+      !showRecommendations ||
+      recommendationSources.length === 0 ||
+      selectedRecommendationId
     ) {
-      const randomSource =
-        recommendationSources[
-          Math.floor(Math.random() * recommendationSources.length)
-        ];
-      setSelectedRecommendationId(randomSource.id);
-      setSelectedRecommendationTitle(randomSource.title);
+      return;
     }
-  }, [showRecommendations, recommendationSources, selectedRecommendationId]);
+
+    const mostRecent = recommendationSources[0]!;
+    const persisted = recommendationSeeds[seedMedia];
+    const persistedStill = persisted
+      ? recommendationSources.find((s) => s.id === persisted.id)
+      : undefined;
+    const useManual =
+      Boolean(persisted?.manual && persistedStill) &&
+      (persistedStill?.updatedAt ?? 0) >= mostRecent.updatedAt;
+    const pick = useManual && persistedStill ? persistedStill : mostRecent;
+
+    setSelectedRecommendationId(pick.id);
+    setSelectedRecommendationTitle(pick.title);
+    setRecommendationSeed(seedMedia, {
+      id: pick.id,
+      title: pick.title,
+      manual: useManual,
+    });
+  }, [
+    showRecommendations,
+    recommendationSources,
+    selectedRecommendationId,
+    recommendationSeeds,
+    seedMedia,
+    setRecommendationSeed,
+  ]);
 
   const categorySlug = `${sectionTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${isTVShow ? "tv" : "movie"}`;
   const isScrollingRef = useRef(false);
@@ -398,6 +424,11 @@ export function MediaCarousel({
                       if (source) {
                         setSelectedRecommendationId(item.id);
                         setSelectedRecommendationTitle(source.title);
+                        setRecommendationSeed(seedMedia, {
+                          id: item.id,
+                          title: source.title,
+                          manual: true,
+                        });
                       }
                     }}
                     options={recommendationOptions}

@@ -245,7 +245,11 @@ export async function fetchFeaturedHeroMedia(
       const progressItems = useProgressStore.getState().items;
       const progress: ProgressSource[] = Object.entries(progressItems)
         .filter(([, item]) => progressMediaIsHighPercentage(item))
-        .map(([tmdbId, item]) => ({ tmdbId, type: item.type }));
+        .map(([tmdbId, item]) => ({
+          tmdbId,
+          type: item.type,
+          updatedAt: item.updatedAt,
+        }));
       const ratingItems = useRatingsStore.getState().ratings;
       const ratings: RatingSource[] = Object.entries(ratingItems).map(
         ([tmdbId, item]) => ({

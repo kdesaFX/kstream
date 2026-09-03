@@ -881,8 +881,8 @@ export function FeaturedCarousel({
                 className={classNames(
                   "w-auto bg-transparent",
                   isMobile
-                    ? "mx-auto mb-4 max-w-[min(92vw,22rem)] h-[min(22vh,5.5rem)]"
-                    : "mb-6 h-[min(20vh,5rem)] max-w-[14rem] md:max-w-[22rem]",
+                    ? "mx-auto mb-4 h-[clamp(3.75rem,16vh,6.5rem)] max-w-[min(92vw,28rem)]"
+                    : "mb-6 h-[clamp(5rem,18vh,8.5rem)] max-w-[min(55vw,42rem)]",
                 )}
                 aria-hidden
               />
@@ -890,14 +890,15 @@ export function FeaturedCarousel({
               <img
                 src={logoUrl}
                 alt={mediaTitle}
-                width={480}
-                height={220}
+                width={640}
+                height={240}
                 decoding="async"
                 className={classNames(
-                  "no-fade w-auto h-auto object-contain bg-transparent title-logo-legible",
+                  "no-fade object-contain object-left bg-transparent title-logo-legible",
+                  // Height-band sizing: wide logos get room; tall logos share the same visual weight.
                   isMobile
-                    ? "mx-auto mb-4 max-w-[min(92vw,22rem)] max-h-[22vh]"
-                    : "mb-6 max-h-[20vh] max-w-[14rem] md:max-w-[22rem]",
+                    ? "mx-auto mb-4 h-[clamp(3.75rem,16vh,6.5rem)] w-auto max-w-[min(92vw,28rem)]"
+                    : "mb-6 h-[clamp(5rem,18vh,8.5rem)] w-auto max-w-[min(55vw,42rem)]",
                 )}
                 style={{ background: "none" }}
               />

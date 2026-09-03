@@ -3,6 +3,15 @@ import { persist } from "zustand/middleware";
 
 type Category = "movies" | "tvshows" | "manga";
 
+export type RecommendationSeedMedia = "movie" | "tv" | "manga";
+
+export interface RecommendationSeed {
+  id: string;
+  title: string;
+  /** User picked via Change — keep across remounts until they watch something newer. */
+  manual: boolean;
+}
+
 interface DiscoverView {
   url: string;
   scrollPosition: number;
@@ -16,9 +25,17 @@ interface DiscoverState {
   hasManuallySelected: boolean;
   /** null = All genres (unfiltered). Cleared when switching tabs. */
   selectedGenreId: string | null;
+  /** Sticky Because You Watched / Read seeds so player→home doesn't re-roll niche. */
+  recommendationSeeds: Partial<
+    Record<RecommendationSeedMedia, RecommendationSeed>
+  >;
   lastView: DiscoverView | null;
   setSelectedCategory: (category: Category) => void;
   setSelectedGenreId: (id: string | null) => void;
+  setRecommendationSeed: (
+    media: RecommendationSeedMedia,
+    seed: RecommendationSeed,
+  ) => void;
   setLastView: (view: DiscoverView) => void;
   clearLastView: () => void;
 }
@@ -41,6 +58,7 @@ export const useDiscoverStore = create<DiscoverState>()(
       selectedCategory: "movies",
       hasManuallySelected: false,
       selectedGenreId: null,
+      recommendationSeeds: {},
       lastView: null,
       setSelectedCategory: (category) =>
         set({
@@ -49,6 +67,13 @@ export const useDiscoverStore = create<DiscoverState>()(
           selectedGenreId: null,
         }),
       setSelectedGenreId: (id) => set({ selectedGenreId: id }),
+      setRecommendationSeed: (media, seed) =>
+        set((state) => ({
+          recommendationSeeds: {
+            ...state.recommendationSeeds,
+            [media]: seed,
+          },
+        })),
       setLastView: (view) => set({ lastView: view }),
       clearLastView: () => set({ lastView: null }),
     }),
@@ -62,6 +87,7 @@ export const useDiscoverStore = create<DiscoverState>()(
           selectedCategory: normalizeCategory(p.selectedCategory),
           // Genre filter is session-local — don't restore a stale chip.
           selectedGenreId: null,
+          recommendationSeeds: p.recommendationSeeds ?? {},
         };
       },
     },

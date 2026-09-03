@@ -19,9 +19,8 @@ import type { FeaturedMedia } from "./components/FeaturedCarousel";
 import { CarouselDedupeProvider } from "./components/CarouselDedupeContext";
 import { LazyMediaCarousel } from "./components/LazyMediaCarousel";
 import { MangaCarousel } from "./components/MangaCarousel";
-import {
-  MangaRecommendationsCarousel,
-} from "./components/MangaRecommendationsCarousel";
+import { MangaRecommendationsCarousel } from "./components/MangaRecommendationsCarousel";
+import { PersonalRecommendationsCarousel } from "./components/PersonalRecommendationsCarousel";
 import { ScrollToTopButton } from "./components/ScrollToTopButton";
 import type { MangaCarouselKind } from "./hooks/useMangaDiscoverMedia";
 import { HomeAd } from "@/pages/parts/home/HomeAd";
@@ -101,6 +100,20 @@ export function DiscoverContent() {
     const carousels = [];
     let dedupe = 0;
     const rowPriority = () => carousels.length < 1;
+
+    // Taste-based For You first — Because You Watched alone used to re-roll
+    // a random progress seed after leaving the player.
+    carousels.push(
+      <PersonalRecommendationsCarousel
+        key="movie-for-you"
+        isTVShow={false}
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+        enabled={isMoviesTab}
+        dedupePriority={dedupe++}
+        genreId={selectedGenreId}
+      />,
+    );
 
     // Because You Watched — All only (not under a genre chip)
     if (movieProgressItems.length > 0 && !selectedGenreId) {
@@ -214,6 +227,18 @@ export function DiscoverContent() {
     const carousels = [];
     let dedupe = 0;
     const rowPriority = () => carousels.length < 1;
+
+    carousels.push(
+      <PersonalRecommendationsCarousel
+        key="tv-for-you"
+        isTVShow
+        carouselRefs={carouselRefs}
+        onShowDetails={handleShowDetails}
+        enabled={isTVShowsTab}
+        dedupePriority={dedupe++}
+        genreId={selectedGenreId}
+      />,
+    );
 
     // Because You Watched — All only (not under a genre chip)
     if (tvProgressItems.length > 0 && !selectedGenreId) {

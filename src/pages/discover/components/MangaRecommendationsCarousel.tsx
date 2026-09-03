@@ -10,6 +10,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { CarouselNavButtons } from "@/pages/discover/components/CarouselNavButtons";
 import { useDedupedMangaCarouselMedia } from "@/pages/discover/components/useDedupedMangaCarouselMedia";
 import { useMangaRecommendations } from "@/pages/discover/hooks/useMangaRecommendations";
+import { useDiscoverStore } from "@/stores/discover";
 import type { MangaProgressItem } from "@/stores/mangaProgress";
 import type { MediaItem } from "@/utils/media/mediaTypes";
 
@@ -38,10 +39,19 @@ export function MangaRecommendationsCarousel({
   const { t } = useTranslation();
   const { isMobile } = useIsMobile();
   const browser = !!window.chrome;
-  const isScrollingRef = useRef(false);
-
+  const recommendationSeeds = useDiscoverStore((s) => s.recommendationSeeds);
+  const setRecommendationSeed = useDiscoverStore((s) => s.setRecommendationSeed);
   const [selectedId, setSelectedId] = useState("");
   const [selectedTitle, setSelectedTitle] = useState("");
+  const isScrollingRef = useRef(false);
+
+  const sortedSources = useMemo(
+    () =>
+      [...sources].sort(
+        (a, b) => (b.item.updatedAt ?? 0) - (a.item.updatedAt ?? 0),
+      ),
+    [sources],
+  );
 
   const { ref: lazyRef, hasIntersected } =
     useIntersectionObserver<HTMLDivElement>({
@@ -70,18 +80,38 @@ export function MangaRecommendationsCarousel({
   }, [enabled, priority, hasIntersected, lazyRef]);
 
   const shouldFetch =
-    enabled && sources.length > 0 && (priority || hasIntersected || visibleLoad);
+    enabled &&
+    sortedSources.length > 0 &&
+    (priority || hasIntersected || visibleLoad);
 
   useEffect(() => {
-    if (sources.length === 0 || selectedId) return;
-    const pick = sources[Math.floor(Math.random() * sources.length)];
+    if (sortedSources.length === 0 || selectedId) return;
+    const mostRecent = sortedSources[0]!;
+    const persisted = recommendationSeeds.manga;
+    const persistedStill = persisted
+      ? sortedSources.find((s) => s.id === persisted.id)
+      : undefined;
+    const useManual =
+      Boolean(persisted?.manual && persistedStill) &&
+      (persistedStill?.item.updatedAt ?? 0) >= (mostRecent.item.updatedAt ?? 0);
+    const pick = useManual && persistedStill ? persistedStill : mostRecent;
     setSelectedId(pick.id);
     setSelectedTitle(pick.item.title);
-  }, [sources, selectedId]);
+    setRecommendationSeed("manga", {
+      id: pick.id,
+      title: pick.item.title,
+      manual: useManual,
+    });
+  }, [
+    sortedSources,
+    selectedId,
+    recommendationSeeds.manga,
+    setRecommendationSeed,
+  ]);
 
   const selectedSource = useMemo(
-    () => sources.find((s) => s.id === selectedId),
-    [sources, selectedId],
+    () => sortedSources.find((s) => s.id === selectedId),
+    [sortedSources, selectedId],
   );
 
   const { media: rawMedia, sectionTitle, hasLoaded, error, isLoading } =
@@ -101,8 +131,8 @@ export function MangaRecommendationsCarousel({
   const categorySlug = "manga-because-you-read";
 
   const recommendationOptions = useMemo(
-    () => sources.map((s) => ({ id: s.id, name: s.item.title })),
-    [sources],
+    () => sortedSources.map((s) => ({ id: s.id, name: s.item.title })),
+    [sortedSources],
   );
 
   const selectedItem = useMemo(
@@ -150,13 +180,18 @@ export function MangaRecommendationsCarousel({
           <h2 className="text-2xl cursor-default font-bold text-white md:text-2xl pl-0 text-balance">
             {sectionTitle || t("discover.carousel.title.manga.recommended", { title: selectedTitle })}
           </h2>
-          {sources.length > 1 ? (
+          {sortedSources.length > 1 ? (
             <div className="relative pr-4">
               <Dropdown
                 selectedItem={selectedItem}
                 setSelectedItem={(item) => {
                   setSelectedId(item.id);
                   setSelectedTitle(item.name);
+                  setRecommendationSeed("manga", {
+                    id: item.id,
+                    title: item.name,
+                    manual: true,
+                  });
                 }}
                 options={recommendationOptions}
                 customButton={
