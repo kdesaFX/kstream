@@ -97,11 +97,12 @@ export function QualityView({
   const lastChosenQuality = useQualityStore((s) => s.quality.lastChosenQuality);
 
   const highlightedQuality = useMemo(() => {
+    if (autoQuality) return currentQuality;
     if (lastChosenQuality && lastChosenQuality !== "unknown") {
       return lastChosenQuality;
     }
     return currentQuality;
-  }, [lastChosenQuality, currentQuality]);
+  }, [autoQuality, lastChosenQuality, currentQuality]);
 
   const selectableQualities = useMemo(
     () =>
@@ -153,6 +154,7 @@ export function QualityView({
 
   const change = useCallback(
     (q: SourceQuality) => {
+      setAutomaticQuality(false);
       setLastChosenQuality(q);
       if (availableQualities.includes(q)) {
         switchQuality(q);
@@ -164,6 +166,7 @@ export function QualityView({
     [
       availableQualities,
       router,
+      setAutomaticQuality,
       setLastChosenQuality,
       switchQuality,
       switchQualityStream,

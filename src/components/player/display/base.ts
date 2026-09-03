@@ -137,41 +137,6 @@ function pickBrowserAutoCapLevel(levels: Level[]): Level | null {
   return pickBestLevelAtOrBelow(levels, 1080);
 }
 
-const SESSION_GESTURE_KEY = "kstream:gesture";
-let sessionHadGesture = false;
-
-function markSessionGesture() {
-  sessionHadGesture = true;
-  try {
-    sessionStorage.setItem(SESSION_GESTURE_KEY, "1");
-  } catch {
-    // private mode / blocked storage
-  }
-}
-
-function hadSessionGesture(): boolean {
-  if (sessionHadGesture) return true;
-  try {
-    if (sessionStorage.getItem(SESSION_GESTURE_KEY) === "1") {
-      sessionHadGesture = true;
-      return true;
-    }
-  } catch {
-    // ignore
-  }
-  return false;
-}
-
-function installSessionGestureTracking() {
-  if (typeof window === "undefined") return;
-  const mark = () => markSessionGesture();
-  ["pointerdown", "keydown", "touchstart"].forEach((name) => {
-    window.addEventListener(name, mark, { capture: true, passive: true });
-  });
-}
-
-installSessionGestureTracking();
-
 export function makeVideoElementDisplayInterface(): DisplayInterface {
   const { emit, on, off } = makeEmitter<DisplayInterfaceEvents>();
   let source: LoadableSource | null = null;
@@ -443,8 +408,9 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   /**
    * After async scrapes the click gesture is gone, so unmuted play may be
    * blocked. Ask for sound anyway — browsers allow it for sites the viewer
-   * uses, and a refusal costs nothing but a rejected promise. If it is
-   * refused, desktop waits behind the play button and mobile starts muted.
+   * uses, and a refusal costs nothing but a rejected promise. If sound is
+   * refused, wait behind the play button so one click starts with audio
+   * (never start muted and force a second unmute tap).
    */
   function tryAutoplay() {
     if (!shouldAutoplayAfterLoad || !videoElement || autoplayInFlight) return;
@@ -503,30 +469,15 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             autoplayInFlight = false;
             return;
           }
-          // Desktop refused an unmuted start. A cold page load with no prior
-          // interaction (a reload) gets the play button, so the first click
-          // starts with sound from the very first frame. But if the user has
-          // already interacted this session — i.e. they navigated here in-app
-          // (next/previous episode, picked a title) — freezing on a play button
-          // reads as "it's broken". Keep it rolling muted and unmute on their
-          // next gesture instead. Mobile always keeps the muted start. Resume
-          // mid-title and any prior in-tab click also qualify — long scrapes
-          // outlive transient userActivation.
-          const resumePlayback = startAt > 3;
-          const hasInteracted =
-            hadSessionGesture() ||
-            (typeof navigator !== "undefined" &&
-              !!navigator.userActivation?.hasBeenActive);
-          if (!isMobileBrowser() && !hasInteracted && !resumePlayback) {
-            shouldAutoplayAfterLoad = false;
-            autoplayInFlight = false;
-            clearPolicyMute(vid);
-            reportVolumeToUi();
-            emit("pause", undefined);
-            emitLoading(false);
-            return;
-          }
-          playMuted();
+          // Sound was refused (reload / cold tab / gesture expired mid-scrape).
+          // Wait behind the play button so the first click starts with audio —
+          // don't roll muted and force a second unmute click.
+          shouldAutoplayAfterLoad = false;
+          autoplayInFlight = false;
+          clearPolicyMute(vid);
+          reportVolumeToUi();
+          emit("pause", undefined);
+          emitLoading(false);
         });
     };
 
@@ -752,12 +703,21 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           (level) => hlsLevelToQuality(level) === availableQuality,
         );
         if (matchingLevels.length > 0) {
-          // Pick the highest resolution level for this quality
-          const bestLevel = sortLevelsByQuality(matchingLevels)[0];
+          // Prefer AVC over HEVC at the same tier — soft-decoded HEVC often
+          // looks mushy until a hard quality reselect reloads an AVC rung.
+          const avcMatch = matchingLevels.filter((l) => isAvcLevel(l));
+          const nonHevc = matchingLevels.filter((l) => !isHevcLevel(l));
+          const pool = avcMatch.length
+            ? avcMatch
+            : nonHevc.length
+              ? nonHevc
+              : matchingLevels;
+          const bestLevel = sortLevelsByQuality(pool)[0];
           const levelIndex = hls.levels.indexOf(bestLevel);
           if (levelIndex !== -1) {
             hls.currentLevel = levelIndex;
             hls.loadLevel = levelIndex;
+            emit("changedquality", availableQuality);
           }
         }
       }
@@ -1068,7 +1028,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
 
   function setSource() {
     if (!videoElement || !source) return;
-    if (shouldAutoplayAfterLoad) muteForAutoplay(videoElement);
+    // Prefer an unmuted autoplay attempt. Policy-muting first made reloads
+    // look "ready" while silent, then forced an extra unmute click.
 
     // Scope the listeners to this stream. Swapping source reuses the same
     // element, so without a signal every switch stacks another full set and
@@ -1590,10 +1551,17 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     processVideoElement(video) {
       destroyVideoElement();
       videoElement = video;
-      muteForAutoplay(video);
       setSource();
-      // Sync preferred volume onto the element without clearing policy mute.
-      if (lastVolume > 0) video.volume = lastVolume;
+      // Sync preferred volume onto the element without forcing policy mute —
+      // tryAutoplay / play() decide mute vs sound.
+      if (lastVolume > 0) {
+        video.volume = lastVolume;
+        video.muted = false;
+        video.removeAttribute("muted");
+      } else {
+        video.muted = true;
+        video.setAttribute("muted", "");
+      }
       reportVolumeToUi();
     },
     processContainerElement(container) {
@@ -1674,23 +1642,12 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           markPlaying();
         })
         .catch(() => {
-          // Still blocked — play muted but keep the slider on lastVolume.
-          muteForAutoplay(vid);
-          const mutedPlay = vid.play();
-          if (mutedPlay === undefined) {
-            markPlaying();
-            armUnmuteOnGesture();
-            return;
-          }
-          mutedPlay
-            .then(() => {
-              markPlaying();
-              armUnmuteOnGesture();
-            })
-            .catch(() => {
-              emit("pause", undefined);
-              emitLoading(false);
-            });
+          // Gesture still couldn't unlock sound — wait for another play click
+          // instead of rolling muted.
+          clearPolicyMute(vid);
+          reportVolumeToUi();
+          emit("pause", undefined);
+          emitLoading(false);
         });
     },
     setSeeking(active) {

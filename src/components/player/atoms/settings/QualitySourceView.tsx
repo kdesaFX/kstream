@@ -68,6 +68,7 @@ export function QualitySourceView({
     (s) => s.switchQualityStreamOption,
   );
   const setLastChosenQuality = useQualityStore((s) => s.setLastChosenQuality);
+  const setAutomaticQuality = useQualityStore((s) => s.setAutomaticQuality);
 
   const choices = useMemo(
     () =>
@@ -93,6 +94,7 @@ export function QualitySourceView({
 
   const applyChoice = useCallback(
     (choice: QualityTierChoice) => {
+      setAutomaticQuality(false);
       setLastChosenQuality(quality);
       if (choice.kind === "current") {
         switchQuality(quality);
@@ -104,6 +106,7 @@ export function QualitySourceView({
     [
       quality,
       router,
+      setAutomaticQuality,
       setLastChosenQuality,
       switchQuality,
       switchQualityStreamOption,

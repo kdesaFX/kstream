@@ -80,13 +80,15 @@ export function SettingsMenu({ id }: { id: string }) {
   const lastChosenQuality = useQualityStore((s) => s.quality.lastChosenQuality);
   const qualityMenuLabel = useMemo(() => {
     if (awaitingSource) return null;
-    if (lastChosenQuality && lastChosenQuality !== "unknown") {
-      return qualityToString(lastChosenQuality);
-    }
+    // Auto must show what is actually playing (or "Auto"), not a stale
+    // lastChosenQuality — that made 720p playback look like "1080p".
     if (autoQuality) {
       return currentQuality
         ? qualityToString(currentQuality)
         : t("player.menus.quality.auto");
+    }
+    if (lastChosenQuality && lastChosenQuality !== "unknown") {
+      return qualityToString(lastChosenQuality);
     }
     return currentQuality ? qualityToString(currentQuality) : null;
   }, [

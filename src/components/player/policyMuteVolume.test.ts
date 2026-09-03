@@ -76,15 +76,11 @@ function shouldAutoplayWithSound(opts: { lastVolume: number }): boolean {
 /** Mirrors how a rejected unmuted autoplay is handled. */
 function autoplayFallback(
   errName: string,
-  isMobile = true,
-  hasInteracted = false,
-): "retry-later" | "play-muted" | "offer-play-button" {
+): "retry-later" | "offer-play-button" {
   if (errName === "AbortError" || errName === "NotSupportedError")
     return "retry-later";
-  if (isMobile) return "play-muted";
-  // Desktop: a cold reload (no prior interaction) offers the play button, but
-  // in-app navigation keeps rolling muted and unmutes on the next gesture.
-  return hasInteracted ? "play-muted" : "offer-play-button";
+  // Sound refused — wait for a click that starts with audio. Never roll muted.
+  return "offer-play-button";
 }
 
 /** Mirrors the gate in armUnmuteOnGesture's handler. */
@@ -131,20 +127,17 @@ describe("starting playback with sound", () => {
     expect(shouldAutoplayWithSound({ lastVolume: 0 })).toBe(false);
   });
 
-  it("falls back to muted playback on mobile when sound is refused", () => {
-    expect(autoplayFallback("NotAllowedError", true)).toBe("play-muted");
+  it("falls back to the play button when sound is refused", () => {
+    expect(autoplayFallback("NotAllowedError")).toBe("offer-play-button");
   });
 
-  it("waits behind the play button on a cold desktop load rather than starting silent", () => {
-    expect(autoplayFallback("NotAllowedError", false, false)).toBe(
-      "offer-play-button",
-    );
+  it("waits behind the play button on a cold load rather than starting silent", () => {
+    expect(autoplayFallback("NotAllowedError")).toBe("offer-play-button");
   });
 
-  it("keeps rolling muted on desktop when the viewer navigated in-app", () => {
-    expect(autoplayFallback("NotAllowedError", false, true)).toBe(
-      "play-muted",
-    );
+  it("does not start muted after a prior in-tab gesture either", () => {
+    // Session gestures do not unlock autoplay after an async scrape.
+    expect(autoplayFallback("NotAllowedError")).toBe("offer-play-button");
   });
 
   it("waits for the next ready tick instead of fighting an aborted load", () => {
