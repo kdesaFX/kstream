@@ -14,7 +14,8 @@ export function PlayerStageBackdrop({
         <img
           src={poster}
           alt=""
-          className="absolute inset-0 h-full w-full scale-105 object-cover opacity-30 blur-md"
+          // no-fade: stage remounts on scrape hops; global img fade would pulse.
+          className="no-fade absolute inset-0 h-full w-full scale-105 object-cover opacity-30 blur-md"
           aria-hidden
         />
       ) : null}

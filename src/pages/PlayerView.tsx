@@ -53,9 +53,6 @@ import { triggerOfflineDownloadFromPlayerStore } from "@/utils/media/triggerPlay
 
 import { BlurEllipsis } from "./layouts/SubPageLayout";
 
-/** Seconds of real playback before we dismiss the checking UI for a source. */
-const SOURCE_LOCK_SECONDS = 3;
-
 function startAlternateAudioDiscovery(
   media: Parameters<typeof discoverAlternateAudioLanguages>[0]["media"],
   sourceId: string,
@@ -110,10 +107,11 @@ export function RealPlayerView() {
   const [offlineDownloadParam, setOfflineDownloadParam] =
     useQueryParam("offlineDownload");
   const [scrapeAttempt, setScrapeAttempt] = useState(0);
-  /** Keep the checking stage up until this scrape's stream has proven itself. */
+  /**
+   * Keep the checking stage after a scrape hit until playback actually starts.
+   * Dismiss as soon as hasPlayedOnce — do not sit on Asking while audio plays.
+   */
   const [pendingSourceLock, setPendingSourceLock] = useState(false);
-  /** Wall-clock start once playback is actually rolling (not scrape "hit" time). */
-  const sourceLockProvenAtRef = useRef<number | null>(null);
   const {
     status,
     playMedia,
@@ -125,7 +123,6 @@ export function RealPlayerView() {
   } = usePlayer();
   const sourceId = usePlayerStore((s) => s.sourceId);
   const hasPlayedOnce = usePlayerStore((s) => s.mediaPlaying.hasPlayedOnce);
-  const isPlaybackLoading = usePlayerStore((s) => s.mediaPlaying.isLoading);
   const storeMeta = usePlayerStore((s) => s.meta);
   const { setPlayerMeta, scrapeMedia } = usePlayerMeta();
   const backUrl = useLastNonPlayerLink();
@@ -170,7 +167,6 @@ export function RealPlayerView() {
     playbackRetryBudget.current.setMedia(paramsData);
     setScrapeAttempt(0);
     setPendingSourceLock(false);
-    sourceLockProvenAtRef.current = null;
     return () => {
       reset();
     };
@@ -363,9 +359,7 @@ export function RealPlayerView() {
         preferredAudioLanguage,
       );
 
-      // Stay on the checking stage until this stream actually plays — a scrape
-      // "hit" alone used to flip to the player, then fail and bounce back.
-      sourceLockProvenAtRef.current = null;
+      // Stay on checking until playback actually starts — scrape hit ≠ working.
       setPendingSourceLock(true);
       playMedia(
         convertRunoutputToSource({ stream: selectedStream }),
@@ -409,14 +403,10 @@ export function RealPlayerView() {
     MAX_PLAYBACK_AUTO_RETRIES,
   );
 
-  // Dismiss checking only after ~3s of proven play — not on scrape hit, and
-  // not on absolute progress.time (resume starts mid-title and would unlock
-  // instantly). Wall-clock after hasPlayedOnce && !buffering.
+  // Hold Asking after scrape hit until playback starts; drop as soon as it does.
+  // Preferred-source pinning still waits on watchedSeconds below — separate concern.
   useEffect(() => {
-    if (!pendingSourceLock) {
-      sourceLockProvenAtRef.current = null;
-      return;
-    }
+    if (!pendingSourceLock) return;
     if (
       status === playerStatus.SCRAPING ||
       status === playerStatus.SCRAPE_NOT_FOUND ||
@@ -424,44 +414,17 @@ export function RealPlayerView() {
       status === playerStatus.RESUME ||
       (status === playerStatus.PLAYBACK_ERROR && autoResumeExhausted)
     ) {
-      sourceLockProvenAtRef.current = null;
       setPendingSourceLock(false);
       return;
     }
     if (status === playerStatus.PLAYBACK_ERROR) {
-      // Keep the checking overlay while auto-resume hops to the next source.
-      sourceLockProvenAtRef.current = null;
+      // Keep Asking while auto-resume hops — don't flash the player mid-failure.
       return;
     }
-    if (
-      status !== playerStatus.PLAYING ||
-      !hasPlayedOnce ||
-      isPlaybackLoading
-    ) {
-      sourceLockProvenAtRef.current = null;
-      return;
-    }
-    if (sourceLockProvenAtRef.current == null) {
-      sourceLockProvenAtRef.current = Date.now();
-    }
-    const remaining =
-      SOURCE_LOCK_SECONDS * 1000 -
-      (Date.now() - sourceLockProvenAtRef.current);
-    if (remaining <= 0) {
+    if (status === playerStatus.PLAYING && hasPlayedOnce) {
       setPendingSourceLock(false);
-      return;
     }
-    const timer = window.setTimeout(() => {
-      setPendingSourceLock(false);
-    }, remaining);
-    return () => window.clearTimeout(timer);
-  }, [
-    pendingSourceLock,
-    status,
-    hasPlayedOnce,
-    isPlaybackLoading,
-    autoResumeExhausted,
-  ]);
+  }, [pendingSourceLock, status, hasPlayedOnce, autoResumeExhausted]);
 
   const preparingTitle =
     storeMeta?.type === "show" && storeMeta.episode
