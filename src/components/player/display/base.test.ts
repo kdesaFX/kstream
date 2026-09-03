@@ -76,6 +76,25 @@ describe("video display autoplay on load", () => {
 
     expect(play).not.toHaveBeenCalled();
   });
+
+  it("retries muted autoplay when sound is rejected after scraping", async () => {
+    const display = makeVideoElementDisplayInterface();
+    const { video, play } = stubVideo();
+    play
+      .mockRejectedValueOnce(
+        Object.assign(new Error("Sound autoplay blocked"), {
+          name: "NotAllowedError",
+        }),
+      )
+      .mockResolvedValueOnce(undefined);
+    display.processVideoElement(video);
+    display.load(loadOps(mp4("https://example.com/resumed.mp4")));
+
+    video.dispatchEvent(new Event("loadeddata"));
+    await vi.waitFor(() => expect(play).toHaveBeenCalledTimes(2));
+
+    expect(video.muted).toBe(true);
+  });
 });
 
 describe("video display spinner", () => {

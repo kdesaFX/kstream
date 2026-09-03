@@ -319,11 +319,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     ).userActivation;
   }
 
-  /** True after any trusted click/key this document — false on reload until then. */
-  function pageHasHadUserGesture(): boolean {
-    return Boolean(userActivation()?.hasBeenActive);
-  }
-
   /** Controls carry their own intent; the bare video surface does not. */
   function isPlayerControlTarget(target: EventTarget | null): boolean {
     if (!(target instanceof Element)) return false;
@@ -419,11 +414,8 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
    * blocked. Ask for sound anyway — browsers allow it for sites the viewer
    * uses, and a refusal costs nothing but a rejected promise.
    *
-   * On refusal:
-   * - In-tab nav (Play from home): muted autoplay + unmute on the next gesture
-   *   so video still starts without another click.
-   * - Reload / cold tab (no prior gesture): wait behind the play button so one
-   *   click starts with audio (never muted-autoplay + a second unmute tap).
+   * On refusal, retry muted so a scrape that finishes after its originating
+   * click can still begin playback. Sound is restored on the next gesture.
    */
   function tryAutoplay() {
     if (!shouldAutoplayAfterLoad || !videoElement || autoplayInFlight) return;
@@ -462,15 +454,6 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       });
     };
 
-    const offerClickToPlay = () => {
-      shouldAutoplayAfterLoad = false;
-      autoplayInFlight = false;
-      clearPolicyMute(vid);
-      reportVolumeToUi();
-      emit("pause", undefined);
-      emitLoading(false);
-    };
-
     const playWithSound = () => {
       clearPolicyMute(vid);
       const soundPlay = vid.play();
@@ -491,13 +474,10 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             autoplayInFlight = false;
             return;
           }
-          // Sound refused. Reload/cold tab → play button. Prior in-tab click
-          // (home → media) → muted autoplay so the stream still starts.
-          if (pageHasHadUserGesture()) {
-            playMuted();
-            return;
-          }
-          offerClickToPlay();
+          // The original click has expired by the time scraping completes.
+          // Muted autoplay is permitted in that state; leaving the player
+          // paused here strands the viewer under the source-checker overlay.
+          playMuted();
         });
     };
 
