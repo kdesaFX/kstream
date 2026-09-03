@@ -1,10 +1,12 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { useAuth } from "@/hooks/auth/useAuth";
 import { SubPageLayout } from "@/pages/layouts/SubPageLayout";
+import { AuthUnavailablePart } from "@/pages/parts/auth/AuthUnavailablePart";
 import { RegisterCredentialsPart } from "@/pages/parts/auth/RegisterCredentialsPart";
 import { PageTitle } from "@/pages/parts/util/PageTitle";
-import { useAuth } from "@/hooks/auth/useAuth";
+import { AUTH_TEMPORARILY_UNAVAILABLE } from "@/setup/authAvailability";
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -19,11 +21,15 @@ export function RegisterPage() {
   return (
     <SubPageLayout>
       <PageTitle subpage k="global.pages.register" />
-      <RegisterCredentialsPart
-        onNext={() => {
-          navigate("/");
-        }}
-      />
+      {AUTH_TEMPORARILY_UNAVAILABLE ? (
+        <AuthUnavailablePart />
+      ) : (
+        <RegisterCredentialsPart
+          onNext={() => {
+            navigate("/");
+          }}
+        />
+      )}
     </SubPageLayout>
   );
 }

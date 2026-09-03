@@ -171,6 +171,11 @@
     }
   },
   "auth": {
+    "unavailable": {
+      "title": "Sign in temporarily unavailable",
+      "description": "Logging in and signing up are temporarily unavailable while we fix an issue. Please try again later — watching still works without an account.",
+      "home": "Go to home"
+    },
     "createAccount": "New to the site? <0>Sign up</0>",
     "deviceNameLabel": "Device name",
     "deviceNamePlaceholder": "Personal phone",

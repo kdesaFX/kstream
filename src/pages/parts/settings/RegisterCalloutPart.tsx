@@ -4,10 +4,29 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/buttons/Button";
 import { SolidSettingsCard } from "@/components/layout/SettingsCard";
 import { Heading3 } from "@/components/utils/Text";
+import { AUTH_TEMPORARILY_UNAVAILABLE } from "@/setup/authAvailability";
 
 export function RegisterCalloutPart() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  if (AUTH_TEMPORARILY_UNAVAILABLE) {
+    return (
+      <div>
+        <SolidSettingsCard
+          paddingClass="px-6 py-12"
+          className="grid grid-cols-1 gap-4 mt-5"
+        >
+          <div>
+            <Heading3>{t("auth.unavailable.title")}</Heading3>
+            <p className="text-type-text max-w-[30rem]">
+              {t("auth.unavailable.description")}
+            </p>
+          </div>
+        </SolidSettingsCard>
+      </div>
+    );
+  }
 
   return (
     <div>

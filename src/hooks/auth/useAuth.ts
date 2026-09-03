@@ -33,6 +33,7 @@ import {
   signUpWithEmail,
 } from "@/backend/supabase/data";
 import { useAuthData } from "@/hooks/auth/useAuthData";
+import { AUTH_TEMPORARILY_UNAVAILABLE } from "@/setup/authAvailability";
 import { AccountWithToken, useAuthStore } from "@/stores/auth";
 import { BookmarkMediaItem, useBookmarkStore } from "@/stores/bookmarks";
 import { useGroupOrderStore } from "@/stores/groupOrder";
@@ -159,6 +160,9 @@ export function useAuth() {
 
   const register = useCallback(
     async (registerData: RegistrationData) => {
+      if (AUTH_TEMPORARILY_UNAVAILABLE) {
+        throw new Error("Sign up is temporarily unavailable");
+      }
       const account = await signUpWithEmail({
         email: registerData.email,
         password: registerData.password,
@@ -177,6 +181,9 @@ export function useAuth() {
 
   const login = useCallback(
     async (loginData: LoginData) => {
+      if (AUTH_TEMPORARILY_UNAVAILABLE) {
+        throw new Error("Sign in is temporarily unavailable");
+      }
       const account = await signInWithEmail(
         loginData.email,
         loginData.password,
@@ -189,10 +196,16 @@ export function useAuth() {
   );
 
   const loginWithGoogle = useCallback(async () => {
+    if (AUTH_TEMPORARILY_UNAVAILABLE) {
+      throw new Error("Sign in is temporarily unavailable");
+    }
     await signInWithGoogle();
   }, []);
 
   const loginWithDiscord = useCallback(async () => {
+    if (AUTH_TEMPORARILY_UNAVAILABLE) {
+      throw new Error("Sign in is temporarily unavailable");
+    }
     await signInWithDiscord();
   }, []);
 
