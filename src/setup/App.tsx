@@ -14,7 +14,10 @@ import { DesktopChromeBridge } from "@/components/DesktopChromeBridge";
 import { DetailsModal } from "@/components/overlays/detailsModal";
 import { MangaDetailsModal } from "@/components/overlays/mangaDetails/MangaDetailsModal";
 import { DownloadModal } from "@/components/overlays/downloadModal";
-import { OptimizeModal, OptimizeEffectsSync } from "@/components/overlays/optimizeModal";
+import {
+  OptimizeModal,
+  OptimizeEffectsSync,
+} from "@/components/overlays/optimizeModal";
 import { DesktopAppSettingsModal } from "@/components/overlays/desktopAppSettings";
 import { GamepadControlsModal } from "@/components/overlays/GamepadControlsModal";
 import { KeyboardCommandsEditModal } from "@/components/overlays/KeyboardCommandsEditModal";
@@ -33,6 +36,7 @@ import MaintenancePage from "@/pages/errors/MaintenancePage";
 import { NotFoundPage } from "@/pages/errors/NotFoundPage";
 import { HomePage } from "@/pages/HomePage";
 import { LoginPage } from "@/pages/Login";
+import { MangaReaderUnavailable } from "@/pages/manga/MangaReaderUnavailable";
 import { RegisterPage } from "@/pages/Register";
 import { AllBookmarks } from "@/pages/bookmarks/AllBookmarks";
 import { Layout } from "@/setup/Layout";
@@ -41,7 +45,12 @@ import { useClearModalsOnNavigation } from "@/stores/interface/overlayStack";
 import { LanguageProvider } from "@/stores/language";
 import { conf } from "@/setup/config";
 import { purgeBannerAds } from "@/utils/ads/purgeBannerAds";
-import { PlayerView, SettingsPage, MangaReaderView, preloadPlayerView, preloadSettingsPage } from "@/setup/routePreload";
+import {
+  PlayerView,
+  SettingsPage,
+  preloadPlayerView,
+  preloadSettingsPage,
+} from "@/setup/routePreload";
 
 const AboutPage = lazy(() =>
   import("@/pages/About").then((m) => ({ default: m.AboutPage })),
@@ -284,21 +293,10 @@ function App() {
               </LegacyUrlView>
             }
           />
-          <Route
-            path="/manga/:media"
-            element={
-              <Suspense fallback={null}>
-                <MangaReaderView />
-              </Suspense>
-            }
-          />
+          <Route path="/manga/:media" element={<MangaReaderUnavailable />} />
           <Route
             path="/manga/:media/:chapter"
-            element={
-              <Suspense fallback={null}>
-                <MangaReaderView />
-              </Suspense>
-            }
+            element={<MangaReaderUnavailable />}
           />
           <Route path="/browse/:query?" element={<HomePage />} />
           <Route path="/" element={<HomePage />} />
