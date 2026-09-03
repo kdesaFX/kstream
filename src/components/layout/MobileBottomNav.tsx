@@ -183,13 +183,12 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label={t("navigation.mobile.label")}
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-[520] md:hidden px-5 sm:px-8"
+      // Side gutters match cinejoy (~16px); the pill fills the remaining width.
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-[520] md:hidden px-4"
     >
       <div
         className={classNames(
-          // Content-sized pill — side padding on the nav leaves empty margins;
-          // gap (not justify-between) keeps icon spacing tight and tappable.
-          "pointer-events-auto mx-auto flex w-fit max-w-full items-center justify-center gap-0.5 rounded-full px-1.5 py-1",
+          "pointer-events-auto mx-auto flex w-full max-w-md items-center justify-between rounded-full px-2 py-1.5",
           navControlSurface,
           "border border-white/10 shadow-[0_6px_24px_rgba(0,0,0,0.4)]",
           "mb-[max(0.5rem,env(safe-area-inset-bottom))]",
@@ -208,8 +207,8 @@ export function MobileBottomNav() {
               className={classNames(
                 "tabbable touch-manipulation flex shrink-0 items-center justify-center rounded-full",
                 "transition-[transform,background-color,color] duration-150",
-                // ~40–44px targets so taps register without hunting the icon.
-                tabCount >= 7 ? "h-10 w-10" : "h-11 w-11",
+                // Larger hit targets / icons like cinejoy; equal flex gaps via justify-between.
+                tabCount >= 7 ? "h-11 w-11" : "h-12 w-12",
                 active
                   ? "bg-white/15 text-white"
                   : "text-white/65 active:bg-white/10 active:text-white active:scale-95",
@@ -218,7 +217,9 @@ export function MobileBottomNav() {
               <Icon
                 icon={tab.icon}
                 className={
-                  tabCount >= 7 ? "pointer-events-none text-[1rem]" : "pointer-events-none text-[1.1rem]"
+                  tabCount >= 7
+                    ? "pointer-events-none text-[1.2rem]"
+                    : "pointer-events-none text-[1.35rem]"
                 }
               />
             </button>
@@ -230,4 +231,4 @@ export function MobileBottomNav() {
 }
 
 export const MOBILE_BOTTOM_NAV_PADDING =
-  "pb-[calc(4.75rem+env(safe-area-inset-bottom))]";
+  "pb-[calc(5.25rem+env(safe-area-inset-bottom))]";
