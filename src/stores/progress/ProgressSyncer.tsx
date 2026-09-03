@@ -5,6 +5,7 @@ import {
   removeProgress,
   setProgress,
 } from "@/backend/accounts/progress";
+import { isSupabaseApiRestricted } from "@/backend/supabase/client";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
 import { AccountWithToken, useAuthStore } from "@/stores/auth";
 import { ProgressUpdateItem, useProgressStore } from "@/stores/progress";
@@ -17,6 +18,8 @@ async function syncProgress(
   url: string,
   account: AccountWithToken | null,
 ) {
+  if (isSupabaseApiRestricted()) return;
+
   for (const item of items) {
     // complete it beforehand so it doesn't get handled while in progress
     finish(item.id);
