@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Icons } from "@/components/Icon";
@@ -6,31 +6,42 @@ import {
   PlayerStageIcon,
   PlayerStageOverlay,
 } from "@/components/player/internals/PlayerStageOverlay";
+import { useAnimatedEllipsis } from "@/components/player/internals/useAnimatedEllipsis";
 import { ScrapingItems, ScrapingSegment } from "@/hooks/useProviderScrape";
 import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
 
-function useAnimatedEllipsis(intervalMs = 450) {
-  const [dotCount, setDotCount] = useState(1);
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setDotCount((count) => (count % 3) + 1);
-    }, intervalMs);
-    return () => window.clearInterval(id);
-  }, [intervalMs]);
-
-  return ` ${". ".repeat(dotCount).trimEnd()}`;
+function labelForSource(
+  sourceId: string | undefined,
+  sources: Record<string, ScrapingSegment>,
+): string | null {
+  if (!sourceId) return null;
+  const seg = sources[sourceId];
+  if (!seg) return null;
+  return resolveSourceDisplayName(sourceId, seg.name);
 }
 
-function pendingSourceLabels(
+/** Prefer the sticky current source; fall back to any in-flight card. */
+function stickyAskingLabel(
+  activeSourceId: string | undefined,
   sourceOrder: ScrapingItems[],
   sources: Record<string, ScrapingSegment>,
-): string[] {
-  return sourceOrder
-    .filter((order) => sources[order.id]?.status === "pending")
-    .map((order) =>
-      resolveSourceDisplayName(order.id, sources[order.id]?.name),
-    );
+): string | null {
+  const active = labelForSource(activeSourceId, sources);
+  if (active) return active;
+
+  for (const order of sourceOrder) {
+    const seg = sources[order.id];
+    if (seg?.status === "pending" || seg?.status === "waiting") {
+      return resolveSourceDisplayName(order.id, seg.name);
+    }
+    for (const childId of order.children) {
+      const child = sources[childId];
+      if (child?.status === "pending" || child?.status === "waiting") {
+        return resolveSourceDisplayName(childId, child.name);
+      }
+    }
+  }
+  return null;
 }
 
 export interface UnifiedScrapingLoaderProps {
@@ -38,6 +49,8 @@ export interface UnifiedScrapingLoaderProps {
   title?: string;
   sourceOrder?: ScrapingItems[];
   sources?: Record<string, ScrapingSegment>;
+  /** Sticky source id from the scrape runner — avoids rotating “asking …” labels. */
+  activeSourceId?: string;
   /** Override the status line (e.g. metadata load). */
   statusKey?: string;
   className?: string;
@@ -48,33 +61,17 @@ export function UnifiedScrapingLoader({
   title,
   sourceOrder = [],
   sources = {},
+  activeSourceId,
   statusKey,
   className,
 }: UnifiedScrapingLoaderProps) {
   const { t } = useTranslation();
   const ellipsis = useAnimatedEllipsis();
 
-  const pendingLabels = useMemo(
-    () => pendingSourceLabels(sourceOrder, sources),
-    [sourceOrder, sources],
+  const activeSource = useMemo(
+    () => stickyAskingLabel(activeSourceId, sourceOrder, sources),
+    [activeSourceId, sourceOrder, sources],
   );
-
-  const [rotateIndex, setRotateIndex] = useState(0);
-
-  useEffect(() => {
-    setRotateIndex(0);
-  }, [pendingLabels.join("|")]);
-
-  useEffect(() => {
-    if (pendingLabels.length <= 1) return undefined;
-    const id = window.setInterval(() => {
-      setRotateIndex((index) => (index + 1) % pendingLabels.length);
-    }, 2400);
-    return () => window.clearInterval(id);
-  }, [pendingLabels.length]);
-
-  const activeSource =
-    pendingLabels[rotateIndex] ?? pendingLabels[0] ?? null;
 
   const statusLine = statusKey
     ? t(statusKey)

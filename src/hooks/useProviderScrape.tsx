@@ -24,6 +24,7 @@ import {
 } from "@/hooks/scrapeEvents";
 import { resolveFailedSourceMediaKey } from "@/stores/player/slices/source";
 import { usePlayerStore } from "@/stores/player/store";
+import { streamsToQualityOptions } from "@/stores/player/utils/qualityStreams";
 import {
   getPreferredSourceForTitle,
   usePreferencesStore,
@@ -78,7 +79,6 @@ const ADAPTIVE_STREAM_RESOLUTION_SCORE = sourceQualityScore["4k"];
 
 function getRunOutputBestResolutionScore(output: RunOutput): number {
   if (output.stream.type !== "file") return ADAPTIVE_STREAM_RESOLUTION_SCORE;
-
   return Object.entries(output.stream.qualities).reduce(
     (best, [quality, stream]) => {
       if (!stream?.url) return best;
@@ -86,6 +86,90 @@ function getRunOutputBestResolutionScore(output: RunOutput): number {
     },
     0,
   );
+}
+
+/**
+ * After the first playable stream is already on screen, keep hunting for a
+ * higher tier without flipping the player back to the scrape stage.
+ */
+function continueResolutionHuntInBackground(opts: {
+  media: ScrapeMedia;
+  mediaKey: string | null;
+  remainingOrder: string[];
+  embedOrder: string[] | undefined;
+  playedScore: number;
+  minimumScore: number;
+  sourceOrderCtx: SourceOrderContext;
+}): void {
+  if (opts.remainingOrder.length === 0) return;
+  if (opts.playedScore >= opts.minimumScore) return;
+
+  const providers = getProviders();
+  void (async () => {
+    let remaining = opts.remainingOrder;
+    let bestScore = opts.playedScore;
+
+    while (remaining.length > 0) {
+      if (
+        opts.mediaKey &&
+        resolveFailedSourceMediaKey(
+          usePlayerStore.getState().meta,
+          opts.media,
+        ) !== opts.mediaKey
+      ) {
+        return;
+      }
+
+      let output: RunOutput | null = null;
+      try {
+        output = await providers.runAll({
+          media: opts.media,
+          sourceOrder: remaining,
+          embedOrder: opts.embedOrder,
+          restrictToOrder: true,
+        });
+      } catch {
+        return;
+      }
+      if (!output) return;
+
+      const score = getRunOutputBestResolutionScore(output);
+      const idx = remaining.indexOf(output.sourceId);
+      remaining = idx === -1 ? [] : remaining.slice(idx + 1);
+
+      if (score <= bestScore) continue;
+
+      const check = await validateRunOutput(output, opts.sourceOrderCtx);
+      if (!check.ok) continue;
+
+      bestScore = score;
+      const streams = output.streams?.length
+        ? output.streams
+        : [check.stream];
+      const mediaKey = opts.mediaKey;
+      void streamsToQualityOptions(
+        streams,
+        output.sourceId,
+        output.embedId,
+      ).then((options) => {
+        const store = usePlayerStore.getState();
+        if (
+          mediaKey &&
+          resolveFailedSourceMediaKey(store.meta, opts.media) !== mediaKey
+        ) {
+          return;
+        }
+        store.registerQualityStreamOptions(options);
+        store.registerSourceMirrors(
+          output!.sourceId,
+          streams,
+          store.currentAudioTrack?.language,
+        );
+      });
+
+      if (bestScore >= opts.minimumScore) return;
+    }
+  })();
 }
 
 const WAY2_SOLO_RETRY_DELAY_MS = 2000;
@@ -755,9 +839,10 @@ export function useScrape() {
       const soloFirst = await trySoloWay2(castleSolo.order);
       if (soloFirst.accepted) return getResult(soloFirst.accepted);
       let remainingSourceOrder = soloFirst.order;
-      let bestFallbackOutput: RunOutput | null = null;
-      let bestFallbackScore = -1;
 
+      // Play the first working stream immediately. If it's under the preferred
+      // floor, keep hunting quietly in the background so the scrape stage
+      // does not flicker back to “checking…”.
       while (remainingSourceOrder.length > 0) {
         const output = await providers.runAll({
           media,
@@ -769,45 +854,42 @@ export function useScrape() {
 
         if (!output) break;
 
-        const sourceScore = getRunOutputBestResolutionScore(output);
-        if (sourceScore > bestFallbackScore) {
-          bestFallbackScore = sourceScore;
-          bestFallbackOutput = output;
-        }
-
-        if (sourceScore >= minimumResolutionScore) {
-          const accepted = await acceptValidatedOutput(output);
-          if (accepted) return getResult(accepted);
-          const currentSourceIndex = remainingSourceOrder.indexOf(
-            output.sourceId,
-          );
-          if (currentSourceIndex === -1) break;
-          remainingSourceOrder = remainingSourceOrder.slice(
-            currentSourceIndex + 1,
-          );
-          continue;
-        }
-
-        markSourceRejected(
-          output.sourceId,
-          `Below ${preferredMinimumResolution} minimum`,
-        );
-        // Resolution-only misses are not dead streams — user may lower the floor
-        // or the source may serve adaptive HLS that mis-reports file tiers.
-
+        const accepted = await acceptValidatedOutput(output);
         const currentSourceIndex = remainingSourceOrder.indexOf(
           output.sourceId,
         );
-        if (currentSourceIndex === -1) break;
-        remainingSourceOrder = remainingSourceOrder.slice(
-          currentSourceIndex + 1,
-        );
+        const nextOrder =
+          currentSourceIndex === -1
+            ? []
+            : remainingSourceOrder.slice(currentSourceIndex + 1);
+
+        if (!accepted) {
+          remainingSourceOrder = nextOrder;
+          continue;
+        }
+
+        const sourceScore = getRunOutputBestResolutionScore(output);
+        if (
+          sourceScore < minimumResolutionScore &&
+          nextOrder.length > 0
+        ) {
+          continueResolutionHuntInBackground({
+            media,
+            mediaKey: resolveFailedSourceMediaKey(
+              usePlayerStore.getState().meta,
+              media,
+            ),
+            remainingOrder: nextOrder,
+            embedOrder: filteredEmbedOrder,
+            playedScore: sourceScore,
+            minimumScore: minimumResolutionScore,
+            sourceOrderCtx,
+          });
+        }
+
+        return getResult(accepted);
       }
 
-      if (bestFallbackOutput) {
-        const accepted = await acceptValidatedOutput(bestFallbackOutput);
-        if (accepted) return getResult(accepted);
-      }
       return getResult(null);
     },
     [

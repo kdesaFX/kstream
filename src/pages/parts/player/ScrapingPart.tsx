@@ -34,7 +34,8 @@ export interface ScrapingProps {
 
 export function ScrapingPart(props: ScrapingProps) {
   const { report } = useReportProviders();
-  const { startScraping, resumeScraping, sourceOrder, sources } = useScrape();
+  const { startScraping, resumeScraping, sourceOrder, sources, currentSource } =
+    useScrape();
   const isMounted = useMountedState();
   const addFailedSource = usePlayerStore((s) => s.addFailedSource);
   const sourceId = usePlayerStore((s) => s.sourceId);
@@ -122,6 +123,7 @@ export function ScrapingPart(props: ScrapingProps) {
         title={displayTitle}
         sourceOrder={sourceOrder}
         sources={sources}
+        activeSourceId={currentSource}
       />
     </div>
   );

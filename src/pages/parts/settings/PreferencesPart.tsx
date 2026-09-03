@@ -416,7 +416,7 @@ export function PreferencesPart(props: {
               <p className="text-sm text-type-secondary mt-1 leading-snug max-w-[28rem]">
                 {t(
                   "settings.preferences.preferredMinimumResolutionDescription",
-                  "When auto-selecting sources, keep checking working sources until this quality is met. If unavailable, the best working source is used.",
+                  "Play the first working source, then keep looking for this quality in the background without interrupting playback. If it is never found, the best working source stays on.",
                 )}
               </p>
               <div className="mt-3 max-w-[24rem]">
