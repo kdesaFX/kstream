@@ -51,13 +51,10 @@ export interface UnifiedScrapingLoaderProps {
   sources?: Record<string, ScrapingSegment>;
   /** Sticky source id from the scrape runner — avoids rotating “asking …” labels. */
   activeSourceId?: string;
-  /** Override the status line (e.g. metadata load). */
+  /** Override the status line (e.g. metadata load / confirming playback). */
   statusKey?: string;
-  /**
-   * Playback recovery: keep the poster stage but hide “Asking …” so a failed
-   * hit doesn’t look like the whole check restarted from scratch.
-   */
-  quiet?: boolean;
+  /** Interpolation values for statusKey (e.g. `{ source: "bagel" }`). */
+  statusValues?: Record<string, string>;
   className?: string;
 }
 
@@ -68,7 +65,7 @@ export function UnifiedScrapingLoader({
   sources = {},
   activeSourceId,
   statusKey,
-  quiet = false,
+  statusValues,
   className,
 }: UnifiedScrapingLoaderProps) {
   const { t } = useTranslation();
@@ -79,16 +76,8 @@ export function UnifiedScrapingLoader({
     [activeSourceId, sourceOrder, sources],
   );
 
-  if (quiet) {
-    return (
-      <PlayerStageOverlay poster={poster} className={className}>
-        <span className="sr-only">{t("player.scraping.retryNextSource")}</span>
-      </PlayerStageOverlay>
-    );
-  }
-
   const statusLine = statusKey
-    ? t(statusKey)
+    ? t(statusKey, statusValues)
     : activeSource
       ? t("player.scraping.unified.asking", { source: activeSource })
       : sourceOrder.length > 0

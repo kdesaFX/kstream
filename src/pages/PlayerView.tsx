@@ -13,6 +13,7 @@ import { prepareStream } from "@/backend/extension/streams";
 import { DetailedMeta } from "@/backend/metadata/getmeta";
 import { usePlayer } from "@/components/player/hooks/usePlayer";
 import { usePlayerMeta } from "@/components/player/hooks/usePlayerMeta";
+import { UnifiedScrapingLoader } from "@/components/player/internals/UnifiedScrapingLoader";
 import { convertProviderCaption } from "@/components/player/utils/captions";
 import { convertRunoutputToSource } from "@/components/player/utils/convertRunoutputToSource";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
@@ -47,9 +48,13 @@ import { useQualityStore } from "@/stores/quality";
 import { getProgressPercentage, useProgressStore } from "@/stores/progress";
 import { needsOnboarding } from "@/utils/hosting/onboarding";
 import { parseTimestamp } from "@/utils/format/timestamp";
+import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
 import { triggerOfflineDownloadFromPlayerStore } from "@/utils/media/triggerPlayerOfflineDownload";
 
 import { BlurEllipsis } from "./layouts/SubPageLayout";
+
+/** Seconds of real playback before we dismiss the checking UI for a source. */
+const SOURCE_LOCK_SECONDS = 3;
 
 function startAlternateAudioDiscovery(
   media: Parameters<typeof discoverAlternateAudioLanguages>[0]["media"],
@@ -105,6 +110,10 @@ export function RealPlayerView() {
   const [offlineDownloadParam, setOfflineDownloadParam] =
     useQueryParam("offlineDownload");
   const [scrapeAttempt, setScrapeAttempt] = useState(0);
+  /** Keep the checking stage up until this scrape's stream has proven itself. */
+  const [pendingSourceLock, setPendingSourceLock] = useState(false);
+  /** Wall-clock start once playback is actually rolling (not scrape "hit" time). */
+  const sourceLockProvenAtRef = useRef<number | null>(null);
   const {
     status,
     playMedia,
@@ -116,6 +125,7 @@ export function RealPlayerView() {
   } = usePlayer();
   const sourceId = usePlayerStore((s) => s.sourceId);
   const hasPlayedOnce = usePlayerStore((s) => s.mediaPlaying.hasPlayedOnce);
+  const isPlaybackLoading = usePlayerStore((s) => s.mediaPlaying.isLoading);
   const storeMeta = usePlayerStore((s) => s.meta);
   const { setPlayerMeta, scrapeMedia } = usePlayerMeta();
   const backUrl = useLastNonPlayerLink();
@@ -159,6 +169,8 @@ export function RealPlayerView() {
     offlineDownloadTriggeredRef.current = false;
     playbackRetryBudget.current.setMedia(paramsData);
     setScrapeAttempt(0);
+    setPendingSourceLock(false);
+    sourceLockProvenAtRef.current = null;
     return () => {
       reset();
     };
@@ -269,7 +281,6 @@ export function RealPlayerView() {
         s.sourceId = null;
         s.embedId = null;
         s.mediaPlaying.hasPlayedOnce = false;
-        s.quietSourceRecovery = true;
       });
     },
     [setResumeFromSourceIdInStore],
@@ -287,7 +298,6 @@ export function RealPlayerView() {
       s.sourceId = null;
       s.embedId = null;
       s.mediaPlaying.hasPlayedOnce = false;
-      s.quietSourceRecovery = true;
     });
   }, [setResumeFromSourceIdInStore]);
 
@@ -353,6 +363,10 @@ export function RealPlayerView() {
         preferredAudioLanguage,
       );
 
+      // Stay on the checking stage until this stream actually plays — a scrape
+      // "hit" alone used to flip to the player, then fail and bounce back.
+      sourceLockProvenAtRef.current = null;
+      setPendingSourceLock(true);
       playMedia(
         convertRunoutputToSource({ stream: selectedStream }),
         convertProviderCaption(selectedStream.captions),
@@ -390,6 +404,77 @@ export function RealPlayerView() {
   // that before any frames buffer, which used to lock titles onto dead streams).
   const watchedSeconds = usePlayerStore((s) => s.progress.time);
   const metaTmdbId = storeMeta?.tmdbId;
+
+  const autoResumeExhausted = playbackRetryBudget.current.isExhausted(
+    MAX_PLAYBACK_AUTO_RETRIES,
+  );
+
+  // Dismiss checking only after ~3s of proven play — not on scrape hit, and
+  // not on absolute progress.time (resume starts mid-title and would unlock
+  // instantly). Wall-clock after hasPlayedOnce && !buffering.
+  useEffect(() => {
+    if (!pendingSourceLock) {
+      sourceLockProvenAtRef.current = null;
+      return;
+    }
+    if (
+      status === playerStatus.SCRAPING ||
+      status === playerStatus.SCRAPE_NOT_FOUND ||
+      status === playerStatus.IDLE ||
+      status === playerStatus.RESUME ||
+      (status === playerStatus.PLAYBACK_ERROR && autoResumeExhausted)
+    ) {
+      sourceLockProvenAtRef.current = null;
+      setPendingSourceLock(false);
+      return;
+    }
+    if (status === playerStatus.PLAYBACK_ERROR) {
+      // Keep the checking overlay while auto-resume hops to the next source.
+      sourceLockProvenAtRef.current = null;
+      return;
+    }
+    if (
+      status !== playerStatus.PLAYING ||
+      !hasPlayedOnce ||
+      isPlaybackLoading
+    ) {
+      sourceLockProvenAtRef.current = null;
+      return;
+    }
+    if (sourceLockProvenAtRef.current == null) {
+      sourceLockProvenAtRef.current = Date.now();
+    }
+    const remaining =
+      SOURCE_LOCK_SECONDS * 1000 -
+      (Date.now() - sourceLockProvenAtRef.current);
+    if (remaining <= 0) {
+      setPendingSourceLock(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setPendingSourceLock(false);
+    }, remaining);
+    return () => window.clearTimeout(timer);
+  }, [
+    pendingSourceLock,
+    status,
+    hasPlayedOnce,
+    isPlaybackLoading,
+    autoResumeExhausted,
+  ]);
+
+  const preparingTitle =
+    storeMeta?.type === "show" && storeMeta.episode
+      ? `${storeMeta.title} · S${storeMeta.season?.number ?? 1}E${storeMeta.episode.number}`
+      : storeMeta?.title;
+  const confirmingSourceLabel = sourceId
+    ? resolveSourceDisplayName(sourceId)
+    : null;
+  const showSourceProbationOverlay =
+    pendingSourceLock &&
+    (status === playerStatus.PLAYING ||
+      (status === playerStatus.PLAYBACK_ERROR && !autoResumeExhausted));
+
   useEffect(() => {
     if (!enableLastSuccessfulSource || !sourceId || watchedSeconds < 5) return;
     rememberSuccessfulSource(metaTmdbId, sourceId);
@@ -436,6 +521,24 @@ export function RealPlayerView() {
           />
         )
       ) : null}
+      {showSourceProbationOverlay ? (
+        <UnifiedScrapingLoader
+          poster={storeMeta?.poster}
+          title={preparingTitle}
+          activeSourceId={sourceId ?? undefined}
+          statusKey={
+            confirmingSourceLabel
+              ? "player.scraping.unified.asking"
+              : "player.scraping.unified.buffering"
+          }
+          statusValues={
+            confirmingSourceLabel
+              ? { source: confirmingSourceLabel }
+              : undefined
+          }
+          className="z-20 pointer-events-none"
+        />
+      ) : null}
       {status === playerStatus.SCRAPE_NOT_FOUND && errorData ? (
         <ScrapeErrorPart
           data={errorData}
@@ -445,7 +548,6 @@ export function RealPlayerView() {
               s.sourceId = null;
               s.embedId = null;
               s.interface.error = undefined;
-              s.quietSourceRecovery = false;
             });
             setStatus(playerStatus.SCRAPING);
           }}

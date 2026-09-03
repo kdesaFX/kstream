@@ -40,7 +40,6 @@ export function ScrapingPart(props: ScrapingProps) {
   const addFailedSource = usePlayerStore((s) => s.addFailedSource);
   const sourceId = usePlayerStore((s) => s.sourceId);
   const meta = usePlayerStore((s) => s.meta);
-  const quietSourceRecovery = usePlayerStore((s) => s.quietSourceRecovery);
 
   const resultRef = useRef({
     sourceOrder,
@@ -125,7 +124,6 @@ export function ScrapingPart(props: ScrapingProps) {
         sourceOrder={sourceOrder}
         sources={sources}
         activeSourceId={currentSource}
-        quiet={quietSourceRecovery}
       />
     </div>
   );
