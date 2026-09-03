@@ -128,13 +128,7 @@ export function HomePage() {
   };
 
   const renderHomeSections = () => {
-    // Ensure Continue Reading sits under Continue Watching even for
-    // profiles that saved an older homeSectionOrder without "reading".
-    let order = [...homeSectionOrder];
-    if (!order.includes("reading")) {
-      const watchingIdx = order.indexOf("watching");
-      order.splice(watchingIdx >= 0 ? watchingIdx + 1 : 0, 0, "reading");
-    }
+    const order = [...homeSectionOrder];
 
     // Ads sit under Continue Watching / Reading when those rows exist.
     // If both are empty, park ads after the rest of the home sections so they

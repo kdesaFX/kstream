@@ -22,7 +22,6 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { useRandomTranslation } from "@/hooks/useRandomTranslation";
 import { useSearchQuery } from "@/hooks/useSearchQuery";
 import { BlurEllipsis } from "@/pages/layouts/SubPageLayout";
-import { HomeSectionCustomizer } from "@/pages/parts/home/HomeSectionCustomizer";
 import { useBannerSize } from "@/stores/banner";
 import { useNavLayoutStore } from "@/stores/navLayout";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -85,46 +84,6 @@ function HomeOptimizeToggle() {
         {t("settings.optimize.button")}
       </span>
     </button>
-  );
-}
-
-function HomeLayoutCustomizerToggle() {
-  const [isOpen, setIsOpen] = useState(false);
-  const path = window.location.pathname;
-
-  // Home + browse (search results) share the home layout customizer
-  if (path !== "/" && !path.startsWith("/browse")) return null;
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`group flex items-center h-10 md:h-[2.67rem] rounded-full transition-all duration-300 ease-out overflow-hidden ${
-          isOpen
-            ? "bg-type-link text-white shadow-lg pr-4"
-            : `${navControlSurface} text-white hover:bg-pill-backgroundHover/80 hover:pr-4 active:scale-105`
-        }`}
-        title="Edit Layout"
-      >
-        <div className="flex items-center justify-center w-10 h-10 md:w-[2.67rem] md:h-[2.67rem] shrink-0">
-          <Icon
-            icon={Icons.LAYOUT}
-            className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none [&>svg]:block [&>svg]:h-5 [&>svg]:w-5"
-          />
-        </div>
-        <span
-          className={`font-medium text-sm whitespace-nowrap transition-all duration-300 ease-out ${
-            isOpen
-              ? "max-w-[100px] opacity-100"
-              : "max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100"
-          }`}
-        >
-          Layout
-        </span>
-      </button>
-      <HomeSectionCustomizer isOpen={isOpen} onClose={() => setIsOpen(false)} />
-    </div>
   );
 }
 
@@ -366,7 +325,6 @@ export function Navigation(props: NavigationProps) {
                 <div className="hidden sm:flex items-center gap-1.5 md:gap-2 shrink-0">
                   <HomeRemoveAdsToggle />
                   <HomeOptimizeToggle />
-                  <HomeLayoutCustomizerToggle />
                 </div>
               ) : null}
               {!loggedIn ? (

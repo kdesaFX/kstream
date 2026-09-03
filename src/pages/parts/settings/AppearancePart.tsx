@@ -4,13 +4,20 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/buttons/Button";
 import { Toggle } from "@/components/buttons/Toggle";
-import { SortableList } from "@/components/form/SortableList";
+import {
+  SortableListWithToggles,
+  ToggleableItem,
+} from "@/components/form/SortableListWithToggles";
 import { Icon, Icons } from "@/components/Icon";
 import { CustomThemeModal } from "@/components/overlays/CustomThemeModal";
 import { EditGroupOrderModal } from "@/components/overlays/EditGroupOrderModal";
 import { useModal } from "@/components/overlays/Modal";
 import { Heading1 } from "@/components/utils/Text";
 import { useBackendUrl } from "@/hooks/auth/useBackendUrl";
+import {
+  HomeLayoutPreview,
+  buildHomeSectionToggleItems,
+} from "@/pages/parts/settings/HomeLayoutPreview";
 import { useAuthStore } from "@/stores/auth";
 import { useBookmarkStore } from "@/stores/bookmarks";
 import { useGroupOrderStore } from "@/stores/groupOrder";
@@ -545,44 +552,62 @@ export function AppearancePart(props: {
               enabled={props.enableMinimalCards}
               onChange={(v) => props.setEnableMinimalCards(v)}
             />
-            <div className="px-4 py-3 space-y-2">
-              <p className="text-white font-semibold leading-snug">
-                {t("settings.appearance.options.homeSectionOrder")}
-              </p>
-              <p className="text-sm text-type-secondary leading-snug">
-                {t("settings.appearance.options.homeSectionOrderDescription")}
-              </p>
-              <div className="pt-2">
-                <SortableList
-                  items={(props.homeSectionOrder.includes("reading")
-                    ? props.homeSectionOrder
-                    : (() => {
-                        const order = [...props.homeSectionOrder];
-                        const watchingIdx = order.indexOf("watching");
-                        order.splice(
-                          watchingIdx >= 0 ? watchingIdx + 1 : 0,
-                          0,
-                          "reading",
-                        );
-                        return order;
-                      })()
-                  ).map((section) => ({
-                    id: section,
-                    name: t(`settings.appearance.sections.${section}`),
-                  }))}
-                  setItems={(items) => {
-                    const newOrder = items.map((item) => item.id);
-                    props.setHomeSectionOrder(newOrder);
-                  }}
+            <div className="px-4 py-3 space-y-3">
+              <div className="space-y-1">
+                <p className="text-white font-semibold leading-snug">
+                  {t("settings.appearance.options.homeSectionOrder")}
+                </p>
+                <p className="text-sm text-type-secondary leading-snug">
+                  {t(
+                    "settings.appearance.options.homeSectionOrderDescription",
+                  )}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                <div className="space-y-3">
+                  <SortableListWithToggles
+                    items={buildHomeSectionToggleItems(
+                      props.homeSectionOrder,
+                      (id) => t(`settings.appearance.sections.${id}`),
+                    )}
+                    setItems={(items: ToggleableItem[]) => {
+                      props.setHomeSectionOrder(
+                        items
+                          .filter((item) => item.enabled)
+                          .map((item) => item.id),
+                      );
+                    }}
+                    onToggle={(id) => {
+                      const items = buildHomeSectionToggleItems(
+                        props.homeSectionOrder,
+                        (sectionId) =>
+                          t(`settings.appearance.sections.${sectionId}`),
+                      ).map((item) =>
+                        item.id === id
+                          ? { ...item, enabled: !item.enabled }
+                          : item,
+                      );
+                      props.setHomeSectionOrder(
+                        items
+                          .filter((item) => item.enabled)
+                          .map((item) => item.id),
+                      );
+                    }}
+                  />
+                  {hasGroups && (
+                    <Button theme="secondary" onClick={handleEditGroupOrder}>
+                      {t(
+                        "settings.appearance.options.homeSectionOrderGroups",
+                      )}
+                    </Button>
+                  )}
+                </div>
+                <HomeLayoutPreview
+                  homeSectionOrder={props.homeSectionOrder}
+                  enableDiscover={props.enableDiscover}
+                  enableCarouselView={props.enableCarouselView}
                 />
               </div>
-              {hasGroups && (
-                <div className="pt-2">
-                  <Button theme="secondary" onClick={handleEditGroupOrder}>
-                    {t("settings.appearance.options.homeSectionOrderGroups")}
-                  </Button>
-                </div>
-              )}
             </div>
           </Section>
 
