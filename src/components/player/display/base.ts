@@ -308,11 +308,20 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
     }, 1000);
   }
 
-  function userActivation(): { isActive?: boolean } | undefined {
+  function userActivation():
+    | { isActive?: boolean; hasBeenActive?: boolean }
+    | undefined {
     if (typeof navigator === "undefined") return undefined;
     return (
-      navigator as Navigator & { userActivation?: { isActive?: boolean } }
+      navigator as Navigator & {
+        userActivation?: { isActive?: boolean; hasBeenActive?: boolean };
+      }
     ).userActivation;
+  }
+
+  /** True after any trusted click/key this document — false on reload until then. */
+  function pageHasHadUserGesture(): boolean {
+    return Boolean(userActivation()?.hasBeenActive);
   }
 
   /** Controls carry their own intent; the bare video surface does not. */
@@ -406,11 +415,15 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
   }
 
   /**
-   * After async scrapes the click gesture is gone, so unmuted play may be
+   * After async scrapes the click gesture is often gone, so unmuted play may be
    * blocked. Ask for sound anyway — browsers allow it for sites the viewer
-   * uses, and a refusal costs nothing but a rejected promise. If sound is
-   * refused, wait behind the play button so one click starts with audio
-   * (never start muted and force a second unmute tap).
+   * uses, and a refusal costs nothing but a rejected promise.
+   *
+   * On refusal:
+   * - In-tab nav (Play from home): muted autoplay + unmute on the next gesture
+   *   so video still starts without another click.
+   * - Reload / cold tab (no prior gesture): wait behind the play button so one
+   *   click starts with audio (never muted-autoplay + a second unmute tap).
    */
   function tryAutoplay() {
     if (!shouldAutoplayAfterLoad || !videoElement || autoplayInFlight) return;
@@ -449,6 +462,15 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
       });
     };
 
+    const offerClickToPlay = () => {
+      shouldAutoplayAfterLoad = false;
+      autoplayInFlight = false;
+      clearPolicyMute(vid);
+      reportVolumeToUi();
+      emit("pause", undefined);
+      emitLoading(false);
+    };
+
     const playWithSound = () => {
       clearPolicyMute(vid);
       const soundPlay = vid.play();
@@ -469,15 +491,13 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
             autoplayInFlight = false;
             return;
           }
-          // Sound was refused (reload / cold tab / gesture expired mid-scrape).
-          // Wait behind the play button so the first click starts with audio —
-          // don't roll muted and force a second unmute click.
-          shouldAutoplayAfterLoad = false;
-          autoplayInFlight = false;
-          clearPolicyMute(vid);
-          reportVolumeToUi();
-          emit("pause", undefined);
-          emitLoading(false);
+          // Sound refused. Reload/cold tab → play button. Prior in-tab click
+          // (home → media) → muted autoplay so the stream still starts.
+          if (pageHasHadUserGesture()) {
+            playMuted();
+            return;
+          }
+          offerClickToPlay();
         });
     };
 

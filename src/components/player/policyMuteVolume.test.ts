@@ -76,10 +76,13 @@ function shouldAutoplayWithSound(opts: { lastVolume: number }): boolean {
 /** Mirrors how a rejected unmuted autoplay is handled. */
 function autoplayFallback(
   errName: string,
-): "retry-later" | "offer-play-button" {
+  opts: { hasBeenActive: boolean },
+): "retry-later" | "offer-play-button" | "muted-autoplay" {
   if (errName === "AbortError" || errName === "NotSupportedError")
     return "retry-later";
-  // Sound refused — wait for a click that starts with audio. Never roll muted.
+  // Prior in-tab gesture (Play from home) → keep autoplaying muted.
+  // Reload / cold tab → one click starts with audio.
+  if (opts.hasBeenActive) return "muted-autoplay";
   return "offer-play-button";
 }
 
@@ -127,22 +130,32 @@ describe("starting playback with sound", () => {
     expect(shouldAutoplayWithSound({ lastVolume: 0 })).toBe(false);
   });
 
-  it("falls back to the play button when sound is refused", () => {
-    expect(autoplayFallback("NotAllowedError")).toBe("offer-play-button");
+  it("falls back to muted autoplay after an in-tab Play click", () => {
+    expect(
+      autoplayFallback("NotAllowedError", { hasBeenActive: true }),
+    ).toBe("muted-autoplay");
   });
 
-  it("waits behind the play button on a cold load rather than starting silent", () => {
-    expect(autoplayFallback("NotAllowedError")).toBe("offer-play-button");
+  it("waits behind the play button on a cold load / reload", () => {
+    expect(
+      autoplayFallback("NotAllowedError", { hasBeenActive: false }),
+    ).toBe("offer-play-button");
   });
 
-  it("does not start muted after a prior in-tab gesture either", () => {
-    // Session gestures do not unlock autoplay after an async scrape.
-    expect(autoplayFallback("NotAllowedError")).toBe("offer-play-button");
+  it("does not require a second unmute click after home→media", () => {
+    // Gesture expired mid-scrape, but the page already had a trusted click.
+    expect(
+      autoplayFallback("NotAllowedError", { hasBeenActive: true }),
+    ).toBe("muted-autoplay");
   });
 
   it("waits for the next ready tick instead of fighting an aborted load", () => {
-    expect(autoplayFallback("AbortError")).toBe("retry-later");
-    expect(autoplayFallback("NotSupportedError")).toBe("retry-later");
+    expect(
+      autoplayFallback("AbortError", { hasBeenActive: true }),
+    ).toBe("retry-later");
+    expect(
+      autoplayFallback("NotSupportedError", { hasBeenActive: false }),
+    ).toBe("retry-later");
   });
 
   it("unmutes on the first real gesture after a muted autoplay", () => {
