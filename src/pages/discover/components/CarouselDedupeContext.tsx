@@ -1,10 +1,8 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useMemo,
   useRef,
-  useState,
   type ReactNode,
 } from "react";
 
@@ -21,11 +19,9 @@ interface ClaimableMedia {
 interface CarouselDedupeContextValue {
   /**
    * Claim media for a carousel by TMDB id and by title(+year). Lower
-   * priority wins. When the map changes, `version` bumps so siblings
-   * re-filter (fixes lazy-load / async backfill races).
+   * priority wins.
    */
   claim: (priority: number, items: ClaimableMedia[]) => string[];
-  version: number;
 }
 
 const CarouselDedupeContext = createContext<CarouselDedupeContextValue | null>(
@@ -101,14 +97,9 @@ export function collapseTitleYearDuplicates<T extends ClaimableMedia>(
 export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
   const claimedIdsRef = useRef(new Map<string, number>());
   const claimedTitlesRef = useRef(new Map<string, number>());
-  const [version, setVersion] = useState(0);
-  /** Set during claim (render); flushed in useEffect — never setState in render. */
-  const pendingNotifyRef = useRef(false);
-  const lastSnapshotRef = useRef("");
 
   const value = useMemo<CarouselDedupeContextValue>(
     () => ({
-      version,
       claim(priority, items) {
         const claimedIds = claimedIdsRef.current;
         const claimedTitles = claimedTitlesRef.current;
@@ -117,19 +108,15 @@ export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
           items.map(mediaTitleKey).filter((k): k is string => Boolean(k)),
         );
 
-        let changed = false;
-
         if (items.length > 0) {
           for (const [id, owner] of [...claimedIds]) {
             if (owner === priority && !idSet.has(id)) {
               claimedIds.delete(id);
-              changed = true;
             }
           }
           for (const [title, owner] of [...claimedTitles]) {
             if (owner === priority && !titleSet.has(title)) {
               claimedTitles.delete(title);
-              changed = true;
             }
           }
         }
@@ -153,45 +140,18 @@ export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
 
           if (idTaken || titleTaken) continue;
 
-          if (claimedIds.get(id) !== priority) changed = true;
           claimedIds.set(id, priority);
           if (titleKey) {
-            if (claimedTitles.get(titleKey) !== priority) changed = true;
             claimedTitles.set(titleKey, priority);
           }
           kept.push(id);
         }
 
-        if (changed) {
-          // Ignore no-op mutations that settle on the same ownership map
-          // (title-key flicker used to schedule endless setVersion).
-          const snapshot = [
-            [...claimedIds.entries()]
-              .map(([id, owner]) => `${id}:${owner}`)
-              .sort()
-              .join(","),
-            [...claimedTitles.entries()]
-              .map(([title, owner]) => `${title}:${owner}`)
-              .sort()
-              .join(","),
-          ].join("||");
-          if (snapshot !== lastSnapshotRef.current) {
-            lastSnapshotRef.current = snapshot;
-            pendingNotifyRef.current = true;
-          }
-        }
-
         return kept;
       },
     }),
-    [version],
+    [],
   );
-
-  useEffect(() => {
-    if (!pendingNotifyRef.current) return;
-    pendingNotifyRef.current = false;
-    setVersion((v) => v + 1);
-  });
 
   return (
     <CarouselDedupeContext.Provider value={value}>
@@ -203,7 +163,7 @@ export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
 /**
  * Filter a media list so titles already claimed by an earlier carousel are
  * removed. Collapses same-title stubs inside the list first. No-ops outside
- * a provider. Re-runs when `version` bumps after other rows claim.
+ * a provider.
  */
 export function useDedupedMedia<T extends ClaimableMedia>(
   priority: number | undefined,
@@ -217,7 +177,5 @@ export function useDedupedMedia<T extends ClaimableMedia>(
     if (collapsed.length === 0) return collapsed;
     const kept = new Set(ctx.claim(priority, collapsed));
     return collapsed.filter((m) => kept.has(String(m.id)));
-    // version is required so siblings re-filter after another row claims.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [media, priority, ctx, ctx?.version]);
+  }, [media, priority, ctx]);
 }
