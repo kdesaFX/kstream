@@ -442,20 +442,7 @@ input[type="range"].styled-slider.slider-progress::-ms-fill-lower {
   @apply brightness-[500];
 }
 
-/*
- * Cinejoy `.logo-legible` — tight black edge so a mark reads on bright art,
- * plus a deeper lift shadow. (Their last layer is a white glow for a white SVG;
- * ours is a teal mark, so that glow is a dark halo instead — the PNG+white-glow
- * combo was the broken/muddy fringe.)
- */
-.logo-legible {
-  filter:
-    drop-shadow(0 0 1px rgba(0, 0, 0, 0.85))
-    drop-shadow(0 0 1px rgba(0, 0, 0, 0.75))
-    drop-shadow(0 0 3px rgba(0, 0, 0, 0.55))
-    drop-shadow(0 3px 10px rgba(0, 0, 0, 0.55));
-}
-
+/* Hero title logos (TMDB images) — brand mark uses a baked-in PNG shadow. */
 .title-logo-legible {
   filter:
     drop-shadow(0 0 1px rgba(0, 0, 0, 0.9))
