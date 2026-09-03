@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   getPreferredQuality,
   highestAvailableQuality,
+  selectQuality,
 } from "@/stores/player/utils/qualities";
 
 describe("getPreferredQuality", () => {
@@ -23,6 +24,29 @@ describe("getPreferredQuality", () => {
         lastChosenQuality: "480",
       }),
     ).toBe("480");
+  });
+});
+
+describe("selectQuality", () => {
+  it("starts file sources at 480p in Auto mode", () => {
+    expect(
+      selectQuality(
+        {
+          type: "file",
+          qualities: {
+            "480": { type: "mp4", url: "https://example.com/480.mp4" },
+            "1080": { type: "mp4", url: "https://example.com/1080.mp4" },
+          },
+        },
+        {
+          automaticQuality: true,
+          lastChosenQuality: null,
+        },
+      ),
+    ).toEqual({
+      quality: "480",
+      stream: { type: "mp4", url: "https://example.com/480.mp4" },
+    });
   });
 });
 

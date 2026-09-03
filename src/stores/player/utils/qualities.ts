@@ -47,6 +47,13 @@ const qualitySorting: Record<SourceQuality, number> = {
 const sortedQualities: SourceQuality[] = Object.entries(qualitySorting)
   .sort((a, b) => b[1] - a[1])
   .map<SourceQuality>((v) => v[0] as SourceQuality);
+const autoStartupQualities: SourceQuality[] = [
+  "480",
+  "360",
+  "720",
+  "1080",
+  "4k",
+];
 
 export function getPreferredQuality(
   availableQualites: SourceQuality[],
@@ -103,15 +110,13 @@ export function selectQuality(
     const availableQualities = Object.entries(source.qualities)
       .filter((entry) => (entry[1].url.length ?? 0) > 0)
       .map((entry) => entry[0]) as SourceQuality[];
-    // For file sources (MP4), always use manual quality selection since they don't support switching
-    const manualQualityPreferences = {
-      ...qualityPreferences,
-      automaticQuality: false,
-    };
-    const quality = getPreferredQuality(
-      availableQualities,
-      manualQualityPreferences,
-    );
+    // File sources cannot use HLS adaptive bitrate. In Auto, start at a
+    // conservative quality so the first frame is not blocked on a 1080p file.
+    const quality = qualityPreferences.automaticQuality
+      ? autoStartupQualities.find((candidate) =>
+          availableQualities.includes(candidate),
+        )
+      : getPreferredQuality(availableQualities, qualityPreferences);
     if (quality) {
       const stream = source.qualities[quality];
       if (stream) {
