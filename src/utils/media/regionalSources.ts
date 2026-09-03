@@ -18,7 +18,7 @@ export type RegionalSourceMeta = {
  * deferred hit matches the user's preference.
  */
 export const DEFERRED_REGIONAL_SOURCES: RegionalSourceMeta[] = [
-  { id: "cuevana3", languages: ["es"], priority: 1, dialect: "latino" },
+  { id: "lisbon", languages: ["es"], priority: 1, dialect: "latino" },
   { id: "cinehdplus", languages: ["es"], priority: 2, dialect: "castellano" },
   { id: "vixsrc", languages: ["it"], priority: 1 },
 ];

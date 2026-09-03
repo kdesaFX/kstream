@@ -166,7 +166,7 @@ describe("registerAudioStreamOptions", () => {
         id: "cuevana:direct:1:es",
         language: "es",
         label: "Spanish",
-        sourceId: "cuevana3",
+        sourceId: "lisbon",
         embedId: null,
         source: { type: "hls", url: "https://example.com/es.m3u8" } as any,
         captions: [],

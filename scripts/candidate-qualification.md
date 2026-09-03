@@ -114,12 +114,12 @@ GitHub “TMDB Embed API” repos mostly wrap VidSrc/Videasy/Vidlink/Showbox. Al
 
 ## Batch 2026-08-23d (independent hunt — no Gemini)
 
-Shipped sources today: `fsonline`, `tqq`, `reyna`, `oneembed`, `sevenmovies`, `anidap`.
+Shipped sources today: `mdesa`, `tqq`, `reyna`, `oneembed`, `sevenmovies`, `anidap`.
 
 | Check | Result |
 |------|--------|
 | Anidap `chad.anidap.lol` | OK (`{"status":"ok"}`) |
-| FSOnline `www3.fsonline.app` | Alive |
+| mdesa (`www3.fsonline.app`) | Alive |
 | Sevenmovies / animecurx | Home alive; source API needs proper playback-token dance (403 without it) |
 | **Reyna** (`api.reallyfast.xyz` via `goated.cx`) | **DOWN** — CF 1016 on challenge/resolve. Source is currently broken in prod. |
 | MoviesAPI scrapify | Discover JSON works; scrapify POST 405; not a clean public HLS API |

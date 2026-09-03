@@ -183,7 +183,7 @@ export const SOURCE_SCORE_MATRIX: SourceScoreMatrix = {
         }
       }
     },
-    "fsonline": {
+    "mdesa": {
       "browser": {
         "movie": {
           "hit": 89.5,
@@ -363,7 +363,7 @@ export const SOURCE_SCORE_MATRIX: SourceScoreMatrix = {
         }
       }
     },
-    "cuevana3": {
+    "lisbon": {
       "browser": {
         "movie": {
           "hit": 36.8,

@@ -24,7 +24,7 @@ const matrix: SourceScoreMatrix = {
       browser: { movie: 10, show: 90, anime: 20 },
       extension: { movie: 10, show: 90, anime: 20 },
     },
-    fsonline: {
+    mdesa: {
       browser: { movie: 70, show: 70, anime: 60 },
       extension: { movie: 70, show: 70, anime: 60 },
     },
@@ -49,7 +49,7 @@ const westernMeta = {
 
 describe("orderSourceIdsForPlayback", () => {
   it("puts TQQ first on anime and hides it on western movies", () => {
-    const ids = ["reyna", "vidrock", "tqq", "anidap", "fsonline"];
+    const ids = ["reyna", "vidrock", "tqq", "anidap", "mdesa"];
     const animeOrder = orderSourceIdsForPlayback(
       ids,
       { env: "browser", mediaType: "movie", meta: animeMeta },
@@ -68,7 +68,7 @@ describe("orderSourceIdsForPlayback", () => {
   });
 
   it("ranks Reyna above Mai Sakurajima on shows when show score is higher", () => {
-    const ids = ["vidrock", "reyna", "fsonline"];
+    const ids = ["vidrock", "reyna", "mdesa"];
     const showOrder = orderSourceIdsForPlayback(
       ids,
       { env: "browser", mediaType: "show", meta: westernMeta },
@@ -109,7 +109,7 @@ describe("orderSourceIdsForPlayback", () => {
   });
 
   it("gives one unbenchmarked source a slot in the initial parallel race", () => {
-    const scoredIds = ["oneembed", "reyna", "fsonline", "vidrock"];
+    const scoredIds = ["oneembed", "reyna", "mdesa", "vidrock"];
     const scoredOrder = orderSourceIdsForPlayback(
       scoredIds,
       { env: "browser", mediaType: "movie", meta: westernMeta },
@@ -152,7 +152,7 @@ describe("orderSourceIdsForPlayback", () => {
   });
 
   it("on anime, ranks by anime hit rate and only lets specialists win ties", () => {
-    const ids = ["myanime", "fsonline", "oneembed", "tqq", "reyna"];
+    const ids = ["myanime", "mdesa", "oneembed", "tqq", "reyna"];
     const animeOrder = orderSourceIdsForPlayback(
       ids,
       { env: "browser", mediaType: "movie", meta: animeMeta },
@@ -161,16 +161,16 @@ describe("orderSourceIdsForPlayback", () => {
     // TQQ and 1Embed both 100 — specialist wins the tie.
     expect(animeOrder.slice(0, 2)).toEqual(["tqq", "oneembed"]);
     // Weak anime-only source does not jump ahead of stronger generals.
-    expect(animeOrder.indexOf("fsonline")).toBeLessThan(
+    expect(animeOrder.indexOf("mdesa")).toBeLessThan(
       animeOrder.indexOf("myanime"),
     );
-    expect(animeOrder.indexOf("fsonline")).toBeLessThan(
+    expect(animeOrder.indexOf("mdesa")).toBeLessThan(
       animeOrder.indexOf("reyna"),
     );
   });
 
   it("still ranks TQQ first when anime meta only has Animation + JP country", () => {
-    const ids = ["reyna", "oneembed", "tqq", "fsonline"];
+    const ids = ["reyna", "oneembed", "tqq", "mdesa"];
     const order = orderSourceIdsForPlayback(
       ids,
       {
@@ -190,17 +190,17 @@ describe("orderSourceIdsForPlayback", () => {
 
 describe("prioritizeConfiguredSources", () => {
   it("puts debrid first when token is configured", () => {
-    const ids = ["vidlink", "fsonline", "debrid", "cornclick"];
+    const ids = ["vidlink", "mdesa", "debrid", "cornclick"];
     expect(
       prioritizeConfiguredSources(ids, { hasDebridToken: true }),
-    ).toEqual(["debrid", "vidlink", "fsonline", "cornclick"]);
+    ).toEqual(["debrid", "vidlink", "mdesa", "cornclick"]);
   });
 
   it("removes debrid without token", () => {
-    const ids = ["vidlink", "debrid", "fsonline"];
+    const ids = ["vidlink", "debrid", "mdesa"];
     expect(
       prioritizeConfiguredSources(ids, { hasDebridToken: false }),
-    ).toEqual(["vidlink", "fsonline"]);
+    ).toEqual(["vidlink", "mdesa"]);
   });
 });
 

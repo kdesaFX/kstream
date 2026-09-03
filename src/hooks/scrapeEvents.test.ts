@@ -17,7 +17,7 @@ function seg(id: string, status: ScrapingSegment["status"]): ScrapingSegment {
 const order: ScrapingItems[] = [
   { id: "oneembed", children: [] },
   { id: "reyna", children: [] },
-  { id: "fsonline", children: [] },
+  { id: "mdesa", children: [] },
 ];
 
 describe("scrape race focus", () => {
@@ -25,7 +25,7 @@ describe("scrape race focus", () => {
     const sources = {
       oneembed: seg("oneembed", "pending"),
       reyna: seg("reyna", "waiting"),
-      fsonline: seg("fsonline", "waiting"),
+      mdesa: seg("mdesa", "waiting"),
     };
     expect(currentSourceOnStart("oneembed", "reyna", sources, order)).toBe(
       "oneembed",
@@ -55,7 +55,7 @@ describe("scrape race focus", () => {
     const sources = {
       oneembed: seg("oneembed", "notfound"),
       reyna: seg("reyna", "pending"),
-      fsonline: seg("fsonline", "waiting"),
+      mdesa: seg("mdesa", "waiting"),
     };
     expect(currentSourceAfterUpdate("oneembed", sources, order)).toBe("reyna");
   });

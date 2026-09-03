@@ -666,20 +666,32 @@ export const usePreferencesStore = create(
         healMidDiscoverPreference(merged);
         healDefaultHighDeviceProfile(merged);
 
-        // Goated was renamed to Reyna — rewrite saved prefs so scrapes still hit it.
-        const renameSourceId = (id: string) => (id === "goated" ? "reyna" : id);
+        // Source ID renames — rewrite saved prefs so scrapes still hit them.
+        const renameSourceId = (id: string) => {
+          if (id === "goated") return "reyna";
+          if (id === "fsonline") return "mdesa";
+          if (id === "cuevana3") return "lisbon";
+          return id;
+        };
         if (Array.isArray(merged.sourceOrder)) {
           merged.sourceOrder = merged.sourceOrder.map(renameSourceId);
         }
-        if (merged.lastSuccessfulSource === "goated") {
-          merged.lastSuccessfulSource = "reyna";
+        if (
+          merged.lastSuccessfulSource === "goated" ||
+          merged.lastSuccessfulSource === "fsonline" ||
+          merged.lastSuccessfulSource === "cuevana3"
+        ) {
+          merged.lastSuccessfulSource = renameSourceId(
+            merged.lastSuccessfulSource,
+          );
         }
         if (merged.preferredSourceByTitle) {
           for (const [tmdbId, sourceId] of Object.entries(
             merged.preferredSourceByTitle,
           )) {
-            if (sourceId === "goated") {
-              merged.preferredSourceByTitle[tmdbId] = "reyna";
+            const next = renameSourceId(sourceId);
+            if (next !== sourceId) {
+              merged.preferredSourceByTitle[tmdbId] = next;
             }
           }
         }
