@@ -127,9 +127,7 @@ export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
           const titleKey = mediaTitleKey(item);
 
           const idOwner = claimedIds.get(id);
-          const titleOwner = titleKey
-            ? claimedTitles.get(titleKey)
-            : undefined;
+          const titleOwner = titleKey ? claimedTitles.get(titleKey) : undefined;
 
           const idTaken =
             idOwner !== undefined && idOwner !== priority && idOwner < priority;
