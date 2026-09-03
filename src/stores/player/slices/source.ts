@@ -864,15 +864,32 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
     if (!mirrors?.length) return false;
 
     const [next, ...rest] = mirrors;
+    const startAt = store.progress.time;
+    const previousAutomatic =
+      useQualityStore.getState().quality.automaticQuality;
+    const fallback: QualityHopFallback | null = store.source
+      ? {
+          source: store.source,
+          captions: store.captionList,
+          sourceId: store.sourceId,
+          embedId: store.embedId,
+          quality: store.currentQuality,
+          automaticQuality: previousAutomatic,
+          startAt,
+          expiresAt: Date.now() + QUALITY_HOP_PROBATION_MS,
+        }
+      : null;
     set((s) => {
       s.sourceMirrorStreams[sourceId] = rest;
       s.interface.error = undefined;
       s.status = playerStatus.PLAYING;
+      s.qualityHopFallback = fallback;
+      s.mediaPlaying.hasPlayedOnce = false;
     });
     store.setSource(
       convertRunoutputToSource({ stream: next }),
       convertProviderCaption(next.captions),
-      store.progress.time,
+      startAt,
     );
     return true;
   },

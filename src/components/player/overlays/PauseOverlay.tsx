@@ -21,6 +21,8 @@ interface PauseDetails {
 
 export function PauseOverlay() {
   const isPaused = usePlayerStore((s) => s.mediaPlaying.isPaused);
+  const isLoading = usePlayerStore((s) => s.mediaPlaying.isLoading);
+  const qualityHopFallback = usePlayerStore((s) => s.qualityHopFallback);
   const status = usePlayerStore((s) => s.status);
   const meta = usePlayerStore((s) => s.meta);
   const { duration } = usePlayerStore((s) => s.progress);
@@ -47,7 +49,16 @@ export function PauseOverlay() {
   }, [isPaused, status]);
 
   useEffect(() => {
-    if (isPaused && hasPlayedRef.current && status === playerStatus.PLAYING) {
+    // Buffering / quality hops briefly pause the element — that is not a
+    // viewer pause, so don't schedule the cinematic overlay.
+    const realPause =
+      isPaused &&
+      !isLoading &&
+      !qualityHopFallback &&
+      hasPlayedRef.current &&
+      status === playerStatus.PLAYING;
+
+    if (realPause) {
       timerRef.current = setTimeout(() => {
         setOverlayVisible(true);
       }, 2000);
@@ -65,11 +76,12 @@ export function PauseOverlay() {
         timerRef.current = null;
       }
     };
-  }, [isPaused, status]);
+  }, [isPaused, isLoading, qualityHopFallback, status]);
 
   let shouldShow = overlayVisible && enablePauseOverlay;
   if (isMobile && status === playerStatus.SCRAPING) shouldShow = false;
   if (isMobile && showTargets) shouldShow = false;
+  if (isLoading || qualityHopFallback) shouldShow = false;
 
   useEffect(() => {
     let mounted = true;

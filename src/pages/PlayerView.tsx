@@ -13,7 +13,6 @@ import { prepareStream } from "@/backend/extension/streams";
 import { DetailedMeta } from "@/backend/metadata/getmeta";
 import { usePlayer } from "@/components/player/hooks/usePlayer";
 import { usePlayerMeta } from "@/components/player/hooks/usePlayerMeta";
-import { UnifiedScrapingLoader } from "@/components/player/internals/UnifiedScrapingLoader";
 import { convertProviderCaption } from "@/components/player/utils/captions";
 import { convertRunoutputToSource } from "@/components/player/utils/convertRunoutputToSource";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
@@ -117,8 +116,6 @@ export function RealPlayerView() {
   } = usePlayer();
   const sourceId = usePlayerStore((s) => s.sourceId);
   const hasPlayedOnce = usePlayerStore((s) => s.mediaPlaying.hasPlayedOnce);
-  const isPlaybackLoading = usePlayerStore((s) => s.mediaPlaying.isLoading);
-  const qualityHopFallback = usePlayerStore((s) => s.qualityHopFallback);
   const storeMeta = usePlayerStore((s) => s.meta);
   const { setPlayerMeta, scrapeMedia } = usePlayerMeta();
   const backUrl = useLastNonPlayerLink();
@@ -391,17 +388,6 @@ export function RealPlayerView() {
   // that before any frames buffer, which used to lock titles onto dead streams).
   const watchedSeconds = usePlayerStore((s) => s.progress.time);
   const metaTmdbId = storeMeta?.tmdbId;
-  const preparingPlayback =
-    status === playerStatus.PLAYING &&
-    !hasPlayedOnce &&
-    isPlaybackLoading &&
-    // Quality/audio hops search in the background — don't cover the stage
-    // with the scrape loader again (that was the flicker after ethan).
-    !qualityHopFallback;
-  const preparingTitle =
-    storeMeta?.type === "show" && storeMeta.episode
-      ? `${storeMeta.title} · S${storeMeta.season?.number ?? 1}E${storeMeta.episode.number}`
-      : storeMeta?.title;
   useEffect(() => {
     if (!enableLastSuccessfulSource || !sourceId || watchedSeconds < 5) return;
     rememberSuccessfulSource(metaTmdbId, sourceId);
@@ -470,16 +456,6 @@ export function RealPlayerView() {
           autoResumeExhausted={playbackRetryBudget.current.isExhausted(
             MAX_PLAYBACK_AUTO_RETRIES,
           )}
-        />
-      ) : null}
-      {preparingPlayback ? (
-        <UnifiedScrapingLoader
-          poster={storeMeta?.poster}
-          title={preparingTitle}
-          sourceOrder={[]}
-          sources={{}}
-          statusKey="player.scraping.unified.buffering"
-          className="z-20"
         />
       ) : null}
     </PlayerPart>
