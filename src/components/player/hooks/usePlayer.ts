@@ -93,6 +93,7 @@ export function usePlayer() {
         s.embedId = null;
         s.interface.error = undefined;
         s.mediaPlaying.hasPlayedOnce = false;
+        s.quietSourceRecovery = false;
       });
       const display = usePlayerStore.getState().display;
       display?.load({

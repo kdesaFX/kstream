@@ -269,6 +269,7 @@ export function RealPlayerView() {
         s.sourceId = null;
         s.embedId = null;
         s.mediaPlaying.hasPlayedOnce = false;
+        s.quietSourceRecovery = true;
       });
     },
     [setResumeFromSourceIdInStore],
@@ -286,6 +287,7 @@ export function RealPlayerView() {
       s.sourceId = null;
       s.embedId = null;
       s.mediaPlaying.hasPlayedOnce = false;
+      s.quietSourceRecovery = true;
     });
   }, [setResumeFromSourceIdInStore]);
 
@@ -443,6 +445,7 @@ export function RealPlayerView() {
               s.sourceId = null;
               s.embedId = null;
               s.interface.error = undefined;
+              s.quietSourceRecovery = false;
             });
             setStatus(playerStatus.SCRAPING);
           }}

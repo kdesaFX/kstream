@@ -230,6 +230,11 @@ export interface SourceSlice {
   failedSourcesPerMedia: Record<string, string[]>; // mediaKey -> array of failed sourceIds
   failedEmbedsPerMedia: Record<string, Record<string, string[]>>; // mediaKey -> sourceId -> array of failed embedIds
   resumeFromSourceId: string | null;
+  /**
+   * After a stream hit then died (auto-resume / wrong-runtime), scrape the next
+   * source without bouncing the UI back to the full “Asking …” checker.
+   */
+  quietSourceRecovery: boolean;
   /** Sources dropped for playing the wrong-length video, for the current media. */
   wrongRuntimeSkips: number;
   setStatus(status: PlayerStatus): void;
@@ -389,6 +394,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   failedSourcesPerMedia: {},
   failedEmbedsPerMedia: {},
   resumeFromSourceId: null,
+  quietSourceRecovery: false,
   wrongRuntimeSkips: 0,
   qualityHopFallback: null,
   caption: {
@@ -436,6 +442,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
         // Don't carry "start after source X" into the next episode — that
         // short-circuits anime mirrors (TQQ) and jumps to later sources.
         s.resumeFromSourceId = null;
+        s.quietSourceRecovery = false;
         s.wrongRuntimeSkips = 0;
         // Stale hop state must not restore a prior manual quality lock on the
         // next episode or reload.
@@ -538,6 +545,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       // Leaving it true blocks playback-error auto-resume (hasPlayedOnce &&
       // isPaused) and can pin preferred sources before this stream works.
       s.mediaPlaying.hasPlayedOnce = false;
+      s.quietSourceRecovery = false;
       s.audioTracks = [];
       s.currentAudioTrack = null;
       if (stream.audioLanguage) {
@@ -767,6 +775,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       // A bad mirror only rules out that mirror, so let the same source offer
       // its next one; a bad source is skipped entirely.
       s.resumeFromSourceId = embedId ? null : sourceId;
+      s.quietSourceRecovery = true;
       s.status = playerStatus.SCRAPING;
     });
   },
@@ -1021,6 +1030,7 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.failedSourcesPerMedia = {};
       s.failedEmbedsPerMedia = {};
       s.resumeFromSourceId = null;
+      s.quietSourceRecovery = false;
       s.wrongRuntimeSkips = 0;
       s.qualityHopFallback = null;
       this.clearTranslateTask();

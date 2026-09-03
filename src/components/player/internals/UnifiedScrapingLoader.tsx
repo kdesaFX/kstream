@@ -53,6 +53,11 @@ export interface UnifiedScrapingLoaderProps {
   activeSourceId?: string;
   /** Override the status line (e.g. metadata load). */
   statusKey?: string;
+  /**
+   * Playback recovery: keep the poster stage but hide “Asking …” so a failed
+   * hit doesn’t look like the whole check restarted from scratch.
+   */
+  quiet?: boolean;
   className?: string;
 }
 
@@ -63,6 +68,7 @@ export function UnifiedScrapingLoader({
   sources = {},
   activeSourceId,
   statusKey,
+  quiet = false,
   className,
 }: UnifiedScrapingLoaderProps) {
   const { t } = useTranslation();
@@ -72,6 +78,14 @@ export function UnifiedScrapingLoader({
     () => stickyAskingLabel(activeSourceId, sourceOrder, sources),
     [activeSourceId, sourceOrder, sources],
   );
+
+  if (quiet) {
+    return (
+      <PlayerStageOverlay poster={poster} className={className}>
+        <span className="sr-only">{t("player.scraping.retryNextSource")}</span>
+      </PlayerStageOverlay>
+    );
+  }
 
   const statusLine = statusKey
     ? t(statusKey)
