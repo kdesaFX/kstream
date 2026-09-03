@@ -1469,10 +1469,10 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         }
       }
 
-      // Swapping to another stream still has to release the old one; keep the
-      // duration/time/mute state so the UI doesn't flicker back to zero.
-      if (ops.source) detachCurrentStream();
-      else unloadSource();
+      // Clear the previous frame before attaching a newly scraped stream.
+      // Keeping the element's old source until the next manifest/frame arrives
+      // makes a resume look like two streams overlap behind the source checker.
+      unloadSource();
       automaticQuality = ops.automaticQuality;
       preferenceQuality = ops.preferredQuality;
       lastInferredQuality = null;
