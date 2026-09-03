@@ -19,7 +19,6 @@ import { DesktopAppSettingsModal } from "@/components/overlays/desktopAppSetting
 import { GamepadControlsModal } from "@/components/overlays/GamepadControlsModal";
 import { KeyboardCommandsEditModal } from "@/components/overlays/KeyboardCommandsEditModal";
 import { KeyboardCommandsModal } from "@/components/overlays/KeyboardCommandsModal";
-import { NotificationModal } from "@/components/overlays/notificationsModal";
 import { SupportInfoModal } from "@/components/overlays/SupportInfoModal";
 import { TipJarModal } from "@/components/overlays/tipJarModal";
 import { SimklAuthHandler } from "@/components/auth/SimklAuthHandler";
@@ -245,7 +244,6 @@ function App() {
       <LanguageProvider />
       <UpdateNotice />
       <DesktopChromeBridge />
-      <NotificationModal id="notifications" />
       <TipJarModal id="tip-jar" />
       <DownloadModal id="download" />
       <OptimizeEffectsSync />

@@ -5,7 +5,6 @@ import { useMeasure } from "react-use";
 import { Link } from "react-router-dom";
 
 import { NoUserAvatar, UserAvatar } from "@/components/Avatar";
-import { IconPatch } from "@/components/buttons/IconPatch";
 import { SearchBarInput } from "@/components/form/SearchBar";
 import { Icon, Icons } from "@/components/Icon";
 import { LinksDropdown } from "@/components/layout/LinksDropdown";
@@ -15,7 +14,6 @@ import {
 } from "@/components/layout/navControl";
 import { useDownloadModal } from "@/components/overlays/downloadModal";
 import { useOptimizeModal } from "@/components/overlays/optimizeModal";
-import { useNotifications } from "@/components/overlays/notificationsModal";
 import { useSlashFocus } from "@/components/player/hooks/useSlashFocus";
 import { Lightbar } from "@/components/utils/Lightbar";
 import { useAuth } from "@/hooks/auth/useAuth";
@@ -181,7 +179,6 @@ export function Navigation(props: NavigationProps) {
   const { loggedIn } = useAuth();
   const { isMobile } = useIsMobile();
   const [scrollPosition, setScrollPosition] = useState(0);
-  const { openNotifications, getUnreadCount } = useNotifications();
   const { openDownloadModal } = useDownloadModal();
   const isDesktopApp = useIsDesktopApp();
   const showDownload = !isDesktopApp;
@@ -344,32 +341,6 @@ export function Navigation(props: NavigationProps) {
                     </div>
                   </button>
                 ) : null}
-                <a
-                  onClick={() => openNotifications()}
-                  rel="noreferrer"
-                  className="text-white tabbable rounded-full backdrop-blur-lg relative flex h-10 w-10 md:h-[2.67rem] md:w-[2.67rem] shrink-0 items-center justify-center"
-                >
-                  <IconPatch
-                    icon={Icons.BELL}
-                    clickable
-                    navigation
-                    className={
-                      isMobile
-                        ? "[&>div]:!h-10 [&>div]:!w-10 [&>div]:!text-[1.25rem] [&>div>span]:!text-[1.25rem] [&>div>span>svg]:!h-5 [&>div>span>svg]:!w-5"
-                        : "[&>div]:!h-[2.67rem] [&>div]:!w-[2.67rem] [&>div]:!text-[1.25rem] [&>div>span]:!text-[1.25rem] [&>div>span>svg]:!h-5 [&>div>span>svg]:!w-5"
-                    }
-                  />
-                  {(() => {
-                    const count = getUnreadCount();
-                    const shouldShow =
-                      typeof count === "number" ? count > 0 : count === "99+";
-                    return shouldShow ? (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] aspect-square flex items-center justify-center">
-                        {count}
-                      </span>
-                    ) : null;
-                  })()}
-                </a>
               </div>
             </div>
 
