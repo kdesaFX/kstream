@@ -55,7 +55,9 @@ describe("video display autoplay on load", () => {
     display.load(loadOps(mp4("https://example.com/working.mp4")));
     const fresh = stubVideo();
     display.processVideoElement(fresh.video);
-    fresh.video.dispatchEvent(new Event("canplay"));
+    // Some providers only signal the first decoded frame after a resume,
+    // without a subsequent canplay event.
+    fresh.video.dispatchEvent(new Event("loadeddata"));
 
     expect(fresh.play).toHaveBeenCalled();
   });

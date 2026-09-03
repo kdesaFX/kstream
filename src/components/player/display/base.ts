@@ -940,6 +940,12 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
           // Start playback once the manifest is ready (gesture is already gone).
           tryAutoplay();
         });
+        hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+          // Calling play while HLS attaches makes the browser begin buffering
+          // immediately. Waiting solely for MANIFEST_PARSED can leave a resumed
+          // stream paused until the viewer clicks the video element.
+          tryAutoplay();
+        });
         hls.on(Hls.Events.MANIFEST_LOADED, () => {
           if (!hls) return;
 
@@ -1128,6 +1134,11 @@ export function makeVideoElementDisplayInterface(): DisplayInterface {
         emit("duration", lastValidDuration);
       }
       // Native HLS on iOS may not fire canplay until play() — try early.
+      tryAutoplay();
+    });
+    onMedia("loadeddata", () => {
+      // Some provider streams expose their first frame but do not raise
+      // `canplay` again after a resume seek. The stream is playable here.
       tryAutoplay();
     });
     onMedia("canplay", () => {
