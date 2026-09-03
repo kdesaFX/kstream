@@ -34,15 +34,30 @@ describe("homeWarmup cache", () => {
       language: "en",
       media: sampleMedia,
       fetchedAt: Date.now(),
+      personalized: false,
     });
 
     expect(peekHomeWarmup("tvshows", "en")).toBeNull();
     expect(peekHomeWarmup("movies", "fr")).toBeNull();
     expect(peekHomeWarmup("movies", "en")).toEqual(sampleMedia);
 
-    expect(consumeHomeWarmup("movies", "en")).toEqual(sampleMedia);
+    expect(consumeHomeWarmup("movies", "en")).toEqual({
+      media: sampleMedia,
+      personalized: false,
+    });
     expect(peekHomeWarmup("movies", "en")).toBeNull();
     expect(consumeHomeWarmup("movies", "en")).toBeNull();
+  });
+
+  it("preserves the personalized flag on consume", () => {
+    setHomeWarmupCacheForTests({
+      category: "movies",
+      language: "en",
+      media: sampleMedia,
+      fetchedAt: Date.now(),
+      personalized: true,
+    });
+    expect(consumeHomeWarmup("movies", "en")?.personalized).toBe(true);
   });
 });
 

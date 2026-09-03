@@ -4,9 +4,13 @@ import {
   fetchFeaturedHeroMedia,
   preloadFeaturedBackdrop,
 } from "@/pages/discover/lib/featuredHero";
+import { hasFeaturedAlgorithmSignal } from "@/pages/discover/hooks/usePersonalRecommendations";
 import { useDiscoverStore } from "@/stores/discover";
 import { useLanguageStore } from "@/stores/language";
 import { usePreferencesStore } from "@/stores/preferences";
+import { useProgressStore } from "@/stores/progress";
+import { useRatingsStore } from "@/stores/ratings";
+import { useWatchHistoryStore } from "@/stores/watchHistory";
 import { getTmdbLanguageCode } from "@/utils/locale/language";
 
 export const BOOT_WARMUP_MIN_MS = 400;
@@ -17,7 +21,19 @@ export interface HomeWarmupCache {
   language: string;
   media: FeaturedMedia[];
   fetchedAt: number;
+  /** True when slides were built with algorithm / high-% watch signal. */
+  personalized: boolean;
 }
+
+export interface ConsumedHomeWarmup {
+  media: FeaturedMedia[];
+  personalized: boolean;
+}
+
+type PersistApi = {
+  hasHydrated: () => boolean;
+  onFinishHydration: (cb: () => void) => () => void;
+};
 
 let homeWarmupCache: HomeWarmupCache | null = null;
 
@@ -35,6 +51,27 @@ export async function settleWithTimeout<T>(
   return Promise.race([promise, sleep(ms).then(() => undefined)]);
 }
 
+/** Wait for a zustand persist store (or timeout) so taste isn't empty on boot. */
+export function waitForPersistHydration(
+  persist: PersistApi,
+  ms = 600,
+): Promise<void> {
+  if (persist.hasHydrated()) return Promise.resolve();
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      resolve();
+    };
+    const unsub = persist.onFinishHydration(finish);
+    window.setTimeout(() => {
+      unsub();
+      finish();
+    }, ms);
+  });
+}
+
 export function peekHomeWarmup(
   category: FeaturedHeroCategory,
   language: string,
@@ -49,15 +86,24 @@ export function peekHomeWarmup(
   return homeWarmupCache.media;
 }
 
-/** Read and clear a matching warmup cache entry. */
+/** Read and clear a matching warmup cache entry (includes personalization flag). */
 export function consumeHomeWarmup(
   category: FeaturedHeroCategory,
   language: string,
-): FeaturedMedia[] | null {
-  const media = peekHomeWarmup(category, language);
-  if (!media) return null;
+): ConsumedHomeWarmup | null {
+  if (!homeWarmupCache) return null;
+  if (
+    homeWarmupCache.category !== category ||
+    homeWarmupCache.language !== language
+  ) {
+    return null;
+  }
+  const consumed: ConsumedHomeWarmup = {
+    media: homeWarmupCache.media,
+    personalized: homeWarmupCache.personalized,
+  };
   homeWarmupCache = null;
-  return media;
+  return consumed;
 }
 
 /** Test helper — inject or clear the module cache. */
@@ -83,11 +129,22 @@ export async function warmupHomeHero(): Promise<HomeWarmupCache | null> {
     const userLanguage = useLanguageStore.getState().language;
     const language = getTmdbLanguageCode(userLanguage);
 
+    // Local loves/progress often live in persist — wait briefly so we don't
+    // bake a generic Planet-of-the-Apes hero that later flickers to anime.
+    await Promise.all([
+      waitForPersistHydration(useRatingsStore.persist),
+      waitForPersistHydration(useProgressStore.persist),
+      waitForPersistHydration(useWatchHistoryStore.persist),
+    ]);
+
+    const isTVShow = category === "tvshows";
+    const personalized =
+      category !== "manga" && hasFeaturedAlgorithmSignal(isTVShow);
+
     const media = await fetchFeaturedHeroMedia({
       category,
       language,
-      // Boot often races ahead of auth restore — discover pool is enough.
-      includePersonalization: false,
+      includePersonalization: personalized,
     });
 
     homeWarmupCache = {
@@ -95,6 +152,7 @@ export async function warmupHomeHero(): Promise<HomeWarmupCache | null> {
       language,
       media,
       fetchedAt: Date.now(),
+      personalized,
     };
 
     if (media[0]) {

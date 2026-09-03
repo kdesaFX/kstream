@@ -16,6 +16,7 @@ import {
   type FeaturedMedia,
   fetchFeaturedHeroMedia,
 } from "@/pages/discover/lib/featuredHero";
+import { hasFeaturedAlgorithmSignal } from "@/pages/discover/hooks/usePersonalRecommendations";
 import { consumeHomeWarmup } from "@/setup/homeWarmup";
 import { preloadPlayerView } from "@/setup/routePreload";
 import { useDiscoverStore } from "@/stores/discover";
@@ -264,8 +265,10 @@ export function FeaturedCarousel({
   const progressTick = useProgressStore((s) =>
     Object.keys(s.items).sort().join(","),
   );
+  const mediaRef = useRef<FeaturedMedia[]>([]);
 
   const currentMedia = media[currentIndex];
+  mediaRef.current = media;
   const bookmarkId =
     currentMedia && currentMedia.type !== "manga"
       ? String(currentMedia.id)
@@ -376,28 +379,42 @@ export function FeaturedCarousel({
       if (cancelled) return;
       setMedia(items);
       setIsLoading(false);
+      setCurrentIndex(0);
+      setContentOpacity(1);
     };
 
     const fetchFeaturedMedia = async () => {
-      // Boot warmup skips personalization (auth race). Use it for first paint
-      // only — always refresh with the algorithm when we have taste signal,
-      // otherwise hard refresh sticks on the generic Trakt/TMDB pool.
+      const isTVShow = effectiveCategory === "tvshows";
+      const hasTaste =
+        effectiveCategory !== "manga" && hasFeaturedAlgorithmSignal(isTVShow);
       const warmed = consumeHomeWarmup(effectiveCategory, formattedLanguage);
-      const hasWarm = Boolean(warmed && warmed.length > 0);
-      if (hasWarm) {
+
+      // Never paint a generic warmup when the user has algorithm signal —
+      // that was the Planet-of-the-Apes → anime flicker on open.
+      const warmOk =
+        Boolean(warmed && warmed.media.length > 0) &&
+        (!hasTaste || Boolean(warmed?.personalized));
+
+      if (warmOk && warmed) {
         setLogoUrl(undefined);
         setLogoReady(false);
         setImdbRatings({});
         setReleaseInfo(null);
         setCurrentIndex(0);
         setContentOpacity(1);
-        applyMedia(warmed!);
-      } else {
-        setIsLoading(true);
-        setLogoUrl(undefined);
-        setLogoReady(false);
-        setImdbRatings({});
-        setReleaseInfo(null);
+        applyMedia(warmed.media);
+        // Boot already built the right pool — skip a second fetch that
+        // would only reshuffle / flicker the first slide.
+        return;
+      }
+
+      const hadSlides = mediaRef.current.length > 0;
+      if (!hadSlides) setIsLoading(true);
+      setLogoUrl(undefined);
+      setLogoReady(false);
+      setImdbRatings({});
+      setReleaseInfo(null);
+      if (!hadSlides) {
         setCurrentIndex(0);
         setContentOpacity(1);
       }
@@ -423,8 +440,7 @@ export function FeaturedCarousel({
         applyMedia(items);
       } catch (error) {
         console.error("Error fetching featured media:", error);
-        // Keep warmup slides if the personalized refresh fails.
-        if (!cancelled && !hasWarm) {
+        if (!cancelled) {
           setMedia([]);
           setIsLoading(false);
         }
