@@ -8,11 +8,12 @@ import { MediaCard } from "@/components/media/MediaCard";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { CarouselNavButtons } from "@/pages/discover/components/CarouselNavButtons";
-import { useDedupedMangaCarouselMedia } from "@/pages/discover/components/useDedupedMangaCarouselMedia";
 import { useMangaRecommendations } from "@/pages/discover/hooks/useMangaRecommendations";
 import { useDiscoverStore } from "@/stores/discover";
 import type { MangaProgressItem } from "@/stores/mangaProgress";
 import type { MediaItem } from "@/utils/media/mediaTypes";
+
+import { useDedupedMedia } from "./CarouselDedupeContext";
 
 const SKELETON_COUNT = 10;
 const EAGER_CARDS = 8;
@@ -40,7 +41,9 @@ export function MangaRecommendationsCarousel({
   const { isMobile } = useIsMobile();
   const browser = !!window.chrome;
   const recommendationSeeds = useDiscoverStore((s) => s.recommendationSeeds);
-  const setRecommendationSeed = useDiscoverStore((s) => s.setRecommendationSeed);
+  const setRecommendationSeed = useDiscoverStore(
+    (s) => s.setRecommendationSeed,
+  );
   const [selectedId, setSelectedId] = useState("");
   const [selectedTitle, setSelectedTitle] = useState("");
   const isScrollingRef = useRef(false);
@@ -66,7 +69,11 @@ export function MangaRecommendationsCarousel({
     if (!el) return;
     const check = () => {
       const rect = el.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0 && rect.top < window.innerHeight + 400) {
+      if (
+        rect.width > 0 &&
+        rect.height > 0 &&
+        rect.top < window.innerHeight + 400
+      ) {
         setVisibleLoad(true);
       }
     };
@@ -114,20 +121,20 @@ export function MangaRecommendationsCarousel({
     [sortedSources, selectedId],
   );
 
-  const { media: rawMedia, sectionTitle, hasLoaded, error, isLoading } =
-    useMangaRecommendations(
-      selectedId,
-      selectedTitle,
-      selectedSource?.item.tags,
-      shouldFetch,
-    );
-
-  const { media, isBackfilling } = useDedupedMangaCarouselMedia(dedupePriority, rawMedia, {
-    enabled: shouldFetch,
+  const {
+    media: rawMedia,
+    sectionTitle,
     hasLoaded,
+    error,
     isLoading,
-    kind: "recommendations",
-  });
+  } = useMangaRecommendations(
+    selectedId,
+    selectedTitle,
+    selectedSource?.item.tags,
+    shouldFetch,
+  );
+
+  const media = useDedupedMedia(dedupePriority, rawMedia);
   const categorySlug = "manga-because-you-read";
 
   const recommendationOptions = useMemo(
@@ -168,7 +175,6 @@ export function MangaRecommendationsCarousel({
   const shouldHide =
     hasLoaded &&
     !isLoading &&
-    !isBackfilling &&
     media.length === 0 &&
     (Boolean(error) || rawMedia.length === 0);
   if (shouldHide) return null;
@@ -178,7 +184,10 @@ export function MangaRecommendationsCarousel({
       <div className="flex items-center justify-between px-4 mt-2">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl cursor-default font-bold text-white md:text-2xl pl-0 text-balance">
-            {sectionTitle || t("discover.carousel.title.manga.recommended", { title: selectedTitle })}
+            {sectionTitle ||
+              t("discover.carousel.title.manga.recommended", {
+                title: selectedTitle,
+              })}
           </h2>
           {sortedSources.length > 1 ? (
             <div className="relative pr-4">
