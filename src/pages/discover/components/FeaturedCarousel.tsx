@@ -894,10 +894,10 @@ export function FeaturedCarousel({
                 height={220}
                 decoding="async"
                 className={classNames(
-                  "no-fade w-auto h-auto object-contain bg-transparent",
+                  "no-fade w-auto h-auto object-contain bg-transparent title-logo-legible",
                   isMobile
-                    ? "mx-auto mb-4 max-w-[min(92vw,22rem)] max-h-[22vh] drop-shadow-[0_8px_28px_rgba(0,0,0,0.85)]"
-                    : "mb-6 max-h-[20vh] max-w-[14rem] drop-shadow-2xl md:max-w-[22rem]",
+                    ? "mx-auto mb-4 max-w-[min(92vw,22rem)] max-h-[22vh]"
+                    : "mb-6 max-h-[20vh] max-w-[14rem] md:max-w-[22rem]",
                 )}
                 style={{ background: "none" }}
               />

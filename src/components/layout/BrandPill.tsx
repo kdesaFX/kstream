@@ -6,8 +6,33 @@ import {
   navControlSurface,
 } from "@/components/layout/navControl";
 
-/** Cinejoy-style multi-layer drop shadow for a bare brand mark over hero art. */
-const logoLegibleClass = "logo-legible";
+/** Vector broadcast mark — CSS drop-shadow follows paths; PNG fringe looked broken. */
+function BrandMark({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className={className}
+      aria-hidden
+      focusable="false"
+    >
+      <circle cx="50" cy="50" r="8" fill="currentColor" />
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="6"
+        strokeLinecap="round"
+        d="M37 36c-8 8-8 20 0 28M63 36c8 8 8 20 0 28"
+      />
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="6"
+        strokeLinecap="round"
+        d="M28 27c-13 13-13 33 0 46M72 27c13 13 13 33 0 46"
+      />
+    </svg>
+  );
+}
 
 export function BrandPill(props: {
   clickable?: boolean;
@@ -18,45 +43,23 @@ export function BrandPill(props: {
 }) {
   const { t } = useTranslation();
 
-  // Header / hero: bare mark (+ optional name) with drop shadow — no frosted pill.
+  // Header / hero: cinejoy-style bare mark only (no wordmark, no pill).
   if (props.header || props.minimal) {
     return (
       <div
         className={classNames(
-          "flex items-center gap-2 text-white",
-          props.minimal
-            ? "h-10"
-            : "h-10 md:h-11",
+          "flex items-center text-type-logo",
           props.clickable
             ? "transition-transform duration-300 hover:scale-110 active:scale-95"
             : "",
         )}
       >
-        <img
-          src="/logo.png?v=7"
-          alt={t("global.name")}
-          width={44}
-          height={44}
-          decoding="async"
+        <BrandMark
           className={classNames(
-            "no-fade shrink-0 object-contain select-none",
-            logoLegibleClass,
-            props.minimal
-              ? "h-9 w-9"
-              : "h-9 w-9 md:h-11 md:w-11",
+            "logo-legible h-9 w-9 shrink-0 select-none lg:h-11 lg:w-11",
           )}
-          draggable={false}
         />
-        {!props.minimal ? (
-          <span
-            className={classNames(
-              "hidden font-semibold text-white md:inline",
-              logoLegibleClass,
-            )}
-          >
-            {t("global.name")}
-          </span>
-        ) : null}
+        <span className="sr-only">{t("global.name")}</span>
       </div>
     );
   }
@@ -72,15 +75,7 @@ export function BrandPill(props: {
           : "",
       )}
     >
-      <img
-        src="/logo.png?v=7"
-        alt={t("global.name")}
-        width={20}
-        height={20}
-        decoding="async"
-        className="no-fade h-6 w-6 object-contain"
-        draggable={false}
-      />
+      <BrandMark className="h-6 w-6 shrink-0" />
       <span className="font-semibold text-white">{t("global.name")}</span>
     </div>
   );
