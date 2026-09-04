@@ -6,7 +6,7 @@ import { MediaItem } from "@/utils/media/mediaTypes";
 import { discoverMediaToMediaItem } from "@/utils/media/discoverMediaItem";
 
 import { CarouselNavButtons } from "./CarouselNavButtons";
-import { useDedupedCarouselMedia } from "./useDedupedCarouselMedia";
+import { useDedupedMedia } from "./CarouselDedupeContext";
 import { useSharedPersonalRecommendations } from "./PersonalRecommendationsProvider";
 
 interface PersonalRecommendationsCarouselProps {
@@ -35,26 +35,23 @@ export function PersonalRecommendationsCarousel({
   const isScrollingRef = useRef(false);
   const browser = !!window.chrome;
 
-  const { media: rawMedia, isLoading, sectionTitle, hasRecommendations } =
-    useSharedPersonalRecommendations(isTVShow, enabled);
+  const {
+    media: rawMedia,
+    isLoading,
+    sectionTitle,
+    hasRecommendations,
+  } = useSharedPersonalRecommendations(isTVShow, enabled);
 
   const genreFiltered = useMemo(() => {
     if (!genreId) return rawMedia;
     const genreNum = Number(genreId);
     if (!Number.isFinite(genreNum)) return rawMedia;
     return rawMedia.filter(
-      (m) =>
-        Array.isArray(m.genre_ids) && m.genre_ids.includes(genreNum),
+      (m) => Array.isArray(m.genre_ids) && m.genre_ids.includes(genreNum),
     );
   }, [rawMedia, genreId]);
 
-  const media = useDedupedCarouselMedia(dedupePriority, genreFiltered, {
-    genreId,
-    mediaType: isTVShow ? "tv" : "movie",
-    enabled,
-    isLoading,
-    resetKey: `for-you-${isTVShow ? "tv" : "movie"}`,
-  });
+  const media = useDedupedMedia(dedupePriority, genreFiltered);
 
   const categorySlug = `for-you-${isTVShow ? "tv" : "movie"}`;
 

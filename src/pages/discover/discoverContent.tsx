@@ -35,7 +35,9 @@ export function DiscoverContent() {
 
   const wrapCarousels = useCallback(
     (carousels: ReactNode[], dedupeKey: string) => (
-      <CarouselDedupeProvider key={dedupeKey}>{carousels}</CarouselDedupeProvider>
+      <CarouselDedupeProvider key={dedupeKey}>
+        {carousels}
+      </CarouselDedupeProvider>
     ),
     [],
   );
@@ -403,10 +405,7 @@ export function DiscoverContent() {
       );
     }
 
-    return wrapCarousels(
-      carousels,
-      `manga-dedupe-${mangaTagFilter ?? "all"}`,
-    );
+    return wrapCarousels(carousels, `manga-dedupe-${mangaTagFilter ?? "all"}`);
   };
 
   return (
@@ -420,21 +419,13 @@ export function DiscoverContent() {
 
       <WideContainer ultraWide classNames="!px-0">
         {/* Movies Tab */}
-        <div style={{ display: isMoviesTab ? "block" : "none" }}>
-          {renderMoviesContent()}
-        </div>
+        {isMoviesTab ? renderMoviesContent() : null}
 
         {/* TV Shows Tab */}
-        <div style={{ display: isTVShowsTab ? "block" : "none" }}>
-          {renderTVShowsContent()}
-        </div>
+        {isTVShowsTab ? renderTVShowsContent() : null}
 
         {/* Manga Tab */}
-        {enableMangaDiscover ? (
-          <div style={{ display: isMangaTab ? "block" : "none" }}>
-            {renderMangaContent()}
-          </div>
-        ) : null}
+        {enableMangaDiscover && isMangaTab ? renderMangaContent() : null}
       </WideContainer>
 
       <ScrollToTopButton />

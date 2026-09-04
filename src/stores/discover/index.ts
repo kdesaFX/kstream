@@ -41,11 +41,7 @@ interface DiscoverState {
 }
 
 function normalizeCategory(category: unknown): Category {
-  if (
-    category === "movies" ||
-    category === "tvshows" ||
-    category === "manga"
-  ) {
+  if (category === "movies" || category === "tvshows" || category === "manga") {
     return category;
   }
   // Drop legacy "foryou" / "editorpicks" (and anything else) onto movies
@@ -68,12 +64,22 @@ export const useDiscoverStore = create<DiscoverState>()(
         }),
       setSelectedGenreId: (id) => set({ selectedGenreId: id }),
       setRecommendationSeed: (media, seed) =>
-        set((state) => ({
-          recommendationSeeds: {
-            ...state.recommendationSeeds,
-            [media]: seed,
-          },
-        })),
+        set((state) => {
+          const current = state.recommendationSeeds[media];
+          if (
+            current?.id === seed.id &&
+            current.title === seed.title &&
+            current.manual === seed.manual
+          ) {
+            return state;
+          }
+          return {
+            recommendationSeeds: {
+              ...state.recommendationSeeds,
+              [media]: seed,
+            },
+          };
+        }),
       setLastView: (view) => set({ lastView: view }),
       clearLastView: () => set({ lastView: null }),
     }),

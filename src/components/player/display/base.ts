@@ -107,7 +107,7 @@ function pickBestLevelAtOrBelow(
 
 /**
  * Prefer a fast, playable start level.
- * Browser (no extension): start at 720p AVC — 1080 init through the same-origin
+ * Browser (no extension): start at 480p AVC — 1080 init through the same-origin
  * m3u8 proxy is multi-MB and regularly kills Nova; climb to 1080 after buffer.
  * Extension or desktop app: start at the highest AVC rung on the ladder.
  */
@@ -122,7 +122,7 @@ function pickBrowserStartLevel(levels: Level[]): Level | null {
     return sortLevelsByQuality(pool)[0] ?? null;
   }
   return (
-    pickBestLevelAtOrBelow(levels, 720) ??
+    pickBestLevelAtOrBelow(levels, 480) ??
     sortLevelsByQuality(levels)[0] ??
     null
   );
