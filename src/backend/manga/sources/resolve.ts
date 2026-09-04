@@ -43,7 +43,9 @@ export function isSparseMangaDexList(
   lastChapter?: string | null,
 ): boolean {
   if (chapters.length === 0) return true;
-  if (chapters.length <= 8) return true;
+  // MangaDex now caps guests at ~10 chapters/day, so a list this thin is
+  // indistinguishable from a licensed stub — always backfill from mirrors.
+  if (chapters.length <= 10) return true;
   const last = parseFloat(String(lastChapter ?? "").trim());
   if (Number.isFinite(last) && last >= 20 && chapters.length < last * 0.2) {
     return true;
@@ -126,13 +128,15 @@ export async function resolveReadableChapters(
     ]);
   }
 
-  // When MangaDex is licensed-hollow, prefer the bigger mirror catalog as the
-  // spine and only keep MD chapters that actually have pages.
-  const mdForMerge =
-    sparse && ((wcChapters?.length ?? 0) > mdChapters.length * 2 ||
-      (ckChapters?.length ?? 0) > mdChapters.length * 2)
-      ? mdChapters.filter((ch) => (ch.pages ?? 0) > 0)
-      : mdChapters;
+  // When MangaDex is sparse (licensed-hollow or guest-capped), prefer the
+  // larger mirror catalog as the spine and only keep MD chapters that actually
+  // have pages. A 1x (not just 2x) advantage suffices when MD is capped thin.
+  const betterMirror =
+    (wcChapters?.length ?? 0) > mdChapters.length ||
+    (ckChapters?.length ?? 0) > mdChapters.length;
+  const mdForMerge = sparse && betterMirror
+    ? mdChapters.filter((ch) => (ch.pages ?? 0) > 0)
+    : mdChapters;
 
   const merged = mergeChapterLists([
     { source: "mangadex", chapters: mdForMerge },
