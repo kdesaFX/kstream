@@ -4,9 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 
 import { WideContainer } from "@/components/layout/WideContainer";
-import { subscribeMobileNavSearch } from "@/components/layout/mobileNavSearch";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useIsMobile } from "@/hooks/useIsMobile";
 import { useRandomTranslation } from "@/hooks/useRandomTranslation";
 import { useSearchQuery } from "@/hooks/useSearchQuery";
 import { FeaturedCarousel } from "@/pages/discover/components/FeaturedCarousel";
@@ -87,34 +85,9 @@ export function HomePage() {
   const enableLowPerformanceMode = usePreferencesStore(
     (state) => state.enableLowPerformanceMode,
   );
-  const { isMobile } = useIsMobile();
   const homeSectionOrder = usePreferencesStore(
     (state) => state.homeSectionOrder,
   );
-  /** Bottom-nav Search on Featured mobile — reveal sticky bar + focus. */
-  const [forceNavSearch, setForceNavSearch] = useState(false);
-
-  useEffect(() => {
-    return subscribeMobileNavSearch(() => {
-      setForceNavSearch(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      window.setTimeout(() => {
-        document
-          .querySelector<HTMLInputElement>('input[name="kstream-nav-search"]')
-          ?.focus({ preventScroll: true });
-      }, 80);
-      window.setTimeout(() => {
-        document
-          .querySelector<HTMLInputElement>('input[name="kstream-nav-search"]')
-          ?.focus({ preventScroll: true });
-      }, 320);
-    });
-  }, []);
-
-  // Leave forced search chrome once the user is actively querying.
-  useEffect(() => {
-    if (s.searching) setForceNavSearch(false);
-  }, [s.searching]);
 
   const hasContinueWatching = useProgressStore((state) =>
     Object.values(state.items).some((item) => shouldShowProgress(item).show),
@@ -255,14 +228,10 @@ export function HomePage() {
 
   return (
     <HomeLayout
-      showBg={s.searching || forceNavSearch}
+      showBg={s.searching}
       showLightbar={!enableFeatured}
-      showNavSearch={
-        s.searching || forceNavSearch || !enableFeatured || !isMobile
-      }
-      minimalMobileNav={
-        isMobile && enableFeatured && !s.searching && !forceNavSearch
-      }
+      showNavSearch
+      minimalMobileNav={false}
     >
       <div className="relative mb-2">
         <Helmet>

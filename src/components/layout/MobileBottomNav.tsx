@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { Icon, Icons } from "@/components/Icon";
-import { requestMobileNavSearch } from "@/components/layout/mobileNavSearch";
 import { navControlSurface } from "@/components/layout/navControl";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useDiscoverStore } from "@/stores/discover";
@@ -17,7 +16,6 @@ type TabId =
   | "tv"
   | "manga"
   | "bookmarks"
-  | "search"
   | "settings";
 
 /** Clear the fixed mobile header so Movies / TV / Manga tabs stay visible. */
@@ -79,25 +77,11 @@ export function MobileBottomNav() {
   const activeTab: TabId = (() => {
     if (location.pathname.startsWith("/settings")) return "settings";
     if (location.pathname.startsWith("/bookmarks")) return "bookmarks";
-    if (location.pathname.startsWith("/browse")) return "search";
     if (onHome && selectedCategory === "tvshows") return "tv";
     if (onHome && selectedCategory === "manga") return "manga";
     if (onHome && selectedCategory === "movies") return "movies";
     return "home";
   })();
-
-  const openSearch = () => {
-    // Dismiss details overlays so search isn't trapped under Avatar/etc.
-    clearAllModals();
-    // Prefer /browse so the Search tab stays highlighted.
-    if (!location.pathname.startsWith("/browse")) {
-      navigate("/browse/");
-      window.setTimeout(() => requestMobileNavSearch(), 50);
-      window.setTimeout(() => requestMobileNavSearch(), 350);
-      return;
-    }
-    requestMobileNavSearch();
-  };
 
   const tabs: Array<{
     id: TabId;
@@ -162,13 +146,10 @@ export function MobileBottomNav() {
       id: "bookmarks",
       label: t("navigation.mobile.bookmarks"),
       icon: Icons.BOOKMARK_OUTLINE,
-      onClick: () => navigate("/bookmarks"),
-    },
-    {
-      id: "search",
-      label: t("navigation.mobile.search"),
-      icon: Icons.SEARCH,
-      onClick: openSearch,
+      onClick: () => {
+        clearAllModals();
+        navigate("/bookmarks");
+      },
     },
     {
       id: "settings",
