@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { DiscoverMedia } from "@/pages/discover/types/discover";
@@ -25,6 +25,14 @@ import { hydrateMissingCompletedGenres } from "../lib/watchHistoryGenres";
 import type { WatchHistoryItem } from "@/stores/watchHistory";
 
 const recommendationsInFlight = new Map<string, Promise<DiscoverMedia[]>>();
+
+function sameDiscoverIds(a: DiscoverMedia[], b: DiscoverMedia[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (String(a[i]!.id) !== String(b[i]!.id)) return false;
+  }
+  return true;
+}
 
 export interface UsePersonalRecommendationsOptions {
   isTVShow: boolean;
@@ -270,12 +278,14 @@ export function usePersonalRecommendations({
     if (!background) {
       const cached = readRecommendationsCache(cacheKey, signature);
       if (cached.freshness !== "miss") {
-        setMedia(cached.media);
+        setMedia((prev) =>
+          sameDiscoverIds(prev, cached.media) ? prev : cached.media,
+        );
         setError(null);
         setIsLoading(false);
         setHasSettled(true);
         // Cache is usable but aging - refresh it quietly, no skeleton flash.
-        if (cached.freshness === "stale") fetch({ background: true });
+        if (cached.freshness === "stale") void fetch({ background: true });
         return;
       }
     }
@@ -312,7 +322,8 @@ export function usePersonalRecommendations({
           return request;
         })());
 
-      setMedia(results);
+      // Same ids → keep previous array so discover carousels don't thrash.
+      setMedia((prev) => (sameDiscoverIds(prev, results) ? prev : results));
       writeRecommendationsCache(cacheKey, signature, results);
     } catch (err) {
       if (!quiet) {
@@ -363,13 +374,24 @@ export function usePersonalRecommendations({
 
   const sectionTitle = t("discover.carousel.title.forYou");
 
-  return {
-    media,
-    isLoading,
-    error,
-    refetch: fetch,
-    sectionTitle,
-    hasRecommendations,
-    hasSettled,
-  };
+  return useMemo(
+    () => ({
+      media,
+      isLoading,
+      error,
+      refetch: fetch,
+      sectionTitle,
+      hasRecommendations,
+      hasSettled,
+    }),
+    [
+      media,
+      isLoading,
+      error,
+      fetch,
+      sectionTitle,
+      hasRecommendations,
+      hasSettled,
+    ],
+  );
 }
