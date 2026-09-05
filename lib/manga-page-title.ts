@@ -153,6 +153,11 @@ export function chapterPrefixFromPageUrl(url: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function isCoverArtUrl(url: string): boolean {
+  const path = unwrapPageUrl(url).toLowerCase();
+  return /\/cover\/(?:fallback|normal)\//.test(path);
+}
+
 /**
  * When CDN filenames carry `NNNN-PPP` chapter prefixes, every prefixed page must
  * match the requested chapter (stops ch13 showing `0030-*.png` volume art).
@@ -163,6 +168,7 @@ export function pagesMatchChapter(
   chapter?: string | null,
 ): boolean {
   if (!chapter?.trim() || pages.length === 0) return true;
+  if (pages.some((url) => isCoverArtUrl(url))) return false;
   const wanted = parseFloat(chapter.trim());
   if (!Number.isFinite(wanted)) return true;
 

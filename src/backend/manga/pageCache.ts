@@ -1,5 +1,5 @@
-// v10: settle-debounce page loads; drop prefetch-storm cache entries.
-const STORAGE_KEY = "__kstream:mangaPages:v10";
+// v11: reject cover/fallback URLs from chapter page cache.
+const STORAGE_KEY = "__kstream:mangaPages:v11";
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 type Entry = { at: number; pages: string[]; chapter?: string | null };

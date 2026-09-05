@@ -118,7 +118,7 @@ async function fetchPagesViaApi(
       params.set("alts", fallback.alternateTitles.slice(0, 16).join("\n"));
     }
     // Bust CDN entries cached before mixed-series / chapter-prefix checks.
-    params.set("v", "11");
+    params.set("v", "12");
     const res = await fetch(`/api/manga/pages?${params.toString()}`, {
       signal: AbortSignal.timeout(28000),
     });

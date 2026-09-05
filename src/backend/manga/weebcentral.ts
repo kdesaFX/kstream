@@ -155,7 +155,11 @@ export function parseChapterImages(html: string): string[] {
   for (const match of html.matchAll(/\ssrc="(https:\/\/[^"]+)"/gi)) {
     const url = match[1];
     if (/broken_image|\/static\//i.test(url)) continue;
+    if (/\/cover\/(?:fallback|normal)\//i.test(url)) continue;
     if (!/\.(png|jpe?g|webp|gif)(\?|$)/i.test(url)) continue;
+    if (!/\/manga\/[^/?#]+\/\d{2,4}-\d{2,4}\.(?:png|jpe?g|webp|gif)(\?|$)/i.test(url)) {
+      continue;
+    }
     urls.push(url);
   }
   const unique = [...new Set(urls)];
