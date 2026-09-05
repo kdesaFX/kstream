@@ -116,7 +116,7 @@ async function fetchPagesViaApi(
       params.set("alts", fallback.alternateTitles.slice(0, 16).join("\n"));
     }
     // Bust CDN entries cached before mixed-series / chapter-prefix checks.
-    params.set("v", "6");
+    params.set("v", "7");
     const res = await fetch(`/api/manga/pages?${params.toString()}`, {
       signal: AbortSignal.timeout(28000),
     });
@@ -183,22 +183,31 @@ export async function getChapterPages(
   const wantedChapter = fallback?.chapter?.trim() || null;
   const primaryIsMirror =
     isWeebCentralId(chapterId) || isComickChapterId(chapterId);
-  // Stale Next clicks can pass the previous chapter number; mirror ids are the
-  // source of truth so only enforce series checks when reading their cache.
   const cacheChapterGate = primaryIsMirror ? null : wantedChapter;
 
   if (!force) {
-    const persisted =
-      readPersistedPageCache(chapterId, wantedChapter) ??
-      (primaryIsMirror ? readPersistedPageCache(chapterId) : null);
+    const persisted = primaryIsMirror
+      ? readPersistedPageCache(chapterId)
+      : readPersistedPageCache(chapterId, wantedChapter);
     if (persisted?.length) {
       const title = fallback?.title;
       const alts = fallback?.alternateTitles ?? [];
-      if (pagesValidForManga(persisted, title, alts, cacheChapterGate)) {
+      const inferred = inferChapterFromPages(persisted);
+      // When the caller knows the chapter for THIS id (from the chapter list),
+      // reject cached art that belongs to a different number (Next-button poison).
+      const chapterMismatch =
+        primaryIsMirror &&
+        wantedChapter &&
+        inferred &&
+        inferred !== wantedChapter;
+      if (
+        !chapterMismatch &&
+        pagesValidForManga(persisted, title, alts, cacheChapterGate)
+      ) {
         pageListCache.set(chapterId, {
           at: Date.now(),
           pages: persisted,
-          chapter: inferChapterFromPages(persisted) ?? wantedChapter,
+          chapter: inferred ?? wantedChapter,
         });
         mangaMark("pages-end");
         mangaMeasure("pages", "pages-start", "pages-end");
@@ -211,7 +220,16 @@ export async function getChapterPages(
     if (cached && Date.now() - cached.at < PAGE_LIST_TTL_MS) {
       const title = fallback?.title;
       const alts = fallback?.alternateTitles ?? [];
-      if (pagesValidForManga(cached.pages, title, alts, cacheChapterGate)) {
+      const inferred = inferChapterFromPages(cached.pages);
+      const chapterMismatch =
+        primaryIsMirror &&
+        wantedChapter &&
+        inferred &&
+        inferred !== wantedChapter;
+      if (
+        !chapterMismatch &&
+        pagesValidForManga(cached.pages, title, alts, cacheChapterGate)
+      ) {
         mangaMark("pages-end");
         mangaMeasure("pages", "pages-start", "pages-end");
         return cached.pages;

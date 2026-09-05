@@ -364,10 +364,10 @@ export function MangaReaderView() {
           }
         }
         const fallback = pageFallback();
+        // Only the chapter number attached to THIS id — never the previous
+        // chapter's hint, which was poisoning Next via id#19 cache entries.
         const chapterForId =
-          details?.chapters.find((c) => c.id === id)?.chapter ??
-          (id === chapterId ? chapterNumberHint : null) ??
-          fallback.chapter;
+          details?.chapters.find((c) => c.id === id)?.chapter ?? null;
         const urls = await getChapterPages(
           id,
           { ...fallback, chapter: chapterForId },
@@ -418,8 +418,6 @@ export function MangaReaderView() {
       details,
       detailsReady,
       pageFallback,
-      chapterId,
-      chapterNumberHint,
     ],
   );
 

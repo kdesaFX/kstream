@@ -1,6 +1,7 @@
-// v4: cache entries are keyed by chapterId + chapter number so a stale
-// by-number race can't leave vol/ch30 pages under a ch19 id forever.
-const STORAGE_KEY = "__kstream:mangaPages:v4";
+// v5: mirror (WC/Comick) pages are keyed by chapter id only. Earlier builds
+// wrote `id#19` under the *next* chapter's id when fallback.chapter was stale,
+// so Next kept showing the previous chapter's art.
+const STORAGE_KEY = "__kstream:mangaPages:v5";
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 type Entry = { at: number; pages: string[]; chapter?: string | null };
@@ -34,18 +35,27 @@ export function readPersistedPageCache(
   chapter?: string | null,
 ): string[] | null {
   const store = readStore();
-  const keyed = store[entryKey(chapterId, chapter)];
-  const legacy = store[chapterId];
-  const entry = keyed ?? (chapter?.trim() ? null : legacy);
-  if (!entry || Date.now() - entry.at > TTL_MS) return null;
-  if (
-    chapter?.trim() &&
-    entry.chapter?.trim() &&
-    entry.chapter.trim() !== chapter.trim()
-  ) {
-    return null;
+  // Prefer bare id (authoritative for WC/Comick). Fall back to id#chapter for
+  // older same-version writes; never return a mismatched #chapter entry.
+  const bare = store[chapterId];
+  if (bare && Date.now() - bare.at <= TTL_MS && bare.pages.length > 0) {
+    if (
+      chapter?.trim() &&
+      bare.chapter?.trim() &&
+      bare.chapter.trim() !== chapter.trim()
+    ) {
+      // Stale art parked under this id — drop it.
+      delete store[chapterId];
+      writeStore(store);
+      return null;
+    }
+    return bare.pages;
   }
-  return entry.pages.length > 0 ? entry.pages : null;
+
+  if (!chapter?.trim()) return null;
+  const keyed = store[entryKey(chapterId, chapter)];
+  if (!keyed || Date.now() - keyed.at > TTL_MS) return null;
+  return keyed.pages.length > 0 ? keyed.pages : null;
 }
 
 export function clearPersistedPageCache(chapterId: string): void {
@@ -67,9 +77,15 @@ export function writePersistedPageCache(
 ): void {
   if (!pages.length) return;
   const store = readStore();
-  const key = entryKey(chapterId, chapter);
-  store[key] = { at: Date.now(), pages, chapter: chapter?.trim() || null };
-  // Drop unversioned legacy key so Next can't revive poison under bare id.
-  if (key !== chapterId) delete store[chapterId];
+  // Always write the bare id key so Next can't miss the entry when the chapter
+  // hint is momentarily stale. Drop any id#* variants for this chapter.
+  for (const key of Object.keys(store)) {
+    if (key.startsWith(`${chapterId}#`)) delete store[key];
+  }
+  store[chapterId] = {
+    at: Date.now(),
+    pages,
+    chapter: chapter?.trim() || null,
+  };
   writeStore(store);
 }
