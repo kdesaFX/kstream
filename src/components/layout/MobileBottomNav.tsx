@@ -3,9 +3,11 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { Icon, Icons } from "@/components/Icon";
+import { requestMobileNavSearch } from "@/components/layout/mobileNavSearch";
 import { navControlSurface } from "@/components/layout/navControl";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useDiscoverStore } from "@/stores/discover";
+import { useOverlayStack } from "@/stores/interface/overlayStack";
 import { usePreferencesStore } from "@/stores/preferences";
 import { scrollToElement } from "@/utils/common/scroll";
 
@@ -20,15 +22,6 @@ type TabId =
 
 /** Clear the fixed mobile header so Movies / TV / Manga tabs stay visible. */
 const DISCOVER_SCROLL_OFFSET = 80;
-
-function focusNavSearch() {
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  window.setTimeout(() => {
-    document
-      .querySelector<HTMLInputElement>('input[name="kstream-nav-search"]')
-      ?.focus();
-  }, 200);
-}
 
 function scrollToDiscover() {
   const target =
@@ -76,6 +69,7 @@ export function MobileBottomNav() {
   const selectedCategory = useDiscoverStore((s) => s.selectedCategory);
   const setSelectedCategory = useDiscoverStore((s) => s.setSelectedCategory);
   const enableMangaDiscover = usePreferencesStore((s) => s.enableMangaDiscover);
+  const clearAllModals = useOverlayStack((s) => s.clearAllModals);
 
   if (!isMobile || !shouldShowMobileBottomNav(location.pathname)) {
     return null;
@@ -91,6 +85,19 @@ export function MobileBottomNav() {
     if (onHome && selectedCategory === "movies") return "movies";
     return "home";
   })();
+
+  const openSearch = () => {
+    // Dismiss details overlays so search isn't trapped under Avatar/etc.
+    clearAllModals();
+    // Prefer /browse so the Search tab stays highlighted.
+    if (!location.pathname.startsWith("/browse")) {
+      navigate("/browse/");
+      window.setTimeout(() => requestMobileNavSearch(), 50);
+      window.setTimeout(() => requestMobileNavSearch(), 350);
+      return;
+    }
+    requestMobileNavSearch();
+  };
 
   const tabs: Array<{
     id: TabId;
@@ -161,14 +168,7 @@ export function MobileBottomNav() {
       id: "search",
       label: t("navigation.mobile.search"),
       icon: Icons.SEARCH,
-      onClick: () => {
-        if (location.pathname.startsWith("/browse")) {
-          focusNavSearch();
-          return;
-        }
-        navigate("/browse/");
-        focusNavSearch();
-      },
+      onClick: openSearch,
     },
     {
       id: "settings",
