@@ -137,6 +137,7 @@ export function MangaReaderView() {
   const needsDetailsRetryRef = useRef(false);
   const pagesLoadedRef = useRef(false);
   const emptyRetryRef = useRef<{ id: string; count: number } | null>(null);
+  const emptyRetryTimerRef = useRef<number | null>(null);
   /** Bumps on every loadPages start so concurrent fetches can't both paint. */
   const loadGenerationRef = useRef(0);
   /** Set synchronously in goChapter so loads know the chapter number before URL settles. */
@@ -446,16 +447,24 @@ export function MangaReaderView() {
             const likelyReadableChapter = details?.chapters.find(
               (ch) => ch.id === id,
             );
-            const shouldRetryEmptyOnce =
-              emptyRetry < 1 &&
+            const shouldRetryEmpty =
+              emptyRetry < 3 &&
               (Boolean(chapterForId) ||
                 (likelyReadableChapter != null &&
                   ((likelyReadableChapter.pages ?? 0) > 0 ||
                     likelyReadableChapter.source === "weebcentral" ||
                     likelyReadableChapter.source === "comick")));
-            if (shouldRetryEmptyOnce) {
-              emptyRetryRef.current = { id, count: emptyRetry + 1 };
-              void loadPages(id, true);
+            if (shouldRetryEmpty) {
+              const nextRetry = emptyRetry + 1;
+              emptyRetryRef.current = { id, count: nextRetry };
+              if (emptyRetryTimerRef.current != null) {
+                window.clearTimeout(emptyRetryTimerRef.current);
+              }
+              const delayMs = nextRetry === 1 ? 180 : nextRetry === 2 ? 900 : 1800;
+              emptyRetryTimerRef.current = window.setTimeout(() => {
+                emptyRetryTimerRef.current = null;
+                void loadPages(id, true);
+              }, delayMs);
               return;
             }
             setError(t("manga.reader.emptyChapter"));
@@ -485,6 +494,10 @@ export function MangaReaderView() {
         }
         pagesLoadedRef.current = true;
         emptyRetryRef.current = null;
+        if (emptyRetryTimerRef.current != null) {
+          window.clearTimeout(emptyRetryTimerRef.current);
+          emptyRetryTimerRef.current = null;
+        }
         needsDetailsRetryRef.current = false;
         setPagesForChapterId(id);
         setPages(urls);
@@ -519,6 +532,10 @@ export function MangaReaderView() {
     needsDetailsRetryRef.current = false;
     retried.current = false;
     emptyRetryRef.current = null;
+    if (emptyRetryTimerRef.current != null) {
+      window.clearTimeout(emptyRetryTimerRef.current);
+      emptyRetryTimerRef.current = null;
+    }
     setOfflineSaved(false);
     setPagesForChapterId(undefined);
     setPages([]);
@@ -785,6 +802,9 @@ export function MangaReaderView() {
     return () => {
       if (speedNoticeTimerRef.current != null) {
         window.clearTimeout(speedNoticeTimerRef.current);
+      }
+      if (emptyRetryTimerRef.current != null) {
+        window.clearTimeout(emptyRetryTimerRef.current);
       }
     };
   }, []);
