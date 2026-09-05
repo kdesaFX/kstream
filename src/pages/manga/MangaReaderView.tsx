@@ -756,6 +756,8 @@ export function MangaReaderView() {
     !loading &&
     pagesForChapterId === chapterId &&
     visiblePages.length > 0;
+  const chapterUnavailable =
+    !loading && (Boolean(error) || visiblePages.length === 0);
   const chapterPagesReadyRef = useRef(chapterPagesReady);
   chapterPagesReadyRef.current = chapterPagesReady;
 
@@ -786,7 +788,9 @@ export function MangaReaderView() {
     if (!opts?.fromPicker) {
       const now = Date.now();
       const cooledDown = now - lastChapterNavAtRef.current >= 1000;
-      if (!chapterPagesReadyRef.current || !cooledDown) {
+      const canLeaveCurrentChapter =
+        chapterPagesReadyRef.current || chapterUnavailable;
+      if (!canLeaveCurrentChapter || !cooledDown) {
         showSpeedNotice();
         return;
       }
