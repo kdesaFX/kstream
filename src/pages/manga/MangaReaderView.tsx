@@ -136,6 +136,7 @@ export function MangaReaderView() {
   const skippedEmptyRef = useRef<Set<string>>(new Set());
   const needsDetailsRetryRef = useRef(false);
   const pagesLoadedRef = useRef(false);
+  const emptyRetryRef = useRef<{ id: string; count: number } | null>(null);
   /** Bumps on every loadPages start so concurrent fetches can't both paint. */
   const loadGenerationRef = useRef(0);
   /** Set synchronously in goChapter so loads know the chapter number before URL settles. */
@@ -440,6 +441,23 @@ export function MangaReaderView() {
               needsDetailsRetryRef.current = true;
               return;
             }
+            const emptyRetry =
+              emptyRetryRef.current?.id === id ? emptyRetryRef.current.count : 0;
+            const likelyReadableChapter = details?.chapters.find(
+              (ch) => ch.id === id,
+            );
+            const shouldRetryEmptyOnce =
+              emptyRetry < 1 &&
+              (Boolean(chapterForId) ||
+                (likelyReadableChapter != null &&
+                  ((likelyReadableChapter.pages ?? 0) > 0 ||
+                    likelyReadableChapter.source === "weebcentral" ||
+                    likelyReadableChapter.source === "comick")));
+            if (shouldRetryEmptyOnce) {
+              emptyRetryRef.current = { id, count: emptyRetry + 1 };
+              void loadPages(id, true);
+              return;
+            }
             setError(t("manga.reader.emptyChapter"));
             setPagesForChapterId(id);
             setPages([]);
@@ -466,6 +484,7 @@ export function MangaReaderView() {
           return;
         }
         pagesLoadedRef.current = true;
+        emptyRetryRef.current = null;
         needsDetailsRetryRef.current = false;
         setPagesForChapterId(id);
         setPages(urls);
@@ -499,6 +518,7 @@ export function MangaReaderView() {
     pagesLoadedRef.current = false;
     needsDetailsRetryRef.current = false;
     retried.current = false;
+    emptyRetryRef.current = null;
     setOfflineSaved(false);
     setPagesForChapterId(undefined);
     setPages([]);
