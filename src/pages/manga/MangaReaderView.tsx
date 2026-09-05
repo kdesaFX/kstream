@@ -20,7 +20,10 @@ import {
   slugToTitleHint,
 } from "@/backend/manga/ids";
 import { mangaMark, mangaMeasure } from "@/backend/manga/mangaTiming";
-import { readPersistedPageCache } from "@/backend/manga/pageCache";
+import {
+  clearPersistedPageCache,
+  readPersistedPageCache,
+} from "@/backend/manga/pageCache";
 import { isComickChapterId } from "@/backend/manga/sources/comick";
 import {
   chapterLabel,
@@ -29,6 +32,7 @@ import {
   proxiedChapterPageUrls,
 } from "@/backend/manga/mangadex";
 import type { MangaChapter, MangaDetails } from "@/backend/manga/types";
+import { pagesBelongToTitle } from "@/backend/manga/weebcentral";
 import { Icon, Icons } from "@/components/Icon";
 import { ExternalListButtons } from "@/components/media/ExternalListButtons";
 import { useMangaProgressStore } from "@/stores/mangaProgress";
@@ -415,19 +419,36 @@ export function MangaReaderView() {
     needsDetailsRetryRef.current = false;
     retried.current = false;
     setOfflineSaved(false);
+    // Drop previous chapter art immediately so a wrong cache can't flash.
+    setPages([]);
+    setPageIndex(0);
 
+    const titleForCheck = details?.title ?? titleHint;
+    const alts = details?.alternateTitles ?? [];
     const cached = readPersistedPageCache(chapterId);
     if (cached?.length) {
-      setPages(cached);
-      setPageIndex(0);
-      setLoading(false);
-      pagesLoadedRef.current = true;
-      void loadPages(chapterId, true, true);
-      return;
+      if (
+        titleForCheck &&
+        !pagesBelongToTitle(cached, titleForCheck, alts)
+      ) {
+        clearPersistedPageCache(chapterId);
+      } else {
+        setPages(cached);
+        setLoading(false);
+        pagesLoadedRef.current = true;
+        void loadPages(chapterId, true, true);
+        return;
+      }
     }
     if (canUseMangaOffline()) {
       void getDesktopOfflineMangaPages(chapterId).then((offline) => {
         if (!offline?.length) return;
+        if (
+          titleForCheck &&
+          !pagesBelongToTitle(offline, titleForCheck, alts)
+        ) {
+          return;
+        }
         setPages(offline);
         setPageIndex(0);
         setLoading(false);
@@ -437,7 +458,6 @@ export function MangaReaderView() {
       });
       return;
     }
-    setPages([]);
   }, [chapterId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

@@ -27,6 +27,13 @@ export function readPersistedPageCache(chapterId: string): string[] | null {
   return entry.pages.length > 0 ? entry.pages : null;
 }
 
+export function clearPersistedPageCache(chapterId: string): void {
+  const store = readStore();
+  if (!(chapterId in store)) return;
+  delete store[chapterId];
+  writeStore(store);
+}
+
 export function writePersistedPageCache(chapterId: string, pages: string[]): void {
   if (!pages.length) return;
   const store = readStore();

@@ -173,18 +173,36 @@ export function pagesBelongToTitle(
 ): boolean {
   if (!title || pages.length === 0) return true;
   const slug = pages.map(seriesSlugFromPageUrl).find(Boolean);
-  if (!slug) return true;
-  if (titlesCompatible(title, slug, alternateTitles)) return true;
-  // Official CDNs often use the romaji folder name; accept when the distinctive
-  // proper noun from the English title appears in the slug (Nagatoro, etc.).
+  if (slug) {
+    if (titlesCompatible(title, slug, alternateTitles)) return true;
+    // Official CDNs often use the romaji folder name; accept when the distinctive
+    // proper noun from the English title appears in the slug (Nagatoro, etc.).
+    const tokens = significantTokens(title).filter(
+      (token) => token.length >= 6 && !isGenericSearchToken(token),
+    );
+    if (tokens.length === 1) {
+      const hay = normalizeMangaTitle(slug);
+      if (hay.includes(tokens[0])) return true;
+    }
+    // Explicit series folder that doesn't match the title we're reading.
+    return false;
+  }
+
+  // No /manga/{slug}/ in the URL (MangaDex hashes, etc.). Still reject when a
+  // clear foreign series slug appears elsewhere in the path, or when our
+  // distinctive title tokens are totally absent from CDN paths that do embed names.
+  const urlBlob = normalizeMangaTitle(pages.slice(0, 5).join(" "));
+  const foreign = /\/manga\/([a-z0-9][a-z0-9-]{2,})\//i.exec(pages[0] ?? "");
+  if (foreign?.[1]) {
+    return titlesCompatible(title, foreign[1].replace(/-/g, " "), alternateTitles);
+  }
   const tokens = significantTokens(title).filter(
     (token) => token.length >= 6 && !isGenericSearchToken(token),
   );
-  if (tokens.length === 1) {
-    const hay = normalizeMangaTitle(slug);
-    if (hay.includes(tokens[0])) return true;
+  if (tokens.length >= 1 && /\/manga\//i.test(urlBlob)) {
+    return tokens.some((token) => urlBlob.includes(token));
   }
-  return false;
+  return true;
 }
 
 function parseStrongList(html: string, label: string): string[] {

@@ -1,6 +1,7 @@
 import { isWeebCentralId } from "@/backend/manga/ids";
 import { mangaMark, mangaMeasure } from "@/backend/manga/mangaTiming";
 import {
+  clearPersistedPageCache,
   readPersistedPageCache,
   writePersistedPageCache,
 } from "@/backend/manga/pageCache";
@@ -124,6 +125,9 @@ async function fetchPagesViaApi(
   }
 }
 
+const PAGE_LIST_TTL_MS = 10 * 60 * 1000;
+const pageListCache = new Map<string, { at: number; pages: string[] }>();
+
 function cachePages(chapterId: string, pages: string[]): void {
   pageListCache.set(chapterId, { at: Date.now(), pages });
   writePersistedPageCache(chapterId, pages);
@@ -139,16 +143,34 @@ export async function getChapterPages(
   if (!force) {
     const persisted = readPersistedPageCache(chapterId);
     if (persisted?.length) {
-      pageListCache.set(chapterId, { at: Date.now(), pages: persisted });
-      mangaMark("pages-end");
-      mangaMeasure("pages", "pages-start", "pages-end");
-      return persisted;
+      const title = fallback?.title;
+      const alts = fallback?.alternateTitles ?? [];
+      if (
+        !title ||
+        pagesBelongToTitle(persisted, title, alts)
+      ) {
+        pageListCache.set(chapterId, { at: Date.now(), pages: persisted });
+        mangaMark("pages-end");
+        mangaMeasure("pages", "pages-start", "pages-end");
+        return persisted;
+      }
+      // Wrong series stuck in session cache (e.g. Horimiya under a JJK chapter).
+      clearPersistedPageCache(chapterId);
+      pageListCache.delete(chapterId);
     }
     const cached = pageListCache.get(chapterId);
     if (cached && Date.now() - cached.at < PAGE_LIST_TTL_MS) {
-      mangaMark("pages-end");
-      mangaMeasure("pages", "pages-start", "pages-end");
-      return cached.pages;
+      const title = fallback?.title;
+      const alts = fallback?.alternateTitles ?? [];
+      if (
+        !title ||
+        pagesBelongToTitle(cached.pages, title, alts)
+      ) {
+        mangaMark("pages-end");
+        mangaMeasure("pages", "pages-start", "pages-end");
+        return cached.pages;
+      }
+      pageListCache.delete(chapterId);
     }
   } else {
     pageListCache.delete(chapterId);
@@ -229,9 +251,6 @@ export async function getChapterPages(
   mangaMeasure("pages", "pages-start", "pages-end");
   return [];
 }
-
-const PAGE_LIST_TTL_MS = 10 * 60 * 1000;
-const pageListCache = new Map<string, { at: number; pages: string[] }>();
 
 async function tryLoadPagesForId(
   chapterId: string,

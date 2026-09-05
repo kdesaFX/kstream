@@ -105,6 +105,17 @@ describe("weebcentral parsers", () => {
     ).toBe(false);
   });
 
+  it("rejects Horimiya pages when reading Jujutsu Kaisen", () => {
+    expect(
+      pagesBelongToTitle(
+        [
+          "https://hot.planeptune.us/manga/Horimiya/0017-001.png",
+        ],
+        "Jujutsu Kaisen",
+      ),
+    ).toBe(false);
+  });
+
   it("reads series metadata off the info page", () => {
     const details = parseSeriesPage(SERIES_HTML, "01J76XYCPSY3C4BNPBRY8JMCBE");
     expect(details.title).toBe("Solo Leveling");
