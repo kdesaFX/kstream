@@ -137,13 +137,13 @@ export async function resolveReadableChapters(
     ? mdChapters.filter((ch) => (ch.pages ?? 0) > 0)
     : mdChapters;
 
-  // Mirrors first so merge prefers WC/Comick when priorities tie on readability.
+  // Comick first so merge prefers stable chapter HIDs over WeebCentral.
   const merged = mergeChapterLists([
-    ...(wcChapters?.length
-      ? [{ source: "weebcentral" as const, chapters: wcChapters }]
-      : []),
     ...(ckChapters?.length
       ? [{ source: "comick" as const, chapters: ckChapters }]
+      : []),
+    ...(wcChapters?.length
+      ? [{ source: "weebcentral" as const, chapters: wcChapters }]
       : []),
     { source: "mangadex", chapters: mdForMerge },
   ]);

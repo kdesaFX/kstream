@@ -404,11 +404,15 @@ function mergeMirrorLists(lists: MirrorChapter[][]): MirrorChapter[] {
         continue;
       }
       const prefer =
-        existing.source === "weebcentral" || ch.source === "weebcentral"
-          ? ch.source === "weebcentral"
+        existing.source === "comick" || ch.source === "comick"
+          ? ch.source === "comick"
             ? ch
             : existing
-          : ch;
+          : existing.source === "weebcentral" || ch.source === "weebcentral"
+            ? ch.source === "weebcentral"
+              ? ch
+              : existing
+            : ch;
       byNumber.set(key, prefer);
     }
   }

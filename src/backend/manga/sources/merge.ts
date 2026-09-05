@@ -6,12 +6,13 @@ function chapterNum(ch: MangaChapter | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Lower wins. Weeb Central first so readable mirrors beat MangaDex stubs. */
+/** Lower wins. Comick first — WeebCentral CDN mixes volume covers across
+ * chapter ids during rapid Next; Comick/MangaSee stay chapter-stable. */
 function sourcePriority(source: MangaSource | undefined): number {
   switch (source) {
-    case "weebcentral":
-      return 0;
     case "comick":
+      return 0;
+    case "weebcentral":
       return 1;
     case "mangadex":
       return 2;

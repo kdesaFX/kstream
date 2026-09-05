@@ -1,7 +1,5 @@
-// v5: mirror (WC/Comick) pages are keyed by chapter id only. Earlier builds
-// wrote `id#19` under the *next* chapter's id when fallback.chapter was stale,
-// so Next kept showing the previous chapter's art.
-const STORAGE_KEY = "__kstream:mangaPages:v5";
+// v6: MangaSee-first page loads + Comick spine — drop WC-poisoned session entries.
+const STORAGE_KEY = "__kstream:mangaPages:v6";
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 type Entry = { at: number; pages: string[]; chapter?: string | null };

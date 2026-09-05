@@ -77,16 +77,46 @@ export default async function handler(request: Request): Promise<Response> {
 
     let pages: string[] = [];
 
-    // Prefer WC/Comick chapter ids; for MangaDex uuids try WC by title first
-    // so we don't burn guest at-home when the client still has an MD id.
-    if (isComickChapterId(chapterId) || isWeebCentralChapterId(chapterId)) {
-      // Id is authoritative — don't reject on a stale ?chapter= query.
+    // Prefer Comick ids; for WeebCentral try title+chapter mirrors only as
+    // fallback so a poisoned WC id response doesn't stick.
+    if (isComickChapterId(chapterId)) {
       pages = acceptPages(
         await fetchChapterPagesById(chapterId),
         title,
         alts,
         null,
       );
+      if (pages.length === 0 && title && chapter) {
+        pages = await pagesViaWeebCentralTitle(title, alts, chapter);
+      }
+    } else if (isWeebCentralChapterId(chapterId)) {
+      if (title && chapter) {
+        // Prefer Comick mirror of the same chapter number when available.
+        const { chapters } = await resolveMirrorChapters(title, alts, "en");
+        const ck = chapters.filter((ch) => ch.source === "comick");
+        const wantedNum = parseFloat(chapter);
+        const ckMatch =
+          ck.find((ch) => ch.chapter?.trim() === chapter) ??
+          (Number.isFinite(wantedNum)
+            ? ck.find((ch) => parseFloat(ch.chapter ?? "") === wantedNum)
+            : undefined);
+        if (ckMatch) {
+          pages = acceptPages(
+            await fetchChapterPagesById(ckMatch.id),
+            title,
+            alts,
+            chapter,
+          );
+        }
+      }
+      if (pages.length === 0) {
+        pages = acceptPages(
+          await fetchChapterPagesById(chapterId),
+          title,
+          alts,
+          chapter ?? null,
+        );
+      }
       if (pages.length === 0 && title && chapter) {
         pages = await pagesViaWeebCentralTitle(title, alts, chapter);
       }

@@ -140,6 +140,17 @@ export async function resolveMangaSeeSlug(
   return searchMangaSeeSlug(title, alternateTitles);
 }
 
+/** Resolve slug then pages — preferred over WeebCentral for stable chapter paths. */
+export async function getMangaSeePagesForTitle(
+  title: string,
+  alternateTitles: string[],
+  chapter: string,
+): Promise<string[]> {
+  const slug = await resolveMangaSeeSlug(title, null, alternateTitles);
+  if (!slug) return [];
+  return getMangaSeeChapterPages(slug, chapter);
+}
+
 export async function getMangaSeeChapterPages(
   mangaSlug: string,
   chapter: string,
