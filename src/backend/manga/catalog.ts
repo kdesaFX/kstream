@@ -38,6 +38,19 @@ import {
 import { chapterPrefixFromPageUrl } from "../../../lib/manga-page-title";
 
 const detailsInFlight = new Map<string, Promise<MangaDetails>>();
+const CHAPTER_RESOLVE_TIMEOUT_MS = 20000;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = globalThis.setTimeout(() => {
+      reject(new Error("Timed out resolving manga chapters"));
+    }, timeoutMs);
+    void promise
+      .then((value) => resolve(value))
+      .catch((error) => reject(error))
+      .finally(() => globalThis.clearTimeout(timer));
+  });
+}
 
 /**
  * Weeb Central first so search picks land on WC ids when possible; MangaDex
@@ -81,9 +94,24 @@ export async function getMangaDetails(
     onPartial?.(base);
 
     mangaMark("details-resolve-start");
-    const resolved = await resolveReadableChapters(base, language);
+    const resolved = await withTimeout(
+      resolveReadableChapters(base, language),
+      CHAPTER_RESOLVE_TIMEOUT_MS,
+    ).catch(() => null);
     mangaMark("details-resolve-end");
     mangaMeasure("details-resolve", "details-resolve-start", "details-resolve-end");
+    if (!resolved) {
+      return {
+        ...base,
+        chapters: base.chapters,
+        chapterGroups:
+          base.chapterGroups.length > 0
+            ? base.chapterGroups
+            : [{ volume: "none", chapters: base.chapters }],
+        availableLanguages:
+          base.availableLanguages?.length ? base.availableLanguages : [language],
+      };
+    }
     return { ...base, ...resolved };
   })();
 
