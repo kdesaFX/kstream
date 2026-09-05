@@ -169,7 +169,16 @@ export function pagesMatchChapter(
   const prefixes = pages
     .map(chapterPrefixFromPageUrl)
     .filter((n): n is number => n != null);
-  if (prefixes.length === 0) return true;
+  if (prefixes.length === 0) {
+    // MangaSee/WC-style `/manga/slug/file` pages should carry NNNN-PPP names.
+    // Bare covers / odd filenames under that path are a common wrong-chapter
+    // poison vector when WeebCentral serves volume art for a chapter id.
+    const mangaFolderPages = pages.filter((url) =>
+      /\/manga\/[^/?#]+\//i.test(unwrapPageUrl(url)),
+    );
+    if (mangaFolderPages.length > 0) return false;
+    return true;
+  }
 
   const integerWanted = Number.isInteger(wanted)
     ? wanted

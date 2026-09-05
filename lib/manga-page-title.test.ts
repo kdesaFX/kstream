@@ -88,6 +88,15 @@ describe("manga-page-title", () => {
     ).toBe(true);
   });
 
+  it("rejects /manga/ folder pages that lack chapter prefixes", () => {
+    expect(
+      pagesMatchChapter(
+        ["https://hot.planeptune.us/manga/Jujutsu-Kaisen/cover.jpg"],
+        "41",
+      ),
+    ).toBe(false);
+  });
+
   it("accepts MangaDex hash URLs without a series folder", () => {
     expect(
       pagesBelongToTitle(

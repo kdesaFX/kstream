@@ -118,7 +118,7 @@ async function fetchPagesViaApi(
       params.set("alts", fallback.alternateTitles.slice(0, 16).join("\n"));
     }
     // Bust CDN entries cached before mixed-series / chapter-prefix checks.
-    params.set("v", "8");
+    params.set("v", "9");
     const res = await fetch(`/api/manga/pages?${params.toString()}`, {
       signal: AbortSignal.timeout(28000),
     });
@@ -126,16 +126,15 @@ async function fetchPagesViaApi(
     const data = (await res.json()) as { pages?: string[] };
     const pages = data.pages?.length ? data.pages : null;
     if (!pages) return null;
-    // API historically skipped title checks — reject foreign series here.
-    // Do not gate on fallback.chapter: it can be stale while clicking Next, and
-    // the chapterId response is already the pages for that id.
+    // Reject foreign series and wrong-chapter lists when the caller knows
+    // the chapter number for this id (Next-button poison).
     if (
       fallback?.title &&
       !pagesValidForManga(
         pages,
         fallback.title,
         fallback.alternateTitles ?? [],
-        null,
+        fallback.chapter?.trim() || null,
       )
     ) {
       return null;
@@ -195,25 +194,18 @@ export async function getChapterPages(
 ): Promise<string[]> {
   mangaMark("pages-start");
   const wantedChapter = fallback?.chapter?.trim() || null;
-  const primaryIsMirror =
-    isWeebCentralId(chapterId) || isComickChapterId(chapterId);
-  const cacheChapterGate = primaryIsMirror ? null : wantedChapter;
+  // Always gate on known chapter numbers — WC id fetches can return volume
+  // covers that don't match the chapter list label.
+  const cacheChapterGate = wantedChapter;
 
   if (!force) {
-    const persisted = primaryIsMirror
-      ? readPersistedPageCache(chapterId)
-      : readPersistedPageCache(chapterId, wantedChapter);
+    const persisted = readPersistedPageCache(chapterId, wantedChapter);
     if (persisted?.length) {
       const title = fallback?.title;
       const alts = fallback?.alternateTitles ?? [];
       const inferred = inferChapterFromPages(persisted);
-      // When the caller knows the chapter for THIS id (from the chapter list),
-      // reject cached art that belongs to a different number (Next-button poison).
       const chapterMismatch =
-        primaryIsMirror &&
-        wantedChapter &&
-        inferred &&
-        inferred !== wantedChapter;
+        wantedChapter && inferred && inferred !== wantedChapter;
       if (
         !chapterMismatch &&
         pagesValidForManga(persisted, title, alts, cacheChapterGate)
@@ -236,10 +228,7 @@ export async function getChapterPages(
       const alts = fallback?.alternateTitles ?? [];
       const inferred = inferChapterFromPages(cached.pages);
       const chapterMismatch =
-        primaryIsMirror &&
-        wantedChapter &&
-        inferred &&
-        inferred !== wantedChapter;
+        wantedChapter && inferred && inferred !== wantedChapter;
       if (
         !chapterMismatch &&
         pagesValidForManga(cached.pages, title, alts, cacheChapterGate)
@@ -289,35 +278,6 @@ export async function getChapterPages(
   pushId(chapterId);
   for (const alt of altIds) pushId(alt);
 
-  // MangaSee first when we know title + chapter: chapter number is baked into
-  // the CDN path (0041-001.png), so rapid Next can't resurface vol/ch30 art
-  // the way WeebCentral's id→images endpoint does.
-  if (fallback?.title && wantedChapter) {
-    try {
-      const msPages = await getMangaSeePagesForTitle(
-        fallback.title,
-        fallback.alternateTitles ?? [],
-        wantedChapter,
-      );
-      if (
-        msPages.length > 0 &&
-        pagesValidForManga(
-          msPages,
-          fallback.title,
-          fallback.alternateTitles ?? [],
-          wantedChapter,
-        )
-      ) {
-        cachePages(chapterId, msPages, wantedChapter);
-        mangaMark("pages-end");
-        mangaMeasure("pages", "pages-start", "pages-end");
-        return msPages;
-      }
-    } catch {
-      // Fall through to Comick / WC / MangaDex.
-    }
-  }
-
   // Prefer Comick ids over WeebCentral when both are available as alts.
   mirrorIds.sort((a, b) => {
     const ac = isComickChapterId(a) ? 0 : 1;
@@ -325,10 +285,35 @@ export async function getChapterPages(
     return ac - bc;
   });
 
-  // Race id-based sources. WC is last among mirrors.
+  // When title+chapter are known, skip direct WeebCentral scrapes — the API
+  // path prefers Comick/MangaSee for the same WC id. WC HTML is the
+  // wrong-chapter source during rapid Next.
+  const skipWeebCentralDirect = Boolean(fallback?.title && wantedChapter);
+
   const tasks: PageSourceTask[] = [];
+  // Race MangaSee with Comick — don't block on MangaSee anti-bot delays.
+  if (fallback?.title && wantedChapter) {
+    const title = fallback.title;
+    const alts = fallback.alternateTitles ?? [];
+    const chapterNum = wantedChapter;
+    tasks.push(async () => {
+      try {
+        const msPages = await getMangaSeePagesForTitle(title, alts, chapterNum);
+        if (
+          msPages.length > 0 &&
+          pagesValidForManga(msPages, title, alts, chapterNum)
+        ) {
+          return msPages;
+        }
+      } catch {
+        /* fall through */
+      }
+      return null;
+    });
+  }
   for (const id of mirrorIds) {
     tasks.push(() => fetchPagesViaApi(id, fallback));
+    if (skipWeebCentralDirect && isWeebCentralId(id)) continue;
     tasks.push(() => tryLoadPagesForId(id, pageContext, force));
   }
   if (!stub) {
@@ -340,22 +325,19 @@ export async function getChapterPages(
 
   let hit = await racePageSourcesPool(tasks);
 
-  // By chapter number via WC only when every id attempt failed (MD stubs).
-  if (
-    !hit?.length &&
-    !primaryIsMirror &&
-    fallback?.title &&
-    fallback.chapter?.trim()
-  ) {
+  // WC by chapter number only when every preferred source failed.
+  if (!hit?.length && fallback?.title && wantedChapter) {
     const title = fallback.title;
     const alts = fallback.alternateTitles ?? [];
-    const chapterNum = fallback.chapter.trim();
     const pages = await getWeebCentralPagesForChapterNumber(
       title,
       alts,
-      chapterNum,
+      wantedChapter,
     );
-    if (pages.length > 0 && pagesValidForManga(pages, title, alts, chapterNum)) {
+    if (
+      pages.length > 0 &&
+      pagesValidForManga(pages, title, alts, wantedChapter)
+    ) {
       hit = pages;
     }
   }
@@ -363,10 +345,7 @@ export async function getChapterPages(
   if (hit?.length) {
     const title = fallback?.title;
     const alts = fallback?.alternateTitles ?? [];
-    // Mirror ids: trust the id fetch; only enforce title / mixed-series checks.
-    // Chapter-number match is required for by-number / MD fallback results.
-    const chapterGate = primaryIsMirror ? null : wantedChapter;
-    if (!pagesValidForManga(hit, title, alts, chapterGate)) {
+    if (!pagesValidForManga(hit, title, alts, wantedChapter)) {
       mangaMark("pages-end");
       mangaMeasure("pages", "pages-start", "pages-end");
       return [];
@@ -393,14 +372,14 @@ async function tryLoadPagesForId(
 ): Promise<string[] | null> {
   const pages = await loadPagesForId(chapterId, fallback, force);
   if (pages.length === 0) return null;
-  // Id fetch: enforce series match only. Chapter hint can be stale while
-  // clicking Next; the HTML for this id is source of truth.
+  // Enforce title + chapter when known. WC HTML for an id is not reliable
+  // during rapid Next — chapter list number is the source of truth.
   if (
     !pagesValidForManga(
       pages,
       fallback?.title,
       fallback?.alternateTitles ?? [],
-      null,
+      fallback?.chapter?.trim() || null,
     )
   ) {
     return null;

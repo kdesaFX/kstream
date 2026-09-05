@@ -1,5 +1,5 @@
-// v6: MangaSee-first page loads + Comick spine — drop WC-poisoned session entries.
-const STORAGE_KEY = "__kstream:mangaPages:v6";
+// v7: skip WC page races when title+chapter known; always chapter-gate.
+const STORAGE_KEY = "__kstream:mangaPages:v7";
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 type Entry = { at: number; pages: string[]; chapter?: string | null };

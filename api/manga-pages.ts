@@ -7,6 +7,7 @@ import {
   isWeebCentralChapterId,
 } from "../lib/manga-pages-server";
 import { resolveMirrorChapters } from "../lib/manga-chapters-server";
+import { fetchMangaSeePagesForTitle } from "../lib/mangasee-pages-server";
 import { pagesValidForManga } from "../lib/manga-page-title";
 import { handleOptions, jsonResponse } from "../lib/proxy-shared";
 
@@ -77,60 +78,64 @@ export default async function handler(request: Request): Promise<Response> {
 
     let pages: string[] = [];
 
-    // Prefer Comick ids; for WeebCentral try title+chapter mirrors only as
-    // fallback so a poisoned WC id response doesn't stick.
+    // Comick first (reliable from edge), then MangaSee, then gated WC.
+    // WeebCentral mixes volume covers across chapter ids during rapid Next.
     if (isComickChapterId(chapterId)) {
       pages = acceptPages(
         await fetchChapterPagesById(chapterId),
+        title,
+        alts,
+        chapter ?? null,
+      );
+    }
+
+    if (pages.length === 0 && title && chapter) {
+      const { chapters } = await resolveMirrorChapters(title, alts, "en");
+      const ck = chapters.filter((ch) => ch.source === "comick");
+      const wantedNum = parseFloat(chapter);
+      const ckMatch =
+        ck.find((ch) => ch.chapter?.trim() === chapter) ??
+        (Number.isFinite(wantedNum)
+          ? ck.find((ch) => parseFloat(ch.chapter ?? "") === wantedNum)
+          : undefined);
+      if (ckMatch) {
+        pages = acceptPages(
+          await fetchChapterPagesById(ckMatch.id),
+          title,
+          alts,
+          chapter,
+        );
+      }
+    }
+
+    if (pages.length === 0 && title && chapter) {
+      pages = acceptPages(
+        await fetchMangaSeePagesForTitle(title, alts, chapter),
+        title,
+        alts,
+        chapter,
+      );
+    }
+
+    if (pages.length === 0 && isWeebCentralChapterId(chapterId)) {
+      pages = acceptPages(
+        await fetchChapterPagesById(chapterId),
+        title,
+        alts,
+        chapter ?? null,
+      );
+      if (pages.length === 0 && title && chapter) {
+        pages = await pagesViaWeebCentralTitle(title, alts, chapter);
+      }
+    } else if (pages.length === 0 && isMangaDexChapterId(chapterId)) {
+      pages = acceptPages(
+        await fetchMangaDexChapterPages(chapterId),
         title,
         alts,
         null,
       );
       if (pages.length === 0 && title && chapter) {
         pages = await pagesViaWeebCentralTitle(title, alts, chapter);
-      }
-    } else if (isWeebCentralChapterId(chapterId)) {
-      if (title && chapter) {
-        // Prefer Comick mirror of the same chapter number when available.
-        const { chapters } = await resolveMirrorChapters(title, alts, "en");
-        const ck = chapters.filter((ch) => ch.source === "comick");
-        const wantedNum = parseFloat(chapter);
-        const ckMatch =
-          ck.find((ch) => ch.chapter?.trim() === chapter) ??
-          (Number.isFinite(wantedNum)
-            ? ck.find((ch) => parseFloat(ch.chapter ?? "") === wantedNum)
-            : undefined);
-        if (ckMatch) {
-          pages = acceptPages(
-            await fetchChapterPagesById(ckMatch.id),
-            title,
-            alts,
-            chapter,
-          );
-        }
-      }
-      if (pages.length === 0) {
-        pages = acceptPages(
-          await fetchChapterPagesById(chapterId),
-          title,
-          alts,
-          chapter ?? null,
-        );
-      }
-      if (pages.length === 0 && title && chapter) {
-        pages = await pagesViaWeebCentralTitle(title, alts, chapter);
-      }
-    } else {
-      if (title && chapter) {
-        pages = await pagesViaWeebCentralTitle(title, alts, chapter);
-      }
-      if (pages.length === 0) {
-        pages = acceptPages(
-          await fetchMangaDexChapterPages(chapterId),
-          title,
-          alts,
-          null,
-        );
       }
     }
 
