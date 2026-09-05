@@ -7,11 +7,22 @@ import {
   isWeebCentralChapterId,
 } from "../lib/manga-pages-server";
 import { resolveMirrorChapters } from "../lib/manga-chapters-server";
+import { pagesBelongToTitle } from "../lib/manga-page-title";
 import { handleOptions, jsonResponse } from "../lib/proxy-shared";
 
 export const config = { runtime: "edge" };
 
 const CACHE_SECONDS = 600;
+
+function acceptPages(
+  pages: string[],
+  title: string | undefined,
+  alts: string[],
+): string[] {
+  if (!pages.length) return [];
+  if (!title || pagesBelongToTitle(pages, title, alts)) return pages;
+  return [];
+}
 
 async function pagesViaWeebCentralTitle(
   title: string,
@@ -34,7 +45,8 @@ async function pagesViaWeebCentralTitle(
       ? wc.find((ch) => parseFloat(ch.chapter ?? "") === wantedNum)
       : undefined);
   if (!match) return [];
-  return fetchWeebCentralChapterPages(match.id);
+  const pages = await fetchWeebCentralChapterPages(match.id);
+  return acceptPages(pages, title, alternateTitles);
 }
 
 export default async function handler(request: Request): Promise<Response> {
@@ -67,7 +79,11 @@ export default async function handler(request: Request): Promise<Response> {
     // Prefer WC/Comick chapter ids; for MangaDex uuids try WC by title first
     // so we don't burn guest at-home when the client still has an MD id.
     if (isComickChapterId(chapterId) || isWeebCentralChapterId(chapterId)) {
-      pages = await fetchChapterPagesById(chapterId);
+      pages = acceptPages(
+        await fetchChapterPagesById(chapterId),
+        title,
+        alts,
+      );
       if (pages.length === 0 && title && chapter) {
         pages = await pagesViaWeebCentralTitle(title, alts, chapter);
       }
@@ -76,7 +92,11 @@ export default async function handler(request: Request): Promise<Response> {
         pages = await pagesViaWeebCentralTitle(title, alts, chapter);
       }
       if (pages.length === 0) {
-        pages = await fetchMangaDexChapterPages(chapterId);
+        pages = acceptPages(
+          await fetchMangaDexChapterPages(chapterId),
+          title,
+          alts,
+        );
       }
     }
 
@@ -87,7 +107,10 @@ export default async function handler(request: Request): Promise<Response> {
         ? {
             "Cache-Control": `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`,
           }
-        : {},
+        : {
+            // Don't cache empty/rejected responses (wrong-series WC hits).
+            "Cache-Control": "no-store",
+          },
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Manga pages fetch failed";

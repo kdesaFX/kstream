@@ -114,12 +114,27 @@ async function fetchPagesViaApi(
     if (fallback?.alternateTitles?.length) {
       params.set("alts", fallback.alternateTitles.slice(0, 16).join("\n"));
     }
+    // `v=2` busts CDN entries that cached wrong-series pages before title checks.
+    params.set("v", "2");
     const res = await fetch(`/api/manga/pages?${params.toString()}`, {
       signal: AbortSignal.timeout(28000),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { pages?: string[] };
-    return data.pages?.length ? data.pages : null;
+    const pages = data.pages?.length ? data.pages : null;
+    if (!pages) return null;
+    // API historically skipped title checks — reject foreign series here too.
+    if (
+      fallback?.title &&
+      !pagesBelongToTitle(
+        pages,
+        fallback.title,
+        fallback.alternateTitles ?? [],
+      )
+    ) {
+      return null;
+    }
+    return pages;
   } catch {
     return null;
   }
@@ -241,6 +256,14 @@ export async function getChapterPages(
 
   const hit = await racePageSourcesPool(tasks);
   if (hit?.length) {
+    const title = fallback?.title;
+    const alts = fallback?.alternateTitles ?? [];
+    // Tasks already filter mismatches; final gate avoids caching poison.
+    if (title && !pagesBelongToTitle(hit, title, alts)) {
+      mangaMark("pages-end");
+      mangaMeasure("pages", "pages-start", "pages-end");
+      return [];
+    }
     cachePages(chapterId, hit);
     mangaMark("pages-end");
     mangaMeasure("pages", "pages-start", "pages-end");
