@@ -2013,6 +2013,7 @@
       "prevChapter": "Prev",
       "nextChapter": "Next",
       "scrollHint": "Scroll to read · arrows change chapter",
+      "tooFast": "You're switching chapters too fast — wait a second for pages to load, or use the chapter picker to jump ahead.",
       "chapterSearch": "Search chapter number or name",
       "chapterSearchEmpty": "No matching chapters",
       "chapterEmpty": "No chapters",

@@ -122,6 +122,7 @@ export function MangaReaderView() {
   const [pageIndex, setPageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [speedNotice, setSpeedNotice] = useState<string | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [offlineSaved, setOfflineSaved] = useState(false);
   const [offlineSaving, setOfflineSaving] = useState(false);
@@ -142,6 +143,9 @@ export function MangaReaderView() {
     id: string;
     chapter: string | null;
   } | null>(null);
+  /** Next/Prev spam gate — picker bypasses this. */
+  const lastChapterNavAtRef = useRef(0);
+  const speedNoticeTimerRef = useRef<number | null>(null);
 
   const chapterId = chapterParam ? decodeURIComponent(chapterParam) : undefined;
   const chapterIdRef = useRef(chapterId);
@@ -748,8 +752,51 @@ export function MangaReaderView() {
     updateProgress,
   ]);
 
-  const goChapter = (ch?: MangaChapter) => {
+  const chapterPagesReady =
+    !loading &&
+    pagesForChapterId === chapterId &&
+    visiblePages.length > 0;
+  const chapterPagesReadyRef = useRef(chapterPagesReady);
+  chapterPagesReadyRef.current = chapterPagesReady;
+
+  useEffect(() => {
+    return () => {
+      if (speedNoticeTimerRef.current != null) {
+        window.clearTimeout(speedNoticeTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showSpeedNotice = () => {
+    setSpeedNotice(t("manga.reader.tooFast"));
+    if (speedNoticeTimerRef.current != null) {
+      window.clearTimeout(speedNoticeTimerRef.current);
+    }
+    speedNoticeTimerRef.current = window.setTimeout(() => {
+      setSpeedNotice(null);
+      speedNoticeTimerRef.current = null;
+    }, 2800);
+  };
+
+  const goChapter = (
+    ch?: MangaChapter,
+    opts?: { fromPicker?: boolean },
+  ) => {
     if (!details || !ch) return;
+    if (!opts?.fromPicker) {
+      const now = Date.now();
+      const cooledDown = now - lastChapterNavAtRef.current >= 1000;
+      if (!chapterPagesReadyRef.current || !cooledDown) {
+        showSpeedNotice();
+        return;
+      }
+    }
+    lastChapterNavAtRef.current = Date.now();
+    if (speedNoticeTimerRef.current != null) {
+      window.clearTimeout(speedNoticeTimerRef.current);
+      speedNoticeTimerRef.current = null;
+    }
+    setSpeedNotice(null);
     skipChapterResumeRef.current = ch.id !== chapterId;
     pageChapterIdRef.current = ch.id;
     pendingChapterRef.current = {
@@ -898,7 +945,7 @@ export function MangaReaderView() {
               <MangaChapterPicker
                 chapters={chapters}
                 currentChapterId={chapterId}
-                onSelect={(ch) => goChapter(ch)}
+                onSelect={(ch) => goChapter(ch, { fromPicker: true })}
                 onPrefetch={prefetchChapter}
               />
               <MangaLanguagePicker
@@ -1043,9 +1090,16 @@ export function MangaReaderView() {
       <div
         className={classNames(
           "fixed bottom-0 inset-x-0 z-30 transition-opacity duration-200",
-          controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none",
+          controlsVisible || speedNotice
+            ? "opacity-100"
+            : "opacity-0 pointer-events-none",
         )}
       >
+        {speedNotice ? (
+          <div className="mx-4 mb-2 rounded-lg bg-amber-500/95 px-3 py-2 text-center text-sm text-black shadow-lg">
+            {speedNotice}
+          </div>
+        ) : null}
         <div className="px-4 py-3 bg-gradient-to-t from-black/90 to-transparent flex items-center gap-3">
           <button
             type="button"
