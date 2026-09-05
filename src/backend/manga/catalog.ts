@@ -29,6 +29,7 @@ import {
   getWeebCentralChapterPages,
   getWeebCentralDetails,
   getWeebCentralPagesForChapterNumber,
+  clearWeebCentralPageCache,
   normalizeMangaTitle,
   pagesValidForManga,
   searchWeebCentral,
@@ -178,10 +179,12 @@ function cachePages(
 export function clearChapterPagesCache(chapterId?: string): void {
   if (!chapterId) {
     pageListCache.clear();
+    clearWeebCentralPageCache();
     return;
   }
   pageListCache.delete(chapterId);
   clearPersistedPageCache(chapterId);
+  clearWeebCentralPageCache(chapterId);
 }
 
 export async function getChapterPages(
@@ -403,7 +406,7 @@ async function loadPagesForId(
   if (isComickChapterId(chapterId)) {
     pages = await getComickChapterPages(chapterId, fallback);
   } else if (isWeebCentralId(chapterId)) {
-    pages = await getWeebCentralChapterPages(chapterId);
+    pages = await getWeebCentralChapterPages(chapterId, force);
   } else {
     try {
       const atHome = await getChapterAtHome(chapterId, force);

@@ -750,11 +750,24 @@ export async function findWeebCentralChapters(
 const pageCache = new Map<string, { at: number; pages: string[] }>();
 const PAGE_TTL_MS = 10 * 60 * 1000;
 
+export function clearWeebCentralPageCache(chapterId?: string): void {
+  if (!chapterId) {
+    pageCache.clear();
+    return;
+  }
+  pageCache.delete(chapterId);
+}
+
 export async function getWeebCentralChapterPages(
   chapterId: string,
+  force?: boolean,
 ): Promise<string[]> {
-  const cached = pageCache.get(chapterId);
-  if (cached && Date.now() - cached.at < PAGE_TTL_MS) return cached.pages;
+  if (!force) {
+    const cached = pageCache.get(chapterId);
+    if (cached && Date.now() - cached.at < PAGE_TTL_MS) return cached.pages;
+  } else {
+    pageCache.delete(chapterId);
+  }
   const html = await wcGet(
     `${ORIGIN}/chapters/${chapterId}/images?is_prev=False&reading_style=long_strip`,
     true,
