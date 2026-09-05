@@ -374,26 +374,6 @@ export function MangaReaderView() {
           force,
         );
         if (isStale()) return;
-        // Hard reject wrong-chapter lists even if a cache race slipped through.
-        if (
-          urls.length > 0 &&
-          chapterForId &&
-          fallback.title &&
-          !pagesValidForManga(
-            urls,
-            fallback.title,
-            fallback.alternateTitles ?? [],
-            chapterForId,
-          )
-        ) {
-          clearPersistedPageCache(id);
-          if (!silent) {
-            setError(t("manga.reader.emptyChapter"));
-            setPages([]);
-            pagesLoadedRef.current = false;
-          }
-          return;
-        }
         if (urls.length === 0) {
           if (!silent) {
             // Partial MD stubs race before mirrors merge — wait and retry instead
@@ -669,7 +649,8 @@ export function MangaReaderView() {
     if (!details || !ch) return;
     skipChapterResumeRef.current = ch.id !== chapterId;
     pageChapterIdRef.current = ch.id;
-    loadGenerationRef.current += 1;
+    // Don't bump loadGeneration here — the chapterId effect owns that. Bumping
+    // twice made the effect's in-flight fetch look stale and left Next blank.
     pagesLoadedRef.current = false;
     setPages([]);
     setPageIndex(0);

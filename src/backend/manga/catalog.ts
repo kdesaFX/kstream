@@ -33,6 +33,7 @@ import {
   pagesValidForManga,
   searchWeebCentral,
 } from "@/backend/manga/weebcentral";
+import { chapterPrefixFromPageUrl } from "../../../lib/manga-page-title";
 
 const detailsInFlight = new Map<string, Promise<MangaDetails>>();
 
@@ -115,7 +116,7 @@ async function fetchPagesViaApi(
       params.set("alts", fallback.alternateTitles.slice(0, 16).join("\n"));
     }
     // Bust CDN entries cached before mixed-series / chapter-prefix checks.
-    params.set("v", "5");
+    params.set("v", "6");
     const res = await fetch(`/api/manga/pages?${params.toString()}`, {
       signal: AbortSignal.timeout(28000),
     });
@@ -123,14 +124,16 @@ async function fetchPagesViaApi(
     const data = (await res.json()) as { pages?: string[] };
     const pages = data.pages?.length ? data.pages : null;
     if (!pages) return null;
-    // API historically skipped title checks — reject foreign / wrong-chapter here.
+    // API historically skipped title checks — reject foreign series here.
+    // Do not gate on fallback.chapter: it can be stale while clicking Next, and
+    // the chapterId response is already the pages for that id.
     if (
       fallback?.title &&
       !pagesValidForManga(
         pages,
         fallback.title,
         fallback.alternateTitles ?? [],
-        fallback.chapter,
+        null,
       )
     ) {
       return null;
@@ -147,13 +150,28 @@ const pageListCache = new Map<
   { at: number; pages: string[]; chapter?: string | null }
 >();
 
+function inferChapterFromPages(pages: string[]): string | null {
+  const prefixes = pages
+    .map(chapterPrefixFromPageUrl)
+    .filter((n): n is number => n != null);
+  if (prefixes.length === 0) return null;
+  const first = prefixes[0];
+  return prefixes.every((n) => n === first) ? String(first) : null;
+}
+
 function cachePages(
   chapterId: string,
   pages: string[],
   chapter?: string | null,
 ): void {
-  pageListCache.set(chapterId, { at: Date.now(), pages, chapter });
-  writePersistedPageCache(chapterId, pages, chapter);
+  const inferred = inferChapterFromPages(pages);
+  const storedChapter = inferred ?? chapter?.trim() ?? null;
+  pageListCache.set(chapterId, {
+    at: Date.now(),
+    pages,
+    chapter: storedChapter,
+  });
+  writePersistedPageCache(chapterId, pages, storedChapter);
 }
 
 export async function getChapterPages(
@@ -163,25 +181,29 @@ export async function getChapterPages(
 ): Promise<string[]> {
   mangaMark("pages-start");
   const wantedChapter = fallback?.chapter?.trim() || null;
+  const primaryIsMirror =
+    isWeebCentralId(chapterId) || isComickChapterId(chapterId);
+  // Stale Next clicks can pass the previous chapter number; mirror ids are the
+  // source of truth so only enforce series checks when reading their cache.
+  const cacheChapterGate = primaryIsMirror ? null : wantedChapter;
 
   if (!force) {
-    const persisted = readPersistedPageCache(chapterId, wantedChapter);
+    const persisted =
+      readPersistedPageCache(chapterId, wantedChapter) ??
+      (primaryIsMirror ? readPersistedPageCache(chapterId) : null);
     if (persisted?.length) {
       const title = fallback?.title;
       const alts = fallback?.alternateTitles ?? [];
-      if (
-        pagesValidForManga(persisted, title, alts, wantedChapter)
-      ) {
+      if (pagesValidForManga(persisted, title, alts, cacheChapterGate)) {
         pageListCache.set(chapterId, {
           at: Date.now(),
           pages: persisted,
-          chapter: wantedChapter,
+          chapter: inferChapterFromPages(persisted) ?? wantedChapter,
         });
         mangaMark("pages-end");
         mangaMeasure("pages", "pages-start", "pages-end");
         return persisted;
       }
-      // Wrong series / chapter stuck in session cache.
       clearPersistedPageCache(chapterId);
       pageListCache.delete(chapterId);
     }
@@ -189,12 +211,7 @@ export async function getChapterPages(
     if (cached && Date.now() - cached.at < PAGE_LIST_TTL_MS) {
       const title = fallback?.title;
       const alts = fallback?.alternateTitles ?? [];
-      if (
-        (!wantedChapter ||
-          !cached.chapter ||
-          cached.chapter === wantedChapter) &&
-        pagesValidForManga(cached.pages, title, alts, wantedChapter)
-      ) {
+      if (pagesValidForManga(cached.pages, title, alts, cacheChapterGate)) {
         mangaMark("pages-end");
         mangaMeasure("pages", "pages-start", "pages-end");
         return cached.pages;
@@ -256,9 +273,12 @@ export async function getChapterPages(
 
   let hit = await racePageSourcesPool(tasks);
 
-  // By-number only after every id attempt fails (MD stubs / unknown mirrors).
+  // By chapter number only for non-mirror ids (e.g. MangaDex stubs). Never for
+  // WC/Comick — a stale fallback.chapter was rejecting the real id pages or
+  // caching the wrong chapter under this id as the user hit Next.
   if (
     !hit?.length &&
+    !primaryIsMirror &&
     fallback?.title &&
     fallback.chapter?.trim()
   ) {
@@ -278,8 +298,10 @@ export async function getChapterPages(
   if (hit?.length) {
     const title = fallback?.title;
     const alts = fallback?.alternateTitles ?? [];
-    // Final gate: chapter prefixes must match even when title was omitted.
-    if (!pagesValidForManga(hit, title, alts, wantedChapter)) {
+    // Mirror ids: trust the id fetch; only enforce title / mixed-series checks.
+    // Chapter-number match is required for by-number / MD fallback results.
+    const chapterGate = primaryIsMirror ? null : wantedChapter;
+    if (!pagesValidForManga(hit, title, alts, chapterGate)) {
       mangaMark("pages-end");
       mangaMeasure("pages", "pages-start", "pages-end");
       return [];
@@ -306,12 +328,14 @@ async function tryLoadPagesForId(
 ): Promise<string[] | null> {
   const pages = await loadPagesForId(chapterId, fallback, force);
   if (pages.length === 0) return null;
+  // Id fetch: enforce series match only. Chapter hint can be stale while
+  // clicking Next; the HTML for this id is source of truth.
   if (
     !pagesValidForManga(
       pages,
       fallback?.title,
       fallback?.alternateTitles ?? [],
-      fallback?.chapter,
+      null,
     )
   ) {
     return null;
@@ -328,19 +352,15 @@ async function loadPagesForId(
   },
   force?: boolean,
 ): Promise<string[]> {
-  const wantedChapter = fallback?.chapter?.trim() || null;
   if (!force) {
     const cached = pageListCache.get(chapterId);
     if (cached && Date.now() - cached.at < PAGE_LIST_TTL_MS) {
       if (
-        (!wantedChapter ||
-          !cached.chapter ||
-          cached.chapter === wantedChapter) &&
         pagesValidForManga(
           cached.pages,
           fallback?.title,
           fallback?.alternateTitles ?? [],
-          wantedChapter,
+          null,
         )
       ) {
         return cached.pages;
@@ -374,13 +394,13 @@ async function loadPagesForId(
       pages,
       fallback?.title,
       fallback?.alternateTitles ?? [],
-      wantedChapter,
+      null,
     )
   ) {
     pageListCache.set(chapterId, {
       at: Date.now(),
       pages,
-      chapter: wantedChapter,
+      chapter: inferChapterFromPages(pages),
     });
   }
   return pages;

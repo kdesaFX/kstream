@@ -80,11 +80,12 @@ export default async function handler(request: Request): Promise<Response> {
     // Prefer WC/Comick chapter ids; for MangaDex uuids try WC by title first
     // so we don't burn guest at-home when the client still has an MD id.
     if (isComickChapterId(chapterId) || isWeebCentralChapterId(chapterId)) {
+      // Id is authoritative — don't reject on a stale ?chapter= query.
       pages = acceptPages(
         await fetchChapterPagesById(chapterId),
         title,
         alts,
-        chapter,
+        null,
       );
       if (pages.length === 0 && title && chapter) {
         pages = await pagesViaWeebCentralTitle(title, alts, chapter);
@@ -98,7 +99,7 @@ export default async function handler(request: Request): Promise<Response> {
           await fetchMangaDexChapterPages(chapterId),
           title,
           alts,
-          chapter,
+          null,
         );
       }
     }
