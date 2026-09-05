@@ -404,12 +404,12 @@ function mergeMirrorLists(lists: MirrorChapter[][]): MirrorChapter[] {
         continue;
       }
       const prefer =
-        existing.source === "comick" || ch.source === "comick"
-          ? ch.source === "comick"
+        existing.source === "weebcentral" || ch.source === "weebcentral"
+          ? ch.source === "weebcentral"
             ? ch
             : existing
-          : existing.source === "weebcentral" || ch.source === "weebcentral"
-            ? ch.source === "weebcentral"
+          : existing.source === "comick" || ch.source === "comick"
+            ? ch.source === "comick"
               ? ch
               : existing
             : ch;

@@ -22,7 +22,7 @@ function ch(
 }
 
 describe("mergeChapterLists", () => {
-  it("prefers Comick over WeebCentral and MangaDex for the same chapter number", () => {
+  it("prefers WeebCentral over Comick and MangaDex for the same chapter number", () => {
     const merged = mergeChapterLists([
       { source: "mangadex", chapters: [ch("md-114", "114", "mangadex", 20)] },
       {
@@ -39,10 +39,10 @@ describe("mergeChapterLists", () => {
     ]);
     expect(merged.chapters.map((c) => c.chapter)).toEqual(["1", "114"]);
     expect(merged.chapters.find((c) => c.chapter === "114")?.id).toBe(
-      "comick-b",
+      "wc-114",
     );
-    expect(merged.fallbacks.get("comick-b")).toEqual(
-      expect.arrayContaining(["md-114", "wc-114"]),
+    expect(merged.fallbacks.get("wc-114")).toEqual(
+      expect.arrayContaining(["md-114", "comick-b"]),
     );
   });
 

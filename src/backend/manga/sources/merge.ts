@@ -6,13 +6,14 @@ function chapterNum(ch: MangaChapter | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Lower wins. Comick first — WeebCentral CDN mixes volume covers across
- * chapter ids during rapid Next; Comick/MangaSee stay chapter-stable. */
+/** Lower wins. WeebCentral first for page loads — Comick EN chapter HIDs for
+ * many titles are image-less stubs (links2 → MangaSee), and MangaSee is often
+ * anti-bot blocked from Workers. WC CDN paths stay chapter-stable when gated. */
 function sourcePriority(source: MangaSource | undefined): number {
   switch (source) {
-    case "comick":
-      return 0;
     case "weebcentral":
+      return 0;
+    case "comick":
       return 1;
     case "mangadex":
       return 2;

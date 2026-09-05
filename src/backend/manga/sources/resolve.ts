@@ -137,13 +137,13 @@ export async function resolveReadableChapters(
     ? mdChapters.filter((ch) => (ch.pages ?? 0) > 0)
     : mdChapters;
 
-  // Comick first so merge prefers stable chapter HIDs over WeebCentral.
+  // WeebCentral first — Comick EN HIDs are often image-less stubs.
   const merged = mergeChapterLists([
-    ...(ckChapters?.length
-      ? [{ source: "comick" as const, chapters: ckChapters }]
-      : []),
     ...(wcChapters?.length
       ? [{ source: "weebcentral" as const, chapters: wcChapters }]
+      : []),
+    ...(ckChapters?.length
+      ? [{ source: "comick" as const, chapters: ckChapters }]
       : []),
     { source: "mangadex", chapters: mdForMerge },
   ]);

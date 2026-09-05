@@ -118,7 +118,7 @@ async function fetchPagesViaApi(
       params.set("alts", fallback.alternateTitles.slice(0, 16).join("\n"));
     }
     // Bust CDN entries cached before mixed-series / chapter-prefix checks.
-    params.set("v", "9");
+    params.set("v", "10");
     const res = await fetch(`/api/manga/pages?${params.toString()}`, {
       signal: AbortSignal.timeout(28000),
     });
@@ -285,13 +285,8 @@ export async function getChapterPages(
     return ac - bc;
   });
 
-  // When title+chapter are known, skip direct WeebCentral scrapes — the API
-  // path prefers Comick/MangaSee for the same WC id. WC HTML is the
-  // wrong-chapter source during rapid Next.
-  const skipWeebCentralDirect = Boolean(fallback?.title && wantedChapter);
-
   const tasks: PageSourceTask[] = [];
-  // Race MangaSee with Comick — don't block on MangaSee anti-bot delays.
+  // Race MangaSee with mirrors — don't block on MangaSee anti-bot delays.
   if (fallback?.title && wantedChapter) {
     const title = fallback.title;
     const alts = fallback.alternateTitles ?? [];
@@ -313,7 +308,6 @@ export async function getChapterPages(
   }
   for (const id of mirrorIds) {
     tasks.push(() => fetchPagesViaApi(id, fallback));
-    if (skipWeebCentralDirect && isWeebCentralId(id)) continue;
     tasks.push(() => tryLoadPagesForId(id, pageContext, force));
   }
   if (!stub) {

@@ -78,46 +78,9 @@ export default async function handler(request: Request): Promise<Response> {
 
     let pages: string[] = [];
 
-    // Comick first (reliable from edge), then MangaSee, then gated WC.
-    // WeebCentral mixes volume covers across chapter ids during rapid Next.
-    if (isComickChapterId(chapterId)) {
-      pages = acceptPages(
-        await fetchChapterPagesById(chapterId),
-        title,
-        alts,
-        chapter ?? null,
-      );
-    }
-
-    if (pages.length === 0 && title && chapter) {
-      const { chapters } = await resolveMirrorChapters(title, alts, "en");
-      const ck = chapters.filter((ch) => ch.source === "comick");
-      const wantedNum = parseFloat(chapter);
-      const ckMatch =
-        ck.find((ch) => ch.chapter?.trim() === chapter) ??
-        (Number.isFinite(wantedNum)
-          ? ck.find((ch) => parseFloat(ch.chapter ?? "") === wantedNum)
-          : undefined);
-      if (ckMatch) {
-        pages = acceptPages(
-          await fetchChapterPagesById(ckMatch.id),
-          title,
-          alts,
-          chapter,
-        );
-      }
-    }
-
-    if (pages.length === 0 && title && chapter) {
-      pages = acceptPages(
-        await fetchMangaSeePagesForTitle(title, alts, chapter),
-        title,
-        alts,
-        chapter,
-      );
-    }
-
-    if (pages.length === 0 && isWeebCentralChapterId(chapterId)) {
+    // WC ids: fetch directly (chapter-gated). Comick EN stubs often have no
+    // md_images; MangaSee is frequently anti-bot blocked from Workers.
+    if (isWeebCentralChapterId(chapterId)) {
       pages = acceptPages(
         await fetchChapterPagesById(chapterId),
         title,
@@ -127,7 +90,25 @@ export default async function handler(request: Request): Promise<Response> {
       if (pages.length === 0 && title && chapter) {
         pages = await pagesViaWeebCentralTitle(title, alts, chapter);
       }
-    } else if (pages.length === 0 && isMangaDexChapterId(chapterId)) {
+    } else if (isComickChapterId(chapterId)) {
+      pages = acceptPages(
+        await fetchChapterPagesById(chapterId),
+        title,
+        alts,
+        chapter ?? null,
+      );
+      if (pages.length === 0 && title && chapter) {
+        pages = acceptPages(
+          await fetchMangaSeePagesForTitle(title, alts, chapter),
+          title,
+          alts,
+          chapter,
+        );
+      }
+      if (pages.length === 0 && title && chapter) {
+        pages = await pagesViaWeebCentralTitle(title, alts, chapter);
+      }
+    } else {
       pages = acceptPages(
         await fetchMangaDexChapterPages(chapterId),
         title,
@@ -147,7 +128,6 @@ export default async function handler(request: Request): Promise<Response> {
             "Cache-Control": `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}`,
           }
         : {
-            // Don't cache empty/rejected responses (wrong-series WC hits).
             "Cache-Control": "no-store",
           },
     );
