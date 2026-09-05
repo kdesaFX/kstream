@@ -654,6 +654,21 @@ export function MangaReaderView() {
     void loadPages(chapterId, true);
   }, [chapterId, details, detailsReady, loadPages]);
 
+  // Safety net: never leave the reader on a permanent loading spinner.
+  useEffect(() => {
+    if (!chapterId || !loading) return;
+    if (visiblePages.length > 0) return;
+    const watchedChapter = chapterId;
+    const timer = window.setTimeout(() => {
+      if (chapterIdRef.current !== watchedChapter) return;
+      if (!loading) return;
+      if (visiblePages.length > 0) return;
+      setLoading(false);
+      setError((prev) => prev ?? t("manga.reader.emptyChapter"));
+    }, 25000);
+    return () => window.clearTimeout(timer);
+  }, [chapterId, loading, visiblePages.length, t]);
+
   // Partial MangaDex list often has the chapter number before WC/Comick merge.
   // Retry page load as soon as we know "82.1" so WeebCentral lookup can run early.
   useEffect(() => {
