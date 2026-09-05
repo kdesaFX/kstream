@@ -143,16 +143,12 @@ function collectTitles(title?: AniListTitle | null): string[] {
 }
 
 function stripAniListHtml(raw: string): string {
+  // Named entities (&rdquo; etc.) are decoded in plainMangaDescription.
   return raw
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/?i>/gi, "")
     .replace(/<\/?b>/gi, "")
     .replace(/<[^>]+>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
     .trim();
 }
 

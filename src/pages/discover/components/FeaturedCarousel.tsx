@@ -529,6 +529,17 @@ export function FeaturedCarousel({
     setTouchEnd(null);
   };
 
+  // Prefetch clear logos for every slide so neighbors aren't blank on swipe.
+  useEffect(() => {
+    if (!enableImageLogos || media.length === 0) return;
+    for (const item of media) {
+      if (!item.logoUrl) continue;
+      const img = new Image();
+      img.decoding = "async";
+      img.src = item.logoUrl;
+    }
+  }, [media, enableImageLogos]);
+
   // Resolve clear logo: prefer URL bundled with hero payload (instant), else fetch fast.
   useEffect(() => {
     if (!enableImageLogos) {
@@ -544,30 +555,10 @@ export function FeaturedCarousel({
       return undefined;
     }
 
-    // Prefetched with detail+images — show as soon as the bitmap is decoded.
+    // URL already on the hero payload — paint immediately (don't wait on decode).
     if (current.logoUrl) {
-      let cancelled = false;
-      setLogoReady(false);
-      const img = new Image();
-      img.decoding = "async";
-      const done = () => {
-        if (cancelled) return;
-        setLogoUrl(current.logoUrl);
-        setLogoReady(true);
-      };
-      img.onload = done;
-      img.onerror = done;
-      img.src = current.logoUrl;
-      if (img.complete) done();
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    // Warmup / older cache entries may lack logoUrl — fetch without canvas probe.
-    if (!enrichmentReady) {
-      setLogoUrl(undefined);
-      setLogoReady(false);
+      setLogoUrl(current.logoUrl);
+      setLogoReady(true);
       return undefined;
     }
 
@@ -593,26 +584,16 @@ export function FeaturedCarousel({
               ? TMDBContentTypes.MOVIE
               : TMDBContentTypes.TV,
             undefined,
-            { skipBackgroundCheck: true, size: "w500" },
+            { skipBackgroundCheck: true, size: "w300" },
           );
         }
-        if (media[currentIndex]?.id !== currentMediaId) return;
-        if (logo) {
-          await new Promise<void>((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
-            img.src = logo!;
-            if (img.complete) resolve();
-          });
-        }
-        if (media[currentIndex]?.id !== currentMediaId) return;
+        if (mediaRef.current[currentIndex]?.id !== currentMediaId) return;
         setLogoUrl(logo);
         setLogoReady(true);
       } catch (error: unknown) {
         if (error instanceof Error && error.name === "AbortError") return;
         console.error("Error fetching logo:", error);
-        if (media[currentIndex]?.id === currentMediaId) {
+        if (mediaRef.current[currentIndex]?.id === currentMediaId) {
           setLogoUrl(undefined);
           setLogoReady(true);
         }
@@ -626,7 +607,7 @@ export function FeaturedCarousel({
         logoFetchController.current.abort();
       }
     };
-  }, [currentIndex, media, enrichmentReady, enableImageLogos]);
+  }, [currentIndex, media, enableImageLogos]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -912,6 +893,8 @@ export function FeaturedCarousel({
                 width={640}
                 height={240}
                 decoding="async"
+                // eslint-disable-next-line react/no-unknown-property -- LCP hint
+                fetchPriority="high"
                 className={classNames(
                   "no-fade object-contain object-left bg-transparent title-logo-legible",
                   // Height-band sizing: wide logos get room; tall logos share the same visual weight.

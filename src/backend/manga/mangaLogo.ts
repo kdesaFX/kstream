@@ -255,7 +255,10 @@ export async function resolveMangaAnimeAdaptation(
       return null;
     }
 
-    const logoUrl = await getMediaLogo(String(best.id), best.type);
+    const logoUrl = await getMediaLogo(String(best.id), best.type, undefined, {
+      skipBackgroundCheck: true,
+      size: "w500",
+    });
     const resolved: MangaAnimeAdaptation = {
       tmdbId: best.id,
       type: best.type,

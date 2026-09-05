@@ -222,7 +222,7 @@ export async function fetchFeaturedHeroMedia(
         // Prefetch logo URL with the detail payload so the hero never flashes
         // plain title text while a second /images round-trip + canvas probe runs.
         logoUrl:
-          pickFastLogoUrl(item.images?.logos ?? [], language, "w500") ??
+          pickFastLogoUrl(item.images?.logos ?? [], language, "w300") ??
           undefined,
       }));
   };
