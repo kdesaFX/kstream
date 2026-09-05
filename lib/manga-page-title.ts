@@ -99,8 +99,29 @@ function titlesCompatible(
   return alternateTitles.some((alt) => titleSatisfiesQuery(alt, candidate));
 }
 
+/** Unwrap `/api/proxy?destination=` (and nested encodings) so slug checks see the CDN path. */
+export function unwrapPageUrl(url: string): string {
+  let current = url;
+  for (let i = 0; i < 3; i += 1) {
+    try {
+      const dest = new URL(current, "https://local.invalid").searchParams.get(
+        "destination",
+      );
+      if (!dest) break;
+      current = dest;
+    } catch {
+      break;
+    }
+  }
+  try {
+    return decodeURIComponent(current);
+  } catch {
+    return current;
+  }
+}
+
 export function seriesSlugFromPageUrl(url: string): string | null {
-  const m = /\/manga\/([^/?#]+)\//i.exec(url);
+  const m = /\/manga\/([^/?#]+)\//i.exec(unwrapPageUrl(url));
   if (!m?.[1]) return null;
   return decodeURIComponent(m[1]).replace(/-/g, " ");
 }
@@ -111,7 +132,8 @@ export function pagesBelongToTitle(
   alternateTitles: string[] = [],
 ): boolean {
   if (!title || pages.length === 0) return true;
-  const slug = pages.map(seriesSlugFromPageUrl).find(Boolean);
+  const resolved = pages.map(unwrapPageUrl);
+  const slug = resolved.map(seriesSlugFromPageUrl).find(Boolean);
   if (slug) {
     if (titlesCompatible(title, slug, alternateTitles)) return true;
     const tokens = significantTokens(title).filter(
@@ -124,8 +146,8 @@ export function pagesBelongToTitle(
     return false;
   }
 
-  const urlBlob = normalizeMangaTitle(pages.slice(0, 5).join(" "));
-  const foreign = /\/manga\/([a-z0-9][a-z0-9-]{2,})\//i.exec(pages[0] ?? "");
+  const urlBlob = normalizeMangaTitle(resolved.slice(0, 5).join(" "));
+  const foreign = /\/manga\/([a-z0-9][a-z0-9-]{2,})\//i.exec(resolved[0] ?? "");
   if (foreign?.[1]) {
     return titlesCompatible(
       title,
@@ -136,7 +158,8 @@ export function pagesBelongToTitle(
   const tokens = significantTokens(title).filter(
     (token) => token.length >= 6 && !isGenericSearchToken(token),
   );
-  if (tokens.length >= 1 && /\/manga\//i.test(urlBlob)) {
+  // After unwrap/normalize, slashes become spaces — detect series folder by token.
+  if (tokens.length >= 1 && /\bmanga\b/i.test(urlBlob)) {
     return tokens.some((token) => urlBlob.includes(token));
   }
   return true;

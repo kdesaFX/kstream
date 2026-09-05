@@ -115,7 +115,8 @@ async function fetchPagesViaApi(
       params.set("alts", fallback.alternateTitles.slice(0, 16).join("\n"));
     }
     // `v=2` busts CDN entries that cached wrong-series pages before title checks.
-    params.set("v", "2");
+    // Bust CDN entries cached before title / proxy-destination checks.
+    params.set("v", "3");
     const res = await fetch(`/api/manga/pages?${params.toString()}`, {
       signal: AbortSignal.timeout(28000),
     });

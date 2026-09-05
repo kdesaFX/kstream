@@ -13,6 +13,13 @@ describe("manga-page-title", () => {
     ).toBe(false);
   });
 
+  it("rejects proxied Horimiya URLs that hide /manga/ in destination=", () => {
+    const raw = "https://official.lowee.us/manga/Horimiya/0017-001.png";
+    const proxied = `/api/proxy?destination=${encodeURIComponent(raw)}`;
+    expect(pagesBelongToTitle([proxied], "Jujutsu Kaisen")).toBe(false);
+    expect(pagesBelongToTitle([raw], "Jujutsu Kaisen")).toBe(false);
+  });
+
   it("accepts matching series folder", () => {
     expect(
       pagesBelongToTitle(

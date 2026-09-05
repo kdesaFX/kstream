@@ -1,4 +1,6 @@
-const STORAGE_KEY = "__kstream:mangaPages:v1";
+// v2: invalidate caches that stored wrong-series pages (or proxied URLs that
+// previously bypassed title checks).
+const STORAGE_KEY = "__kstream:mangaPages:v2";
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 type Store = Record<string, { at: number; pages: string[] }>;
