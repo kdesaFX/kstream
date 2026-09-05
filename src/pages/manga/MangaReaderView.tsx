@@ -137,6 +137,8 @@ export function MangaReaderView() {
   const loadGenerationRef = useRef(0);
 
   const chapterId = chapterParam ? decodeURIComponent(chapterParam) : undefined;
+  const chapterIdRef = useRef(chapterId);
+  chapterIdRef.current = chapterId;
   const externalChapter =
     chapterId &&
     (isWeebCentralId(chapterId) || isComickChapterId(chapterId));
