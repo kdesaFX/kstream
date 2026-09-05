@@ -1,5 +1,7 @@
 /** Max concurrent chapter page source attempts (API + client mirrors). */
 export const PAGE_SOURCE_POOL_SIZE = 4;
+/** Guard against hung provider fetches so the pool always drains. */
+export const PAGE_SOURCE_TASK_TIMEOUT_MS = 30000;
 
 export type PageSourceTask = () => Promise<string[] | null>;
 
@@ -46,9 +48,21 @@ export async function racePageSourcesPool(
       tryResolveEmpty();
     };
 
+    const withTimeout = (task: Promise<string[] | null>) =>
+      new Promise<string[] | null>((resolve) => {
+        const timeout = globalThis.setTimeout(
+          () => resolve(null),
+          PAGE_SOURCE_TASK_TIMEOUT_MS,
+        );
+        void task
+          .then((pages) => resolve(pages))
+          .catch(() => resolve(null))
+          .finally(() => globalThis.clearTimeout(timeout));
+      });
+
     const startTask = (run: PageSourceTask) => {
       active += 1;
-      void run().then(onTaskDone).catch(onTaskError);
+      void withTimeout(run()).then(onTaskDone).catch(onTaskError);
     };
 
     const pump = () => {
