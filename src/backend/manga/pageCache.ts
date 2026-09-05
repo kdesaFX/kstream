@@ -1,5 +1,5 @@
-// v8: WC spine again (Comick stubs lack images); keep chapter gates.
-const STORAGE_KEY = "__kstream:mangaPages:v8";
+// v9: drop caches written by superseded rapid-Next fetches.
+const STORAGE_KEY = "__kstream:mangaPages:v9";
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 type Entry = { at: number; pages: string[]; chapter?: string | null };

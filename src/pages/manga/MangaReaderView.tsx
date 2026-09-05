@@ -115,8 +115,10 @@ export function MangaReaderView() {
   /** False until getMangaDetails finishes (partial MD may have zero chapters). */
   const [detailsReady, setDetailsReady] = useState(false);
   const [pages, setPages] = useState<string[]>([]);
-  /** Chapter id the `pages` array belongs to — ignore stale setPages from older loads. */
-  const pagesChapterIdRef = useRef<string | undefined>(undefined);
+  /** React state (not ref) so rapid Next can't paint pages for the wrong chapter. */
+  const [pagesForChapterId, setPagesForChapterId] = useState<
+    string | undefined
+  >(undefined);
   const [pageIndex, setPageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,8 +135,13 @@ export function MangaReaderView() {
   const skippedEmptyRef = useRef<Set<string>>(new Set());
   const needsDetailsRetryRef = useRef(false);
   const pagesLoadedRef = useRef(false);
-  /** Bumps on chapter/language change so late page fetches can't clobber UI. */
+  /** Bumps on every loadPages start so concurrent fetches can't both paint. */
   const loadGenerationRef = useRef(0);
+  /** Set synchronously in goChapter so loads know the chapter number before URL settles. */
+  const pendingChapterRef = useRef<{
+    id: string;
+    chapter: string | null;
+  } | null>(null);
 
   const chapterId = chapterParam ? decodeURIComponent(chapterParam) : undefined;
   const chapterIdRef = useRef(chapterId);
@@ -179,8 +186,7 @@ export function MangaReaderView() {
       : undefined;
 
   // Never paint page URLs that belong to a different chapter id (Next race).
-  const visiblePages =
-    pagesChapterIdRef.current === chapterId ? pages : [];
+  const visiblePages = pagesForChapterId === chapterId ? pages : [];
 
   const direction =
     details?.readingDirection ??
@@ -208,6 +214,7 @@ export function MangaReaderView() {
     pagesLoadedRef.current = false;
     needsDetailsRetryRef.current = false;
     setPages([]);
+    setPagesForChapterId(undefined);
     setError(null);
     setDetailsReady(false);
     setLoading(true);
@@ -345,6 +352,9 @@ export function MangaReaderView() {
 
   const loadPages = useCallback(
     async (id: string, force = false, silent = false) => {
+      // Each call gets a unique generation so rapid Next / duplicate effects
+      // can't both paint — only the latest load wins.
+      loadGenerationRef.current += 1;
       const generation = loadGenerationRef.current;
       const isStale = () =>
         generation !== loadGenerationRef.current ||
@@ -367,7 +377,7 @@ export function MangaReaderView() {
           if (offlinePages?.length) {
             pagesLoadedRef.current = true;
             needsDetailsRetryRef.current = false;
-            pagesChapterIdRef.current = id;
+            setPagesForChapterId(id);
             setPages(offlinePages);
             if (!silent) setPageIndex(0);
             setOfflineSaved(true);
@@ -376,35 +386,47 @@ export function MangaReaderView() {
           }
         }
         const fallback = pageFallback();
-        // Only the chapter number attached to THIS id — never the previous
-        // chapter's hint, which was poisoning Next via id#19 cache entries.
+        // Prefer the number for THIS id (list or pending Next target) — never
+        // a stale chapterNumberHint from the previous chapter.
         const chapterForId =
-          details?.chapters.find((c) => c.id === id)?.chapter ?? null;
+          details?.chapters.find((c) => c.id === id)?.chapter ??
+          (pendingChapterRef.current?.id === id
+            ? pendingChapterRef.current.chapter
+            : null) ??
+          null;
+
+        // Mirror ids without a chapter number are unsafe during rapid Next —
+        // wait for the chapter list / pending meta instead of painting ungated.
+        if (
+          !chapterForId &&
+          (isWeebCentralId(id) || isComickChapterId(id)) &&
+          !detailsReady
+        ) {
+          needsDetailsRetryRef.current = true;
+          if (!silent) setLoading(true);
+          return;
+        }
+
         const urls = await getChapterPages(
           id,
           { ...fallback, chapter: chapterForId },
           force,
+          isStale,
         );
         if (isStale()) return;
         if (urls.length === 0) {
           if (!silent) {
-            // Partial MD stubs race before mirrors merge — wait and retry instead
-            // of walking every empty chapter toward the end of the series.
             if (!detailsReady) {
               needsDetailsRetryRef.current = true;
               return;
             }
-            // After mirrors are ready, never auto-skip a cascade of hollow
-            // Comick/MD stubs (Dress-Up Darling was teleporting to ch.6+).
-            // Let the reader show the empty state; Next still works.
             setError(t("manga.reader.emptyChapter"));
-            pagesChapterIdRef.current = id;
+            setPagesForChapterId(id);
             setPages([]);
             pagesLoadedRef.current = false;
           }
           return;
         }
-        // Reject wrong-chapter lists before paint when we know the id's number.
         if (
           chapterForId &&
           !pagesValidForManga(
@@ -417,7 +439,7 @@ export function MangaReaderView() {
           clearChapterPagesCache(id);
           if (!silent) {
             setError(t("manga.reader.emptyChapter"));
-            pagesChapterIdRef.current = id;
+            setPagesForChapterId(id);
             setPages([]);
             pagesLoadedRef.current = false;
           }
@@ -425,7 +447,7 @@ export function MangaReaderView() {
         }
         pagesLoadedRef.current = true;
         needsDetailsRetryRef.current = false;
-        pagesChapterIdRef.current = id;
+        setPagesForChapterId(id);
         setPages(urls);
         if (!silent) setPageIndex(0);
         if (canUseMangaOffline()) {
@@ -440,45 +462,49 @@ export function MangaReaderView() {
           needsDetailsRetryRef.current = !detailsReady;
           pagesLoadedRef.current = false;
           setError(e instanceof Error ? e.message : "Failed to load pages");
-          pagesChapterIdRef.current = id;
+          setPagesForChapterId(id);
           setPages([]);
         }
       } finally {
         if (!silent && !isStale()) setLoading(false);
       }
     },
-    [
-      t,
-      details,
-      detailsReady,
-      pageFallback,
-    ],
+    [t, details, detailsReady, pageFallback],
   );
 
   useEffect(() => {
     if (!chapterId) return;
+    // Invalidate any in-flight load from the previous chapter immediately.
     loadGenerationRef.current += 1;
     pagesLoadedRef.current = false;
     needsDetailsRetryRef.current = false;
     retried.current = false;
     setOfflineSaved(false);
-    pagesChapterIdRef.current = undefined;
-    // Drop previous chapter art immediately so a wrong cache can't flash.
+    setPagesForChapterId(undefined);
     setPages([]);
     setPageIndex(0);
     clearChapterPagesCache(chapterId);
 
     const titleForCheck = details?.title ?? titleHint;
     const alts = details?.alternateTitles ?? [];
-    const chapterForCheck = chapterNumberHint;
+    const chapterForCheck =
+      details?.chapters.find((c) => c.id === chapterId)?.chapter ??
+      (pendingChapterRef.current?.id === chapterId
+        ? pendingChapterRef.current.chapter
+        : null) ??
+      chapterNumberHint;
+
     const cached = readPersistedPageCache(chapterId, chapterForCheck);
     if (cached?.length) {
-      if (
-        !pagesValidForManga(cached, titleForCheck, alts, chapterForCheck)
-      ) {
+      // Never paint mirror cache without a chapter number — ungated hits are
+      // how rapid Next resurfaced volume covers.
+      const canTrustCache =
+        chapterForCheck &&
+        pagesValidForManga(cached, titleForCheck, alts, chapterForCheck);
+      if (!canTrustCache) {
         clearPersistedPageCache(chapterId);
       } else {
-        pagesChapterIdRef.current = chapterId;
+        setPagesForChapterId(chapterId);
         setPages(cached);
         setLoading(false);
         pagesLoadedRef.current = true;
@@ -487,20 +513,23 @@ export function MangaReaderView() {
       }
     }
     if (canUseMangaOffline()) {
-      void getDesktopOfflineMangaPages(chapterId).then((offline) => {
+      const requestedId = chapterId;
+      void getDesktopOfflineMangaPages(requestedId).then((offline) => {
+        if (requestedId !== chapterIdRef.current) return;
         if (!offline?.length) return;
         if (
+          !chapterForCheck ||
           !pagesValidForManga(offline, titleForCheck, alts, chapterForCheck)
         ) {
           return;
         }
-        pagesChapterIdRef.current = chapterId;
+        setPagesForChapterId(requestedId);
         setPages(offline);
         setPageIndex(0);
         setLoading(false);
         pagesLoadedRef.current = true;
         setOfflineSaved(true);
-        void loadPages(chapterId, true, true);
+        void loadPages(requestedId, true, true);
       });
       return;
     }
@@ -510,6 +539,7 @@ export function MangaReaderView() {
   // Once chapter number is known, drop painted pages that belong to another ch.
   useEffect(() => {
     if (!chapterId || !chapterNumberHint || pages.length === 0) return;
+    if (pagesForChapterId !== chapterId) return;
     const titleForCheck = details?.title ?? titleHint;
     if (
       titleForCheck &&
@@ -522,6 +552,7 @@ export function MangaReaderView() {
     ) {
       clearPersistedPageCache(chapterId);
       pagesLoadedRef.current = false;
+      setPagesForChapterId(undefined);
       setPages([]);
       void loadPages(chapterId, true);
     }
@@ -532,6 +563,7 @@ export function MangaReaderView() {
     details?.alternateTitles,
     titleHint,
     pages,
+    pagesForChapterId,
     loadPages,
   ]);
 
@@ -685,10 +717,14 @@ export function MangaReaderView() {
     if (!details || !ch) return;
     skipChapterResumeRef.current = ch.id !== chapterId;
     pageChapterIdRef.current = ch.id;
-    pagesChapterIdRef.current = undefined;
-    // Don't bump loadGeneration here — the chapterId effect owns that. Bumping
-    // twice made the effect's in-flight fetch look stale and left Next blank.
+    pendingChapterRef.current = {
+      id: ch.id,
+      chapter: ch.chapter ?? null,
+    };
+    // Invalidate in-flight loads immediately (before the URL/effect catches up).
+    loadGenerationRef.current += 1;
     pagesLoadedRef.current = false;
+    setPagesForChapterId(undefined);
     setPages([]);
     setPageIndex(0);
     setError(null);

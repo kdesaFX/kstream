@@ -118,7 +118,7 @@ async function fetchPagesViaApi(
       params.set("alts", fallback.alternateTitles.slice(0, 16).join("\n"));
     }
     // Bust CDN entries cached before mixed-series / chapter-prefix checks.
-    params.set("v", "10");
+    params.set("v", "11");
     const res = await fetch(`/api/manga/pages?${params.toString()}`, {
       signal: AbortSignal.timeout(28000),
     });
@@ -191,8 +191,10 @@ export async function getChapterPages(
   chapterId: string,
   fallback?: ChapterPageFallback,
   force?: boolean,
+  isCancelled?: () => boolean,
 ): Promise<string[]> {
   mangaMark("pages-start");
+  const cancelled = () => isCancelled?.() === true;
   const wantedChapter = fallback?.chapter?.trim() || null;
   // Always gate on known chapter numbers — WC id fetches can return volume
   // covers that don't match the chapter list label.
@@ -318,6 +320,11 @@ export async function getChapterPages(
   }
 
   let hit = await racePageSourcesPool(tasks);
+  if (cancelled()) {
+    mangaMark("pages-end");
+    mangaMeasure("pages", "pages-start", "pages-end");
+    return [];
+  }
 
   // WC by chapter number only when every preferred source failed.
   if (!hit?.length && fallback?.title && wantedChapter) {
@@ -336,6 +343,12 @@ export async function getChapterPages(
     }
   }
 
+  if (cancelled()) {
+    mangaMark("pages-end");
+    mangaMeasure("pages", "pages-start", "pages-end");
+    return [];
+  }
+
   if (hit?.length) {
     const title = fallback?.title;
     const alts = fallback?.alternateTitles ?? [];
@@ -344,7 +357,10 @@ export async function getChapterPages(
       mangaMeasure("pages", "pages-start", "pages-end");
       return [];
     }
-    cachePages(chapterId, hit, wantedChapter);
+    // Never let a superseded Next-chapter fetch poison the cache.
+    if (!cancelled()) {
+      cachePages(chapterId, hit, wantedChapter);
+    }
     mangaMark("pages-end");
     mangaMeasure("pages", "pages-start", "pages-end");
     return hit;
