@@ -6,6 +6,11 @@ function chapterNum(ch: MangaChapter | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function isHalfChapter(chapter: string | null | undefined): boolean {
+  const value = chapter?.trim();
+  return value != null && /\.5(?:0+)?$/.test(value);
+}
+
 /** Lower wins. WeebCentral first for page loads — Comick EN chapter HIDs for
  * many titles are image-less stubs (links2 → MangaSee), and MangaSee is often
  * anti-bot blocked from Workers. WC CDN paths stay chapter-stable when gated. */
@@ -49,6 +54,7 @@ export function mergeChapterLists(
 
   for (const list of lists) {
     for (const ch of list.chapters) {
+      if (isHalfChapter(ch.chapter)) continue;
       const key = ch.chapter?.trim() || ch.id;
       const existing = byNumber.get(key);
       if (!existing) {

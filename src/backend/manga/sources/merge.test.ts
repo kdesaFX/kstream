@@ -71,6 +71,20 @@ describe("mergeChapterLists", () => {
     expect(merged.chapters[1]?.source).toBe("comick");
     expect(merged.fallbacks.get("comick-21")).toEqual(["md-21"]);
   });
+
+  it("removes half chapters from merged lists", () => {
+    const merged = mergeChapterLists([
+      {
+        source: "weebcentral",
+        chapters: [ch("wc-7", "7", "weebcentral"), ch("wc-7-5", "7.5", "weebcentral")],
+      },
+      {
+        source: "mangadex",
+        chapters: [ch("md-8", "8", "mangadex", 16), ch("md-8-5", "8.50", "mangadex", 8)],
+      },
+    ]);
+    expect(merged.chapters.map((c) => c.chapter)).toEqual(["7", "8"]);
+  });
 });
 
 describe("comick ids", () => {
