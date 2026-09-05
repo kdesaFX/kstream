@@ -30,7 +30,7 @@ import {
   getWeebCentralDetails,
   getWeebCentralPagesForChapterNumber,
   normalizeMangaTitle,
-  pagesBelongToTitle,
+  pagesValidForManga,
   searchWeebCentral,
 } from "@/backend/manga/weebcentral";
 
@@ -114,9 +114,8 @@ async function fetchPagesViaApi(
     if (fallback?.alternateTitles?.length) {
       params.set("alts", fallback.alternateTitles.slice(0, 16).join("\n"));
     }
-    // `v=2` busts CDN entries that cached wrong-series pages before title checks.
-    // Bust CDN entries cached before title / proxy-destination checks.
-    params.set("v", "3");
+    // Bust CDN entries cached before mixed-series / chapter-prefix checks.
+    params.set("v", "4");
     const res = await fetch(`/api/manga/pages?${params.toString()}`, {
       signal: AbortSignal.timeout(28000),
     });
@@ -124,13 +123,14 @@ async function fetchPagesViaApi(
     const data = (await res.json()) as { pages?: string[] };
     const pages = data.pages?.length ? data.pages : null;
     if (!pages) return null;
-    // API historically skipped title checks — reject foreign series here too.
+    // API historically skipped title checks — reject foreign / wrong-chapter here.
     if (
       fallback?.title &&
-      !pagesBelongToTitle(
+      !pagesValidForManga(
         pages,
         fallback.title,
         fallback.alternateTitles ?? [],
+        fallback.chapter,
       )
     ) {
       return null;
@@ -163,14 +163,14 @@ export async function getChapterPages(
       const alts = fallback?.alternateTitles ?? [];
       if (
         !title ||
-        pagesBelongToTitle(persisted, title, alts)
+        pagesValidForManga(persisted, title, alts, fallback?.chapter)
       ) {
         pageListCache.set(chapterId, { at: Date.now(), pages: persisted });
         mangaMark("pages-end");
         mangaMeasure("pages", "pages-start", "pages-end");
         return persisted;
       }
-      // Wrong series stuck in session cache (e.g. Horimiya under a JJK chapter).
+      // Wrong series / chapter stuck in session cache.
       clearPersistedPageCache(chapterId);
       pageListCache.delete(chapterId);
     }
@@ -180,7 +180,7 @@ export async function getChapterPages(
       const alts = fallback?.alternateTitles ?? [];
       if (
         !title ||
-        pagesBelongToTitle(cached.pages, title, alts)
+        pagesValidForManga(cached.pages, title, alts, fallback?.chapter)
       ) {
         mangaMark("pages-end");
         mangaMeasure("pages", "pages-start", "pages-end");
@@ -238,7 +238,7 @@ export async function getChapterPages(
         alts,
         chapterNum,
       );
-      if (pages.length > 0 && pagesBelongToTitle(pages, title, alts)) {
+      if (pages.length > 0 && pagesValidForManga(pages, title, alts, chapterNum)) {
         return pages;
       }
       return null;
@@ -260,7 +260,10 @@ export async function getChapterPages(
     const title = fallback?.title;
     const alts = fallback?.alternateTitles ?? [];
     // Tasks already filter mismatches; final gate avoids caching poison.
-    if (title && !pagesBelongToTitle(hit, title, alts)) {
+    if (
+      title &&
+      !pagesValidForManga(hit, title, alts, fallback?.chapter)
+    ) {
       mangaMark("pages-end");
       mangaMeasure("pages", "pages-start", "pages-end");
       return [];
@@ -289,10 +292,11 @@ async function tryLoadPagesForId(
   if (pages.length === 0) return null;
   if (
     fallback?.title &&
-    !pagesBelongToTitle(
+    !pagesValidForManga(
       pages,
       fallback.title,
       fallback.alternateTitles ?? [],
+      fallback.chapter,
     )
   ) {
     return null;

@@ -13,6 +13,7 @@ import type {
 import {
   shouldAllowMatureTitles,
 } from "@/utils/media/mature";
+import { seriesSlugFromPageUrl } from "../../../lib/manga-page-title";
 
 const ORIGIN = "https://weebcentral.com";
 const COVER = "https://temp.compsci88.com/cover";
@@ -157,11 +158,35 @@ export function parseChapterImages(html: string): string[] {
     if (!/\.(png|jpe?g|webp|gif)(\?|$)/i.test(url)) continue;
     urls.push(url);
   }
-  return [...new Set(urls)];
+  const unique = [...new Set(urls)];
+  // Drop promo / related covers from other series that sometimes appear in
+  // the same images payload (e.g. JJK page + D.Gray-man volume art).
+  const slugCounts = new Map<string, number>();
+  for (const url of unique) {
+    const slug = seriesSlugFromPageUrl(url);
+    if (!slug) continue;
+    slugCounts.set(slug, (slugCounts.get(slug) ?? 0) + 1);
+  }
+  if (slugCounts.size <= 1) return unique;
+  let dominant: string | null = null;
+  let best = 0;
+  for (const [slug, count] of slugCounts) {
+    if (count > best) {
+      dominant = slug;
+      best = count;
+    }
+  }
+  if (!dominant || best < 2) return unique;
+  return unique.filter((url) => {
+    const slug = seriesSlugFromPageUrl(url);
+    return !slug || slug === dominant;
+  });
 }
 
 export {
   pagesBelongToTitle,
+  pagesMatchChapter,
+  pagesValidForManga,
   seriesSlugFromPageUrl,
 } from "../../../lib/manga-page-title";
 

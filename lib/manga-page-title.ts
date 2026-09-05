@@ -99,6 +99,22 @@ function titlesCompatible(
   return alternateTitles.some((alt) => titleSatisfiesQuery(alt, candidate));
 }
 
+function slugMatchesTitle(
+  slug: string,
+  title: string,
+  alternateTitles: string[],
+): boolean {
+  if (titlesCompatible(title, slug, alternateTitles)) return true;
+  const tokens = significantTokens(title).filter(
+    (token) => token.length >= 6 && !isGenericSearchToken(token),
+  );
+  if (tokens.length === 1) {
+    const hay = normalizeMangaTitle(slug);
+    if (hay.includes(tokens[0])) return true;
+  }
+  return false;
+}
+
 /** Unwrap `/api/proxy?destination=` (and nested encodings) so slug checks see the CDN path. */
 export function unwrapPageUrl(url: string): string {
   let current = url;
@@ -126,6 +142,46 @@ export function seriesSlugFromPageUrl(url: string): string | null {
   return decodeURIComponent(m[1]).replace(/-/g, " ");
 }
 
+/** Chapter index embedded in WC/CDN filenames, e.g. `0013-001.png` → 13. */
+export function chapterPrefixFromPageUrl(url: string): number | null {
+  const path = unwrapPageUrl(url);
+  const m =
+    /\/(\d{2,4})-\d{2,4}\.(?:png|jpe?g|webp|gif)(?:\?|$)/i.exec(path) ??
+    /(?:^|\/)(\d{2,4})-\d{2,4}\.(?:png|jpe?g|webp|gif)(?:\?|$)/i.exec(path);
+  if (!m?.[1]) return null;
+  const n = parseInt(m[1], 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * When CDN filenames carry `NNNN-PPP` chapter prefixes, every prefixed page must
+ * match the requested chapter (stops ch13 showing `0030-*.png` volume art).
+ * MangaDex hash URLs without prefixes always pass.
+ */
+export function pagesMatchChapter(
+  pages: string[],
+  chapter?: string | null,
+): boolean {
+  if (!chapter?.trim() || pages.length === 0) return true;
+  const wanted = parseFloat(chapter.trim());
+  if (!Number.isFinite(wanted)) return true;
+
+  const prefixes = pages
+    .map(chapterPrefixFromPageUrl)
+    .filter((n): n is number => n != null);
+  if (prefixes.length === 0) return true;
+
+  const integerWanted = Number.isInteger(wanted)
+    ? wanted
+    : Math.floor(wanted);
+  // Whole chapters: require exact prefix (13 ≠ 30). Decimals (13.5): allow
+  // floor match when the host only encodes the integer part.
+  if (Number.isInteger(wanted)) {
+    return prefixes.every((n) => n === wanted);
+  }
+  return prefixes.every((n) => n === wanted || n === integerWanted);
+}
+
 export function pagesBelongToTitle(
   pages: string[],
   title?: string,
@@ -133,17 +189,19 @@ export function pagesBelongToTitle(
 ): boolean {
   if (!title || pages.length === 0) return true;
   const resolved = pages.map(unwrapPageUrl);
-  const slug = resolved.map(seriesSlugFromPageUrl).find(Boolean);
-  if (slug) {
-    if (titlesCompatible(title, slug, alternateTitles)) return true;
-    const tokens = significantTokens(title).filter(
-      (token) => token.length >= 6 && !isGenericSearchToken(token),
+  const slugs = [
+    ...new Set(
+      resolved
+        .map((url) => seriesSlugFromPageUrl(url))
+        .filter((slug): slug is string => Boolean(slug)),
+    ),
+  ];
+  // Every distinct series folder must belong to the title — mixed JJK +
+  // D.Gray-man lists used to pass because only the first slug was checked.
+  if (slugs.length > 0) {
+    return slugs.every((slug) =>
+      slugMatchesTitle(slug, title, alternateTitles),
     );
-    if (tokens.length === 1) {
-      const hay = normalizeMangaTitle(slug);
-      if (hay.includes(tokens[0])) return true;
-    }
-    return false;
   }
 
   const urlBlob = normalizeMangaTitle(resolved.slice(0, 5).join(" "));
@@ -163,4 +221,15 @@ export function pagesBelongToTitle(
     return tokens.some((token) => urlBlob.includes(token));
   }
   return true;
+}
+
+/** Title + optional chapter-number gate used before paint / cache write. */
+export function pagesValidForManga(
+  pages: string[],
+  title?: string,
+  alternateTitles: string[] = [],
+  chapter?: string | null,
+): boolean {
+  if (!pagesBelongToTitle(pages, title, alternateTitles)) return false;
+  return pagesMatchChapter(pages, chapter);
 }

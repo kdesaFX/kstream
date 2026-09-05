@@ -86,6 +86,20 @@ describe("weebcentral parsers", () => {
     ]);
   });
 
+  it("drops minority foreign series images from a chapter payload", () => {
+    const mixed = `
+<section id="chapter-images">
+  <img src="https://hot.planeptune.us/manga/Jujutsu-Kaisen/0013-001.png" alt="">
+  <img src="https://hot.planeptune.us/manga/Jujutsu-Kaisen/0013-002.png" alt="">
+  <img src="https://hot.planeptune.us/manga/D.Gray-man/0029-001.png" alt="">
+</section>
+`;
+    expect(parseChapterImages(mixed)).toEqual([
+      "https://hot.planeptune.us/manga/Jujutsu-Kaisen/0013-001.png",
+      "https://hot.planeptune.us/manga/Jujutsu-Kaisen/0013-002.png",
+    ]);
+  });
+
   it("rejects Hardcore Leveling Warrior page URLs for Solo Leveling", () => {
     expect(
       pagesBelongToTitle(

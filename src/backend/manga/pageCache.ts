@@ -1,6 +1,6 @@
-// v2: invalidate caches that stored wrong-series pages (or proxied URLs that
-// previously bypassed title checks).
-const STORAGE_KEY = "__kstream:mangaPages:v2";
+// v3: invalidate caches that mixed series or stored wrong chapter prefixes
+// (e.g. JJK ch13 showing 0030 / D.Gray-man pages that passed first-slug checks).
+const STORAGE_KEY = "__kstream:mangaPages:v3";
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 type Store = Record<string, { at: number; pages: string[] }>;

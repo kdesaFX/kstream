@@ -7,7 +7,7 @@ import {
   isWeebCentralChapterId,
 } from "../lib/manga-pages-server";
 import { resolveMirrorChapters } from "../lib/manga-chapters-server";
-import { pagesBelongToTitle } from "../lib/manga-page-title";
+import { pagesValidForManga } from "../lib/manga-page-title";
 import { handleOptions, jsonResponse } from "../lib/proxy-shared";
 
 export const config = { runtime: "edge" };
@@ -18,9 +18,10 @@ function acceptPages(
   pages: string[],
   title: string | undefined,
   alts: string[],
+  chapter?: string | null,
 ): string[] {
   if (!pages.length) return [];
-  if (!title || pagesBelongToTitle(pages, title, alts)) return pages;
+  if (!title || pagesValidForManga(pages, title, alts, chapter)) return pages;
   return [];
 }
 
@@ -46,7 +47,7 @@ async function pagesViaWeebCentralTitle(
       : undefined);
   if (!match) return [];
   const pages = await fetchWeebCentralChapterPages(match.id);
-  return acceptPages(pages, title, alternateTitles);
+  return acceptPages(pages, title, alternateTitles, wanted);
 }
 
 export default async function handler(request: Request): Promise<Response> {
@@ -83,6 +84,7 @@ export default async function handler(request: Request): Promise<Response> {
         await fetchChapterPagesById(chapterId),
         title,
         alts,
+        chapter,
       );
       if (pages.length === 0 && title && chapter) {
         pages = await pagesViaWeebCentralTitle(title, alts, chapter);
@@ -96,6 +98,7 @@ export default async function handler(request: Request): Promise<Response> {
           await fetchMangaDexChapterPages(chapterId),
           title,
           alts,
+          chapter,
         );
       }
     }

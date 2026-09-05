@@ -32,7 +32,7 @@ import {
   proxiedChapterPageUrls,
 } from "@/backend/manga/mangadex";
 import type { MangaChapter, MangaDetails } from "@/backend/manga/types";
-import { pagesBelongToTitle } from "@/backend/manga/weebcentral";
+import { pagesValidForManga } from "@/backend/manga/weebcentral";
 import { Icon, Icons } from "@/components/Icon";
 import { ExternalListButtons } from "@/components/media/ExternalListButtons";
 import { useMangaProgressStore } from "@/stores/mangaProgress";
@@ -425,11 +425,12 @@ export function MangaReaderView() {
 
     const titleForCheck = details?.title ?? titleHint;
     const alts = details?.alternateTitles ?? [];
+    const chapterForCheck = chapterNumberHint;
     const cached = readPersistedPageCache(chapterId);
     if (cached?.length) {
       if (
         titleForCheck &&
-        !pagesBelongToTitle(cached, titleForCheck, alts)
+        !pagesValidForManga(cached, titleForCheck, alts, chapterForCheck)
       ) {
         clearPersistedPageCache(chapterId);
       } else {
@@ -445,7 +446,7 @@ export function MangaReaderView() {
         if (!offline?.length) return;
         if (
           titleForCheck &&
-          !pagesBelongToTitle(offline, titleForCheck, alts)
+          !pagesValidForManga(offline, titleForCheck, alts, chapterForCheck)
         ) {
           return;
         }
@@ -459,6 +460,34 @@ export function MangaReaderView() {
       return;
     }
   }, [chapterId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Once chapter number is known, drop painted pages that belong to another ch.
+  useEffect(() => {
+    if (!chapterId || !chapterNumberHint || pages.length === 0) return;
+    const titleForCheck = details?.title ?? titleHint;
+    if (
+      titleForCheck &&
+      !pagesValidForManga(
+        pages,
+        titleForCheck,
+        details?.alternateTitles ?? [],
+        chapterNumberHint,
+      )
+    ) {
+      clearPersistedPageCache(chapterId);
+      pagesLoadedRef.current = false;
+      setPages([]);
+      void loadPages(chapterId, true);
+    }
+  }, [
+    chapterId,
+    chapterNumberHint,
+    details?.title,
+    details?.alternateTitles,
+    titleHint,
+    pages,
+    loadPages,
+  ]);
 
   useEffect(() => {
     if (!chapterId) return;
