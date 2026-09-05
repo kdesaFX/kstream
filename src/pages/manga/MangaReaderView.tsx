@@ -239,7 +239,8 @@ export function MangaReaderView() {
     setPagesForChapterId(undefined);
     setError(null);
     setDetailsReady(false);
-    setLoading(true);
+    // Chapter route loading is driven by the chapter effect / loadPages flow.
+    if (!chapterId) setLoading(true);
     mangaMark("reader-details-start");
     getMangaDetails(mangaId, preferredLanguage, (partial) => {
       if (!cancelled) {
@@ -272,7 +273,7 @@ export function MangaReaderView() {
     return () => {
       cancelled = true;
     };
-  }, [mangaId, mediaParam, preferredLanguage, t]);
+  }, [mangaId, mediaParam, preferredLanguage, chapterId, t]);
 
   // Redirect /manga/:id → first readable chapter or resume after meaningful read.
   // Wait for mirror merge — partial MangaDex stubs auto-skip all the way to the end.
