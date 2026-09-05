@@ -22,9 +22,13 @@ function ch(
 }
 
 describe("mergeChapterLists", () => {
-  it("prefers MangaDex over Comick for the same chapter number", () => {
+  it("prefers WeebCentral over MangaDex for the same chapter number", () => {
     const merged = mergeChapterLists([
       { source: "mangadex", chapters: [ch("md-114", "114", "mangadex", 20)] },
+      {
+        source: "weebcentral",
+        chapters: [ch("wc-114", "114", "weebcentral")],
+      },
       {
         source: "comick",
         chapters: [
@@ -34,8 +38,10 @@ describe("mergeChapterLists", () => {
       },
     ]);
     expect(merged.chapters.map((c) => c.chapter)).toEqual(["1", "114"]);
-    expect(merged.chapters.find((c) => c.chapter === "114")?.id).toBe("md-114");
-    expect(merged.fallbacks.get("md-114")).toEqual(["comick-b"]);
+    expect(merged.chapters.find((c) => c.chapter === "114")?.id).toBe("wc-114");
+    expect(merged.fallbacks.get("wc-114")).toEqual(
+      expect.arrayContaining(["md-114", "comick-b"]),
+    );
   });
 
   it("prefers WeebCentral when MangaDex is an empty licensed stub", () => {
@@ -50,7 +56,7 @@ describe("mergeChapterLists", () => {
     expect(merged.fallbacks.get("wc-0")).toEqual(["md-0"]);
   });
 
-  it("fills early chapters from Comick when MangaDex starts late", () => {
+  it("prefers Comick over MangaDex when WeebCentral is absent", () => {
     const merged = mergeChapterLists([
       { source: "mangadex", chapters: [ch("md-21", "21", "mangadex", 18)] },
       {
@@ -60,7 +66,8 @@ describe("mergeChapterLists", () => {
     ]);
     expect(merged.chapters.map((c) => c.chapter)).toEqual(["1", "21"]);
     expect(merged.chapters[0]?.source).toBe("comick");
-    expect(merged.chapters[1]?.source).toBe("mangadex");
+    expect(merged.chapters[1]?.source).toBe("comick");
+    expect(merged.fallbacks.get("comick-21")).toEqual(["md-21"]);
   });
 });
 

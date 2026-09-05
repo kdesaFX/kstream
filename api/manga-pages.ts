@@ -1,5 +1,6 @@
 import {
   fetchChapterPagesById,
+  fetchMangaDexChapterPages,
   fetchWeebCentralChapterPages,
   isComickChapterId,
   isMangaDexChapterId,
@@ -54,19 +55,28 @@ export default async function handler(request: Request): Promise<Response> {
       return jsonResponse({ error: "Invalid chapterId" }, 400);
     }
 
-    let pages = await fetchChapterPagesById(chapterId);
+    const title = url.searchParams.get("title")?.trim();
+    const chapter = url.searchParams.get("chapter")?.trim();
+    const alts = (url.searchParams.get("alts") ?? "")
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
-    // Comick chapter detail is often CF-blocked; fall back to WeebCentral by
-    // chapter number when the client passes title metadata.
-    if (pages.length === 0) {
-      const title = url.searchParams.get("title")?.trim();
-      const chapter = url.searchParams.get("chapter")?.trim();
-      const alts = (url.searchParams.get("alts") ?? "")
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
+    let pages: string[] = [];
+
+    // Prefer WC/Comick chapter ids; for MangaDex uuids try WC by title first
+    // so we don't burn guest at-home when the client still has an MD id.
+    if (isComickChapterId(chapterId) || isWeebCentralChapterId(chapterId)) {
+      pages = await fetchChapterPagesById(chapterId);
+      if (pages.length === 0 && title && chapter) {
+        pages = await pagesViaWeebCentralTitle(title, alts, chapter);
+      }
+    } else {
       if (title && chapter) {
         pages = await pagesViaWeebCentralTitle(title, alts, chapter);
+      }
+      if (pages.length === 0) {
+        pages = await fetchMangaDexChapterPages(chapterId);
       }
     }
 

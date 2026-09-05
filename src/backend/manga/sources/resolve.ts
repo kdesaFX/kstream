@@ -43,9 +43,7 @@ export function isSparseMangaDexList(
   lastChapter?: string | null,
 ): boolean {
   if (chapters.length === 0) return true;
-  // MangaDex now caps guests at ~10 chapters/day, so a list this thin is
-  // indistinguishable from a licensed stub — always backfill from mirrors.
-  if (chapters.length <= 10) return true;
+  if (chapters.length <= 8) return true;
   const last = parseFloat(String(lastChapter ?? "").trim());
   if (Number.isFinite(last) && last >= 20 && chapters.length < last * 0.2) {
     return true;
@@ -54,8 +52,9 @@ export function isSparseMangaDexList(
 }
 
 /**
- * Fill English gaps from WeebCentral and Comick while keeping MangaDex chapters
- * when they exist. Stores alternate ids for page-load retry.
+ * Fill gaps from WeebCentral and Comick. For English (or sparse non-EN MD
+ * feeds), a larger mirror catalog becomes the spine; MangaDex rows with pages
+ * remain as fallbacks. Stores alternate ids for page-load retry.
  *
  * Licensed MangaDex stubs (tiny EN feed) always pull mirrors — even if the UI
  * language preference isn't English — otherwise titles like Komi show 3 chapters.
@@ -128,24 +127,25 @@ export async function resolveReadableChapters(
     ]);
   }
 
-  // When MangaDex is sparse (licensed-hollow or guest-capped), prefer the
-  // larger mirror catalog as the spine and only keep MD chapters that actually
-  // have pages. A 1x (not just 2x) advantage suffices when MD is capped thin.
-  const betterMirror =
+  // EN (and sparse non-EN): if WC/Comick has a fuller list, use that as the
+  // spine and keep only page-bearing MangaDex rows as merge fallbacks.
+  const mirrorLarger =
     (wcChapters?.length ?? 0) > mdChapters.length ||
     (ckChapters?.length ?? 0) > mdChapters.length;
-  const mdForMerge = sparse && betterMirror
+  const preferMirrorSpine = mirrorLarger && (language === "en" || sparse);
+  const mdForMerge = preferMirrorSpine
     ? mdChapters.filter((ch) => (ch.pages ?? 0) > 0)
     : mdChapters;
 
+  // Mirrors first so merge prefers WC/Comick when priorities tie on readability.
   const merged = mergeChapterLists([
-    { source: "mangadex", chapters: mdForMerge },
     ...(wcChapters?.length
       ? [{ source: "weebcentral" as const, chapters: wcChapters }]
       : []),
     ...(ckChapters?.length
       ? [{ source: "comick" as const, chapters: ckChapters }]
       : []),
+    { source: "mangadex", chapters: mdForMerge },
   ]);
 
   const groups = asSingleGroup(merged.chapters);

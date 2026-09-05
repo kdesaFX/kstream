@@ -36,8 +36,8 @@ import {
 const detailsInFlight = new Map<string, Promise<MangaDetails>>();
 
 /**
- * MangaDex first; WeebCentral fills titles it doesn't have, and supplies
- * chapters when MangaDex is only allowed to point at official sites.
+ * Weeb Central first so search picks land on WC ids when possible; MangaDex
+ * fills titles WC doesn't have (still useful as metadata spine).
  */
 export async function searchManga(
   title: string,
@@ -45,11 +45,13 @@ export async function searchManga(
 ): Promise<MangaListItem[]> {
   const [md, wc] = await Promise.all([
     searchMangaDex(title, limit).catch(() => [] as MangaListItem[]),
-    searchWeebCentral(title, 16).catch(() => [] as MangaListItem[]),
+    searchWeebCentral(title, Math.min(limit, 16)).catch(
+      () => [] as MangaListItem[],
+    ),
   ]);
-  const seen = new Set(md.map((item) => normalizeMangaTitle(item.title)));
-  const extra = wc.filter((item) => !seen.has(normalizeMangaTitle(item.title)));
-  return [...md, ...extra];
+  const seen = new Set(wc.map((item) => normalizeMangaTitle(item.title)));
+  const extra = md.filter((item) => !seen.has(normalizeMangaTitle(item.title)));
+  return [...wc, ...extra].slice(0, limit);
 }
 
 export async function getMangaDetails(
@@ -170,15 +172,24 @@ export async function getChapterPages(
     }
   }
 
+  const isMirrorChapterId = (id: string) =>
+    isWeebCentralId(id) || isComickChapterId(id);
+
+  // WC / Comick first — avoid burning MangaDex guest at-home when a mirror
+  // id is already selected or available as a fallback.
+  const mirrorIds: string[] = [];
+  const mangadexIds: string[] = [];
+  const pushId = (id: string) => {
+    if (isMirrorChapterId(id)) {
+      if (!mirrorIds.includes(id)) mirrorIds.push(id);
+    } else if (!mangadexIds.includes(id)) {
+      mangadexIds.push(id);
+    }
+  };
+  pushId(chapterId);
+  for (const alt of altIds) pushId(alt);
+
   const tasks: PageSourceTask[] = [];
-  if (!stub) {
-    tasks.push(() => fetchPagesViaApi(chapterId, fallback));
-    tasks.push(() => tryLoadPagesForId(chapterId, pageContext, force));
-  }
-  for (const alt of altIds) {
-    tasks.push(() => fetchPagesViaApi(alt, fallback));
-    tasks.push(() => tryLoadPagesForId(alt, pageContext, force));
-  }
   if (fallback?.title && fallback.chapter?.trim()) {
     const title = fallback.title;
     const alts = fallback.alternateTitles ?? [];
@@ -194,6 +205,16 @@ export async function getChapterPages(
       }
       return null;
     });
+  }
+  for (const id of mirrorIds) {
+    tasks.push(() => fetchPagesViaApi(id, fallback));
+    tasks.push(() => tryLoadPagesForId(id, pageContext, force));
+  }
+  if (!stub) {
+    for (const id of mangadexIds) {
+      tasks.push(() => fetchPagesViaApi(id, fallback));
+      tasks.push(() => tryLoadPagesForId(id, pageContext, force));
+    }
   }
 
   const hit = await racePageSourcesPool(tasks);

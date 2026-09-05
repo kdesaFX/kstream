@@ -6,13 +6,14 @@ function chapterNum(ch: MangaChapter | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Lower wins. Weeb Central first so readable mirrors beat MangaDex stubs. */
 function sourcePriority(source: MangaSource | undefined): number {
   switch (source) {
-    case "mangadex":
-      return 0;
     case "weebcentral":
-      return 1;
+      return 0;
     case "comick":
+      return 1;
+    case "mangadex":
       return 2;
     default:
       return 9;
