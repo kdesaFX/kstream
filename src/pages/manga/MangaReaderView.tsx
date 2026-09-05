@@ -348,7 +348,7 @@ export function MangaReaderView() {
       const generation = loadGenerationRef.current;
       const isStale = () =>
         generation !== loadGenerationRef.current ||
-        (chapterId != null && id !== chapterId);
+        id !== chapterIdRef.current;
 
       if (!silent) {
         setLoading(true);
@@ -452,7 +452,6 @@ export function MangaReaderView() {
       details,
       detailsReady,
       pageFallback,
-      chapterId,
     ],
   );
 
