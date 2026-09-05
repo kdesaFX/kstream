@@ -45,7 +45,30 @@ function parseWeebCentralImages(html: string): string[] {
     if (!/\.(png|jpe?g|webp|gif)(\?|$)/i.test(url)) continue;
     urls.push(url);
   }
-  return [...new Set(urls)];
+  const unique = [...new Set(urls)];
+  const slugCounts = new Map<string, number>();
+  for (const url of unique) {
+    const m = /\/manga\/([^/?#]+)\//i.exec(url);
+    if (!m?.[1]) continue;
+    const slug = decodeURIComponent(m[1]).replace(/-/g, " ");
+    slugCounts.set(slug, (slugCounts.get(slug) ?? 0) + 1);
+  }
+  if (slugCounts.size <= 1) return unique;
+  let dominant: string | null = null;
+  let best = 0;
+  for (const [slug, count] of slugCounts) {
+    if (count > best) {
+      dominant = slug;
+      best = count;
+    }
+  }
+  if (!dominant || best < 2) return unique;
+  return unique.filter((url) => {
+    const m = /\/manga\/([^/?#]+)\//i.exec(url);
+    if (!m?.[1]) return true;
+    const slug = decodeURIComponent(m[1]).replace(/-/g, " ");
+    return slug === dominant;
+  });
 }
 
 interface ComickChapterDetail {

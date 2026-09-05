@@ -363,8 +363,37 @@ export function MangaReaderView() {
             return;
           }
         }
-        const urls = await getChapterPages(id, pageFallback(), force);
+        const fallback = pageFallback();
+        const chapterForId =
+          details?.chapters.find((c) => c.id === id)?.chapter ??
+          (id === chapterId ? chapterNumberHint : null) ??
+          fallback.chapter;
+        const urls = await getChapterPages(
+          id,
+          { ...fallback, chapter: chapterForId },
+          force,
+        );
         if (isStale()) return;
+        // Hard reject wrong-chapter lists even if a cache race slipped through.
+        if (
+          urls.length > 0 &&
+          chapterForId &&
+          fallback.title &&
+          !pagesValidForManga(
+            urls,
+            fallback.title,
+            fallback.alternateTitles ?? [],
+            chapterForId,
+          )
+        ) {
+          clearPersistedPageCache(id);
+          if (!silent) {
+            setError(t("manga.reader.emptyChapter"));
+            setPages([]);
+            pagesLoadedRef.current = false;
+          }
+          return;
+        }
         if (urls.length === 0) {
           if (!silent) {
             // Partial MD stubs race before mirrors merge — wait and retry instead
@@ -409,6 +438,8 @@ export function MangaReaderView() {
       details,
       detailsReady,
       pageFallback,
+      chapterId,
+      chapterNumberHint,
     ],
   );
 
@@ -426,10 +457,9 @@ export function MangaReaderView() {
     const titleForCheck = details?.title ?? titleHint;
     const alts = details?.alternateTitles ?? [];
     const chapterForCheck = chapterNumberHint;
-    const cached = readPersistedPageCache(chapterId);
+    const cached = readPersistedPageCache(chapterId, chapterForCheck);
     if (cached?.length) {
       if (
-        titleForCheck &&
         !pagesValidForManga(cached, titleForCheck, alts, chapterForCheck)
       ) {
         clearPersistedPageCache(chapterId);
@@ -445,7 +475,6 @@ export function MangaReaderView() {
       void getDesktopOfflineMangaPages(chapterId).then((offline) => {
         if (!offline?.length) return;
         if (
-          titleForCheck &&
           !pagesValidForManga(offline, titleForCheck, alts, chapterForCheck)
         ) {
           return;
@@ -459,6 +488,7 @@ export function MangaReaderView() {
       });
       return;
     }
+    void loadPages(chapterId);
   }, [chapterId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Once chapter number is known, drop painted pages that belong to another ch.
@@ -639,7 +669,11 @@ export function MangaReaderView() {
     if (!details || !ch) return;
     skipChapterResumeRef.current = ch.id !== chapterId;
     pageChapterIdRef.current = ch.id;
+    loadGenerationRef.current += 1;
+    pagesLoadedRef.current = false;
+    setPages([]);
     setPageIndex(0);
+    setError(null);
     resetVerticalScroll(0);
     navigate(mangaChapterLink(details.id, details.title, ch.id));
   };
