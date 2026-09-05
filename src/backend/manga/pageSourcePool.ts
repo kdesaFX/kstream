@@ -49,14 +49,14 @@ export async function racePageSourcesPool(
     };
 
     const withTimeout = (task: Promise<string[] | null>) =>
-      new Promise<string[] | null>((resolve) => {
+      new Promise<string[] | null>((done) => {
         const timeout = globalThis.setTimeout(
-          () => resolve(null),
+          () => done(null),
           PAGE_SOURCE_TASK_TIMEOUT_MS,
         );
         void task
-          .then((pages) => resolve(pages))
-          .catch(() => resolve(null))
+          .then((pages) => done(pages))
+          .catch(() => done(null))
           .finally(() => globalThis.clearTimeout(timeout));
       });
 
