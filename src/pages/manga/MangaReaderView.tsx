@@ -185,8 +185,24 @@ export function MangaReaderView() {
       ? chapters[chapterIndex + 1]
       : undefined;
 
-  // Never paint page URLs that belong to a different chapter id (Next race).
-  const visiblePages = pagesForChapterId === chapterId ? pages : [];
+  // Never paint page URLs that belong to a different chapter id, or whose
+  // CDN prefixes disagree with the chapter label (last line of defense).
+  const visiblePages = (() => {
+    if (pagesForChapterId !== chapterId) return [];
+    if (!pages.length) return [];
+    if (
+      chapterNumberHint &&
+      !pagesValidForManga(
+        pages,
+        details?.title ?? titleHint,
+        details?.alternateTitles ?? [],
+        chapterNumberHint,
+      )
+    ) {
+      return [];
+    }
+    return pages;
+  })();
 
   const direction =
     details?.readingDirection ??
@@ -483,57 +499,67 @@ export function MangaReaderView() {
     setPagesForChapterId(undefined);
     setPages([]);
     setPageIndex(0);
+    setLoading(true);
+    setError(null);
     clearChapterPagesCache(chapterId);
 
-    const titleForCheck = details?.title ?? titleHint;
-    const alts = details?.alternateTitles ?? [];
-    const chapterForCheck =
-      details?.chapters.find((c) => c.id === chapterId)?.chapter ??
-      (pendingChapterRef.current?.id === chapterId
-        ? pendingChapterRef.current.chapter
-        : null) ??
-      chapterNumberHint;
+    const requestedId = chapterId;
+    // Rapid Next fires many chapter changes — only fetch after navigation
+    // settles so we don't storm WeebCentral and paint a stale response.
+    const timer = window.setTimeout(() => {
+      if (requestedId !== chapterIdRef.current) return;
 
-    const cached = readPersistedPageCache(chapterId, chapterForCheck);
-    if (cached?.length) {
-      // Never paint mirror cache without a chapter number — ungated hits are
-      // how rapid Next resurfaced volume covers.
-      const canTrustCache =
-        chapterForCheck &&
-        pagesValidForManga(cached, titleForCheck, alts, chapterForCheck);
-      if (!canTrustCache) {
-        clearPersistedPageCache(chapterId);
-      } else {
-        setPagesForChapterId(chapterId);
-        setPages(cached);
-        setLoading(false);
-        pagesLoadedRef.current = true;
-        void loadPages(chapterId, true, true);
-        return;
-      }
-    }
-    if (canUseMangaOffline()) {
-      const requestedId = chapterId;
-      void getDesktopOfflineMangaPages(requestedId).then((offline) => {
-        if (requestedId !== chapterIdRef.current) return;
-        if (!offline?.length) return;
-        if (
-          !chapterForCheck ||
-          !pagesValidForManga(offline, titleForCheck, alts, chapterForCheck)
-        ) {
+      const titleForCheck = details?.title ?? titleHint;
+      const alts = details?.alternateTitles ?? [];
+      const chapterForCheck =
+        details?.chapters.find((c) => c.id === requestedId)?.chapter ??
+        (pendingChapterRef.current?.id === requestedId
+          ? pendingChapterRef.current.chapter
+          : null) ??
+        null;
+
+      const cached = readPersistedPageCache(requestedId, chapterForCheck);
+      if (cached?.length) {
+        const canTrustCache =
+          chapterForCheck &&
+          pagesValidForManga(cached, titleForCheck, alts, chapterForCheck);
+        if (!canTrustCache) {
+          clearPersistedPageCache(requestedId);
+        } else {
+          setPagesForChapterId(requestedId);
+          setPages(cached);
+          setLoading(false);
+          pagesLoadedRef.current = true;
+          void loadPages(requestedId, true, true);
           return;
         }
-        setPagesForChapterId(requestedId);
-        setPages(offline);
-        setPageIndex(0);
-        setLoading(false);
-        pagesLoadedRef.current = true;
-        setOfflineSaved(true);
-        void loadPages(requestedId, true, true);
-      });
-      return;
-    }
-    void loadPages(chapterId, true);
+      }
+      if (canUseMangaOffline()) {
+        void getDesktopOfflineMangaPages(requestedId).then((offline) => {
+          if (requestedId !== chapterIdRef.current) return;
+          if (!offline?.length) return;
+          if (
+            !chapterForCheck ||
+            !pagesValidForManga(offline, titleForCheck, alts, chapterForCheck)
+          ) {
+            return;
+          }
+          setPagesForChapterId(requestedId);
+          setPages(offline);
+          setPageIndex(0);
+          setLoading(false);
+          pagesLoadedRef.current = true;
+          setOfflineSaved(true);
+          void loadPages(requestedId, true, true);
+        });
+        return;
+      }
+      void loadPages(requestedId, true);
+    }, 220);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [chapterId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Once chapter number is known, drop painted pages that belong to another ch.
@@ -567,17 +593,21 @@ export function MangaReaderView() {
     loadPages,
   ]);
 
+  // Details arrived for the current chapter — load if the settle timer left us empty.
   useEffect(() => {
-    if (!chapterId) return;
-    if (canLoadChapterEarly && !details) {
+    if (!chapterId || !details) return;
+    if (pagesLoadedRef.current) return;
+    if (canLoadChapterEarly && !detailsReady) {
       needsDetailsRetryRef.current = true;
-      void loadPages(chapterId);
       return;
     }
-    if (!details) return;
-    if (pagesLoadedRef.current) return;
-    void loadPages(chapterId);
-  }, [chapterId, canLoadChapterEarly, details?.id, loadPages]);
+    const timer = window.setTimeout(() => {
+      if (chapterId !== chapterIdRef.current) return;
+      if (pagesLoadedRef.current) return;
+      void loadPages(chapterId, true);
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [canLoadChapterEarly, details, detailsReady, chapterId, loadPages]);
 
   useEffect(() => {
     if (!chapterId || !detailsReady || !details) return;
@@ -592,7 +622,12 @@ export function MangaReaderView() {
     if (!chapterId || !chapterNumberHint) return;
     if (pagesLoadedRef.current || detailsReady) return;
     if (!details?.title && !titleHint) return;
-    void loadPages(chapterId);
+    const timer = window.setTimeout(() => {
+      if (chapterId !== chapterIdRef.current) return;
+      if (pagesLoadedRef.current) return;
+      void loadPages(chapterId);
+    }, 220);
+    return () => window.clearTimeout(timer);
   }, [
     chapterId,
     chapterNumberHint,
@@ -602,26 +637,26 @@ export function MangaReaderView() {
     loadPages,
   ]);
 
-  // Warm nearby chapters so random picks from the list feel faster.
+  // Prefetch only the immediate neighbor after the reader has settled — never
+  // warm ±3 during rapid Next (that storm was feeding wrong-chapter responses).
   useEffect(() => {
-    if (pages.length === 0 || chapterIndex < 0) return undefined;
+    if (pages.length === 0 || chapterIndex < 0 || !chapterId) return undefined;
+    if (pagesForChapterId !== chapterId) return undefined;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       if (cancelled) return;
-      const nearby = chapters.slice(
-        Math.max(0, chapterIndex - 3),
-        Math.min(chapters.length, chapterIndex + 4),
-      );
-      for (const ch of nearby) {
-        if (ch.id !== chapterId) prefetchChapter(ch);
+      const neighbors = [chapters[chapterIndex - 1], chapters[chapterIndex + 1]];
+      for (const ch of neighbors) {
+        if (ch?.id && ch.id !== chapterId) prefetchChapter(ch);
       }
-    }, 100);
+    }, 1200);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
   }, [
     pages.length,
+    pagesForChapterId,
     chapterId,
     chapterIndex,
     chapters,

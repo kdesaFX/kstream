@@ -1,5 +1,5 @@
-// v9: drop caches written by superseded rapid-Next fetches.
-const STORAGE_KEY = "__kstream:mangaPages:v9";
+// v10: settle-debounce page loads; drop prefetch-storm cache entries.
+const STORAGE_KEY = "__kstream:mangaPages:v10";
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 type Entry = { at: number; pages: string[]; chapter?: string | null };
