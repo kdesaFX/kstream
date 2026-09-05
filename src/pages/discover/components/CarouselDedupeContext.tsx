@@ -1,7 +1,7 @@
 import {
   createContext,
-  useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -24,18 +24,37 @@ export interface CarouselClaimRow {
   items: ClaimableMedia[];
 }
 
-interface CarouselDedupeContextValue {
-  /** Register this row's current list; triggers at most one global recompute. */
-  register: (priority: number, items: ClaimableMedia[]) => void;
-  /** Drop a row from the registry (unmount / priority change). */
-  unregister: (priority: number) => void;
-  /** Pure assignment result: priority → kept ids. */
+/**
+ * Per-provider store living in a ref — not React state. Register/recompute
+ * mutate this map; listeners apply local setState after setTimeout(0) so
+ * Firefox cannot nest claim updates into React error #185.
+ */
+type DedupeStore = {
+  registry: Map<number, ClaimableMedia[]>;
+  fingerprints: Map<number, string>;
   assignments: Map<number, string[]>;
-}
+  assignmentsFp: string;
+  listeners: Set<() => void>;
+  notifyScheduled: boolean;
+  recentNotifyAt: number[];
+  frozen: boolean;
+};
 
-const CarouselDedupeContext = createContext<CarouselDedupeContextValue | null>(
-  null,
-);
+const NOTIFY_WINDOW_MS = 1000;
+const NOTIFY_LIMIT = 25;
+
+function createStore(): DedupeStore {
+  return {
+    registry: new Map(),
+    fingerprints: new Map(),
+    assignments: new Map(),
+    assignmentsFp: "",
+    listeners: new Set(),
+    notifyScheduled: false,
+    recentNotifyAt: [],
+    frozen: false,
+  };
+}
 
 function yearFromDate(date?: string | Date): string {
   if (!date) return "";
@@ -123,7 +142,6 @@ function assignmentsFingerprint(map: Map<number, string[]>): string {
 /**
  * Pure multi-row assignment: lower priority number wins id + title keys.
  * Empty rows keep nothing (and therefore release prior ownership on recompute).
- * No React — safe to unit-test and impossible to infinite-loop by itself.
  */
 export function assignCarouselClaims(
   rows: CarouselClaimRow[],
@@ -151,65 +169,95 @@ export function assignCarouselClaims(
   return result;
 }
 
+function recomputeStore(store: DedupeStore): boolean {
+  if (store.frozen) return false;
+  const rows: CarouselClaimRow[] = [...store.registry.entries()].map(
+    ([priority, items]) => ({ priority, items }),
+  );
+  const next = assignCarouselClaims(rows);
+  const fp = assignmentsFingerprint(next);
+  if (fp === store.assignmentsFp) return false;
+  store.assignments = next;
+  store.assignmentsFp = fp;
+  return true;
+}
+
+function scheduleNotify(store: DedupeStore) {
+  if (store.frozen || store.notifyScheduled) return;
+  store.notifyScheduled = true;
+  // Must leave the React commit/layout stack — queueMicrotask from
+  // useLayoutEffect still counts toward max update depth on Firefox.
+  window.setTimeout(() => {
+    store.notifyScheduled = false;
+    if (store.frozen) return;
+
+    const now = Date.now();
+    store.recentNotifyAt = store.recentNotifyAt.filter(
+      (t) => now - t < NOTIFY_WINDOW_MS,
+    );
+    if (store.recentNotifyAt.length >= NOTIFY_LIMIT) {
+      store.frozen = true;
+      console.error(
+        "Carousel dedupe circuit breaker tripped — freezing cross-row dedupe to prevent React #185",
+      );
+    }
+    store.recentNotifyAt.push(now);
+    store.listeners.forEach((listener) => listener());
+  }, 0);
+}
+
+function storeRegister(
+  store: DedupeStore,
+  priority: number,
+  items: ClaimableMedia[],
+) {
+  const fp = rowFingerprint(items);
+  if (store.fingerprints.get(priority) === fp) return;
+  store.fingerprints.set(priority, fp);
+  store.registry.set(priority, items);
+  if (recomputeStore(store)) scheduleNotify(store);
+}
+
+function storeUnregister(store: DedupeStore, priority: number) {
+  if (!store.registry.has(priority)) return;
+  store.registry.delete(priority);
+  store.fingerprints.delete(priority);
+  if (recomputeStore(store)) scheduleNotify(store);
+}
+
+function subscribeStore(store: DedupeStore, onStoreChange: () => void) {
+  store.listeners.add(onStoreChange);
+  return () => {
+    store.listeners.delete(onStoreChange);
+  };
+}
+
+function filterByAssignment<T extends ClaimableMedia>(
+  collapsed: T[],
+  kept: string[] | undefined,
+  frozen: boolean,
+): T[] {
+  if (frozen || kept === undefined) return collapsed;
+  const keptSet = new Set(kept);
+  return collapsed.filter((m) => keptSet.has(String(m.id)));
+}
+
+interface CarouselDedupeContextValue {
+  store: DedupeStore;
+}
+
+const CarouselDedupeContext = createContext<CarouselDedupeContextValue | null>(
+  null,
+);
+
 /**
- * Registry + one recompute. Children register lists; ownership is computed
- * once from all rows — never claim→version→reclaim (React #185).
+ * Provides a per-tree dedupe store. Ownership is not React state — children
+ * keep local filtered lists and refresh after setTimeout notifies.
  */
 export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
-  const registryRef = useRef(new Map<number, ClaimableMedia[]>());
-  const fingerprintsRef = useRef(new Map<number, string>());
-  const lastAssignmentsFpRef = useRef("");
-  const scheduledRef = useRef(false);
-  const [assignments, setAssignments] = useState<Map<number, string[]>>(
-    () => new Map(),
-  );
-
-  const scheduleRecompute = useCallback(() => {
-    if (scheduledRef.current) return;
-    scheduledRef.current = true;
-    queueMicrotask(() => {
-      scheduledRef.current = false;
-      const rows: CarouselClaimRow[] = [...registryRef.current.entries()].map(
-        ([priority, items]) => ({ priority, items }),
-      );
-      const next = assignCarouselClaims(rows);
-      const fp = assignmentsFingerprint(next);
-      if (fp === lastAssignmentsFpRef.current) return;
-      lastAssignmentsFpRef.current = fp;
-      setAssignments(next);
-    });
-  }, []);
-
-  const register = useCallback(
-    (priority: number, items: ClaimableMedia[]) => {
-      const fp = rowFingerprint(items);
-      if (fingerprintsRef.current.get(priority) === fp) return;
-      fingerprintsRef.current.set(priority, fp);
-      registryRef.current.set(priority, items);
-      scheduleRecompute();
-    },
-    [scheduleRecompute],
-  );
-
-  const unregister = useCallback(
-    (priority: number) => {
-      if (!registryRef.current.has(priority)) return;
-      registryRef.current.delete(priority);
-      fingerprintsRef.current.delete(priority);
-      scheduleRecompute();
-    },
-    [scheduleRecompute],
-  );
-
-  const value = useMemo<CarouselDedupeContextValue>(
-    () => ({
-      assignments,
-      register,
-      unregister,
-    }),
-    [assignments, register, unregister],
-  );
-
+  const storeRef = useRef<DedupeStore | null>(null);
+  if (!storeRef.current) storeRef.current = createStore();
+  const value = useMemo(() => ({ store: storeRef.current! }), []);
   return (
     <CarouselDedupeContext.Provider value={value}>
       {children}
@@ -221,51 +269,71 @@ export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
  * Filter a media list so titles already claimed by an earlier carousel are
  * removed. Collapses same-title stubs inside the list first. No-ops outside
  * a provider.
- *
- * Registers with the provider; reads a pure assignment map — never mutates
- * shared ownership during render or effects.
  */
 export function useDedupedMedia<T extends ClaimableMedia>(
   priority: number | undefined,
   media: T[],
 ): T[] {
-  const ctx = useContext(CarouselDedupeContext);
-  const register = ctx?.register;
-  const unregister = ctx?.unregister;
-  const assignments = ctx?.assignments;
+  const store = useContext(CarouselDedupeContext)?.store;
 
-  const collapsed = useMemo(
-    () => collapseTitleYearDuplicates(media),
-    [media],
+  const mediaFp = useMemo(() => rowFingerprint(media), [media]);
+  const collapsed = useMemo(() => {
+    return collapseTitleYearDuplicates(media);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mediaFp is the content key
+  }, [mediaFp]);
+  const collapsedRef = useRef(collapsed);
+  collapsedRef.current = collapsed;
+
+  const [filtered, setFiltered] = useState<T[]>(() =>
+    collapseTitleYearDuplicates(media),
   );
 
-  // Register on input change; do not unregister here (avoids empty-gap
-  // recompute when only the list contents change).
+  const applyAssignment = () => {
+    if (priority === undefined || !store) {
+      setFiltered((prev) =>
+        sameIdList(prev, collapsedRef.current) ? prev : collapsedRef.current,
+      );
+      return;
+    }
+    const next = filterByAssignment(
+      collapsedRef.current,
+      store.assignments.get(priority),
+      store.frozen,
+    );
+    setFiltered((prev) => (sameIdList(prev, next) ? prev : next));
+  };
+
   useLayoutEffect(() => {
-    if (priority === undefined || !register) return undefined;
-    register(priority, collapsed);
+    if (priority === undefined || !store) {
+      setFiltered((prev) => (sameIdList(prev, collapsed) ? prev : collapsed));
+      return undefined;
+    }
+    storeRegister(store, priority, collapsed);
+    // Apply immediately from sync recompute (sibling notify comes later).
+    const next = filterByAssignment(
+      collapsed,
+      store.assignments.get(priority),
+      store.frozen,
+    );
+    setFiltered((prev) => (sameIdList(prev, next) ? prev : next));
     return undefined;
-  }, [priority, collapsed, register]);
+  }, [priority, collapsed, store, mediaFp]);
 
-  // Unregister only when this priority leaves the tree.
   useLayoutEffect(() => {
-    if (priority === undefined || !unregister) return undefined;
+    if (priority === undefined || !store) return undefined;
     const p = priority;
+    const s = store;
     return () => {
-      unregister(p);
+      storeUnregister(s, p);
     };
-  }, [priority, unregister]);
+  }, [priority, store]);
 
-  if (priority === undefined || !assignments) {
-    return collapsed;
-  }
+  useEffect(() => {
+    if (priority === undefined || !store) return undefined;
+    return subscribeStore(store, applyAssignment);
+    // intentionally stable subscription per priority/store
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [priority, store]);
 
-  const kept = assignments.get(priority);
-  if (!kept) {
-    // First paint before microtask flush — show undeduped collapsed list.
-    return collapsed;
-  }
-
-  const keptSet = new Set(kept);
-  return collapsed.filter((m) => keptSet.has(String(m.id)));
+  return filtered;
 }

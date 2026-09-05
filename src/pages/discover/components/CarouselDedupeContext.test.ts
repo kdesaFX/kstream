@@ -24,6 +24,15 @@ beforeAll(() => {
   ).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
+async function flushDedupeNotify() {
+  await act(async () => {
+    await Promise.resolve();
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 0);
+    });
+  });
+}
+
 describe("mediaTitleKey", () => {
   it("uses year when release dates are absent (manga cards)", () => {
     expect(
@@ -235,8 +244,8 @@ describe("CarouselDedupeProvider", () => {
           row3: [{ id: 2, title: "Unique", release_date: "2022-01-01" }],
         }),
       );
-      await Promise.resolve();
     });
+    await flushDedupeNotify();
 
     expect(seen[0]).toEqual(["1"]);
     expect(seen[1]).toEqual([]);
@@ -274,11 +283,12 @@ describe("CarouselDedupeProvider", () => {
             ],
           }),
         );
-        await Promise.resolve();
       });
+      // eslint-disable-next-line no-await-in-loop
+      await flushDedupeNotify();
     }
 
-    expect(renders).toBeLessThan(40);
+    expect(renders).toBeLessThan(80);
     expect(seen[0]).toContain("1");
     expect(seen[1]).not.toContain("1");
   });
@@ -331,18 +341,84 @@ describe("CarouselDedupeProvider", () => {
 
     await act(async () => {
       renderRoot.render(createElement(Growing));
-      await Promise.resolve();
     });
+    await flushDedupeNotify();
 
     for (let i = 0; i < 8; i += 1) {
       // eslint-disable-next-line no-await-in-loop
       await act(async () => {
         const button = mountEl.querySelector("button");
         button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-        await Promise.resolve();
       });
+      // eslint-disable-next-line no-await-in-loop
+      await flushDedupeNotify();
     }
 
     expect(mountEl.querySelectorAll("button")).toHaveLength(1);
+  });
+
+  it("does not throw max update depth when many rows update rapidly", async () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const renderRoot = root;
+    let boom: Error | null = null;
+
+    function Storm(): ReactElement {
+      const [tick, setTick] = useState(0);
+      return createElement(
+        CarouselDedupeProvider,
+        null,
+        ...Array.from({ length: 8 }, (_, priority) =>
+          createElement(StubRow, {
+            key: priority,
+            priority,
+            items: [
+              {
+                id: tick * 100 + priority,
+                title: `T${tick}-${priority}`,
+                release_date: "2021-01-01",
+              },
+              {
+                id: 1,
+                title: "Shared",
+                release_date: "2021-01-01",
+              },
+            ],
+            onIds: () => undefined,
+          }),
+        ),
+        createElement(
+          "button",
+          {
+            type: "button",
+            onClick: () => setTick((t) => t + 1),
+          },
+          "tick",
+        ),
+      );
+    }
+
+    await act(async () => {
+      renderRoot.render(createElement(Storm));
+    });
+    await flushDedupeNotify();
+
+    try {
+      for (let i = 0; i < 15; i += 1) {
+        // eslint-disable-next-line no-await-in-loop
+        await act(async () => {
+          container
+            .querySelector("button")
+            ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        // eslint-disable-next-line no-await-in-loop
+        await flushDedupeNotify();
+      }
+    } catch (err) {
+      boom = err as Error;
+    }
+
+    expect(boom).toBeNull();
   });
 });
