@@ -13,7 +13,6 @@ import { prepareStream } from "@/backend/extension/streams";
 import { DetailedMeta } from "@/backend/metadata/getmeta";
 import { usePlayer } from "@/components/player/hooks/usePlayer";
 import { usePlayerMeta } from "@/components/player/hooks/usePlayerMeta";
-import { UnifiedScrapingLoader } from "@/components/player/internals/UnifiedScrapingLoader";
 import { convertProviderCaption } from "@/components/player/utils/captions";
 import { convertRunoutputToSource } from "@/components/player/utils/convertRunoutputToSource";
 import { useOverlayRouter } from "@/hooks/useOverlayRouter";
@@ -48,7 +47,6 @@ import { useQualityStore } from "@/stores/quality";
 import { getProgressPercentage, useProgressStore } from "@/stores/progress";
 import { needsOnboarding } from "@/utils/hosting/onboarding";
 import { parseTimestamp } from "@/utils/format/timestamp";
-import { resolveSourceDisplayName } from "@/utils/media/sourceDisplayName";
 import { triggerOfflineDownloadFromPlayerStore } from "@/utils/media/triggerPlayerOfflineDownload";
 
 import { BlurEllipsis } from "./layouts/SubPageLayout";
@@ -107,11 +105,6 @@ export function RealPlayerView() {
   const [offlineDownloadParam, setOfflineDownloadParam] =
     useQueryParam("offlineDownload");
   const [scrapeAttempt, setScrapeAttempt] = useState(0);
-  /**
-   * Keep the checking stage after a scrape hit until playback actually starts.
-   * Dismiss as soon as hasPlayedOnce — do not sit on Asking while audio plays.
-   */
-  const [pendingSourceLock, setPendingSourceLock] = useState(false);
   const {
     status,
     playMedia,
@@ -166,7 +159,6 @@ export function RealPlayerView() {
     offlineDownloadTriggeredRef.current = false;
     playbackRetryBudget.current.setMedia(paramsData);
     setScrapeAttempt(0);
-    setPendingSourceLock(false);
     return () => {
       reset();
     };
@@ -359,8 +351,9 @@ export function RealPlayerView() {
         preferredAudioLanguage,
       );
 
-      // Stay on checking until playback actually starts — scrape hit ≠ working.
-      setPendingSourceLock(true);
+      // Scrape hit → play. Do not keep the Asking overlay up as "probation";
+      // that stuck on top of working playback when hasPlayedOnce never fired
+      // (autoplay-blocked / muted paths) even at 20+ minutes watched.
       playMedia(
         convertRunoutputToSource({ stream: selectedStream }),
         convertProviderCaption(selectedStream.captions),
@@ -402,41 +395,6 @@ export function RealPlayerView() {
   const autoResumeExhausted = playbackRetryBudget.current.isExhausted(
     MAX_PLAYBACK_AUTO_RETRIES,
   );
-
-  // Hold Asking after scrape hit until playback starts; drop as soon as it does.
-  // Preferred-source pinning still waits on watchedSeconds below — separate concern.
-  useEffect(() => {
-    if (!pendingSourceLock) return;
-    if (
-      status === playerStatus.SCRAPING ||
-      status === playerStatus.SCRAPE_NOT_FOUND ||
-      status === playerStatus.IDLE ||
-      status === playerStatus.RESUME ||
-      (status === playerStatus.PLAYBACK_ERROR && autoResumeExhausted)
-    ) {
-      setPendingSourceLock(false);
-      return;
-    }
-    if (status === playerStatus.PLAYBACK_ERROR) {
-      // Keep Asking while auto-resume hops — don't flash the player mid-failure.
-      return;
-    }
-    if (status === playerStatus.PLAYING && hasPlayedOnce) {
-      setPendingSourceLock(false);
-    }
-  }, [pendingSourceLock, status, hasPlayedOnce, autoResumeExhausted]);
-
-  const preparingTitle =
-    storeMeta?.type === "show" && storeMeta.episode
-      ? `${storeMeta.title} · S${storeMeta.season?.number ?? 1}E${storeMeta.episode.number}`
-      : storeMeta?.title;
-  const confirmingSourceLabel = sourceId
-    ? resolveSourceDisplayName(sourceId)
-    : null;
-  const showSourceProbationOverlay =
-    pendingSourceLock &&
-    (status === playerStatus.PLAYING ||
-      (status === playerStatus.PLAYBACK_ERROR && !autoResumeExhausted));
 
   useEffect(() => {
     if (!enableLastSuccessfulSource || !sourceId || watchedSeconds < 5) return;
@@ -483,24 +441,6 @@ export function RealPlayerView() {
             onGetStream={playAfterScrape}
           />
         )
-      ) : null}
-      {showSourceProbationOverlay ? (
-        <UnifiedScrapingLoader
-          poster={storeMeta?.poster}
-          title={preparingTitle}
-          activeSourceId={sourceId ?? undefined}
-          statusKey={
-            confirmingSourceLabel
-              ? "player.scraping.unified.asking"
-              : "player.scraping.unified.buffering"
-          }
-          statusValues={
-            confirmingSourceLabel
-              ? { source: confirmingSourceLabel }
-              : undefined
-          }
-          className="z-20 pointer-events-none"
-        />
       ) : null}
       {status === playerStatus.SCRAPE_NOT_FOUND && errorData ? (
         <ScrapeErrorPart
