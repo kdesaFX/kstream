@@ -97,11 +97,17 @@ export function MangaRecommendationsCarousel({
     const pick = useManual && persistedStill ? persistedStill : mostRecent;
     setSelectedId(pick.id);
     setSelectedTitle(pick.item.title);
-    setRecommendationSeed("manga", {
-      id: pick.id,
-      title: pick.item.title,
-      manual: useManual,
-    });
+    if (
+      persisted?.id !== pick.id ||
+      persisted?.title !== pick.item.title ||
+      persisted?.manual !== useManual
+    ) {
+      setRecommendationSeed("manga", {
+        id: pick.id,
+        title: pick.item.title,
+        manual: useManual,
+      });
+    }
   }, [
     sortedSources,
     selectedId,

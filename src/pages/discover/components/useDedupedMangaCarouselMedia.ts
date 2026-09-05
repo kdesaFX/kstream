@@ -12,8 +12,10 @@ import { useDedupedMedia } from "./CarouselDedupeContext";
 import { CAROUSEL_DISPLAY_TARGET } from "./useDedupedCarouselMedia";
 
 /**
- * Cross-row dedupe for manga discover rows, with popular-pool backfill so a
- * later carousel stays full after dropping titles claimed by earlier rows.
+ * Within-row collapse for manga discover, with popular-pool backfill.
+ *
+ * Do not depend on `media.length` or setState in effect cleanup — that nested
+ * into React #185 on Firefox (MangaRecommendationsCarousel / discover home).
  */
 export function useDedupedMangaCarouselMedia(
   priority: number | undefined,
@@ -35,11 +37,10 @@ export function useDedupedMangaCarouselMedia(
   } = options;
   const [backfill, setBackfill] = useState<MediaItem[]>([]);
   const [isBackfilling, setIsBackfilling] = useState(false);
-  const attemptsRef = useRef(0);
+  const mediaLengthRef = useRef(0);
 
   useEffect(() => {
-    setBackfill([]);
-    attemptsRef.current = 0;
+    setBackfill((prev) => (prev.length === 0 ? prev : []));
   }, [kind, priority, tagFilter]);
 
   const pooled = useMemo(() => {
@@ -50,66 +51,64 @@ export function useDedupedMangaCarouselMedia(
   }, [rawMedia, backfill]);
 
   const media = useDedupedMedia(priority, pooled);
+  mediaLengthRef.current = media.length;
 
   useEffect(() => {
-    if (!enabled || isLoading || !hasLoaded || priority === undefined) return;
-    if (media.length >= CAROUSEL_DISPLAY_TARGET) {
-      setIsBackfilling(false);
+    if (!enabled || isLoading || !hasLoaded || priority === undefined) {
+      setIsBackfilling((was) => (was ? false : was));
       return;
     }
-    if (attemptsRef.current >= 3) {
-      setIsBackfilling(false);
-      return;
-    }
-
-    const round = attemptsRef.current + 1;
-    attemptsRef.current = round;
 
     let cancelled = false;
     setIsBackfilling(true);
 
     (async () => {
       try {
-        const items = await listDiscoverManga({
-          kind: "popular",
-          limit: 32,
-          page: priority + round,
-          tagFilter,
-        });
-        if (cancelled) return;
-        const slice = items.map(discoverMangaToMediaItem);
-        setBackfill((prev) => {
-          if (prev.length === 0) return slice;
-          const have = new Set(prev.map((p) => String(p.id)));
-          const merged = [...prev];
-          for (const item of slice) {
-            const id = String(item.id);
-            if (have.has(id)) continue;
-            have.add(id);
-            merged.push(item);
-          }
-          return merged;
-        });
+        for (let round = 1; round <= 3; round += 1) {
+          if (cancelled) return;
+          if (mediaLengthRef.current >= CAROUSEL_DISPLAY_TARGET) return;
+
+          const items = await listDiscoverManga({
+            kind: "popular",
+            limit: 32,
+            page: priority + round,
+            tagFilter,
+          });
+          if (cancelled) return;
+
+          const slice = items.map(discoverMangaToMediaItem);
+          setBackfill((prev) => {
+            if (prev.length === 0) {
+              return slice.length === 0 ? prev : slice;
+            }
+            const have = new Set(prev.map((p) => String(p.id)));
+            const merged = [...prev];
+            let added = 0;
+            for (const item of slice) {
+              const id = String(item.id);
+              if (have.has(id)) continue;
+              have.add(id);
+              merged.push(item);
+              added += 1;
+            }
+            return added === 0 ? prev : merged;
+          });
+          await new Promise<void>((r) => {
+            window.setTimeout(r, 0);
+          });
+        }
       } catch (err) {
         console.error("Manga carousel backfill failed:", err);
       } finally {
-        if (!cancelled) setIsBackfilling(false);
+        if (!cancelled) setIsBackfilling((was) => (was ? false : was));
       }
     })();
 
     return () => {
       cancelled = true;
-      setIsBackfilling(false);
+      // Never setState in cleanup — that re-entered React #185 with media.length deps.
     };
-  }, [
-    enabled,
-    isLoading,
-    hasLoaded,
-    priority,
-    kind,
-    media.length,
-    tagFilter,
-  ]);
+  }, [enabled, isLoading, hasLoaded, priority, kind, tagFilter]);
 
   return { media, isBackfilling };
 }
