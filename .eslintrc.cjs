@@ -24,6 +24,9 @@ module.exports = {
     "/plugins/*.ts",
     "/plugins/*.mjs",
     "/themes/**/*.ts",
+    // Vitest files — not part of the app bundle; keep build lint focused.
+    "**/*.test.ts",
+    "**/*.test.tsx",
   ],
   parser: "@typescript-eslint/parser",
   parserOptions: {

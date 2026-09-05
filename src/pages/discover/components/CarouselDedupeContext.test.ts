@@ -1,6 +1,11 @@
 /** @vitest-environment jsdom */
 /* eslint-disable import/no-extraneous-dependencies */
-import { act, useState } from "react";
+import {
+  act,
+  createElement,
+  useState,
+  type ReactElement,
+} from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
@@ -115,8 +120,6 @@ describe("assignCarouselClaims", () => {
   });
 
   it("stays O(updates) across many distinct ownership walks", () => {
-    // Simulates lazy mount + backfill producing unique maps; pure assign
-    // never self-triggers — each call is independent.
     let previous: string | null = null;
     for (let n = 0; n < 12; n += 1) {
       const rows = Array.from({ length: n + 1 }, (_, priority) => ({
@@ -158,7 +161,7 @@ function StubRow({
   priority: number;
   items: ClaimableMedia[];
   onIds: (priority: number, ids: string[]) => void;
-}) {
+}): null {
   const media = useDedupedMedia(priority, items);
   onIds(
     priority,
@@ -182,6 +185,7 @@ describe("CarouselDedupeProvider", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
+    const renderRoot = root;
 
     const seen: Record<number, string[]> = {};
     let renders = 0;
@@ -194,42 +198,42 @@ describe("CarouselDedupeProvider", () => {
       row1: ClaimableMedia[];
       row2: ClaimableMedia[];
       row3: ClaimableMedia[];
-    }) {
+    }): ReactElement {
       renders += 1;
-      return (
-        <CarouselDedupeProvider>
-          <StubRow
-            priority={0}
-            items={row1}
-            onIds={(p, ids) => {
-              seen[p] = ids;
-            }}
-          />
-          <StubRow
-            priority={1}
-            items={row2}
-            onIds={(p, ids) => {
-              seen[p] = ids;
-            }}
-          />
-          <StubRow
-            priority={2}
-            items={row3}
-            onIds={(p, ids) => {
-              seen[p] = ids;
-            }}
-          />
-        </CarouselDedupeProvider>
+      return createElement(
+        CarouselDedupeProvider,
+        null,
+        createElement(StubRow, {
+          priority: 0,
+          items: row1,
+          onIds: (p, ids) => {
+            seen[p] = ids;
+          },
+        }),
+        createElement(StubRow, {
+          priority: 1,
+          items: row2,
+          onIds: (p, ids) => {
+            seen[p] = ids;
+          },
+        }),
+        createElement(StubRow, {
+          priority: 2,
+          items: row3,
+          onIds: (p, ids) => {
+            seen[p] = ids;
+          },
+        }),
       );
     }
 
     await act(async () => {
-      root.render(
-        <Harness
-          row1={[{ id: 1, title: "Shared", release_date: "2021-01-01" }]}
-          row2={[{ id: 1, title: "Shared", release_date: "2021-01-01" }]}
-          row3={[{ id: 2, title: "Unique", release_date: "2022-01-01" }]}
-        />,
+      renderRoot.render(
+        createElement(Harness, {
+          row1: [{ id: 1, title: "Shared", release_date: "2021-01-01" }],
+          row2: [{ id: 1, title: "Shared", release_date: "2021-01-01" }],
+          row3: [{ id: 2, title: "Unique", release_date: "2022-01-01" }],
+        }),
       );
       await Promise.resolve();
     });
@@ -238,39 +242,42 @@ describe("CarouselDedupeProvider", () => {
     expect(seen[1]).toEqual([]);
     expect(seen[2]).toEqual(["2"]);
 
-    // Nine successive distinct input updates (lazy mount + backfill style).
     for (let i = 0; i < 9; i += 1) {
+      const extra = i;
       // eslint-disable-next-line no-await-in-loop
       await act(async () => {
-        root.render(
-          <Harness
-            row1={[
-              { id: 1, title: "Shared", release_date: "2021-01-01" },
-              { id: 10 + i, title: `P0 Extra ${i}`, release_date: "2023-01-01" },
-            ]}
-            row2={[
+        renderRoot.render(
+          createElement(Harness, {
+            row1: [
               { id: 1, title: "Shared", release_date: "2021-01-01" },
               {
-                id: 20 + i,
-                title: `P1 Extra ${i}`,
+                id: 10 + extra,
+                title: `P0 Extra ${extra}`,
                 release_date: "2023-01-01",
               },
-            ]}
-            row3={[
+            ],
+            row2: [
+              { id: 1, title: "Shared", release_date: "2021-01-01" },
+              {
+                id: 20 + extra,
+                title: `P1 Extra ${extra}`,
+                release_date: "2023-01-01",
+              },
+            ],
+            row3: [
               { id: 2, title: "Unique", release_date: "2022-01-01" },
               {
-                id: 30 + i,
-                title: `P2 Extra ${i}`,
+                id: 30 + extra,
+                title: `P2 Extra ${extra}`,
                 release_date: "2023-01-01",
               },
-            ]}
-          />,
+            ],
+          }),
         );
         await Promise.resolve();
       });
     }
 
-    // Old claim→version loop blew past dozens of nested updates; stay linear.
     expect(renders).toBeLessThan(40);
     expect(seen[0]).toContain("1");
     expect(seen[1]).not.toContain("1");
@@ -280,55 +287,62 @@ describe("CarouselDedupeProvider", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
+    const renderRoot = root;
+    const mountEl = container;
 
-    function Growing() {
+    function Growing(): ReactElement {
       const [count, setCount] = useState(1);
-      return (
-        <CarouselDedupeProvider>
-          {Array.from({ length: count }, (_, priority) => (
-            <StubRow
-              key={priority}
-              priority={priority}
-              items={[
-                {
-                  id: priority === 0 ? 1 : priority + 10,
-                  title: priority === 0 ? "Shared" : `Row ${priority}`,
-                  release_date: "2020-01-01",
-                },
-                ...(priority > 0
-                  ? [
-                      {
-                        id: 1,
-                        title: "Shared",
-                        release_date: "2020-01-01",
-                      } satisfies ClaimableMedia,
-                    ]
-                  : []),
-              ]}
-              onIds={() => undefined}
-            />
-          ))}
-          <button type="button" onClick={() => setCount((c) => c + 1)}>
-            add
-          </button>
-        </CarouselDedupeProvider>
+      return createElement(
+        CarouselDedupeProvider,
+        null,
+        ...Array.from({ length: count }, (_, priority) =>
+          createElement(StubRow, {
+            key: priority,
+            priority,
+            items: [
+              {
+                id: priority === 0 ? 1 : priority + 10,
+                title: priority === 0 ? "Shared" : `Row ${priority}`,
+                release_date: "2020-01-01",
+              },
+              ...(priority > 0
+                ? [
+                    {
+                      id: 1,
+                      title: "Shared",
+                      release_date: "2020-01-01",
+                    } satisfies ClaimableMedia,
+                  ]
+                : []),
+            ],
+            onIds: () => undefined,
+          }),
+        ),
+        createElement(
+          "button",
+          {
+            type: "button",
+            onClick: () => setCount((c) => c + 1),
+          },
+          "add",
+        ),
       );
     }
 
     await act(async () => {
-      root.render(<Growing />);
+      renderRoot.render(createElement(Growing));
       await Promise.resolve();
     });
 
     for (let i = 0; i < 8; i += 1) {
       // eslint-disable-next-line no-await-in-loop
       await act(async () => {
-        const button = container.querySelector("button");
+        const button = mountEl.querySelector("button");
         button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         await Promise.resolve();
       });
     }
 
-    expect(container.querySelectorAll("button")).toHaveLength(1);
+    expect(mountEl.querySelectorAll("button")).toHaveLength(1);
   });
 });
