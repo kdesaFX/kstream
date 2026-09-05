@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useLayoutEffect,
   useMemo,
@@ -8,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
-interface ClaimableMedia {
+export interface ClaimableMedia {
   id: string | number;
   title?: string;
   name?: string;
@@ -18,14 +19,18 @@ interface ClaimableMedia {
   vote_count?: number;
 }
 
+export interface CarouselClaimRow {
+  priority: number;
+  items: ClaimableMedia[];
+}
+
 interface CarouselDedupeContextValue {
-  /**
-   * Claim media for a carousel by TMDB id and by title(+year). Lower
-   * priority wins. When the map changes, `version` bumps so siblings
-   * re-filter (fixes lazy-load / async backfill races).
-   */
-  claim: (priority: number, items: ClaimableMedia[]) => string[];
-  version: number;
+  /** Register this row's current list; triggers at most one global recompute. */
+  register: (priority: number, items: ClaimableMedia[]) => void;
+  /** Drop a row from the registry (unmount / priority change). */
+  unregister: (priority: number) => void;
+  /** Pure assignment result: priority → kept ids. */
+  assignments: Map<number, string[]>;
 }
 
 const CarouselDedupeContext = createContext<CarouselDedupeContextValue | null>(
@@ -94,7 +99,7 @@ export function collapseTitleYearDuplicates<T extends ClaimableMedia>(
   return [...order.map((k) => best.get(k)!), ...passthrough];
 }
 
-function sameIdList<T extends ClaimableMedia>(a: T[], b: T[]): boolean {
+export function sameIdList<T extends ClaimableMedia>(a: T[], b: T[]): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i += 1) {
     if (String(a[i]!.id) !== String(b[i]!.id)) return false;
@@ -102,119 +107,107 @@ function sameIdList<T extends ClaimableMedia>(a: T[], b: T[]): boolean {
   return true;
 }
 
+function rowFingerprint(items: ClaimableMedia[]): string {
+  return items
+    .map((m) => `${String(m.id)}:${mediaTitleKey(m) ?? ""}`)
+    .join(",");
+}
+
+function assignmentsFingerprint(map: Map<number, string[]>): string {
+  return [...map.entries()]
+    .map(([priority, ids]) => `${priority}:${ids.join(",")}`)
+    .sort()
+    .join("|");
+}
+
 /**
- * First-come (by priority) wins: earlier rows keep a title, later rows drop
- * it so the page shows more unique posters.
+ * Pure multi-row assignment: lower priority number wins id + title keys.
+ * Empty rows keep nothing (and therefore release prior ownership on recompute).
+ * No React — safe to unit-test and impossible to infinite-loop by itself.
+ */
+export function assignCarouselClaims(
+  rows: CarouselClaimRow[],
+): Map<number, string[]> {
+  const sorted = [...rows].sort((a, b) => a.priority - b.priority);
+  const claimedIds = new Set<string>();
+  const claimedTitles = new Set<string>();
+  const result = new Map<number, string[]>();
+
+  for (const row of sorted) {
+    const collapsed = collapseTitleYearDuplicates(row.items);
+    const kept: string[] = [];
+    for (const item of collapsed) {
+      const id = String(item.id);
+      const titleKey = mediaTitleKey(item);
+      if (claimedIds.has(id)) continue;
+      if (titleKey && claimedTitles.has(titleKey)) continue;
+      claimedIds.add(id);
+      if (titleKey) claimedTitles.add(titleKey);
+      kept.push(id);
+    }
+    result.set(row.priority, kept);
+  }
+
+  return result;
+}
+
+/**
+ * Registry + one recompute. Children register lists; ownership is computed
+ * once from all rows — never claim→version→reclaim (React #185).
  */
 export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
-  const claimedIdsRef = useRef(new Map<string, number>());
-  const claimedTitlesRef = useRef(new Map<string, number>());
-  const [version, setVersion] = useState(0);
-  const pendingNotifyRef = useRef(false);
-  const lastSnapshotRef = useRef("");
-  /** Snapshots already notified — stops A↔B claim oscillation (#185). */
-  const recentSnapshotsRef = useRef<string[]>([]);
-  const notifyScheduledRef = useRef(false);
+  const registryRef = useRef(new Map<number, ClaimableMedia[]>());
+  const fingerprintsRef = useRef(new Map<number, string>());
+  const lastAssignmentsFpRef = useRef("");
+  const scheduledRef = useRef(false);
+  const [assignments, setAssignments] = useState<Map<number, string[]>>(
+    () => new Map(),
+  );
 
-  const scheduleNotify = () => {
-    if (notifyScheduledRef.current) return;
-    notifyScheduledRef.current = true;
+  const scheduleRecompute = useCallback(() => {
+    if (scheduledRef.current) return;
+    scheduledRef.current = true;
     queueMicrotask(() => {
-      notifyScheduledRef.current = false;
-      if (!pendingNotifyRef.current) return;
-      pendingNotifyRef.current = false;
-      setVersion((v) => v + 1);
+      scheduledRef.current = false;
+      const rows: CarouselClaimRow[] = [...registryRef.current.entries()].map(
+        ([priority, items]) => ({ priority, items }),
+      );
+      const next = assignCarouselClaims(rows);
+      const fp = assignmentsFingerprint(next);
+      if (fp === lastAssignmentsFpRef.current) return;
+      lastAssignmentsFpRef.current = fp;
+      setAssignments(next);
     });
-  };
+  }, []);
+
+  const register = useCallback(
+    (priority: number, items: ClaimableMedia[]) => {
+      const fp = rowFingerprint(items);
+      if (fingerprintsRef.current.get(priority) === fp) return;
+      fingerprintsRef.current.set(priority, fp);
+      registryRef.current.set(priority, items);
+      scheduleRecompute();
+    },
+    [scheduleRecompute],
+  );
+
+  const unregister = useCallback(
+    (priority: number) => {
+      if (!registryRef.current.has(priority)) return;
+      registryRef.current.delete(priority);
+      fingerprintsRef.current.delete(priority);
+      scheduleRecompute();
+    },
+    [scheduleRecompute],
+  );
 
   const value = useMemo<CarouselDedupeContextValue>(
     () => ({
-      version,
-      claim(priority, items) {
-        const claimedIds = claimedIdsRef.current;
-        const claimedTitles = claimedTitlesRef.current;
-        const idSet = new Set(items.map((m) => String(m.id)));
-        const titleSet = new Set(
-          items.map(mediaTitleKey).filter((k): k is string => Boolean(k)),
-        );
-
-        let changed = false;
-
-        if (items.length > 0) {
-          for (const [id, owner] of [...claimedIds]) {
-            if (owner === priority && !idSet.has(id)) {
-              claimedIds.delete(id);
-              changed = true;
-            }
-          }
-          for (const [title, owner] of [...claimedTitles]) {
-            if (owner === priority && !titleSet.has(title)) {
-              claimedTitles.delete(title);
-              changed = true;
-            }
-          }
-        }
-
-        const kept: string[] = [];
-        for (const item of items) {
-          const id = String(item.id);
-          const titleKey = mediaTitleKey(item);
-
-          const idOwner = claimedIds.get(id);
-          const titleOwner = titleKey
-            ? claimedTitles.get(titleKey)
-            : undefined;
-
-          const idTaken =
-            idOwner !== undefined && idOwner !== priority && idOwner < priority;
-          const titleTaken =
-            titleOwner !== undefined &&
-            titleOwner !== priority &&
-            titleOwner < priority;
-
-          if (idTaken || titleTaken) continue;
-
-          if (claimedIds.get(id) !== priority) changed = true;
-          claimedIds.set(id, priority);
-          if (titleKey) {
-            if (claimedTitles.get(titleKey) !== priority) changed = true;
-            claimedTitles.set(titleKey, priority);
-          }
-          kept.push(id);
-        }
-
-        if (changed) {
-          const snapshot = [
-            [...claimedIds.entries()]
-              .map(([id, owner]) => `${id}:${owner}`)
-              .sort()
-              .join(","),
-            [...claimedTitles.entries()]
-              .map(([title, owner]) => `${title}:${owner}`)
-              .sort()
-              .join(","),
-          ].join("||");
-          if (snapshot !== lastSnapshotRef.current) {
-            // If we already notified for this ownership map, a second trip
-            // here is an oscillation — do not bump version again.
-            if (recentSnapshotsRef.current.includes(snapshot)) {
-              lastSnapshotRef.current = snapshot;
-              return kept;
-            }
-            lastSnapshotRef.current = snapshot;
-            recentSnapshotsRef.current.push(snapshot);
-            if (recentSnapshotsRef.current.length > 8) {
-              recentSnapshotsRef.current.shift();
-            }
-            pendingNotifyRef.current = true;
-            scheduleNotify();
-          }
-        }
-
-        return kept;
-      },
+      assignments,
+      register,
+      unregister,
     }),
-    [version],
+    [assignments, register, unregister],
   );
 
   return (
@@ -227,34 +220,52 @@ export function CarouselDedupeProvider({ children }: { children: ReactNode }) {
 /**
  * Filter a media list so titles already claimed by an earlier carousel are
  * removed. Collapses same-title stubs inside the list first. No-ops outside
- * a provider. Re-runs when `version` bumps after other rows claim.
+ * a provider.
  *
- * Claim runs in layout effect — never during render — so sibling setState
- * cannot nest into React error #185.
+ * Registers with the provider; reads a pure assignment map — never mutates
+ * shared ownership during render or effects.
  */
 export function useDedupedMedia<T extends ClaimableMedia>(
   priority: number | undefined,
   media: T[],
 ): T[] {
   const ctx = useContext(CarouselDedupeContext);
-  const [filtered, setFiltered] = useState<T[]>(() =>
-    collapseTitleYearDuplicates(media),
+  const register = ctx?.register;
+  const unregister = ctx?.unregister;
+  const assignments = ctx?.assignments;
+
+  const collapsed = useMemo(
+    () => collapseTitleYearDuplicates(media),
+    [media],
   );
 
+  // Register on input change; do not unregister here (avoids empty-gap
+  // recompute when only the list contents change).
   useLayoutEffect(() => {
-    const collapsed = collapseTitleYearDuplicates(media);
-    if (priority === undefined || !ctx) {
-      setFiltered((prev) => (sameIdList(prev, collapsed) ? prev : collapsed));
-      return;
-    }
-    if (collapsed.length === 0) {
-      setFiltered((prev) => (prev.length === 0 ? prev : []));
-      return;
-    }
-    const kept = new Set(ctx.claim(priority, collapsed));
-    const next = collapsed.filter((m) => kept.has(String(m.id)));
-    setFiltered((prev) => (sameIdList(prev, next) ? prev : next));
-  }, [media, priority, ctx, ctx?.version]);
+    if (priority === undefined || !register) return undefined;
+    register(priority, collapsed);
+    return undefined;
+  }, [priority, collapsed, register]);
 
-  return filtered;
+  // Unregister only when this priority leaves the tree.
+  useLayoutEffect(() => {
+    if (priority === undefined || !unregister) return undefined;
+    const p = priority;
+    return () => {
+      unregister(p);
+    };
+  }, [priority, unregister]);
+
+  if (priority === undefined || !assignments) {
+    return collapsed;
+  }
+
+  const kept = assignments.get(priority);
+  if (!kept) {
+    // First paint before microtask flush — show undeduped collapsed list.
+    return collapsed;
+  }
+
+  const keptSet = new Set(kept);
+  return collapsed.filter((m) => keptSet.has(String(m.id)));
 }
