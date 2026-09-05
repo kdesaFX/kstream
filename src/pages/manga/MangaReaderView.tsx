@@ -419,11 +419,7 @@ export function MangaReaderView() {
 
         // Mirror ids without a chapter number are unsafe during rapid Next —
         // wait for the chapter list / pending meta instead of painting ungated.
-        if (
-          !chapterForId &&
-          (isWeebCentralId(id) || isComickChapterId(id)) &&
-          !detailsReady
-        ) {
+        if (!chapterForId && isWeebCentralId(id) && !detailsReady) {
           needsDetailsRetryRef.current = true;
           if (!silent) setLoading(true);
           return;
