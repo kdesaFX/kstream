@@ -392,10 +392,6 @@ export function RealPlayerView() {
   const watchedSeconds = usePlayerStore((s) => s.progress.time);
   const metaTmdbId = storeMeta?.tmdbId;
 
-  const autoResumeExhausted = playbackRetryBudget.current.isExhausted(
-    MAX_PLAYBACK_AUTO_RETRIES,
-  );
-
   useEffect(() => {
     if (!enableLastSuccessfulSource || !sourceId || watchedSeconds < 5) return;
     rememberSuccessfulSource(metaTmdbId, sourceId);
