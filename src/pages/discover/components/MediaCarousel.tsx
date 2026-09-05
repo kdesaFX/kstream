@@ -342,17 +342,27 @@ export function MediaCarousel({
       (persistedStill?.updatedAt ?? 0) >= mostRecent.updatedAt;
     const pick = useManual && persistedStill ? persistedStill : mostRecent;
 
-    if (selectedRecommendationId === pick.id) {
+    if (
+      selectedRecommendationId === pick.id &&
+      persisted?.id === pick.id &&
+      persisted?.manual === useManual
+    ) {
       return;
     }
 
     setSelectedRecommendationId(pick.id);
     setSelectedRecommendationTitle(pick.title);
-    setRecommendationSeed(seedMedia, {
-      id: pick.id,
-      title: pick.title,
-      manual: useManual,
-    });
+    if (
+      persisted?.id !== pick.id ||
+      persisted?.title !== pick.title ||
+      persisted?.manual !== useManual
+    ) {
+      setRecommendationSeed(seedMedia, {
+        id: pick.id,
+        title: pick.title,
+        manual: useManual,
+      });
+    }
   }, [
     showRecommendations,
     recommendationSources,
