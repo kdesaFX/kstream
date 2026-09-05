@@ -174,6 +174,16 @@ function cachePages(
   writePersistedPageCache(chapterId, pages, storedChapter);
 }
 
+/** Drop memory + session page lists for a chapter (or all, if omitted). */
+export function clearChapterPagesCache(chapterId?: string): void {
+  if (!chapterId) {
+    pageListCache.clear();
+    return;
+  }
+  pageListCache.delete(chapterId);
+  clearPersistedPageCache(chapterId);
+}
+
 export async function getChapterPages(
   chapterId: string,
   fallback?: ChapterPageFallback,

@@ -4,7 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { getChapterPages, getMangaDetails, prefetchChapterPages } from "@/backend/manga/catalog";
+import { getChapterPages, getMangaDetails, prefetchChapterPages, clearChapterPagesCache } from "@/backend/manga/catalog";
 import {
   canUseMangaOffline,
   downloadDesktopMangaChapter,
@@ -115,6 +115,8 @@ export function MangaReaderView() {
   /** False until getMangaDetails finishes (partial MD may have zero chapters). */
   const [detailsReady, setDetailsReady] = useState(false);
   const [pages, setPages] = useState<string[]>([]);
+  /** Chapter id the `pages` array belongs to — ignore stale setPages from older loads. */
+  const pagesChapterIdRef = useRef<string | undefined>(undefined);
   const [pageIndex, setPageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -173,6 +175,10 @@ export function MangaReaderView() {
     chapterIndex >= 0 && chapterIndex < chapters.length - 1
       ? chapters[chapterIndex + 1]
       : undefined;
+
+  // Never paint page URLs that belong to a different chapter id (Next race).
+  const visiblePages =
+    pagesChapterIdRef.current === chapterId ? pages : [];
 
   const direction =
     details?.readingDirection ??
@@ -338,7 +344,9 @@ export function MangaReaderView() {
   const loadPages = useCallback(
     async (id: string, force = false, silent = false) => {
       const generation = loadGenerationRef.current;
-      const isStale = () => generation !== loadGenerationRef.current;
+      const isStale = () =>
+        generation !== loadGenerationRef.current ||
+        (chapterId != null && id !== chapterId);
 
       if (!silent) {
         setLoading(true);
@@ -347,6 +355,7 @@ export function MangaReaderView() {
       if (force) {
         retried.current = false;
         skippedEmptyRef.current.delete(id);
+        clearChapterPagesCache(id);
       }
       try {
         mangaMark("reader-pages-start");
@@ -356,6 +365,7 @@ export function MangaReaderView() {
           if (offlinePages?.length) {
             pagesLoadedRef.current = true;
             needsDetailsRetryRef.current = false;
+            pagesChapterIdRef.current = id;
             setPages(offlinePages);
             if (!silent) setPageIndex(0);
             setOfflineSaved(true);
@@ -386,6 +396,26 @@ export function MangaReaderView() {
             // Comick/MD stubs (Dress-Up Darling was teleporting to ch.6+).
             // Let the reader show the empty state; Next still works.
             setError(t("manga.reader.emptyChapter"));
+            pagesChapterIdRef.current = id;
+            setPages([]);
+            pagesLoadedRef.current = false;
+          }
+          return;
+        }
+        // Reject wrong-chapter lists before paint when we know the id's number.
+        if (
+          chapterForId &&
+          !pagesValidForManga(
+            urls,
+            fallback.title,
+            fallback.alternateTitles ?? [],
+            chapterForId,
+          )
+        ) {
+          clearChapterPagesCache(id);
+          if (!silent) {
+            setError(t("manga.reader.emptyChapter"));
+            pagesChapterIdRef.current = id;
             setPages([]);
             pagesLoadedRef.current = false;
           }
@@ -393,6 +423,7 @@ export function MangaReaderView() {
         }
         pagesLoadedRef.current = true;
         needsDetailsRetryRef.current = false;
+        pagesChapterIdRef.current = id;
         setPages(urls);
         if (!silent) setPageIndex(0);
         if (canUseMangaOffline()) {
@@ -407,6 +438,7 @@ export function MangaReaderView() {
           needsDetailsRetryRef.current = !detailsReady;
           pagesLoadedRef.current = false;
           setError(e instanceof Error ? e.message : "Failed to load pages");
+          pagesChapterIdRef.current = id;
           setPages([]);
         }
       } finally {
@@ -418,6 +450,7 @@ export function MangaReaderView() {
       details,
       detailsReady,
       pageFallback,
+      chapterId,
     ],
   );
 
@@ -428,9 +461,11 @@ export function MangaReaderView() {
     needsDetailsRetryRef.current = false;
     retried.current = false;
     setOfflineSaved(false);
+    pagesChapterIdRef.current = undefined;
     // Drop previous chapter art immediately so a wrong cache can't flash.
     setPages([]);
     setPageIndex(0);
+    clearChapterPagesCache(chapterId);
 
     const titleForCheck = details?.title ?? titleHint;
     const alts = details?.alternateTitles ?? [];
@@ -442,6 +477,7 @@ export function MangaReaderView() {
       ) {
         clearPersistedPageCache(chapterId);
       } else {
+        pagesChapterIdRef.current = chapterId;
         setPages(cached);
         setLoading(false);
         pagesLoadedRef.current = true;
@@ -457,6 +493,7 @@ export function MangaReaderView() {
         ) {
           return;
         }
+        pagesChapterIdRef.current = chapterId;
         setPages(offline);
         setPageIndex(0);
         setLoading(false);
@@ -466,7 +503,7 @@ export function MangaReaderView() {
       });
       return;
     }
-    void loadPages(chapterId);
+    void loadPages(chapterId, true);
   }, [chapterId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Once chapter number is known, drop painted pages that belong to another ch.
@@ -647,6 +684,7 @@ export function MangaReaderView() {
     if (!details || !ch) return;
     skipChapterResumeRef.current = ch.id !== chapterId;
     pageChapterIdRef.current = ch.id;
+    pagesChapterIdRef.current = undefined;
     // Don't bump loadGeneration here — the chapterId effect owns that. Bumping
     // twice made the effect's in-flight fetch look stale and left Next blank.
     pagesLoadedRef.current = false;
@@ -660,7 +698,7 @@ export function MangaReaderView() {
   const turnPage = useCallback(
     (delta: number) => {
       const next = pageIndex + delta;
-      if (next >= 0 && next < pages.length) {
+      if (next >= 0 && next < visiblePages.length) {
         setPageIndex(next);
         return;
       }
@@ -668,7 +706,7 @@ export function MangaReaderView() {
       if (delta < 0 && prevChapter) goChapter(prevChapter);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pageIndex, pages.length, nextChapter, prevChapter, details],
+    [pageIndex, visiblePages.length, nextChapter, prevChapter, details],
   );
 
   // Keyboard
@@ -860,7 +898,7 @@ export function MangaReaderView() {
         </div>
       ) : null}
 
-      {!loading && !error && pages.length > 0 ? (
+      {!loading && !error && visiblePages.length > 0 ? (
         <div
           ref={scrollRef}
           className={classNames(
@@ -874,11 +912,11 @@ export function MangaReaderView() {
               ? (e) => {
                   const el = e.currentTarget;
                   const max = el.scrollHeight - el.clientHeight;
-                  if (max <= 0 || pages.length === 0) return;
+                  if (max <= 0 || visiblePages.length === 0) return;
                   const ratio = el.scrollTop / max;
                   const idx = Math.min(
-                    pages.length - 1,
-                    Math.floor(ratio * pages.length),
+                    visiblePages.length - 1,
+                    Math.floor(ratio * visiblePages.length),
                   );
                   if (idx !== pageIndex) setPageIndex(idx);
                 }
@@ -899,7 +937,7 @@ export function MangaReaderView() {
         >
           {readerMode === "vertical" ? (
             <div className="max-w-3xl mx-auto flex flex-col gap-1">
-              {pages.map((src, i) => (
+              {visiblePages.map((src, i) => (
                 <PageImage
                   key={`${chapterId}-${i}`}
                   src={src}
@@ -918,7 +956,7 @@ export function MangaReaderView() {
           ) : (
             <div className="w-full max-w-4xl px-2">
               <PageImage
-                src={pages[pageIndex]}
+                src={visiblePages[pageIndex]}
                 alt={`Page ${pageIndex + 1}`}
                 referrerPolicy={pageReferrer}
                 eager
@@ -950,13 +988,13 @@ export function MangaReaderView() {
               <input
                 type="range"
                 min={0}
-                max={Math.max(pages.length - 1, 0)}
+                max={Math.max(visiblePages.length - 1, 0)}
                 value={pageIndex}
                 onChange={(e) => setPageIndex(Number(e.target.value))}
                 className="flex-1"
               />
               <span className="text-xs text-white/70 tabular-nums">
-                {pages.length ? pageIndex + 1 : 0}/{pages.length}
+                {visiblePages.length ? pageIndex + 1 : 0}/{visiblePages.length}
               </span>
             </div>
           ) : (
