@@ -138,6 +138,7 @@ export function MangaReaderView() {
   const pagesLoadedRef = useRef(false);
   const emptyRetryRef = useRef<{ id: string; count: number } | null>(null);
   const emptyRetryTimerRef = useRef<number | null>(null);
+  const chapterLoadStartedAtRef = useRef(0);
   /** Bumps on every loadPages start so concurrent fetches can't both paint. */
   const loadGenerationRef = useRef(0);
   /** Set synchronously in goChapter so loads know the chapter number before URL settles. */
@@ -538,6 +539,7 @@ export function MangaReaderView() {
     setPages([]);
     setPageIndex(0);
     setLoading(true);
+    chapterLoadStartedAtRef.current = Date.now();
     setError(null);
     clearChapterPagesCache(chapterId);
 
@@ -840,8 +842,12 @@ export function MangaReaderView() {
     if (!opts?.fromPicker) {
       const now = Date.now();
       const cooledDown = now - lastChapterNavAtRef.current >= 1000;
+      const loadingEscapeHatch =
+        loading &&
+        chapterLoadStartedAtRef.current > 0 &&
+        now - chapterLoadStartedAtRef.current >= 2500;
       const canLeaveCurrentChapter =
-        chapterPagesReadyRef.current || chapterUnavailable;
+        chapterPagesReadyRef.current || chapterUnavailable || loadingEscapeHatch;
       if (!canLeaveCurrentChapter || !cooledDown) {
         showSpeedNotice();
         return;
